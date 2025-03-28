@@ -1,0 +1,42 @@
+[tool.black]
+line-length = 120
+
+[tool.pytest.ini_options]
+pythonpath = ["src/"]
+testpaths = "tests"
+
+[tool.isort]
+profile = "black"
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+
+[tool.mypy]
+exclude = ["tests"]
+check_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_untyped_defs = true
+namespace_packages = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+
+[build-system]
+requires = ["setuptools >= 40.9.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cactus-ui"
+version = "0.0.1"
+requires-python = ">= 3.12"
+description = "A web user interface for the CSIP Aus test harness"
+dependencies = ["flask", "python-dotenv", "authlib", "requests"]
+
+[project.optional-dependencies]
+dev = ["bandit", "flake8", "mypy", "black", "coverage"]
+test = ["pytest"]
+
+[tool.setuptools.package-data]
+"my_app" = ["py.typed"]
