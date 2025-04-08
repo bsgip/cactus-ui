@@ -188,6 +188,13 @@ def runs() -> str | Response:
     runs_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run?page={page}"
     headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
 
+    # Fetch the list of test procedures for the dropdown
+    procedures_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/procedure"
+    procedures_response = requests.get(procedures_url, headers=headers)
+    procedures = []
+    if procedures_response.status_code == 200:
+        procedures = procedures_response.json().get("items", [])
+
     response = requests.get(runs_url, headers=headers)
     if response.status_code == 200:
         runs_data = response.json()
@@ -206,6 +213,7 @@ def runs() -> str | Response:
             total_items=total_items,
             page_size=page_size,
             current_page=current_page,
+            procedures=procedures,
         )
     else:
         error = "Failed to retrieve runs."
