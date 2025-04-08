@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Certificate - Cactus{% endblock %}
+
+{% block content %}
+    <h2>Client Certificate Actions</h2>
+
+    <div class="row">
+        <!-- Download Certificate Button (GET request) -->
+        <div class="col-6 text-center">
+            <form method="POST" action="{{ url_for('certificate') }}">
+                <button type="submit" name="action" value="download" class="btn btn-outline-primary">
+                    <i class="fas fa-download fa-3x"></i><br>Download Certificate
+                </button>
+            </form>
+        </div>
+
+            <!-- Refresh Certificate Button (PUT request) -->
+            <div class="col-6 text-center">
+                <form method="POST" action="{{ url_for('certificate') }}">
+                    <button type="submit" name="action" value="refresh" class="btn btn-outline-success">
+                        <i class="fas fa-sync-alt fa-3x"></i><br>Refresh Certificate
+                    </button>
+                </form>
+            </div>
+    </div>
+
+    {% if pwd %}
+    <div class="alert alert-warning mt-3">
+        <strong>Generated a new certificate (.p12). This passphrase will not be shown again:
+
+        </strong> {{ pwd }}
+    </div>
+    {% elif error %}
+        <div class="alert alert-danger mt-3">
+            <strong>Error:</strong> {{ error }}
+        </div>
+    {% endif %}
+{% endblock %}
