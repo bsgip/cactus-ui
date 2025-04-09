@@ -20,7 +20,7 @@ app = Flask(__name__)
 app.secret_key = env.get("APP_SECRET_KEY")
 
 
-oauth = OAuth(app)
+oauth = OAuth(app)  # type: ignore
 
 oauth.register(
     "auth0",
@@ -30,10 +30,11 @@ oauth.register(
         "scope": "user:all",
     },
     server_metadata_url=f'https://{env.get("AUTH0_DOMAIN")}/.well-known/openid-configuration',
-)
+)  # type: ignore
 
 CACTUS_ORCHESTRATOR_BASEURL = env["CACTUS_ORCHESTRATOR_BASEURL"]
 CACTUS_ORCHESTRATOR_AUDIENCE = env["CACTUS_ORCHESTRATOR_AUDIENCE"]
+CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT = 300
 
 
 @dataclass
@@ -72,7 +73,7 @@ def _handle_pagination(paginated_json: dict) -> Pagination:
 def fetch_procedures(headers: dict) -> list:
     # Fetch the list of test procedures for the dropdown
     procedures_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/procedure"
-    procedures_response = requests.get(procedures_url, headers=headers)
+    procedures_response = requests.get(procedures_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
     procedures = []
     if procedures_response.status_code == 200:
         procedures = procedures_response.json().get("items", [])
@@ -94,7 +95,7 @@ def procedures_page() -> str:
     headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
 
     # Request the paginated list of procedures from upstream
-    response = requests.get(procedures_url, headers=headers)
+    response = requests.get(procedures_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
 
     # If the request is successful
     if response.status_code == 200:
@@ -129,7 +130,7 @@ def certificate_page() -> str | Response:
             cert_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/certificate"
             headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
 
-            cert_resp = requests.put(cert_url, headers=headers)
+            cert_resp = requests.put(cert_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
             pwd = cert_resp.headers["X-Certificate-Password"]
             if cert_resp.status_code != 200:
                 error = "Failed to generate certificate."
@@ -139,7 +140,7 @@ def certificate_page() -> str | Response:
             cert_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/certificate"
             headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
 
-            cert_resp = requests.get(cert_url, headers=headers)
+            cert_resp = requests.get(cert_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
 
             if cert_resp.status_code != 200:
                 error = "Failed to retrieve the certificate."
@@ -154,20 +155,23 @@ def certificate_page() -> str | Response:
 
 
 @app.route("/runs", methods=["GET", "POST"])
-def runs_page() -> str | Response:
+def runs_page() -> str | Response:  # noqa: C901
     # Handle POST for triggering a new run
+    headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
     if request.method == "POST":
         if request.form.get("action") == "trigger":
             test_procedure_id = request.form.get("test_procedure_id")
             if test_procedure_id:
                 run_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run"
-                headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
                 payload = {"test_procedure_id": test_procedure_id}
 
-                response = requests.post(run_url, json=payload, headers=headers)
+                response = requests.post(
+                    run_url, json=payload, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT
+                )
 
                 if response.status_code == 201:
-                    return redirect(url_for("runs_page"))  # Refresh the page after run creation
+                    # Refresh the page after run creation
+                    return redirect(url_for("runs_page"))
                 else:
                     error = "Failed to trigger a new run."
                     return render_template("runs.html", error=error)
@@ -179,15 +183,11 @@ def runs_page() -> str | Response:
                 finalise_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run/{run_id}/finalise"
                 headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
 
-                response = requests.post(finalise_url, headers=headers)
+                response = requests.post(finalise_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
 
                 if response.status_code == 200:
-                    # Handle the ZIP file (artifact download) if it's returned
-                    zip_data = response.content  # This is the ZIP file returned by upstream
-
-                    # You could also send the file as a download to the user:
                     return send_file(
-                        io.BytesIO(zip_data),
+                        io.BytesIO(response.content),
                         as_attachment=True,
                         download_name=f"{run_id}_artifacts.zip",
                         mimetype="application/zip",
@@ -201,9 +201,7 @@ def runs_page() -> str | Response:
             run_id = request.form.get("run_id")
             if run_id:
                 artifact_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run/{run_id}/artifact"
-                headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
-
-                response = requests.get(artifact_url, headers=headers)
+                response = requests.get(artifact_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
 
                 if response.status_code == 200:
                     # forward zip to user
@@ -222,7 +220,7 @@ def runs_page() -> str | Response:
     runs_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run?page={page}"
     headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
 
-    response = requests.get(runs_url, headers=headers)
+    response = requests.get(runs_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
     if response.status_code == 200:
         runs_data = response.json()
         runs = runs_data.get("items", [])
@@ -265,12 +263,12 @@ def logout() -> Response:
     session.clear()
     return redirect(
         "https://"
-        + env.get("AUTH0_DOMAIN")
+        + env["AUTH0_DOMAIN"]
         + "/v2/logout?"
         + urlencode(
             {
                 "returnTo": url_for("home", _external=True),
-                "client_id": env.get("AUTH0_CLIENT_ID"),
+                "client_id": env["AUTH0_CLIENT_ID"],
             },
             quote_via=quote_plus,
         )
@@ -278,4 +276,4 @@ def logout() -> Response:
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(env.get("PORT", 3000)), debug=True)
+    app.run(host="127.0.0.1", port=int(env.get("PORT", 3000)), debug=True)  # nosec - not for deployment
