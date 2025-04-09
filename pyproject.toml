@@ -34,6 +34,7 @@ requires-python = ">= 3.12"
 description = "A web user interface for the CSIP Aus test harness"
 dependencies = ["flask", "python-dotenv", "authlib", "requests"]
 
+
 [project.optional-dependencies]
 dev = [
     "bandit",
@@ -47,4 +48,4 @@ dev = [
 test = ["pytest"]
 
 [tool.setuptools.package-data]
-"my_app" = ["py.typed"]
+"my_app" = ["py.typed", "templates/*.html"]

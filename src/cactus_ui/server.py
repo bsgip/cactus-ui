@@ -1,8 +1,10 @@
 """Python Flask WebApp Auth0 integration example"""
 
 from dataclasses import dataclass
+from functools import wraps
 import io
 from os import environ as env
+from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
 import requests
 
@@ -35,6 +37,19 @@ oauth.register(
 CACTUS_ORCHESTRATOR_BASEURL = env["CACTUS_ORCHESTRATOR_BASEURL"]
 CACTUS_ORCHESTRATOR_AUDIENCE = env["CACTUS_ORCHESTRATOR_AUDIENCE"]
 CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT = 300
+
+
+F = TypeVar("F", bound=Callable[..., object])
+
+
+def login_required(f: F) -> F:
+    @wraps(f)
+    def decorated(*args: Any, **kwargs: Any) -> Any:
+        if "user" not in session:
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+
+    return cast(F, decorated)
 
 
 @dataclass
@@ -89,6 +104,7 @@ def home() -> str:
 
 
 @app.route("/procedures", methods=["GET"])
+@login_required
 def procedures_page() -> str:
     page = request.args.get("page", 1, type=int)  # Default to page 1
     procedures_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/procedure?page={page}"
@@ -119,6 +135,7 @@ def procedures_page() -> str:
 
 
 @app.route("/certificate", methods=["GET", "POST"])
+@login_required
 def certificate_page() -> str | Response:
     cert_url = None
     error = None
@@ -155,6 +172,7 @@ def certificate_page() -> str | Response:
 
 
 @app.route("/runs", methods=["GET", "POST"])
+@login_required
 def runs_page() -> str | Response:  # noqa: C901
     # Handle POST for triggering a new run
     headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
@@ -259,6 +277,7 @@ def login() -> str:
 
 
 @app.route("/logout")
+@login_required
 def logout() -> Response:
     session.clear()
     return redirect(
