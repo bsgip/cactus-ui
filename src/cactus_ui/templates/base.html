@@ -16,14 +16,14 @@
     <nav class="navbar navbar-expand-lg navbar-light bg-success">
         <div class="container">
             <!-- TODO: proper home/landing page -->
-            <a class="navbar-brand text-white">🌵</a>  
-            
+            <a class="navbar-brand text-white">🌵</a>
+
             <div class="d-inline ms-auto">
-                <a class="text-white me-3" href="{{ url_for('procedures') }}">Procedures</a>
-                <span class="text-white">|</span>   
-                <a class="text-white mx-3" href="{{ url_for('runs') }}">Runs</a>
+                <a class="text-white me-3" href="{{ url_for('procedures_page') }}">Procedures</a>
                 <span class="text-white">|</span>
-                <a class="text-white mx-3" href="{{ url_for('certificate') }}">Certificate</a>
+                <a class="text-white mx-3" href="{{ url_for('runs_page') }}">Runs</a>
+                <span class="text-white">|</span>
+                <a class="text-white mx-3" href="{{ url_for('certificate_page') }}">Certificate</a>
             </div>
         </div>
     </nav>

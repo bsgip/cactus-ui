@@ -1,5 +1,6 @@
 """Python Flask WebApp Auth0 integration example"""
 
+from dataclasses import dataclass
 import io
 from os import environ as env
 from urllib.parse import quote_plus, urlencode
@@ -35,6 +36,49 @@ CACTUS_ORCHESTRATOR_BASEURL = env["CACTUS_ORCHESTRATOR_BASEURL"]
 CACTUS_ORCHESTRATOR_AUDIENCE = env["CACTUS_ORCHESTRATOR_AUDIENCE"]
 
 
+@dataclass
+class Pagination:
+    total_pages: int
+    total_items: int
+    page_size: int
+    current_page: int
+    prev_page: int | None
+    next_page: int | None
+
+
+def _handle_pagination(paginated_json: dict) -> Pagination:
+    total_pages = paginated_json.get("pages", 1)
+    current_page = paginated_json.get("page", 1)
+    if current_page == 1:
+        prev_page = None
+    else:
+        prev_page = current_page - 1
+
+    if current_page < total_pages:
+        next_page = current_page + 1
+    else:
+        next_page = None
+
+    return Pagination(
+        total_pages=total_pages,
+        total_items=paginated_json.get("total", 0),
+        page_size=paginated_json.get("size", 10),
+        current_page=current_page,
+        prev_page=prev_page,
+        next_page=next_page,
+    )
+
+
+def fetch_procedures(headers: dict) -> list:
+    # Fetch the list of test procedures for the dropdown
+    procedures_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/procedure"
+    procedures_response = requests.get(procedures_url, headers=headers)
+    procedures = []
+    if procedures_response.status_code == 200:
+        procedures = procedures_response.json().get("items", [])
+    return procedures
+
+
 # Controllers API
 @app.route("/")
 def home() -> str:
@@ -44,7 +88,7 @@ def home() -> str:
 
 
 @app.route("/procedures", methods=["GET"])
-def procedures() -> str:
+def procedures_page() -> str:
     page = request.args.get("page", 1, type=int)  # Default to page 1
     procedures_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/procedure?page={page}"
     headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
@@ -54,22 +98,18 @@ def procedures() -> str:
 
     # If the request is successful
     if response.status_code == 200:
-        procedures_data = response.json()  # Assuming the API returns a paginated response in JSON
-        procedures = procedures_data.get("items", [])  # List of procedures
-        next_page = procedures_data.get("next", None)  # URL for the next page if available
-        prev_page = procedures_data.get("previous", None)  # URL for the previous page if available
-        total_items = procedures_data.get("total", 0)  # Total number of items in the collection
-        page_size = procedures_data.get("page_size", 10)  # Number of items per page
-        current_page = procedures_data.get("page", 1)  # Current page number
+        procedures_data = response.json()
+        procedures = procedures_data.get("items", [])
+        pagination = _handle_pagination(procedures_data)
 
         return render_template(
             "procedures.html",
             procedures=procedures,
-            next_page=next_page,
-            prev_page=prev_page,
-            total_items=total_items,
-            page_size=page_size,
-            current_page=current_page,
+            next_page=pagination.next_page,
+            prev_page=pagination.prev_page,
+            total_items=pagination.total_items,
+            page_size=pagination.page_size,
+            current_page=pagination.current_page,
         )
 
     # If the request fails
@@ -78,7 +118,7 @@ def procedures() -> str:
 
 
 @app.route("/certificate", methods=["GET", "POST"])
-def certificate() -> str | Response:
+def certificate_page() -> str | Response:
     cert_url = None
     error = None
     pwd = None
@@ -104,8 +144,6 @@ def certificate() -> str | Response:
             if cert_resp.status_code != 200:
                 error = "Failed to retrieve the certificate."
             else:
-                # The response should contain the certificate as a file
-                # Return the certificate as a downloadable file to the user
                 return Response(
                     cert_resp.content,
                     mimetype="application/x-pkcs12",
@@ -116,7 +154,7 @@ def certificate() -> str | Response:
 
 
 @app.route("/runs", methods=["GET", "POST"])
-def runs() -> str | Response:
+def runs_page() -> str | Response:
     # Handle POST for triggering a new run
     if request.method == "POST":
         if request.form.get("action") == "trigger":
@@ -126,11 +164,10 @@ def runs() -> str | Response:
                 headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
                 payload = {"test_procedure_id": test_procedure_id}
 
-                # Trigger the new run (POST request)
                 response = requests.post(run_url, json=payload, headers=headers)
 
                 if response.status_code == 201:
-                    return redirect(url_for("runs"))  # Refresh the page after run creation
+                    return redirect(url_for("runs_page"))  # Refresh the page after run creation
                 else:
                     error = "Failed to trigger a new run."
                     return render_template("runs.html", error=error)
@@ -169,12 +206,9 @@ def runs() -> str | Response:
                 response = requests.get(artifact_url, headers=headers)
 
                 if response.status_code == 200:
-                    # Handle the ZIP file (artifact download) if it's returned
-                    zip_data = response.content  # This is the ZIP file returned by upstream
-
-                    # You could also send the file as a download to the user:
+                    # forward zip to user
                     return send_file(
-                        io.BytesIO(zip_data),
+                        io.BytesIO(response.content),
                         as_attachment=True,
                         download_name=f"{run_id}_artifacts.zip",
                         mimetype="application/zip",
@@ -188,31 +222,23 @@ def runs() -> str | Response:
     runs_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run?page={page}"
     headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
 
-    # Fetch the list of test procedures for the dropdown
-    procedures_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/procedure"
-    procedures_response = requests.get(procedures_url, headers=headers)
-    procedures = []
-    if procedures_response.status_code == 200:
-        procedures = procedures_response.json().get("items", [])
-
     response = requests.get(runs_url, headers=headers)
     if response.status_code == 200:
         runs_data = response.json()
         runs = runs_data.get("items", [])
-        next_page = runs_data.get("next", None)
-        prev_page = runs_data.get("previous", None)
-        total_items = runs_data.get("total", 0)
-        page_size = runs_data.get("page_size", 10)
-        current_page = runs_data.get("page", 1)
+        pagination = _handle_pagination(runs_data)
+
+        # fetch procedures
+        procedures = fetch_procedures(headers)
 
         return render_template(
             "runs.html",
             runs=runs,
-            next_page=next_page,
-            prev_page=prev_page,
-            total_items=total_items,
-            page_size=page_size,
-            current_page=current_page,
+            next_page=pagination.next_page,
+            prev_page=pagination.prev_page,
+            total_items=pagination.total_items,
+            page_size=pagination.page_size,
+            current_page=pagination.current_page,
             procedures=procedures,
         )
     else:
