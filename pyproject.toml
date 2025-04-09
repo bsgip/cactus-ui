@@ -35,7 +35,15 @@ description = "A web user interface for the CSIP Aus test harness"
 dependencies = ["flask", "python-dotenv", "authlib", "requests"]
 
 [project.optional-dependencies]
-dev = ["bandit", "flake8", "mypy", "black", "coverage"]
+dev = [
+    "bandit",
+    "flake8",
+    "mypy",
+    "black",
+    "coverage",
+    "types-requests",
+    "types-Authlib",
+]
 test = ["pytest"]
 
 [tool.setuptools.package-data]

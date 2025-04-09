@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Runs - Cactus{% endblock %}
+
+{% block content %}
+<h2>Runs</h2>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div class="row">
+    <!-- Table displaying runs -->
+    <div class="col-md-8">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Run ID</th>
+                    <th>Test Procedure ID</th>
+                    <th>Test URL</th>
+                    <th>Finalised</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for run in runs %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ run['run_id'] }}</td>
+                    <td>{{ run['test_procedure_id'] }}</td>
+                    <td>{{ run['test_url'] }}</td>
+                    <td>{{ run['finalised'] }}</td>
+                    <td>
+                        {% if run['finalised'] %}
+                        <!-- Form for downloading artifacts -->
+                        <form method="POST" action="{{ url_for('runs_page') }}">
+                            <input type="hidden" name="run_id" value="{{ run['run_id'] }}">
+                            <input type="hidden" name="action" value="artifact">
+                            <button type="submit" class="btn btn-secondary">Download</button>
+                        </form>
+                        {% else %}
+                        <!-- Form to finalising the run and downloading artifacts -->
+                        <form method="POST" action="{{ url_for('runs_page') }}">
+                            <input type="hidden" name="run_id" value="{{ run['run_id'] }}">
+                            <input type="hidden" name="action" value="finalise">
+                            <button type="submit" class="btn btn-warning">Finalise</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center">No runs available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="d-flex justify-content-between">
+            {% if prev_page %}
+            <a href="{{ prev_page }}" class="btn btn-outline-primary">Previous</a>
+            {% endif %}
+            {% if next_page %}
+            <a href="{{ next_page }}" class="btn btn-outline-primary">Next</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Section for triggering a new run -->
+    <div class="col-md-4">
+        <h3>Trigger a New Run</h3>
+        <form method="POST">
+            <input type="hidden" name="action" value="trigger">
+            <div class="mb-3">
+                <label for="testProcedure" class="form-label">Select Test Procedure</label>
+                <select name="test_procedure_id" id="testProcedure" class="form-select" required>
+                    <option value="" disabled selected>Select a procedure</option>
+                    {% for procedure in procedures %}
+                    <option value="{{ procedure.test_procedure_id }}">{{ procedure.description }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success">Start Run</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
