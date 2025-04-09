@@ -73,9 +73,8 @@
         <form method="POST">
             <input type="hidden" name="action" value="trigger">
             <div class="mb-3">
-                <label for="testProcedure" class="form-label">Select Test Procedure</label>
                 <select name="test_procedure_id" id="testProcedure" class="form-select" required>
-                    <option value="" disabled selected>Select a procedure</option>
+                    <option value="" disabled selected>Select a test procedure</option>
                     {% for procedure in procedures %}
                     <option value="{{ procedure.test_procedure_id }}">{{ procedure.description }}</option>
                     {% endfor %}
