@@ -12,7 +12,7 @@ from authlib.integrations.flask_client import OAuth
 from dotenv import find_dotenv, load_dotenv
 from flask import Flask, redirect, render_template, send_file, session, request, url_for
 from werkzeug.wrappers.response import Response
-
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 ENV_FILE = find_dotenv()
 if ENV_FILE:
@@ -20,10 +20,8 @@ if ENV_FILE:
 
 app = Flask(__name__)
 app.secret_key = env.get("APP_SECRET_KEY")
-if env.get("CACTUS_UI_LOCALDEV", "false").lower() == "true":
-    app.config["PREFERRED_URL_SCHEME"] = "http"
-else:
-    app.config["PREFERRED_URL_SCHEME"] = "https"
+if not (env.get("CACTUS_UI_LOCALDEV", "false").lower() == "true"):
+    app = ProxyFix(app)  # type: ignore
 
 
 oauth = OAuth(app)  # type: ignore
