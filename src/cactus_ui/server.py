@@ -20,7 +20,7 @@ if ENV_FILE:
 
 app = Flask(__name__)
 app.secret_key = env.get("APP_SECRET_KEY")
-if env.get("CACTUS_UI_LOCALDEV", 0):
+if env.get("CACTUS_UI_LOCALDEV", "false").lower() == "true":
     app.config["PREFERRED_URL_SCHEME"] = "http"
 else:
     app.config["PREFERRED_URL_SCHEME"] = "https"
