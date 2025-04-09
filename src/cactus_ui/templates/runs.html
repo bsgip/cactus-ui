@@ -70,7 +70,7 @@
     <!-- Section for triggering a new run -->
     <div class="col-md-4">
         <h3>Trigger a New Run</h3>
-        <form method="POST">
+        <form method="POST" id="submit-run-form">
             <input type="hidden" name="action" value="trigger">
             <div class="mb-3">
                 <select name="test_procedure_id" id="testProcedure" class="form-select" required>
@@ -80,8 +80,25 @@
                     {% endfor %}
                 </select>
             </div>
-            <button type="submit" class="btn btn-success">Start Run</button>
+            <button id="submit-run-btn" type="submit" class="btn btn-success">Start Run</button>
         </form>
     </div>
 </div>
+
+<script>
+    function submit_run() {
+        var form = document.getElementById('submit-run-form')
+        if (form.checkValidity()) {
+            var btn = document.getElementById('submit-run-btn')
+            btn.disabled = true
+            btn.innerHTML =
+                `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                <span class="sr-only">Loading...</span>`;
+            form.submit()
+        }
+    }
+    document.getElementById('submit-run-btn').onclick = submit_run
+</script>
+
+
 {% endblock %}
