@@ -99,10 +99,12 @@ def fetch_procedures(headers: dict) -> list:
 
 # Controllers API
 @app.route("/")
-def home() -> str:
-    return render_template(
-        "home.html",
-    )
+def login_or_home_page() -> str:
+    if session.get("user") is None:
+        return render_template(
+            "login.html",
+        )
+    return render_template("home.html")
 
 
 @app.route("/procedures", methods=["GET"])
@@ -212,7 +214,6 @@ def runs_page() -> str | Response:  # noqa: C901
                         download_name=f"{run_id}_artifacts.zip",
                         mimetype="application/zip",
                     )
-
                 else:
                     error = "Failed to finalise the run or retrieve artifacts."
 
@@ -259,6 +260,10 @@ def runs_page() -> str | Response:  # noqa: C901
             current_page=pagination.current_page,
             procedures=procedures,
         )
+    # NOTE: Orchestrator API raises 404, for a new user that has never had a cert generated.
+    elif response.status_code == 404:
+        return render_template("runs.html", runs=[])
+
     else:
         error = "Failed to retrieve runs."
         return render_template("runs.html", error=error)
@@ -268,7 +273,7 @@ def runs_page() -> str | Response:  # noqa: C901
 def callback() -> Response:
     token = oauth.auth0.authorize_access_token()
     session["user"] = token
-    return redirect("/runs")
+    return redirect("/")
 
 
 @app.route("/login")

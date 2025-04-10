@@ -1,41 +1,44 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
 
-<head>
-    <meta charset="utf-8" />
-    <title>cactus</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        .footer-text {
-            margin-top: auto;
-            padding-bottom: 20px;
-        }
-    </style>
-</head>
+{% block title %}Guide – Cactus{% endblock %}
 
-<body class="bg-light">
+{% block content %}
+<div class="container mt-5">
+  <h1>Quick Start Guide (DRAFT)</h1>
+  <p class="lead">Run your CSIP-Australia client against our testing harness in three steps.</p>
 
-    <div class="d-flex flex-column align-items-center justify-content-center text-center flex-grow-1">
-        <h1 class="mb-3">🌵 Welcome to Cactus</h1>
-        <h2 class="h5 text-muted mb-3">Client Testing Harness</h2>
+  <hr>
 
-        {% if session and session.get('access_token') %}
-            <a href="/logout" id="qsLogoutBtn" class="btn btn-outline-danger">Logout</a>
-        {% else %}
-            <a href="/login" id="qsLoginBtn" class="btn btn-success">Login</a>
-        {% endif %}
-    </div>
+  <h2>1. Download Your Client Certificate</h2>
+  <p>
+    CSIP-Australia (based on IEEE 2030.5) uses mutual TLS for authentication.
+    Download your certificate from the <a href="/certificate">Certificate page</a> and install it in your client.
+    <br><br>
+    <strong>Note:</strong> Certificates expire. Revisit the page to refresh and download a new one when needed.
+  </p>
 
-    <div class="text-center text-muted footer-text">
-        <small><strong>C.A.C.T.U.S.</strong> = CSIP-Australia Compliance Testing for Utility Services</small>
-    </div>
+  <h2>2. Review Test Procedures</h2>
+  <p>
+    Go to the <a href="/procedures">Test Procedures</a> page for the full list of available procedures with descriptions.
+    These follow the <em>DEIP Interoperability Steering Committee – Common Smart Inverter Profile (Australia) – Test Procedures</em>, version 1.2.
+    <!-- TODO: Add link to doc -->
+  </p>
 
-</body>
+  <h2>3. Use the Runs Page</h2>
+  <p>
+    Go to the <a href="/runs">Runs page</a> to manage everything test-related:
+  </p>
+  <ul>
+    <li>Trigger a new test run by selecting a procedure from the dropdown and clicking <strong>Start Run</strong>. You'll be given a test URL to point your client at.</li>
+    <ul>
+        <li><strong>Note:</strong> It can take up to 30 seconds for your test environment to be ready.</li>
+    </ul>
+    <li>Once the client has completed the procedure steps, click <strong>Finalise</strong> to compile results. A ZIP file will be returned.</li>
+    <li>Download past results at any time from the same page.</li>
+  </ul>
 
-</html>
+  <hr>
+
+  <p>Need help? Contact <a href="mailto:support@bsgip.com">support@bsgip.com</a>.</p>
+</div>
+{% endblock %}
