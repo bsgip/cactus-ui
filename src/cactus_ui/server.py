@@ -260,9 +260,10 @@ def runs_page() -> str | Response:  # noqa: C901
             current_page=pagination.current_page,
             procedures=procedures,
         )
-    # NOTE: Orchestrator API raises 404, for a new user that has never had a cert generated.
-    elif response.status_code == 404:
-        return render_template("runs.html", runs=[])
+    # NOTE: Orchestrator API raises 4xx (? check this), for a new user that has never had a cert generated.
+    elif response.status_code >= 400 and response.status_code < 500:
+        error = "Please generate a certificate."
+        return render_template("runs.html", error=error)
 
     else:
         error = "Failed to retrieve runs."
@@ -293,7 +294,7 @@ def logout() -> Response:
         + "/v2/logout?"
         + urlencode(
             {
-                "returnTo": url_for("home", _external=True),
+                "returnTo": url_for("login_or_home_page", _external=True),
                 "client_id": env["AUTH0_CLIENT_ID"],
             },
             quote_via=quote_plus,
