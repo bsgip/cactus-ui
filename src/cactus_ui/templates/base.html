@@ -36,10 +36,19 @@
         {% block content %}{% endblock %}
     </div>
 
-    <!-- What to have in footer? -->
-    <!-- <footer class="text-center text-muted mt-4">
-        © 2025 bsgip
-    </footer> -->
+    <footer class="text-center text-muted mt-5 py-3 border-top">
+        {% if _hosted_images %}
+        <div>Hosted by</div>
+        <div class="d-flex justify-content-center align-items-center mt-2 gap-3 flex-wrap">
+            {% for image_path in _hosted_images %}
+                <img src="{{ url_for('static', filename=image_path) }}" alt="Host Logo" style="height: 40px;">
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if _version %}
+        <div class="small mt-2">{{ _version }}</div>
+        {% endif %}
+    </footer>
 </body>
 
 </html>
