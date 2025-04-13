@@ -1,19 +1,28 @@
 """Python Flask WebApp Auth0 integration example"""
 
+import io
 from dataclasses import dataclass
 from functools import lru_cache, wraps
-import io
-from os import environ as env, listdir
+from os import environ as env
 from pathlib import Path
 from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
-import requests
 
+import requests
 from authlib.integrations.flask_client import OAuth
 from dotenv import find_dotenv, load_dotenv
-from flask import Flask, current_app, redirect, render_template, send_file, session, request, url_for
-from werkzeug.wrappers.response import Response
+from flask import (
+    Flask,
+    current_app,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    session,
+    url_for,
+)
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.wrappers.response import Response
 
 ENV_FILE = find_dotenv()
 if ENV_FILE:
@@ -26,7 +35,6 @@ if not (env.get("CACTUS_UI_LOCALDEV", "false").lower() == "true"):
 
 
 oauth = OAuth(app)  # type: ignore
-
 oauth.register(
     "auth0",
     client_id=env.get("AUTH0_CLIENT_ID"),
