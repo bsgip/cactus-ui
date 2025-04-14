@@ -1,18 +1,28 @@
 """Python Flask WebApp Auth0 integration example"""
 
-from dataclasses import dataclass
-from functools import wraps
 import io
+from dataclasses import dataclass
+from functools import lru_cache, wraps
 from os import environ as env
+from pathlib import Path
 from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
-import requests
 
+import requests
 from authlib.integrations.flask_client import OAuth
 from dotenv import find_dotenv, load_dotenv
-from flask import Flask, redirect, render_template, send_file, session, request, url_for
-from werkzeug.wrappers.response import Response
+from flask import (
+    Flask,
+    current_app,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    session,
+    url_for,
+)
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.wrappers.response import Response
 
 ENV_FILE = find_dotenv()
 if ENV_FILE:
@@ -25,7 +35,6 @@ if not (env.get("CACTUS_UI_LOCALDEV", "false").lower() == "true"):
 
 
 oauth = OAuth(app)  # type: ignore
-
 oauth.register(
     "auth0",
     client_id=env.get("AUTH0_CLIENT_ID"),
@@ -36,10 +45,12 @@ oauth.register(
     server_metadata_url=f'https://{env.get("AUTH0_DOMAIN")}/.well-known/openid-configuration',
 )  # type: ignore
 
+# envvars
 CACTUS_ORCHESTRATOR_BASEURL = env["CACTUS_ORCHESTRATOR_BASEURL"]
 CACTUS_ORCHESTRATOR_AUDIENCE = env["CACTUS_ORCHESTRATOR_AUDIENCE"]
 CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT = 300
-
+CACTUS_PLATFORM_VERSION = env["CACTUS_PLATFORM_VERSION"]
+CACTUS_PLATFORM_SUPPORT_EMAIL = env["CACTUS_PLATFORM_SUPPORT_EMAIL"]
 
 F = TypeVar("F", bound=Callable[..., object])
 
@@ -300,6 +311,30 @@ def logout() -> Response:
             quote_via=quote_plus,
         )
     )
+
+
+@lru_cache(maxsize=1)
+def get_hosted_images() -> list[str]:
+    root_path = Path(current_app.root_path)
+    static_base_path = Path(current_app.static_folder) / "base"  # type: ignore
+    return [str(f.relative_to(root_path)) for f in static_base_path.glob("*.webp")]
+
+
+@app.context_processor
+def inject_global_template_context() -> dict:
+    """
+    Injects global constants and assets used across all templates, specifically:
+    - Injects images (.webp) into hosted by section of the base page's footer.
+       o NOTE: All (.webp) images under './static/base/' path will be included.
+    - sets platform version from CACTUS_PLATFORM_VERSION envvar
+    - Adds support email from CACTUS_PLATFORM_SUPPORT_EMAIL envvar.
+    """
+
+    return {
+        "version": CACTUS_PLATFORM_VERSION,
+        "hosted_images": get_hosted_images(),
+        "support_email": CACTUS_PLATFORM_SUPPORT_EMAIL,
+    }
 
 
 if __name__ == "__main__":

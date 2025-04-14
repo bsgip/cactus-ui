@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container mt-5">
-  <h1>Quick Start Guide (DRAFT)</h1>
+  <h1>Quick Start Guide</h1>
   <p class="lead">Run your CSIP-Australia client against our testing harness in three steps.</p>
 
   <hr>
@@ -39,6 +39,8 @@
 
   <hr>
 
-  <p>Need help? Contact <a href="mailto:support@bsgip.com">support@bsgip.com</a>.</p>
+ {% if support_email %}
+  <p>Need help? Contact <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+  {% endif %}
 </div>
 {% endblock %}
