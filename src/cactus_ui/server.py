@@ -205,9 +205,11 @@ def runs_page() -> str | Response:  # noqa: C901
                 if response.status_code == 201:
                     # Refresh the page after run creation
                     return redirect(url_for("runs_page"))
+                elif response.status_code == 409:
+                    error = "Your certificate has expired. Please generate and download a new certificate."
                 else:
                     error = "Failed to trigger a new run."
-                    return render_template("runs.html", error=error)
+                return render_template("runs.html", error=error)
 
         # Handle finalising a run
         if request.form.get("action") == "finalise":
