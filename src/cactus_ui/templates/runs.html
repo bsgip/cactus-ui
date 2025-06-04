@@ -52,14 +52,21 @@
                         <td>{{ run['run_id'] }}</td>
                         <td>{{ run['test_procedure_id'] }}</td>
                         <td>{{ run['test_url'] }}</td>
-                        <td>{{ run['finalised'] }}</td>
+                        <td>{{ run['status'] }}</td>
                         <td>
-                            {% if run['finalised'] %}
+                            {% if run['status'] == 'finalised' %}
                             <!-- Form for downloading artifacts -->
                             <form method="POST" action="{{ url_for('runs_page') }}">
                                 <input type="hidden" name="run_id" value="{{ run['run_id'] }}">
                                 <input type="hidden" name="action" value="artifact">
                                 <button type="submit" class="btn btn-secondary">Download</button>
+                            </form>
+                            {% elif run['status'] == 'initialised' %}
+                            <!-- Form for starting run -->
+                            <form method="POST" action="{{ url_for('runs_page') }}">
+                                <input type="hidden" name="run_id" value="{{ run['run_id'] }}">
+                                <input type="hidden" name="action" value="artifact">
+                                <button type="submit" class="btn btn-secondary">Start</button>
                             </form>
                             {% else %}
                             <!-- Form to finalising the run and downloading artifacts -->

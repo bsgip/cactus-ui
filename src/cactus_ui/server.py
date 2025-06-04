@@ -189,10 +189,11 @@ def certificate_page() -> str | Response:
 @app.route("/runs", methods=["GET", "POST"])
 @login_required
 def runs_page() -> str | Response:  # noqa: C901
-    # Handle POST for triggering a new run
+    # Handle POST for triggering a new run / precondition phase
     headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
     if request.method == "POST":
-        if request.form.get("action") == "trigger":
+
+        if request.form.get("action") == "initialise":
             test_procedure_id = request.form.get("test_procedure_id")
             if test_procedure_id:
                 run_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run"
@@ -210,6 +211,20 @@ def runs_page() -> str | Response:  # noqa: C901
                 else:
                     error = "Failed to trigger a new run."
                 return render_template("runs.html", error=error)
+
+        # Handle starting a run / test procedure phase
+        if request.form.get("action") == "start":
+            run_id = request.form.get("run_id")
+            if run_id:
+                start_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run/{run_id}"
+                headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
+
+                response = requests.post(start_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
+
+                if response.status_code == 200:
+                    return redirect(url_for("runs_page"))
+                else:
+                    error = "Failed to finalise the run or retrieve artifacts."
 
         # Handle finalising a run
         if request.form.get("action") == "finalise":
