@@ -149,6 +149,43 @@ def procedures_page() -> str:
     return render_template("procedures.html", error=error)
 
 
+@app.route("/domain", methods=["GET", "POST"])
+@login_required
+def domain_page() -> str:
+    error = None
+    domain = ""
+
+    headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
+    domain_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/domain"
+
+    if request.method == "POST":
+        # Update domain => POST on upstream /domain
+        if request.form.get("action") == "update":
+            field_sub_domain = request.form.get("subscription_domain")
+            domain_resp = requests.post(
+                domain_url,
+                headers=headers,
+                timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT,
+                json={"subscription_domain": field_sub_domain},
+            )
+            if domain_resp.status_code < 200 or domain_resp.status_code >= 300:
+                error = "Failed to update domain. Please ensure it's a FQDN in the form 'my.example.domain.com'"
+            else:
+                domain = domain_resp.json().get("subscription_domain", None)
+        else:
+            error = f"Unexpected form action {request.form.get("action")}"
+    else:
+        # GET Method
+        domain_resp = requests.get(domain_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
+        if domain_resp.status_code < 200 or domain_resp.status_code >= 300:
+            error = "Failed to fetch domain."
+        else:
+            domain = domain_resp.json().get("subscription_domain", None)
+
+    # If the request fails
+    return render_template("domain.html", error=error, domain=domain)
+
+
 @app.route("/certificate", methods=["GET", "POST"])
 @login_required
 def certificate_page() -> str | Response:
