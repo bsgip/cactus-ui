@@ -10,13 +10,13 @@
 {% endif %}
 
 <div class="row">
-     <!-- Section for triggering a new run -->
-     <div class="col-12 col-md-4 order-1 order-md-2 mb-4">
+    <!-- Section for triggering a new run -->
+    <div class="col-12 col-md-4 order-1 order-md-2 mb-4">
         <div class="card">
             <div class="card-body">
                 <h3 class="card-title">Trigger a New Run</h3>
-                <form method="POST" id="submit-run-form">
-                    <input type="hidden" name="action" value="trigger">
+                <form method="POST" id="submit-run-form" action="{{ url_for('runs_page') }}">
+                    <input type="hidden" name="action" value="initialise">
                     <div class="mb-3">
                         <select name="test_procedure_id" id="testProcedure" class="form-select" required>
                             <option value="" disabled selected>Select a test procedure</option>
@@ -65,7 +65,7 @@
                             <!-- Form for starting run -->
                             <form method="POST" action="{{ url_for('runs_page') }}">
                                 <input type="hidden" name="run_id" value="{{ run['run_id'] }}">
-                                <input type="hidden" name="action" value="artifact">
+                                <input type="hidden" name="action" value="start">
                                 <button type="submit" class="btn btn-secondary">Start</button>
                             </form>
                             {% else %}

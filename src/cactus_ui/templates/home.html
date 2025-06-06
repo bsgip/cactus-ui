@@ -17,29 +17,44 @@
     <strong>Note:</strong> Certificates expire. Revisit the page to refresh and download a new one when needed.
   </p>
 
-  <h2>2. Review Test Procedures</h2>
+  <h2>2. Enable your domain for notifications (Optional)</h2>
   <p>
-    Go to the <a href="/procedures">Test Procedures</a> page for the full list of available procedures with descriptions.
-    These follow the <em>DEIP Interoperability Steering Committee – Common Smart Inverter Profile (Australia) – Test Procedures</em>, version 1.2.
+    IEEE 2030.5 allows the registration of arbitrary URIs to receive HTTP notifications. This tool will allow you to
+    register a single authorised domain that can be used to receive these notifications. You can configure this domain
+    from the <a href="/domain">Domain page</a>
+
+    <br><br>
+    <strong>Note:</strong> Attempting to create a subscription using a notification URI outside of this configured
+    domain will raise an error.
+  </p>
+
+  <h2>3. Review Test Procedures</h2>
+  <p>
+    Go to the <a href="/procedures">Test Procedures</a> page for the full list of available procedures with
+    descriptions.
+    These follow the <em>DEIP Interoperability Steering Committee – Common Smart Inverter Profile (Australia) – Test
+      Procedures</em>, version 1.2.
     <!-- TODO: Add link to doc -->
   </p>
 
-  <h2>3. Use the Runs Page</h2>
+  <h2>4. Use the Runs Page</h2>
   <p>
     Go to the <a href="/runs">Runs page</a> to manage everything test-related:
   </p>
   <ul>
-    <li>Trigger a new test run by selecting a procedure from the dropdown and clicking <strong>Start Run</strong>. You'll be given a test URL to point your client at.</li>
+    <li>Trigger a new test run by selecting a procedure from the dropdown and clicking <strong>Start Run</strong>.
+      You'll be given a test URL to point your client at.</li>
     <ul>
-        <li><strong>Note:</strong> It can take up to 30 seconds for your test environment to be ready.</li>
+      <li><strong>Note:</strong> It can take up to 30 seconds for your test environment to be ready.</li>
     </ul>
-    <li>Once the client has completed the procedure steps, click <strong>Finalise</strong> to compile results. A ZIP file will be returned.</li>
+    <li>Once the client has completed the procedure steps, click <strong>Finalise</strong> to compile results. A ZIP
+      file will be returned.</li>
     <li>Download past results at any time from the same page.</li>
   </ul>
 
   <hr>
 
- {% if support_email %}
+  {% if support_email %}
   <p>Need help? Contact <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
   {% endif %}
 </div>

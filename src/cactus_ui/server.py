@@ -200,9 +200,10 @@ def certificate_page() -> str | Response:
             headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
 
             cert_resp = requests.put(cert_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
-            pwd = cert_resp.headers["X-Certificate-Password"]
             if cert_resp.status_code != 200:
                 error = "Failed to generate certificate."
+            else:
+                pwd = cert_resp.headers["X-Certificate-Password"]
 
         # Download certificate => GET on upstream /certificate (returns .p12 file)
         elif request.form.get("action") == "download":
@@ -226,10 +227,10 @@ def certificate_page() -> str | Response:
 @app.route("/runs", methods=["GET", "POST"])
 @login_required
 def runs_page() -> str | Response:  # noqa: C901
+
     # Handle POST for triggering a new run / precondition phase
     headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
     if request.method == "POST":
-
         if request.form.get("action") == "initialise":
             test_procedure_id = request.form.get("test_procedure_id")
             if test_procedure_id:

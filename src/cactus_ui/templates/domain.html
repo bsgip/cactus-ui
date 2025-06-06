@@ -7,20 +7,21 @@
 
 <div class="row">
     <!-- Download Certificate Button (GET request) -->
-    <div class="col-6 text-center">
-        <form method="POST" action="{{ url_for('domain_page') }}">
-            <div class="form-group">
-                <label for="inputDomain1">Subscription notification domain</label>
-                <input type="text" class="form-control" id="inputDomain1" name="subscription_domain"
-                    aria-describedby="domainHelp" placeholder="my.example.domain.com" value="{{ domain }}">
-                <small id="domainHelp" class="form-text text-muted">The FQDN that will will be authorised for receiving
-                    subscription notifications.</small>
-            </div>
-            <button type="submit" name="action" value="update" class="btn btn-outline-primary">
-                <i class="fas fa-pen fa-3x"></i><br>Update Domain
-            </button>
-        </form>
-    </div>
+
+    <form method="POST" action="{{ url_for('domain_page') }}">
+        <div class="form-group">
+            <label for="inputDomain1">Subscription notification domain</label>
+            <input type="text" class="form-control" id="inputDomain1" name="subscription_domain"
+                aria-describedby="domainHelp" placeholder="Enter a FQDN (eg my.example.com)" value="{{ domain }}">
+            <small id="domainHelp" class="form-text text-muted">This domain will be authorised for receiving
+                subscription notifications.</small>
+        </div>
+        <br>
+        <button type="submit" name="action" value="update" class="btn btn-outline-primary">
+            <i class="fas fa-pen"></i> Update Domain
+        </button>
+    </form>
+
 </div>
 
 {% if error %}
