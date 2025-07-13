@@ -225,13 +225,13 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
             if not test_procedure_id:
                 error = "No test procedure selected."
             else:
-                match (orchestrator.init_run(access_token, test_procedure_id)):
-                    case orchestrator.InitialiseRunResult.SUCCESS:
-                        return redirect(url_for("runs_page"))
-                    case orchestrator.InitialiseRunResult.FAILURE_EXPIRED:
-                        error = "Your certificate has expired. Please generate and download a new certificate."
-                    case _:
-                        error = "Failed to trigger a new run."
+                init_result = orchestrator.init_run(access_token, test_procedure_id)
+                if init_result.run_id is not None:
+                    return redirect(url_for("run_status_page", run_id=init_result.run_id))
+                elif init_result.expired_cert:
+                    error = "Your certificate has expired. Please generate and download a new certificate."
+                else:
+                    error = "Failed to trigger a new run."
 
         # Handle starting a run / test procedure phase
         elif request.form.get("action") == "start":
@@ -240,7 +240,7 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
                 error = "No run ID specified."
             else:
                 if orchestrator.start_run(access_token, run_id):
-                    return redirect(url_for("runs_page"))
+                    return redirect(url_for("run_status_page", run_id=run_id))
                 else:
                     error = "Failed to finalise the run or retrieve artifacts."
 
@@ -316,6 +316,16 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
         page_size=page_size,
         current_page=current_page,
     )
+
+
+@app.route("/run/<run_id>", methods=["GET", "POST"])
+@login_required
+def run_status_page(access_token: str, run_id: str) -> str:
+
+    status = orchestrator.fetch_run_status(access_token=access_token, run_id=run_id)
+    run_is_live = status is not None
+
+    return render_template("run_status.html", run_is_live=run_is_live, run_id=run_id)
 
 
 @app.route("/callback", methods=["GET", "POST"])
