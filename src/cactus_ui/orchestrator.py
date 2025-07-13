@@ -99,7 +99,7 @@ def safe_request(
     """Unified method for making requests that ensures they log / handle exceptions"""
     try:
         response = requests.request(method=method, url=url, headers=headers, timeout=timeout, json=json)
-        logger.info(f"{method} {url} returned HTTP {response}")
+        logger.info(f"{method} {url} {json} returned HTTP {response}")
         return response
     except Exception as exc:
         logger.error(f"Exception requesting {method} {url}", exc_info=exc)

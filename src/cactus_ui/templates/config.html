@@ -85,7 +85,7 @@
                     expense of only allowing a single test run to be active at a time.
                     <br><br>
 
-                    {% if static_uri %}
+                    {% if static_uri_example %}
                     Currently <span class="badge text-bg-primary">Static</span><br><u>{{static_uri_example}}</u>
                     {% else %}
                     Currently <span class="badge text-bg-primary">Dynamic</span>
@@ -99,7 +99,7 @@
                     <input type="hidden" name="static_uri" , value="{{ not static_uri }}">
                     <input type="hidden" name="subscription_domain" , value="{{ domain }}">
 
-                    {% if static_uri_example %}
+                    {% if static_uri %}
                     <button type="submit" name="action" value="update" class="btn btn-primary">
                         <i class="fas fa-pen"></i> Swap to dynamic URI
                     </button>

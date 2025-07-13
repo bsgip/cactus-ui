@@ -2,7 +2,6 @@
 
 import io
 import logging
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import lru_cache, wraps
 from os import environ as env
@@ -10,7 +9,6 @@ from pathlib import Path
 from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
 
-import requests
 from authlib.integrations.flask_client import OAuth
 from dotenv import find_dotenv, load_dotenv
 from flask import (
@@ -29,6 +27,7 @@ from werkzeug.wrappers.response import Response
 import cactus_ui.orchestrator as orchestrator
 
 logger = logging.getLogger(__name__)
+
 
 ENV_FILE = find_dotenv()
 if ENV_FILE:
@@ -52,10 +51,7 @@ oauth.register(
 )  # type: ignore
 
 # envvars
-CACTUS_ORCHESTRATOR_BASEURL = env["CACTUS_ORCHESTRATOR_BASEURL"]
 CACTUS_ORCHESTRATOR_AUDIENCE = env["CACTUS_ORCHESTRATOR_AUDIENCE"]
-CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT = int(env.get("CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT", "30"))
-CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN = int(env.get("CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN", "300"))
 CACTUS_PLATFORM_VERSION = env["CACTUS_PLATFORM_VERSION"]
 CACTUS_PLATFORM_SUPPORT_EMAIL = env["CACTUS_PLATFORM_SUPPORT_EMAIL"]
 
@@ -109,6 +105,16 @@ def login_required(f: F) -> F:
         return f(access_token=access_token, *args, **kwargs)
 
     return cast(F, decorated)
+
+
+def parse_bool(v: str | None) -> bool:
+    if not v:
+        return False
+
+    if v[0] in ["F", "f", "0"]:
+        return False
+
+    return True
 
 
 # Controllers API
@@ -173,15 +179,16 @@ def config_page(access_token: str) -> str | Response:
             if cert_data is None:
                 error = "Failed to retrieve the certificate."
             else:
-                return Response(
-                    cert_data,
+                return send_file(
+                    io.BytesIO(cert_data),
+                    as_attachment=True,
+                    download_name="certificate.p12",
                     mimetype="application/x-pkcs12",
-                    headers={"Content-Disposition": "attachment;filename=certificate.p12"},
                 )
         # Update the configuration
         elif request.form.get("action") == "update":
             domain = str(request.form.get("subscription_domain"))
-            static_uri = bool(request.form.get("static_uri"))
+            static_uri = parse_bool(request.form.get("static_uri"))
 
             if not orchestrator.update_config(
                 access_token,
@@ -195,7 +202,7 @@ def config_page(access_token: str) -> str | Response:
                 if config is None:
                     return render_template(
                         "config.html",
-                        error="Unable to communicate with test server. Please try refreshing the page or re-logging in.",
+                        error="Unable to communicate with test server. Please try refreshing the page / re-logging in.",
                     )
                 domain = config.subscription_domain
                 static_uri = config.is_static_uri
@@ -209,119 +216,106 @@ def config_page(access_token: str) -> str | Response:
 @app.route("/runs", methods=["GET", "POST"])
 @login_required
 def runs_page(access_token: str) -> str | Response:  # noqa: C901
+    error: str | None = None
 
     # Handle POST for triggering a new run / precondition phase
-    headers = {"Authorization": f"Bearer {access_token}"}
     if request.method == "POST":
         if request.form.get("action") == "initialise":
             test_procedure_id = request.form.get("test_procedure_id")
-            if test_procedure_id:
-                run_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run"
-                payload = {"test_procedure_id": test_procedure_id}
-
-                response = requests.post(
-                    run_url, json=payload, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN
-                )
-
-                if response.status_code == 201:
-                    # Refresh the page after run creation
-                    return redirect(url_for("runs_page"))
-                elif response.status_code == 409:
-                    error = "Your certificate has expired. Please generate and download a new certificate."
-                else:
-                    error = "Failed to trigger a new run."
-                return render_template("runs.html", error=error)
+            if not test_procedure_id:
+                error = "No test procedure selected."
+            else:
+                match (orchestrator.init_run(access_token, test_procedure_id)):
+                    case orchestrator.InitialiseRunResult.SUCCESS:
+                        return redirect(url_for("runs_page"))
+                    case orchestrator.InitialiseRunResult.FAILURE_EXPIRED:
+                        error = "Your certificate has expired. Please generate and download a new certificate."
+                    case _:
+                        error = "Failed to trigger a new run."
 
         # Handle starting a run / test procedure phase
-        if request.form.get("action") == "start":
+        elif request.form.get("action") == "start":
             run_id = request.form.get("run_id")
-            if run_id:
-                start_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run/{run_id}"
-                headers = {"Authorization": f"Bearer {access_token}"}
-
-                response = requests.post(
-                    start_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT
-                )
-
-                if response.status_code == 200:
+            if not run_id:
+                error = "No run ID specified."
+            else:
+                if orchestrator.start_run(access_token, run_id):
                     return redirect(url_for("runs_page"))
                 else:
                     error = "Failed to finalise the run or retrieve artifacts."
 
         # Handle finalising a run
-        if request.form.get("action") == "finalise":
+        elif request.form.get("action") == "finalise":
             run_id = request.form.get("run_id")
-            if run_id:
-                finalise_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run/{run_id}/finalise"
-                headers = {"Authorization": f"Bearer {access_token}"}
-
-                response = requests.post(
-                    finalise_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT
-                )
-
-                if response.status_code == 200:
+            if not run_id:
+                error = "No run ID specified."
+            else:
+                archive_data = orchestrator.finalise_run(access_token, run_id)
+                if archive_data is None:
+                    error = "Failed to finalise the run or retrieve artifacts."
+                else:
                     return send_file(
-                        io.BytesIO(response.content),
+                        io.BytesIO(archive_data),
                         as_attachment=True,
                         download_name=f"{run_id}_artifacts.zip",
                         mimetype="application/zip",
                     )
-                else:
-                    error = "Failed to finalise the run or retrieve artifacts."
 
         # Handle dl artifact
         elif request.form.get("action") == "artifact":
             run_id = request.form.get("run_id")
-            if run_id:
-                artifact_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run/{run_id}/artifact"
-                response = requests.get(
-                    artifact_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT
-                )
-
-                if response.status_code == 200:
-                    # forward zip to user
+            if not run_id:
+                error = "No run ID specified."
+            else:
+                artifact_data = orchestrator.fetch_run_artifact(access_token, run_id)
+                if artifact_data is None:
+                    error = "Failed to retrieve artifacts."
+                else:
                     return send_file(
-                        io.BytesIO(response.content),
+                        io.BytesIO(artifact_data),
                         as_attachment=True,
                         download_name=f"{run_id}_artifacts.zip",
                         mimetype="application/zip",
                     )
 
-                else:
-                    error = "Failed to retrieve artifacts."
+    # Fetch procedures
+    procedures: list[orchestrator.ProcedureResponse] = []
+    procedures_page = orchestrator.fetch_procedures(access_token, 1)
+    if procedures_page is None:
+        error = "Unable to fetch test procedures."
+    else:
+        procedures = procedures_page.items
 
     # Fetch list of runs
     page = request.args.get("page", 1, type=int)
-    runs_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run?page={page}"
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    response = requests.get(runs_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
-    if response.status_code == 200:
-        runs_data = response.json()
-        runs = runs_data.get("items", [])
-        pagination = _handle_pagination(runs_data)
-
-        # fetch procedures
-        procedures = fetch_procedures(headers)
-
-        return render_template(
-            "runs.html",
-            runs=runs,
-            next_page=pagination.next_page,
-            prev_page=pagination.prev_page,
-            total_items=pagination.total_items,
-            page_size=pagination.page_size,
-            current_page=pagination.current_page,
-            procedures=procedures,
-        )
-    # NOTE: Orchestrator API raises 4xx (? check this), for a new user that has never had a cert generated.
-    elif response.status_code >= 400 and response.status_code < 500:
-        error = "Please generate a certificate."
-        return render_template("runs.html", error=error)
-
+    next_page: int | None = None
+    prev_page: int | None = None
+    total_items: int | None = None
+    page_size: int | None = None
+    current_page: int | None = None
+    runs: list[orchestrator.RunResponse] = []
+    runs_page = orchestrator.fetch_runs(access_token, page)
+    if runs_page is None:
+        error = "Failed to fetch runs. Have you generated a certificate?"
     else:
-        error = "Failed to retrieve runs."
-        return render_template("runs.html", error=error)
+        runs = runs_page.items
+        next_page = runs_page.next_page
+        prev_page = runs_page.prev_page
+        total_items = runs_page.total_items
+        page_size = runs_page.page_size
+        current_page = runs_page.current_page
+
+    return render_template(
+        "runs.html",
+        error=error,
+        runs=runs,
+        procedures=procedures,
+        next_page=next_page,
+        prev_page=prev_page,
+        total_items=total_items,
+        page_size=page_size,
+        current_page=current_page,
+    )
 
 
 @app.route("/callback", methods=["GET", "POST"])
