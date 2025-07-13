@@ -142,151 +142,68 @@ def procedures_page(access_token: str) -> str:
     )
 
 
-@app.route("/domain", methods=["GET", "POST"])
-@login_required
-def domain_page(access_token: str) -> str:
-    error = None
-    domain = ""
-
-    headers = {"Authorization": f"Bearer {access_token}"}
-    domain_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/domain"
-
-    if request.method == "POST":
-        # Update domain => POST on upstream /domain
-        if request.form.get("action") == "update":
-            field_sub_domain = request.form.get("subscription_domain")
-            domain_resp = requests.post(
-                domain_url,
-                headers=headers,
-                timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
-                json={"subscription_domain": field_sub_domain},
-            )
-            if domain_resp.status_code < 200 or domain_resp.status_code >= 300:
-                error = "Failed to update domain. Please ensure it's a FQDN in the form 'my.example.domain.com'"
-            else:
-                domain = domain_resp.json().get("subscription_domain", None)
-        else:
-            error = f"Unexpected form action {request.form.get("action")}"
-    else:
-        # GET Method
-        domain_resp = requests.get(domain_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
-        if domain_resp.status_code < 200 or domain_resp.status_code >= 300:
-            error = "Failed to fetch domain."
-        else:
-            domain = domain_resp.json().get("subscription_domain", None)
-
-    # If the request fails
-    return render_template("domain.html", error=error, domain=domain)
-
-
-@app.route("/certificate", methods=["GET", "POST"])
-@login_required
-def certificate_page(access_token: str) -> str | Response:
-    cert_url = None
-    error = None
-    pwd = None
-
-    if request.method == "POST":
-        # Refresh cert => PUT on upstream /certificate
-        if request.form.get("action") == "refresh":
-            cert_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/certificate"
-            headers = {"Authorization": f"Bearer {access_token}"}
-
-            cert_resp = requests.put(cert_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
-            if cert_resp.status_code != 200:
-                error = "Failed to generate certificate."
-            else:
-                pwd = cert_resp.headers["X-Certificate-Password"]
-
-        # Download certificate => GET on upstream /certificate (returns .p12 file)
-        elif request.form.get("action") == "download":
-            cert_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/certificate"
-            headers = {"Authorization": f"Bearer {access_token}"}
-
-            cert_resp = requests.get(cert_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
-
-            if cert_resp.status_code != 200:
-                error = "Failed to retrieve the certificate."
-            else:
-                return Response(
-                    cert_resp.content,
-                    mimetype="application/x-pkcs12",
-                    headers={"Content-Disposition": "attachment;filename=certificate.p12"},
-                )
-
-    return render_template("certificate.html", pwd=pwd, error=error)
-
-
 @app.route("/config", methods=["GET", "POST"])
 @login_required
 def config_page(access_token: str) -> str | Response:
-    cert_url = None
+
+    # If we can't reach the current config - any page load will be borked. Best we can do is report on an error
+    config = orchestrator.fetch_config(access_token)
+    if config is None:
+        return render_template(
+            "config.html",
+            error="Unable to communicate with test server. Please try refreshing the page or re-logging in.",
+        )
+
+    domain = config.subscription_domain
+    static_uri_example = config.static_uri
+    static_uri = config.is_static_uri
     error = None
     pwd = None
-    domain = None
-    static_uri_example = None
-    config_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/config"
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    # Handling download options is treated as a special case (as we don't need to fetch the latest settings)
-    if request.method == "POST" and request.form.get("action") == "download":
-        cert_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/certificate"
-        headers = {"Authorization": f"Bearer {access_token}"}
-
-        cert_resp = requests.get(cert_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
-
-        if cert_resp.status_code != 200:
-            return render_template(
-                "config.html",
-                pwd=pwd,
-                error="Failed to retrieve the certificate.",
-                domain=domain,
-                static_uri_example=static_uri_example,
-            )
-        else:
-            return Response(
-                cert_resp.content,
-                mimetype="application/x-pkcs12",
-                headers={"Content-Disposition": "attachment;filename=certificate.p12"},
-            )
 
     if request.method == "POST":
-        # Refresh cert => PUT on upstream /certificate
+        # Refresh cert - render the password
         if request.form.get("action") == "refresh":
-            cert_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/certificate"
-            headers = {"Authorization": f"Bearer {access_token}"}
-
-            cert_resp = requests.put(cert_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
-            if cert_resp.status_code != 200:
+            pwd = orchestrator.refresh_cert(access_token)
+            if pwd is None:
                 error = "Failed to generate certificate."
-            else:
-                pwd = cert_resp.headers["X-Certificate-Password"]
 
-        # Download certificate => GET on upstream /certificate (returns .p12 file)
+        # Download certificate - serve a new download
         elif request.form.get("action") == "download":
-            cert_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/certificate"
-            headers = {"Authorization": f"Bearer {access_token}"}
-
-            cert_resp = requests.get(cert_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
-
-            if cert_resp.status_code != 200:
+            cert_data = orchestrator.download_cert(access_token)
+            if cert_data is None:
                 error = "Failed to retrieve the certificate."
             else:
                 return Response(
-                    cert_resp.content,
+                    cert_data,
                     mimetype="application/x-pkcs12",
                     headers={"Content-Disposition": "attachment;filename=certificate.p12"},
                 )
-        else:
-            # GET Method
+        # Update the configuration
+        elif request.form.get("action") == "update":
+            domain = str(request.form.get("subscription_domain"))
+            static_uri = bool(request.form.get("static_uri"))
 
-            domain_resp = requests.get(config_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
-            if domain_resp.status_code < 200 or domain_resp.status_code >= 300:
-                error = "Failed to fetch domain."
+            if not orchestrator.update_config(
+                access_token,
+                subscription_domain=domain,
+                is_static_uri=static_uri,
+            ):
+                error = "Failed to update configuration."
             else:
-                domain = domain_resp.json().get("subscription_domain", None)
+                # Need to refetch the new value for static_uri_example
+                config = orchestrator.fetch_config(access_token)
+                if config is None:
+                    return render_template(
+                        "config.html",
+                        error="Unable to communicate with test server. Please try refreshing the page or re-logging in.",
+                    )
+                domain = config.subscription_domain
+                static_uri = config.is_static_uri
+                static_uri_example = config.static_uri
 
-    return render_template("config.html", pwd=pwd, error=error, domain=domain, static_uri_example=static_uri_example)
+    return render_template(
+        "config.html", pwd=pwd, error=error, domain=domain, static_uri=static_uri, static_uri_example=static_uri_example
+    )
 
 
 @app.route("/runs", methods=["GET", "POST"])

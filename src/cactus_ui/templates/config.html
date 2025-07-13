@@ -66,6 +66,7 @@
                     subscription notifications. Attempts to register notification URI outside of this domain will be
                     rejected.</p>
                 <form method="POST" action="{{ url_for('config_page') }}">
+                    <input type="hidden" name="static_uri" , value="{{ static_uri }}">
                     <input type="text" class="form-control" id="inputDomain1" name="subscription_domain"
                         aria-describedby="domainHelp" placeholder="Enter a FQDN (eg my.example.com)"
                         value="{{ domain }}">
@@ -84,7 +85,7 @@
                     expense of only allowing a single test run to be active at a time.
                     <br><br>
 
-                    {% if static_uri_example %}
+                    {% if static_uri %}
                     Currently <span class="badge text-bg-primary">Static</span><br><u>{{static_uri_example}}</u>
                     {% else %}
                     Currently <span class="badge text-bg-primary">Dynamic</span>
@@ -95,12 +96,15 @@
 
 
                 <form method="POST" action="{{ url_for('config_page') }}">
+                    <input type="hidden" name="static_uri" , value="{{ not static_uri }}">
+                    <input type="hidden" name="subscription_domain" , value="{{ domain }}">
+
                     {% if static_uri_example %}
-                    <button type="submit" name="action" value="update_dynamic_uri" class="btn btn-primary">
+                    <button type="submit" name="action" value="update" class="btn btn-primary">
                         <i class="fas fa-pen"></i> Swap to dynamic URI
                     </button>
                     {% else %}
-                    <button type="submit" name="action" value="update_static_uri" class="btn btn-primary">
+                    <button type="submit" name="action" value="update" class="btn btn-primary">
                         <i class="fas fa-pen"></i> Swap to static URI
                     </button>
                     {% endif %}
