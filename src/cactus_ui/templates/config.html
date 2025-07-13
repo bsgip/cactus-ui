@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Certificate - Cactus{% endblock %}
+
+{% block content %}
+<h2>User Configuration</h2>
+
+<p>
+    The following configuration options will apply to all future <a href="{{ url_for('runs_page') }}">Runs</a> that are
+    created.
+</p>
+
+<hr>
+{% if pwd %}
+<div class="alert alert-warning mt-3">
+    <strong>Generated a new certificate (.p12). This passphrase will not be shown again:
+
+    </strong> {{ pwd }}
+</div>
+{% elif error %}
+<div class="alert alert-danger mt-3">
+    <strong>Error:</strong> {{ error }}
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="card-group">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Download Aggregator Certificate</h5>
+                <p class="card-text">Download the latest p12/pfx encoded certificate/key that was generated. Your client
+                    will need this to access test runs.</p>
+                <p class="card-text"><small class="text-body-secondary"></small></p>
+                <form method="POST" action="{{ url_for('config_page') }}">
+                    <button type="submit" name="action" value="download" class="btn btn-primary">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Refresh Certificate</h5>
+                <p class="card-text">This will deprecate any prior certificates and generate a fresh set. This will only
+                    affect newly created test runs.</p>
+                <form method="POST" action="{{ url_for('config_page') }}">
+                    <button type="submit" name="action" value="refresh" class="btn btn-danger">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<br>
+
+
+
+<div class="row">
+    <div class="card-group">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Subscription Notification Domain</h5>
+                <p class="card-text">This domain will be authorised for receiving
+                    subscription notifications. Attempts to register notification URI outside of this domain will be
+                    rejected.</p>
+                <form method="POST" action="{{ url_for('config_page') }}">
+                    <input type="hidden" name="static_uri" , value="{{ static_uri }}">
+                    <input type="text" class="form-control" id="inputDomain1" name="subscription_domain"
+                        aria-describedby="domainHelp" placeholder="Enter a FQDN (eg my.example.com)"
+                        value="{{ domain }}">
+                    <br>
+                    <button type="submit" name="action" value="update" class="btn btn-primary">
+                        <i class="fas fa-pen"></i> Update Config
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">DeviceCapability URI</h5>
+                <p class="card-text">The DeviceCapability URI can set to be either "static" or "dynamic". Having a
+                    "static" value will mean all future test runs will share the exact same DeviceCapability URI at the
+                    expense of only allowing a single test run to be active at a time.
+                    <br><br>
+
+                    {% if static_uri_example %}
+                    Currently <span class="badge text-bg-primary">Static</span><br><u>{{static_uri_example}}</u>
+                    {% else %}
+                    Currently <span class="badge text-bg-primary">Dynamic</span>
+                    {% endif %}
+                </p>
+
+                <p></p>
+
+
+                <form method="POST" action="{{ url_for('config_page') }}">
+                    <input type="hidden" name="static_uri" , value="{{ not static_uri }}">
+                    <input type="hidden" name="subscription_domain" , value="{{ domain }}">
+
+                    {% if static_uri %}
+                    <button type="submit" name="action" value="update" class="btn btn-primary">
+                        <i class="fas fa-pen"></i> Swap to dynamic URI
+                    </button>
+                    {% else %}
+                    <button type="submit" name="action" value="update" class="btn btn-primary">
+                        <i class="fas fa-pen"></i> Swap to static URI
+                    </button>
+                    {% endif %}
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
