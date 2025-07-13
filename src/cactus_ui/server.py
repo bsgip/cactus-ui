@@ -1,7 +1,9 @@
 """Python Flask WebApp Auth0 integration example"""
 
 import io
+import logging
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from functools import lru_cache, wraps
 from os import environ as env
 from pathlib import Path
@@ -23,6 +25,10 @@ from flask import (
 )
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.wrappers.response import Response
+
+import cactus_ui.orchestrator as orchestrator
+
+logger = logging.getLogger(__name__)
 
 ENV_FILE = find_dotenv()
 if ENV_FILE:
@@ -48,64 +54,61 @@ oauth.register(
 # envvars
 CACTUS_ORCHESTRATOR_BASEURL = env["CACTUS_ORCHESTRATOR_BASEURL"]
 CACTUS_ORCHESTRATOR_AUDIENCE = env["CACTUS_ORCHESTRATOR_AUDIENCE"]
-CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT = 300
+CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT = int(env.get("CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT", "30"))
+CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN = int(env.get("CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN", "300"))
 CACTUS_PLATFORM_VERSION = env["CACTUS_PLATFORM_VERSION"]
 CACTUS_PLATFORM_SUPPORT_EMAIL = env["CACTUS_PLATFORM_SUPPORT_EMAIL"]
 
 F = TypeVar("F", bound=Callable[..., object])
 
 
+def get_access_token() -> str | None:
+    """Overly simple method for fetching an access token from the user's session. All validation will be handled at the
+    service receiving this access_token - all we are validating is that there is one and that it hasn't expired
+
+    Returns access_token if its present AND not expired. None otherwise."""
+
+    if "user" not in session:
+        logger.info("user not found in session.")
+        return None
+
+    user = session["user"]
+    if user is None or "access_token" not in user:
+        logger.info("access_token not found in user.")
+        return None
+
+    access_token = user["access_token"]
+    if not access_token:
+        logger.info("access_token appears to be empty.")
+        return None
+
+    # access_token should come paired with expires_at (the returned metadata from OAuth2)
+    if "expires_at" not in user:
+        logger.error("No expires_at was returned with access_token.")
+        return None
+
+    try:
+        exp_time = datetime.fromtimestamp(float(user["expires_at"]), tz=timezone.utc)
+        if exp_time < datetime.now(tz=timezone.utc):
+            logger.info(f"User access_token expired at {exp_time}.")
+            return None
+    except Exception as exc:
+        logger.error("Exception attempting to decode user expires_at.", exc_info=exc)
+        return None
+
+    return access_token
+
+
 def login_required(f: F) -> F:
     @wraps(f)
     def decorated(*args: Any, **kwargs: Any) -> Any:
-        if "user" not in session:
+        access_token = get_access_token()
+        if access_token is None:
             return redirect(url_for("login"))
-        return f(*args, **kwargs)
+
+        return f(access_token=access_token, *args, **kwargs)
 
     return cast(F, decorated)
-
-
-@dataclass
-class Pagination:
-    total_pages: int
-    total_items: int
-    page_size: int
-    current_page: int
-    prev_page: int | None
-    next_page: int | None
-
-
-def _handle_pagination(paginated_json: dict) -> Pagination:
-    total_pages = paginated_json.get("pages", 1)
-    current_page = paginated_json.get("page", 1)
-    if current_page == 1:
-        prev_page = None
-    else:
-        prev_page = current_page - 1
-
-    if current_page < total_pages:
-        next_page = current_page + 1
-    else:
-        next_page = None
-
-    return Pagination(
-        total_pages=total_pages,
-        total_items=paginated_json.get("total", 0),
-        page_size=paginated_json.get("size", 10),
-        current_page=current_page,
-        prev_page=prev_page,
-        next_page=next_page,
-    )
-
-
-def fetch_procedures(headers: dict) -> list:
-    # Fetch the list of test procedures for the dropdown
-    procedures_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/procedure"
-    procedures_response = requests.get(procedures_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
-    procedures = []
-    if procedures_response.status_code == 200:
-        procedures = procedures_response.json().get("items", [])
-    return procedures
 
 
 # Controllers API
@@ -120,42 +123,32 @@ def login_or_home_page() -> str:
 
 @app.route("/procedures", methods=["GET"])
 @login_required
-def procedures_page() -> str:
+def procedures_page(access_token: str) -> str:
     page = request.args.get("page", 1, type=int)  # Default to page 1
-    procedures_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/procedure?page={page}"
-    headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
 
     # Request the paginated list of procedures from upstream
-    response = requests.get(procedures_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
+    procedure_pages = orchestrator.fetch_procedures(access_token, page)
+    if procedure_pages is None:
+        return render_template("procedures.html", error="Failed to retrieve procedures.")
 
-    # If the request is successful
-    if response.status_code == 200:
-        procedures_data = response.json()
-        procedures = procedures_data.get("items", [])
-        pagination = _handle_pagination(procedures_data)
-
-        return render_template(
-            "procedures.html",
-            procedures=procedures,
-            next_page=pagination.next_page,
-            prev_page=pagination.prev_page,
-            total_items=pagination.total_items,
-            page_size=pagination.page_size,
-            current_page=pagination.current_page,
-        )
-
-    # If the request fails
-    error = "Failed to retrieve procedures."
-    return render_template("procedures.html", error=error)
+    return render_template(
+        "procedures.html",
+        procedures=procedure_pages.items,
+        next_page=procedure_pages.next_page,
+        prev_page=procedure_pages.prev_page,
+        total_items=procedure_pages.total_items,
+        page_size=procedure_pages.page_size,
+        current_page=procedure_pages.current_page,
+    )
 
 
 @app.route("/domain", methods=["GET", "POST"])
 @login_required
-def domain_page() -> str:
+def domain_page(access_token: str) -> str:
     error = None
     domain = ""
 
-    headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
+    headers = {"Authorization": f"Bearer {access_token}"}
     domain_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/domain"
 
     if request.method == "POST":
@@ -165,7 +158,7 @@ def domain_page() -> str:
             domain_resp = requests.post(
                 domain_url,
                 headers=headers,
-                timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT,
+                timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
                 json={"subscription_domain": field_sub_domain},
             )
             if domain_resp.status_code < 200 or domain_resp.status_code >= 300:
@@ -176,7 +169,7 @@ def domain_page() -> str:
             error = f"Unexpected form action {request.form.get("action")}"
     else:
         # GET Method
-        domain_resp = requests.get(domain_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
+        domain_resp = requests.get(domain_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
         if domain_resp.status_code < 200 or domain_resp.status_code >= 300:
             error = "Failed to fetch domain."
         else:
@@ -188,7 +181,7 @@ def domain_page() -> str:
 
 @app.route("/certificate", methods=["GET", "POST"])
 @login_required
-def certificate_page() -> str | Response:
+def certificate_page(access_token: str) -> str | Response:
     cert_url = None
     error = None
     pwd = None
@@ -197,9 +190,9 @@ def certificate_page() -> str | Response:
         # Refresh cert => PUT on upstream /certificate
         if request.form.get("action") == "refresh":
             cert_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/certificate"
-            headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
+            headers = {"Authorization": f"Bearer {access_token}"}
 
-            cert_resp = requests.put(cert_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
+            cert_resp = requests.put(cert_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
             if cert_resp.status_code != 200:
                 error = "Failed to generate certificate."
             else:
@@ -208,9 +201,9 @@ def certificate_page() -> str | Response:
         # Download certificate => GET on upstream /certificate (returns .p12 file)
         elif request.form.get("action") == "download":
             cert_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/certificate"
-            headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
+            headers = {"Authorization": f"Bearer {access_token}"}
 
-            cert_resp = requests.get(cert_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
+            cert_resp = requests.get(cert_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
 
             if cert_resp.status_code != 200:
                 error = "Failed to retrieve the certificate."
@@ -224,12 +217,84 @@ def certificate_page() -> str | Response:
     return render_template("certificate.html", pwd=pwd, error=error)
 
 
+@app.route("/config", methods=["GET", "POST"])
+@login_required
+def config_page(access_token: str) -> str | Response:
+    cert_url = None
+    error = None
+    pwd = None
+    domain = None
+    static_uri_example = None
+    config_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/config"
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    # Handling download options is treated as a special case (as we don't need to fetch the latest settings)
+    if request.method == "POST" and request.form.get("action") == "download":
+        cert_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/certificate"
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        cert_resp = requests.get(cert_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+
+        if cert_resp.status_code != 200:
+            return render_template(
+                "config.html",
+                pwd=pwd,
+                error="Failed to retrieve the certificate.",
+                domain=domain,
+                static_uri_example=static_uri_example,
+            )
+        else:
+            return Response(
+                cert_resp.content,
+                mimetype="application/x-pkcs12",
+                headers={"Content-Disposition": "attachment;filename=certificate.p12"},
+            )
+
+    if request.method == "POST":
+        # Refresh cert => PUT on upstream /certificate
+        if request.form.get("action") == "refresh":
+            cert_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/certificate"
+            headers = {"Authorization": f"Bearer {access_token}"}
+
+            cert_resp = requests.put(cert_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+            if cert_resp.status_code != 200:
+                error = "Failed to generate certificate."
+            else:
+                pwd = cert_resp.headers["X-Certificate-Password"]
+
+        # Download certificate => GET on upstream /certificate (returns .p12 file)
+        elif request.form.get("action") == "download":
+            cert_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/certificate"
+            headers = {"Authorization": f"Bearer {access_token}"}
+
+            cert_resp = requests.get(cert_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+
+            if cert_resp.status_code != 200:
+                error = "Failed to retrieve the certificate."
+            else:
+                return Response(
+                    cert_resp.content,
+                    mimetype="application/x-pkcs12",
+                    headers={"Content-Disposition": "attachment;filename=certificate.p12"},
+                )
+        else:
+            # GET Method
+
+            domain_resp = requests.get(config_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+            if domain_resp.status_code < 200 or domain_resp.status_code >= 300:
+                error = "Failed to fetch domain."
+            else:
+                domain = domain_resp.json().get("subscription_domain", None)
+
+    return render_template("config.html", pwd=pwd, error=error, domain=domain, static_uri_example=static_uri_example)
+
+
 @app.route("/runs", methods=["GET", "POST"])
 @login_required
-def runs_page() -> str | Response:  # noqa: C901
+def runs_page(access_token: str) -> str | Response:  # noqa: C901
 
     # Handle POST for triggering a new run / precondition phase
-    headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
+    headers = {"Authorization": f"Bearer {access_token}"}
     if request.method == "POST":
         if request.form.get("action") == "initialise":
             test_procedure_id = request.form.get("test_procedure_id")
@@ -238,7 +303,7 @@ def runs_page() -> str | Response:  # noqa: C901
                 payload = {"test_procedure_id": test_procedure_id}
 
                 response = requests.post(
-                    run_url, json=payload, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT
+                    run_url, json=payload, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN
                 )
 
                 if response.status_code == 201:
@@ -255,9 +320,11 @@ def runs_page() -> str | Response:  # noqa: C901
             run_id = request.form.get("run_id")
             if run_id:
                 start_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run/{run_id}"
-                headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
+                headers = {"Authorization": f"Bearer {access_token}"}
 
-                response = requests.post(start_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
+                response = requests.post(
+                    start_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT
+                )
 
                 if response.status_code == 200:
                     return redirect(url_for("runs_page"))
@@ -269,9 +336,11 @@ def runs_page() -> str | Response:  # noqa: C901
             run_id = request.form.get("run_id")
             if run_id:
                 finalise_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run/{run_id}/finalise"
-                headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
+                headers = {"Authorization": f"Bearer {access_token}"}
 
-                response = requests.post(finalise_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
+                response = requests.post(
+                    finalise_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT
+                )
 
                 if response.status_code == 200:
                     return send_file(
@@ -288,7 +357,9 @@ def runs_page() -> str | Response:  # noqa: C901
             run_id = request.form.get("run_id")
             if run_id:
                 artifact_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run/{run_id}/artifact"
-                response = requests.get(artifact_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
+                response = requests.get(
+                    artifact_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT
+                )
 
                 if response.status_code == 200:
                     # forward zip to user
@@ -305,9 +376,9 @@ def runs_page() -> str | Response:  # noqa: C901
     # Fetch list of runs
     page = request.args.get("page", 1, type=int)
     runs_url = f"{CACTUS_ORCHESTRATOR_BASEURL}/run?page={page}"
-    headers = {"Authorization": f"Bearer {session['user']['access_token']}"}
+    headers = {"Authorization": f"Bearer {access_token}"}
 
-    response = requests.get(runs_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT)
+    response = requests.get(runs_url, headers=headers, timeout=CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response.status_code == 200:
         runs_data = response.json()
         runs = runs_data.get("items", [])
@@ -352,7 +423,7 @@ def login() -> str:
 
 @app.route("/logout")
 @login_required
-def logout() -> Response:
+def logout(access_token: str) -> Response:
     session.clear()
     return redirect(
         "https://"
