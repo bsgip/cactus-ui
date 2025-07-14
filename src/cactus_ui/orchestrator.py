@@ -253,11 +253,24 @@ def fetch_runs(access_token: str, page: int) -> Pagination[RunResponse] | None:
     )
 
 
-def fetch_run_status(access_token: str, run_id: str) -> dict[str, Any] | None:
-    """Given an already started run - fetch the status as raw JSON"""
+def fetch_individual_run(access_token: str, run_id: int) -> RunResponse | None:
+    """Fetches runs for a page"""
+    uri = generate_uri(f"/run/{run_id}")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    r = response.json()
+    return RunResponse(
+        run_id=r["run_id"], test_procedure_id=r["test_procedure_id"], test_url=r["test_url"], status=r["status"]
+    )
+
+
+def fetch_run_status(access_token: str, run_id: str) -> str | None:
+    """Given an already started run - fetch the status as a raw JSON string"""
     uri = generate_uri(f"/run/{run_id}/status")
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
         return None
 
-    return response.json()
+    return response.text

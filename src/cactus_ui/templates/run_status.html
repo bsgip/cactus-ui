@@ -6,42 +6,45 @@
 
 
 {% if run_is_live %}
+
 <div class="row justify-content-center">
-    <div class="col-md-auto">
-        <h2>Run {{ run_id }}</h2>
-    </div>
-    <div class="col-sm-auto">
-        <form method="POST" action="{{ url_for('config_page') }}">
-            <button type="submit" name="action" value="download" class="btn btn-primary">Finalise</button>
-        </form>
-    </div>
-    <div class="col-sm-auto">
-        <button type="submit" name="action" value="download" class="btn btn-secondary">Refresh</button>
-    </div>
+    <div class="card status-container">
+        <div class="card-body">
+            <h5 class="card-title">Run {{ run_id }} ({{ run_status }})</h5>
 
+            <p class="card-text">
+            <pre>{{ run_test_uri }}</pre>
+            </p>
 
+            {% if run_status == 'initialised' %}
+            <p class="card-text">This test run is in the "pre start" phase. Please load up any preconditions (eg:
+                registering EndDevice's) before starting the test.</p>
+            <form method="POST" action="{{ url_for('runs_page') }}">
+                <input type="hidden" name="run_id" value="{{ run_id }}">
+                <input type="hidden" name="action" value="start">
+                <button type="submit" class="btn btn-primary">Start</button>
+            </form>
+            {% elif run_status == 'started' %}
+            <p class="card-text">The test is now underway - the server will have loaded any initial preconditions
+                (eg: DERControls) and its now time for your client to respond appropriately. When you're ready to
+                end the test, press the Finalise button</p>
+            <form method="POST" action="{{ url_for('runs_page') }}">
+                <input type="hidden" name="run_id" value="{{ run_id }}">
+                <input type="hidden" name="action" value="finalise">
+                <button type="submit" class="btn btn-warning">Finalise</button>
+            </form>
+            {% endif %}
 
+        </div>
+    </div>
 </div>
 <br>
 <div class="row justify-content-center">
     <div class="card status-container">
         <div class="card-body">
-            <h5 class="card-title">ALL-05</h5>
+            <h5 class="card-title">{{ run_procedure_id }}</h5>
             <table class="table">
-                <tbody>
-                    <tr>
-                        <th scope="row">Started</th>
-                        <td>13/07/2025, 8:44:25 pm (12 mins ago)</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">Summary</th>
-                        <td>4/7 steps completed</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">Last Interaction</th>
-                        <td>13/07/2025, 8:50:25 pm (6 mins ago)</td>
-                    </tr>
-                </tbody>
+                <tbody id="update-general-table"></tbody>
             </table>
         </div>
     </div>
@@ -52,23 +55,7 @@
         <div class="card-body">
             <h5 class="card-title">Current Criteria</h5>
             <table class="table">
-                <tbody>
-                    <tr>
-                        <th scope="row">all-steps-complete</th>
-                        <td><span class="text-danger"><i class="fas fa-x"></i></span></td>
-                        <td>4/7 steps have been completed</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">all-mups-blah</th>
-                        <td><span class="text-success"><i class="fas fa-check"></i></span></td>
-                        <td>All MUPs are valid</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">has-contents</th>
-                        <td><span class="text-success"><i class="fas fa-check"></i></span></td>
-                        <td>All contents are valid</td>
-                    </tr>
-                </tbody>
+                <tbody id="update-criteria-table"></tbody>
             </table>
         </div>
     </div>
@@ -79,16 +66,7 @@
         <div class="card-body">
             <h5 class="card-title">Steps</h5>
             <table class="table">
-                <tbody>
-                    <tr>
-                        <th scope="row">GET-MUP-1</th>
-                        <td><span class="text-success"><i class="fas fa-check"></i></span></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">GET-MUP-2</th>
-                        <td><span class="text-secondary"><i class="fas fa-question"></i></span></td>
-                    </tr>
-                </tbody>
+                <tbody id="update-steps-table"></tbody>
             </table>
         </div>
     </div>
@@ -99,32 +77,7 @@
         <div class="card-body">
             <h5 class="card-title">CSIP-Aus Requests</h5>
             <table class="table">
-                <tbody>
-                    <tr>
-                        <th scope="row">2025-07-13 22:00</th>
-                        <td>GET /tm <span class="badge text-bg-success">200</span></td>
-                        <td>GET-TM-1</td>
-                        <td><span class="badge text-bg-success">XSD Valid</span></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">2025-07-13 21:59</th>
-                        <td>GET /edev/1 <span class="badge text-bg-success">200</span></td>
-                        <td></td>
-                        <td><span class="badge text-bg-success">XSD Valid</span></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">2025-07-13 21:59</th>
-                        <td>GET /edev/blah <span class="badge text-bg-danger">404</span></td>
-                        <td></td>
-                        <td><span class="badge text-bg-success">XSD Valid</span></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">2025-07-13 21:58</th>
-                        <td>POST /edev/1 <span class="badge text-bg-success">201</span></td>
-                        <td></td>
-                        <td><span class="badge text-bg-danger">XSD Error</span></td>
-                    </tr>
-                </tbody>
+                <tbody id="update-requests-table"></tbody>
             </table>
         </div>
     </div>
@@ -134,126 +87,7 @@
     <div class="card status-container ">
         <div class="card-body">
             <h5 class="card-title">Envoy Logs</h5>
-            <pre>
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:44:15] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:44:42] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:44:58] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:47:31] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:48:46] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:49:16] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:49:30] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:49:55] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:50:22] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:50:24] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:50:35] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:50:51] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:51:11] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:51:30] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:10:38] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:10:54] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:11:12] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [410]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:16:22] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/procedure?page=1 None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:16:26] "GET /procedures HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/procedure?page=1 None returned HTTP <Response [200]>
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run?page=1 None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:16:28] "GET /runs HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:POST http://localhost:8088/run {'test_procedure_id': 'ALL-05'} returned HTTP <Response [201]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:16:57] "POST /runs HTTP/1.1" 302 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/97/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:16:57] "GET /run/97 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/97/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:17:44] "GET /run/97 HTTP/1.1" 200 -
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:17:44] "GET /static/favicon.ico HTTP/1.1" 404 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/97/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:18:37] "GET /run/97 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/97/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:19:12] "GET /run/97 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/97/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:20:44] "GET /run/97 HTTP/1.1" 200 -
-            </pre>
-        </div>
-    </div>
-</div>
-<br>
-<div class="row justify-content-center">
-    <div class="card status-container ">
-        <div class="card-body">
-            <h5 class="card-title">Test Harness Logs</h5>
-            <pre>
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:44:15] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:44:42] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:44:58] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:47:31] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:48:46] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:49:16] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:49:30] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:49:55] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:50:22] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:50:24] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:50:35] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:50:51] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:51:11] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 21:51:30] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:10:38] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:10:54] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:11:12] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/96/status None returned HTTP <Response [410]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:16:22] "GET /run/96 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/procedure?page=1 None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:16:26] "GET /procedures HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/procedure?page=1 None returned HTTP <Response [200]>
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run?page=1 None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:16:28] "GET /runs HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:POST http://localhost:8088/run {'test_procedure_id': 'ALL-05'} returned HTTP <Response [201]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:16:57] "POST /runs HTTP/1.1" 302 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/97/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:16:57] "GET /run/97 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/97/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:17:44] "GET /run/97 HTTP/1.1" 200 -
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:17:44] "GET /static/favicon.ico HTTP/1.1" 404 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/97/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:18:37] "GET /run/97 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/97/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:19:12] "GET /run/97 HTTP/1.1" 200 -
-INFO:cactus_ui.orchestrator:GET http://localhost:8088/run/97/status None returned HTTP <Response [200]>
-INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:20:44] "GET /run/97 HTTP/1.1" 200 -
-            </pre>
+            <pre id="update-log-envoy">Loading...</pre>
         </div>
     </div>
 </div>
@@ -273,6 +107,8 @@ INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:20:44] "GET /run/97 HTTP/1.1" 200 -
     </form>
 </div>
 
+
+
 {% endif %}
 
 
@@ -286,7 +122,9 @@ INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:20:44] "GET /run/97 HTTP/1.1" 200 -
 </style>
 
 <script>
-    function format_relative_date(d) {
+
+
+    function formatRelativeDate(d) {
         // d: Date
         const now = new Date();
         const diff_ms = d - now;
@@ -304,23 +142,187 @@ INFO:werkzeug:127.0.0.1 - - [13/Jul/2025 22:20:44] "GET /run/97 HTTP/1.1" 200 -
         }
     }
 
-    function format_date(d) {
+    function formatDate(d) {
         // d: Date
         return d.toLocaleString('sv'); // Sweden format is YYYY-MM-DD HH:MM:SS
     }
 
-    function submit_run() {
-        var form = document.getElementById('submit-run-form')
-        if (form.checkValidity()) {
-            var btn = document.getElementById('submit-run-btn')
-            btn.disabled = true
-            btn.innerHTML =
-                `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                <span class="sr-only">Loading...</span>`;
-            form.submit()
+    function generalTableBody(status) {
+        fragments = [];
+
+        if (status.timestamp_start) {
+            startTime = new Date(Date.parse(status.timestamp_start))
+            fragments.push(`
+                <tr>
+                    <th scope="row">Started</th>
+                    <td>${formatDate(startTime)} (${formatRelativeDate(startTime)})</td>
+                </tr>`
+            );
         }
+
+        if (status.timestamp_initialise) {
+            init_time = new Date(Date.parse(status.timestamp_initialise))
+            fragments.push(`
+                <tr>
+                    <th scope="row">Created</th>
+                    <td>${formatDate(init_time)} (${formatRelativeDate(init_time)})</td>
+                </tr>`
+            );
+        }
+
+        interaction_time = new Date(Date.parse(status.last_client_interaction.timestamp))
+        fragments.push(`
+            <tr>
+                <th scope="row">Last Interaction</th>
+                <td>${formatDate(interaction_time)} (${formatRelativeDate(interaction_time)})</td>
+            </tr>`
+        );
+
+        fragments.push(`
+            <tr>
+                <th scope="row">Summary</th>
+                <td>${status.status_summary}</td>
+            </tr>`
+        );
+
+        return fragments;
     }
-    document.getElementById('submit-run-btn').onclick = submit_run
+
+    function criteriaTableBody(criteria) {
+        fragments = []
+        for (const c of criteria) {
+            color = c.success ? "success" : "danger";
+            icon = c.success ? "check" : "x";
+            fragments.push(`
+                <tr>
+                    <th scope="row">${c.type}</th>
+                    <td><span class="text-${color}"><i class="fas fa-${icon}"></i></span></td>
+                    <td>${c.details}</td>
+                </tr>
+            `)
+        }
+        return fragments
+    }
+
+    function stepStatusTableBody(stepStatus) {
+        fragments = []
+        for (const [step, status] of Object.entries(stepStatus)) {
+            color = status ? "success" : "secondary";
+            icon = status ? "check" : "question"
+            fragments.push(`
+                <tr>
+                     <th scope="row">${step}</th>
+                     <td><span class="text-${color}"><i class="fas fa-${icon}"></i></span></td>
+                </tr>`);
+        }
+
+        return fragments
+    }
+
+    function requestsTableBody(requests) {
+        if (requests.length == 0) {
+            return [`
+            <tr>
+                <th scope="row">No requests received</th>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>`];
+        }
+
+        fragments = []
+        for (const r of requests) {
+            d = new Date(Date.parse(r.timestamp))
+            statusColor = r.status < 200 || r.status > 299 ? "danger" : "success"
+            schemaColor = r.body_xml_errors.length ? "danger" : "success"
+            schemaText = r.body_xml_errors.length ? "XSD Errors" : "XSD Valid"
+            stepName = r.step_name === "Unmatched" ? "" : r.step_name
+
+            fragments.push(`
+            <tr>
+                <th scope="row">${formatDate(d)}</th>
+                <td>${r.method} ${r.path} <span class="badge text-bg-${statusColor}">${r.status}</span></td>
+                <td>${stepName}</td>
+                <td><span class="badge text-bg-${schemaColor}">${schemaText}</span></td>
+            </tr>`);
+        }
+
+        return fragments
+    }
+
+    function handleNewStatus(rawJsonString) {
+        const status = JSON.parse(rawJsonString);
+
+        // update cactus log entries
+        log_data = status.log_envoy ? status.log_envoy : "No logs recorded";
+        document.getElementById('update-log-envoy').innerHTML = log_data;
+
+        // update requests table
+        requestTable = document.getElementById('update-requests-table');
+        requestTable.innerHTML = requestsTableBody(status.request_history).join("");
+
+        // update steps table
+        stepsTable = document.getElementById('update-steps-table');
+        stepsTable.innerHTML = stepStatusTableBody(status.step_status).join("");
+
+        // update criteria table
+        criteriaTable = document.getElementById('update-criteria-table');
+        criteriaTable.innerHTML = criteriaTableBody(status.criteria).join("");
+
+        // update generate table
+        generalTable = document.getElementById('update-general-table');
+        generalTable.innerHTML = generalTableBody(status).join("");
+
+
+    }
+
+    function startPollingRunStatus(runStatusUri, pollRateMs) {
+        function fetchStatus() {
+            const xhr = new XMLHttpRequest();
+            xhr.open("GET", runStatusUri, true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    // Wait 10 seconds before the next request
+                    setTimeout(fetchStatus, pollRateMs);
+
+                    if (xhr.status === 200) {
+                        try {
+                            handleNewStatus(xhr.responseText)
+                        } catch (e) {
+                            console.error("Failed to parse response:", e);
+                        }
+                    } else if (xhr.status === 410) {
+                        console.error("Received HTTP GONE - reloading page as test is finished:");
+                        location.reload()
+                    } else {
+                        console.error("Request failed with status:", xhr.status);
+                    }
+                }
+            };
+            xhr.onerror = function () {
+                console.error("AJAX error occurred.");
+                location.reload()
+            };
+            xhr.send();
+        }
+
+        setTimeout(fetchStatus, pollRateMs); // start the loop after initial poll delay
+    }
+
+    addEventListener("load", (event) => {
+        // Load initial status at startup
+        const initialStatusJson = atob("{{ initial_status_b64 }}");
+        handleNewStatus(initialStatusJson)
+
+
+        // Start polling
+        const uri = "{{ url_for('run_status_json', run_id=run_id) }}";
+        const pollRateMs = 10000; // 10 seconds
+        startPollingRunStatus(uri, pollRateMs);
+    });
+
+
+
 </script>
 
 
