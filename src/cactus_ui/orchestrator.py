@@ -1,6 +1,5 @@
 import logging
 from dataclasses import dataclass
-from enum import IntEnum, auto
 from os import environ as env
 from typing import Any, Callable, Generic, TypeVar
 
@@ -253,7 +252,7 @@ def fetch_runs(access_token: str, page: int) -> Pagination[RunResponse] | None:
     )
 
 
-def fetch_individual_run(access_token: str, run_id: int) -> RunResponse | None:
+def fetch_individual_run(access_token: str, run_id: str) -> RunResponse | None:
     """Fetches runs for a page"""
     uri = generate_uri(f"/run/{run_id}")
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
