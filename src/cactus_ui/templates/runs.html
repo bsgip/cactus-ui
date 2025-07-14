@@ -49,7 +49,9 @@
                     <tr>
                         <td><a href="{{ url_for('run_status_page', run_id=run['run_id']) }}">{{ run['run_id'] }}</a>
                         </td>
-                        <td>{{ run['test_procedure_id'] }}</td>
+                        <td><a href="{{ url_for('procedure_yaml_page', test_procedure_id=run['test_procedure_id']) }}">
+                                {{ run['test_procedure_id'] }}
+                            </a> </td>
                         <td>{{ run['test_url'] }}</td>
                         <td>{{ run['status'] }}</td>
                         <td>

@@ -3,46 +3,48 @@
 {% block title %}Procedures - Cactus{% endblock %}
 
 {% block content %}
-    <h2>Test Procedures</h2>
+<h2>Test Procedures</h2>
 
-    {% if error %}
-        <div class="alert alert-danger">{{ error }}</div>
-    {% else %}
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Test Procedure ID</th>
-                    <th>Description</th>
-                    <th>Category</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for procedure in procedures %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td>{{ procedure.test_procedure_id }}</td>
-                        <td>{{ procedure.description }}</td>
-                        <td>{{ procedure.category }}</td>
-                    </tr>
-                {% else %}
-                    <tr>
-                        <td colspan="4" class="text-center">No procedures available.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% else %}
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Test Procedure ID</th>
+            <th>Description</th>
+            <th>Category</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for procedure in procedures %}
+        <tr>
+            <td>
+                <a href="{{ url_for('procedure_yaml_page', test_procedure_id=procedure.test_procedure_id) }}">
+                    {{ procedure.test_procedure_id }}
+                </a>
+            </td>
+            <td>{{ procedure.description }}</td>
+            <td>{{ procedure.category }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4" class="text-center">No procedures available.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 
-        <div class="d-flex justify-content-between">
-            <!-- Previous Page Button -->
-            {% if prev_page %}
-                <a href="{{ prev_page }}" class="btn btn-outline-primary">Previous</a>
-            {% endif %}
-
-            <!-- Next Page Button -->
-            {% if next_page %}
-                <a href="{{ next_page }}" class="btn btn-outline-primary">Next</a>
-            {% endif %}
-        </div>
+<div class="d-flex justify-content-between">
+    <!-- Previous Page Button -->
+    {% if prev_page %}
+    <a href="{{ prev_page }}" class="btn btn-outline-primary">Previous</a>
     {% endif %}
+
+    <!-- Next Page Button -->
+    {% if next_page %}
+    <a href="{{ next_page }}" class="btn btn-outline-primary">Next</a>
+    {% endif %}
+</div>
+{% endif %}
 {% endblock %}
