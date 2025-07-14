@@ -42,7 +42,9 @@
 <div class="row justify-content-center">
     <div class="card status-container">
         <div class="card-body">
-            <h5 class="card-title">{{ run_procedure_id }}</h5>
+            <h5 class="card-title"><a href="{{ url_for('procedure_yaml_page', test_procedure_id=run_procedure_id) }}">
+                    {{ run_procedure_id }}
+                </a></h5>
             <table class="table">
                 <tbody id="update-general-table"></tbody>
             </table>
@@ -97,7 +99,7 @@
 <div class="row">
     <h2>Run {{ run_id }} has finalised</h2>
     <div class="alert alert-danger" role="alert">
-        It appears that this run is no longer active. All results will be available via the test artifacts.
+        It appears that this run is no longer active. All results are available as test artifacts.
     </div>
 
     <form method="POST" action="{{ url_for('runs_page') }}">

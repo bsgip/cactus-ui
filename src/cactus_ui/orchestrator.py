@@ -273,3 +273,14 @@ def fetch_run_status(access_token: str, run_id: str) -> str | None:
         return None
 
     return response.text
+
+
+def fetch_procedure_yaml(access_token: str, test_procedure_id: str) -> str | None:
+    """Given a test procedure ID - fetch the test procedure ID as a raw yaml string"""
+
+    uri = generate_uri(f"/procedure/{test_procedure_id}")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return response.text

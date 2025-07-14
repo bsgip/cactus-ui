@@ -150,6 +150,31 @@ def procedures_page(access_token: str) -> str:
     )
 
 
+@app.route("/procedure/<test_procedure_id>", methods=["GET", "POST"])
+@login_required
+def procedure_yaml_page(access_token: str, test_procedure_id: str) -> str | Response:
+
+    error: str | None = None
+
+    # Handle POST for triggering a new run / precondition phase
+    if request.method == "POST":
+        if request.form.get("action") == "initialise":
+            init_result = orchestrator.init_run(access_token, test_procedure_id)
+            if init_result.run_id is not None:
+                return redirect(url_for("run_status_page", run_id=init_result.run_id))
+            elif init_result.expired_cert:
+                error = "Your certificate has expired. Please generate and download a new certificate."
+            else:
+                error = "Failed to trigger a new run."
+
+    # Request the paginated list of procedures from upstream
+    yaml = orchestrator.fetch_procedure_yaml(access_token, test_procedure_id)
+    if yaml is None:
+        return render_template("procedure_yaml.html", error=f"Failed to fetch YAML for test '{test_procedure_id}'.")
+
+    return render_template("procedure_yaml.html", test_procedure_id=test_procedure_id, yaml=yaml, error=error)
+
+
 @app.route("/config", methods=["GET", "POST"])
 @login_required
 def config_page(access_token: str) -> str | Response:
@@ -244,7 +269,7 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
                 if orchestrator.start_run(access_token, run_id):
                     return redirect(url_for("run_status_page", run_id=run_id))
                 else:
-                    error = "Failed to finalise the run or retrieve artifacts."
+                    error = "Failed to start the test run."
 
         # Handle finalising a run
         elif request.form.get("action") == "finalise":
