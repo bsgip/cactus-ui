@@ -1,6 +1,5 @@
 import logging
 from dataclasses import dataclass
-from enum import IntEnum, auto
 from os import environ as env
 from typing import Any, Callable, Generic, TypeVar
 
@@ -183,10 +182,10 @@ def download_cert(access_token: str) -> bytes | None:
     return response.content
 
 
-class InitialiseRunResult(IntEnum):
-    SUCCESS = auto()
-    FAILURE_EXPIRED = auto()
-    FAILURE_OTHER = auto()
+@dataclass
+class InitialiseRunResult:
+    run_id: int | None  # The run_id that was initialised (or None for failure)
+    expired_cert: bool  # True if the failure is due to an expired certificate
 
 
 def init_run(access_token: str, test_procedure_id: str) -> InitialiseRunResult:
@@ -199,12 +198,16 @@ def init_run(access_token: str, test_procedure_id: str) -> InitialiseRunResult:
         CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN,
         json={"test_procedure_id": test_procedure_id},
     )
+
+    expired_cert = False
+    run_id: int | None = None
     if response is None or not is_success_response(response):
         if response is not None and response.status_code == 409:
-            return InitialiseRunResult.FAILURE_EXPIRED
-        return InitialiseRunResult.FAILURE_OTHER
+            expired_cert = True
+    else:
+        run_id = int(response.json()["run_id"])
 
-    return InitialiseRunResult.SUCCESS
+    return InitialiseRunResult(run_id=run_id, expired_cert=expired_cert)
 
 
 def start_run(access_token: str, run_id: str) -> bool:
@@ -247,3 +250,26 @@ def fetch_runs(access_token: str, page: int) -> Pagination[RunResponse] | None:
             run_id=r["run_id"], test_procedure_id=r["test_procedure_id"], test_url=r["test_url"], status=r["status"]
         ),
     )
+
+
+def fetch_individual_run(access_token: str, run_id: str) -> RunResponse | None:
+    """Fetches runs for a page"""
+    uri = generate_uri(f"/run/{run_id}")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    r = response.json()
+    return RunResponse(
+        run_id=r["run_id"], test_procedure_id=r["test_procedure_id"], test_url=r["test_url"], status=r["status"]
+    )
+
+
+def fetch_run_status(access_token: str, run_id: str) -> str | None:
+    """Given an already started run - fetch the status as a raw JSON string"""
+    uri = generate_uri(f"/run/{run_id}/status")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return response.text

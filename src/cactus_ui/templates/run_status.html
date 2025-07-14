@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}Run Status {{ run_id }} - Cactus{% endblock %}
+
+{% block content %}
+
+
+{% if run_is_live %}
+
+<div class="row justify-content-center">
+    <div class="card status-container">
+        <div class="card-body">
+            <h5 class="card-title">Run {{ run_id }} ({{ run_status }})</h5>
+
+            <p class="card-text">
+            <pre>{{ run_test_uri }}</pre>
+            </p>
+
+            {% if run_status == 'initialised' %}
+            <p class="card-text">This test run is in the "pre start" phase. Please load up any preconditions (eg:
+                registering EndDevice's) before starting the test.</p>
+            <form method="POST" action="{{ url_for('runs_page') }}">
+                <input type="hidden" name="run_id" value="{{ run_id }}">
+                <input type="hidden" name="action" value="start">
+                <button type="submit" class="btn btn-primary">Start</button>
+            </form>
+            {% elif run_status == 'started' %}
+            <p class="card-text">The test is now underway - the server will have loaded any initial preconditions
+                (eg: DERControls) and its now time for your client to respond appropriately. When you're ready to
+                end the test, press the Finalise button</p>
+            <form method="POST" action="{{ url_for('runs_page') }}">
+                <input type="hidden" name="run_id" value="{{ run_id }}">
+                <input type="hidden" name="action" value="finalise">
+                <button type="submit" class="btn btn-warning">Finalise</button>
+            </form>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+<br>
+<div class="row justify-content-center">
+    <div class="card status-container">
+        <div class="card-body">
+            <h5 class="card-title">{{ run_procedure_id }}</h5>
+            <table class="table">
+                <tbody id="update-general-table"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<br>
+<div class="row justify-content-center">
+    <div class="card status-container ">
+        <div class="card-body">
+            <h5 class="card-title">Current Criteria</h5>
+            <table class="table">
+                <tbody id="update-criteria-table"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<br>
+<div class="row justify-content-center">
+    <div class="card status-container ">
+        <div class="card-body">
+            <h5 class="card-title">Steps</h5>
+            <table class="table">
+                <tbody id="update-steps-table"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<br>
+<div class="row justify-content-center">
+    <div class="card status-container ">
+        <div class="card-body">
+            <h5 class="card-title">CSIP-Aus Requests</h5>
+            <table class="table">
+                <tbody id="update-requests-table"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<br>
+<div class="row justify-content-center">
+    <div class="card status-container ">
+        <div class="card-body">
+            <h5 class="card-title">Envoy Logs</h5>
+            <pre id="update-log-envoy">Loading...</pre>
+        </div>
+    </div>
+</div>
+
+{% else %}
+
+<div class="row">
+    <h2>Run {{ run_id }} has finalised</h2>
+    <div class="alert alert-danger" role="alert">
+        It appears that this run is no longer active. All results will be available via the test artifacts.
+    </div>
+
+    <form method="POST" action="{{ url_for('runs_page') }}">
+        <input type="hidden" name="run_id" value="{{ run_id }}">
+        <input type="hidden" name="action" value="artifact">
+        <button type="submit" class="btn btn-primary">Download Artifacts</button>
+    </form>
+</div>
+
+
+
+{% endif %}
+
+
+<style>
+    .status-container {
+        max-width: 1000px;
+        max-height: 600px;
+        overflow-y: auto;
+
+    }
+</style>
+
+<script>
+
+
+    function formatRelativeDate(d) {
+        // d: Date
+        const now = new Date();
+        const diff_ms = d - now;
+        const diff_s = Math.floor(diff_ms / 1000);
+        const diff_m = Math.floor(diff_s / 60);
+        const formatter = new Intl.RelativeTimeFormat('en', {
+            numeric: 'auto',
+            style: 'short'
+        });
+
+        if (Math.abs(diff_s) < 120) {
+            return formatter.format(diff_s, "second")
+        } else {
+            return formatter.format(diff_m, "minute")
+        }
+    }
+
+    function formatDate(d) {
+        // d: Date
+        return d.toLocaleString('sv'); // Sweden format is YYYY-MM-DD HH:MM:SS
+    }
+
+    function generalTableBody(status) {
+        fragments = [];
+
+        if (status.timestamp_start) {
+            startTime = new Date(Date.parse(status.timestamp_start))
+            fragments.push(`
+                <tr>
+                    <th scope="row">Started</th>
+                    <td>${formatDate(startTime)} (${formatRelativeDate(startTime)})</td>
+                </tr>`
+            );
+        }
+
+        if (status.timestamp_initialise) {
+            init_time = new Date(Date.parse(status.timestamp_initialise))
+            fragments.push(`
+                <tr>
+                    <th scope="row">Created</th>
+                    <td>${formatDate(init_time)} (${formatRelativeDate(init_time)})</td>
+                </tr>`
+            );
+        }
+
+        interaction_time = new Date(Date.parse(status.last_client_interaction.timestamp))
+        fragments.push(`
+            <tr>
+                <th scope="row">Last Interaction</th>
+                <td>${formatDate(interaction_time)} (${formatRelativeDate(interaction_time)})</td>
+            </tr>`
+        );
+
+        fragments.push(`
+            <tr>
+                <th scope="row">Summary</th>
+                <td>${status.status_summary}</td>
+            </tr>`
+        );
+
+        return fragments;
+    }
+
+    function criteriaTableBody(criteria) {
+        fragments = []
+        for (const c of criteria) {
+            color = c.success ? "success" : "danger";
+            icon = c.success ? "check" : "x";
+            fragments.push(`
+                <tr>
+                    <th scope="row">${c.type}</th>
+                    <td><span class="text-${color}"><i class="fas fa-${icon}"></i></span></td>
+                    <td>${c.details}</td>
+                </tr>
+            `)
+        }
+        return fragments
+    }
+
+    function stepStatusTableBody(stepStatus) {
+        fragments = []
+        for (const [step, status] of Object.entries(stepStatus)) {
+            color = status ? "success" : "secondary";
+            icon = status ? "check" : "question"
+            fragments.push(`
+                <tr>
+                     <th scope="row">${step}</th>
+                     <td><span class="text-${color}"><i class="fas fa-${icon}"></i></span></td>
+                </tr>`);
+        }
+
+        return fragments
+    }
+
+    function requestsTableBody(requests) {
+        if (requests.length == 0) {
+            return [`
+            <tr>
+                <th scope="row">No requests received</th>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>`];
+        }
+
+        fragments = []
+        for (const r of requests) {
+            d = new Date(Date.parse(r.timestamp))
+            statusColor = r.status < 200 || r.status > 299 ? "danger" : "success"
+            schemaColor = r.body_xml_errors.length ? "danger" : "success"
+            schemaText = r.body_xml_errors.length ? "XSD Errors" : "XSD Valid"
+            stepName = r.step_name === "Unmatched" ? "" : r.step_name
+
+            fragments.push(`
+            <tr>
+                <th scope="row">${formatDate(d)}</th>
+                <td>${r.method} ${r.path} <span class="badge text-bg-${statusColor}">${r.status}</span></td>
+                <td>${stepName}</td>
+                <td><span class="badge text-bg-${schemaColor}">${schemaText}</span></td>
+            </tr>`);
+        }
+
+        return fragments
+    }
+
+    function handleNewStatus(rawJsonString) {
+        const status = JSON.parse(rawJsonString);
+
+        // update cactus log entries
+        log_data = status.log_envoy ? status.log_envoy : "No logs recorded";
+        document.getElementById('update-log-envoy').innerHTML = log_data;
+
+        // update requests table
+        requestTable = document.getElementById('update-requests-table');
+        requestTable.innerHTML = requestsTableBody(status.request_history).join("");
+
+        // update steps table
+        stepsTable = document.getElementById('update-steps-table');
+        stepsTable.innerHTML = stepStatusTableBody(status.step_status).join("");
+
+        // update criteria table
+        criteriaTable = document.getElementById('update-criteria-table');
+        criteriaTable.innerHTML = criteriaTableBody(status.criteria).join("");
+
+        // update generate table
+        generalTable = document.getElementById('update-general-table');
+        generalTable.innerHTML = generalTableBody(status).join("");
+
+
+    }
+
+    function startPollingRunStatus(runStatusUri, pollRateMs) {
+        function fetchStatus() {
+            const xhr = new XMLHttpRequest();
+            xhr.open("GET", runStatusUri, true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    // Wait 10 seconds before the next request
+                    setTimeout(fetchStatus, pollRateMs);
+
+                    if (xhr.status === 200) {
+                        try {
+                            handleNewStatus(xhr.responseText)
+                        } catch (e) {
+                            console.error("Failed to parse response:", e);
+                        }
+                    } else if (xhr.status === 410) {
+                        console.error("Received HTTP GONE - reloading page as test is finished:");
+                        location.reload()
+                    } else {
+                        console.error("Request failed with status:", xhr.status);
+                    }
+                }
+            };
+            xhr.onerror = function () {
+                console.error("AJAX error occurred.");
+                location.reload()
+            };
+            xhr.send();
+        }
+
+        setTimeout(fetchStatus, pollRateMs); // start the loop after initial poll delay
+    }
+
+    addEventListener("load", (event) => {
+        // Load initial status at startup
+        const initialStatusJson = atob("{{ initial_status_b64 }}");
+        handleNewStatus(initialStatusJson)
+
+
+        // Start polling
+        const uri = "{{ url_for('run_status_json', run_id=run_id) }}";
+        const pollRateMs = 10000; // 10 seconds
+        startPollingRunStatus(uri, pollRateMs);
+    });
+
+
+
+</script>
+
+
+
+{% endblock %}
