@@ -29,7 +29,7 @@ package-dir = { "" = "src" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-"cactus_ui" = ["py.typed", "templates/*.html"]
+"cactus_ui" = ["py.typed", "templates/*.html", "static/js/*"]
 
 [tool.black]
 line-length = 120
