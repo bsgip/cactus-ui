@@ -9,96 +9,93 @@
 <div class="alert alert-danger">{{ error }}</div>
 {% endif %}
 
+
 <div class="row">
-    <!-- Section for triggering a new run -->
-    <div class="col-12 col-md-4 order-1 order-md-2 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <h3 class="card-title">Trigger a New Run</h3>
-                <form method="POST" id="submit-run-form" action="{{ url_for('runs_page') }}">
-                    <input type="hidden" name="action" value="initialise">
-                    <div class="mb-3">
-                        <select name="test_procedure_id" id="testProcedure" class="form-select" required>
-                            <option value="" disabled selected>Select a test procedure</option>
-                            {% for procedure in procedures %}
-                            <option value="{{ procedure.test_procedure_id }}">{{ procedure.description }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <button id="submit-run-btn" type="submit" class="btn btn-success w-100 w-md-auto">Start Run</button>
-                </form>
-            </div>
-        </div>
-    </div>
+    <div class="col procedure-container" style="border: 1px;">
+        {% for gp in grouped_procedures %}
+        <div class="card" style="border-radius: 0; border-bottom: none;">
+            <div class="card-header">{{gp[0]}}</div>
+            <div class="list-group list-group-flush">
+                {% for procedure in gp[1] %}
+                <a href="#" id="{{procedure.test_procedure_id }}"
+                    class="procedure-btn list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    {{procedure.test_procedure_id }}
 
-    <!-- Table displaying runs -->
-    <div class="col-12 col-md-8 order-2 order-md-1 mt-4 mt-md-0">
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Run ID</th>
-                        <th>Test Procedure ID</th>
-                        <th>Test URL</th>
-                        <th>Finalised</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for run in runs %}
-                    <tr>
-                        <td><a href="{{ url_for('run_status_page', run_id=run['run_id']) }}">{{ run['run_id'] }}</a>
-                        </td>
-                        <td><a href="{{ url_for('procedure_yaml_page', test_procedure_id=run['test_procedure_id']) }}">
-                                {{ run['test_procedure_id'] }}
-                            </a> </td>
-                        <td>{{ run['test_url'] }}</td>
-                        <td>{{ run['status'] }}</td>
-                        <td>
-                            {% if run['status'] == 'finalised' %}
-                            <!-- Form for downloading artifacts -->
-                            <form method="POST" action="{{ url_for('runs_page') }}">
-                                <input type="hidden" name="run_id" value="{{ run['run_id'] }}">
-                                <input type="hidden" name="action" value="artifact">
-                                <button type="submit" class="btn btn-secondary">Download</button>
-                            </form>
-                            {% elif run['status'] == 'initialised' %}
-                            <!-- Form for starting run -->
-                            <form method="POST" action="{{ url_for('runs_page') }}">
-                                <input type="hidden" name="run_id" value="{{ run['run_id'] }}">
-                                <input type="hidden" name="action" value="start">
-                                <button type="submit" class="btn btn-secondary">Start</button>
-                            </form>
-                            {% else %}
-                            <!-- Form to finalising the run and downloading artifacts -->
-                            <form method="POST" action="{{ url_for('runs_page') }}">
-                                <input type="hidden" name="run_id" value="{{ run['run_id'] }}">
-                                <input type="hidden" name="action" value="finalise">
-                                <button type="submit" class="btn btn-warning">Finalise</button>
-                            </form>
-                            {% endif %}
-                        </td>
-                    </tr>
+                    {% if procedure.run_count > 0 %}
+                    {% if procedure.latest_all_criteria_met == true %}
+                    <span class="badge text-bg-success">{{ procedure.run_count }}</span>
+                    {% elif procedure.latest_all_criteria_met == false %}
+                    <span class="badge text-bg-danger">{{ procedure.run_count }}</span>
                     {% else %}
-                    <tr>
-                        <td colspan="6" class="text-center">No runs available.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    <span class="badge text-bg-secondary">{{ procedure.run_count }}</span>
+                    {% endif %}
+                    {% endif %}
 
-            <div class="d-flex justify-content-between">
-                {% if prev_page %}
-                <a href="{{ prev_page }}" class="btn btn-outline-primary">Previous</a>
-                {% endif %}
-                {% if next_page %}
-                <a href="{{ next_page }}" class="btn btn-outline-primary">Next</a>
-                {% endif %}
+                </a>
+                {% endfor %}
             </div>
+
         </div>
+        {% endfor %}
+    </div>
+    <div class="col">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Created</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Result</th>
+                    <th scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th scope="row">1</th>
+                    <td>Mark</td>
+                    <td>Otto</td>
+                    <td>@mdo</td>
+                </tr>
+                <tr>
+                    <th scope="row">2</th>
+                    <td>Jacob</td>
+                    <td>Thornton</td>
+                    <td>@fat</td>
+                </tr>
+                <tr>
+                    <th scope="row">3</th>
+                    <td>John</td>
+                    <td>Doe</td>
+                    <td>@social</td>
+                </tr>
+            </tbody>
+        </table>
+        <span class="align-middle">Select a test procedure to view runs</span>
     </div>
 </div>
+
+
+
+<div class="row">
+
+</div>
+
+
+<style>
+    .procedure-container {
+        max-width: 400px;
+        min-width: 200px;
+        overflow-y: auto;
+
+    }
+</style>
+
 <script>
+    function formatDate(d) {
+        // d: Date
+        return d.toLocaleString('sv'); // Sweden format is YYYY-MM-DD HH:MM:SS
+    }
+
     function submit_run() {
         var form = document.getElementById('submit-run-form')
         if (form.checkValidity()) {
@@ -110,7 +107,57 @@
             form.submit()
         }
     }
-    document.getElementById('submit-run-btn').onclick = submit_run
+
+    function handleNewRuns(rawRunsJson) {
+
+    }
+
+    function handleRunsError(error) {
+
+    }
+
+    function loadProcedureRuns(test_procedure_id) {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", `/procedure_runs/${test_procedure_id}`, true);
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    try {
+                        handleNewRuns(xhr.responseText)
+                    } catch (e) {
+                        console.error("Failed to parse response:", e);
+                        handleRunsError("Failed to parse runs response. Please try reloading the page.");
+                    }
+                } else {
+                    console.error("Request failed with status:", xhr.status);
+                    handleRunsError(`Received failure response (${xhr.status}) from server. Please try again later.`);
+                }
+            }
+        };
+        xhr.onerror = function () {
+            console.error("AJAX error occurred.");
+            handleRunsError(`Unable to communicate with server. Please try refreshing the page.`);
+        };
+        xhr.send();
+    }
+
+    function handleProcedureButtonClick(e) {
+        // update active class
+        document.querySelectorAll(".procedure-btn").forEach(el => el.classList.remove('active'));
+        this.classList.add('active');
+
+
+        loadProcedureRuns(this.id)
+    }
+
+
+
+    addEventListener("load", (event) => {
+        // Install onclick handlers for procedure btns
+        document.querySelectorAll(".procedure-btn").forEach(el => el.onclick = handleProcedureButtonClick);
+
+    });
+
 </script>
 
 

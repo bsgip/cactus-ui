@@ -79,3 +79,22 @@ jobs:
       - name: Run mypy
         run: |
           mypy src/
+  
+  pytest_py312:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.1.0
+
+      - name: Setup Python
+        uses: actions/setup-python@v4.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Install Dependencies
+        run: |
+          pip install .[test]
+
+      - name: Run Pytest
+        run: |
+          pytest

@@ -1,6 +1,7 @@
 """Python Flask WebApp Auth0 integration example"""
 
 import io
+import json
 import logging
 from base64 import b64encode
 from datetime import datetime, timezone
@@ -16,6 +17,7 @@ from dotenv import find_dotenv, load_dotenv
 from flask import (
     Flask,
     current_app,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -27,6 +29,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.wrappers.response import Response
 
 import cactus_ui.orchestrator as orchestrator
+from cactus_ui.common import find_first
 
 logger = logging.getLogger(__name__)
 
@@ -240,6 +243,20 @@ def config_page(access_token: str) -> str | Response:
     )
 
 
+@app.route("/procedure_runs/<test_procedure_id>", methods=["GET"])
+@login_required
+def procedure_runs_json(access_token: str, test_procedure_id: str) -> Response:
+    runs_page = orchestrator.fetch_runs_for_procedure(access_token, test_procedure_id)
+    if runs_page is None:
+        return Response(
+            response=f"Unable to fetch runs for {test_procedure_id}.",
+            status=HTTPStatus.NOT_FOUND,
+            mimetype="text/plain",
+        )
+
+    return jsonify(runs_page)
+
+
 @app.route("/runs", methods=["GET", "POST"])
 @login_required
 def runs_page(access_token: str) -> str | Response:  # noqa: C901
@@ -306,42 +323,25 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
                     )
 
     # Fetch procedures
-    procedures: list[orchestrator.ProcedureResponse] = []
-    procedures_page = orchestrator.fetch_procedures(access_token, 1)
-    if procedures_page is None:
+    procedures = orchestrator.fetch_procedure_run_summaries(access_token)
+    grouped_procedures: list[tuple[str, list[orchestrator.ProcedureRunSummaryResponse]]] = []
+    if procedures is None:
         error = "Unable to fetch test procedures."
     else:
-        procedures = procedures_page.items
+        # Organise the procedures by grouping them under the "category" label present (while also preserving order)
+        for p in procedures:
 
-    # Fetch list of runs
-    page = request.args.get("page", 1, type=int)
-    next_page: int | None = None
-    prev_page: int | None = None
-    total_items: int | None = None
-    page_size: int | None = None
-    current_page: int | None = None
-    runs: list[orchestrator.RunResponse] = []
-    runs_page = orchestrator.fetch_runs(access_token, page)
-    if runs_page is None:
-        error = "Failed to fetch runs. Have you generated a certificate?"
-    else:
-        runs = runs_page.items
-        next_page = runs_page.next_page
-        prev_page = runs_page.prev_page
-        total_items = runs_page.total_items
-        page_size = runs_page.page_size
-        current_page = runs_page.current_page
+            # Add this procedure to the list of groups
+            existing_group = find_first(grouped_procedures, lambda x: x[0] == p.category)
+            if existing_group:
+                existing_group[1].append(p)
+            else:
+                grouped_procedures.append((p.category, [p]))
 
     return render_template(
         "runs.html",
         error=error,
-        runs=runs,
-        procedures=procedures,
-        next_page=next_page,
-        prev_page=prev_page,
-        total_items=total_items,
-        page_size=page_size,
-        current_page=current_page,
+        grouped_procedures=grouped_procedures,
     )
 
 
