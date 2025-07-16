@@ -1,7 +1,6 @@
 """Python Flask WebApp Auth0 integration example"""
 
 import io
-import json
 import logging
 from base64 import b64encode
 from datetime import datetime, timezone
@@ -9,7 +8,6 @@ from functools import lru_cache, wraps
 from http import HTTPStatus
 from os import environ as env
 from pathlib import Path
-from time import sleep
 from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
 
