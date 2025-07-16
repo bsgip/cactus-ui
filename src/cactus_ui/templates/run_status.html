@@ -124,31 +124,6 @@
 </style>
 
 <script>
-
-
-    function formatRelativeDate(d) {
-        // d: Date
-        const now = new Date();
-        const diff_ms = d - now;
-        const diff_s = Math.floor(diff_ms / 1000);
-        const diff_m = Math.floor(diff_s / 60);
-        const formatter = new Intl.RelativeTimeFormat('en', {
-            numeric: 'auto',
-            style: 'short'
-        });
-
-        if (Math.abs(diff_s) < 120) {
-            return formatter.format(diff_s, "second")
-        } else {
-            return formatter.format(diff_m, "minute")
-        }
-    }
-
-    function formatDate(d) {
-        // d: Date
-        return d.toLocaleString('sv'); // Sweden format is YYYY-MM-DD HH:MM:SS
-    }
-
     function generalTableBody(status) {
         fragments = [];
 
@@ -278,34 +253,27 @@
 
     }
 
+    function handleStatusError(status, content) {
+        if (status === null) {
+            console.error("AJAX error occurred.");
+            location.reload()
+        } else if (xhr.status === 410) {
+            console.error("Received HTTP GONE - reloading page as test is finished:");
+            location.reload()
+        } else {
+            console.error("Request failed with status and content:", status, content);
+        }
+    }
+
     function startPollingRunStatus(runStatusUri, pollRateMs) {
         function fetchStatus() {
-            const xhr = new XMLHttpRequest();
-            xhr.open("GET", runStatusUri, true);
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4) {
-                    // Wait 10 seconds before the next request
-                    setTimeout(fetchStatus, pollRateMs);
-
-                    if (xhr.status === 200) {
-                        try {
-                            handleNewStatus(xhr.responseText)
-                        } catch (e) {
-                            console.error("Failed to parse response:", e);
-                        }
-                    } else if (xhr.status === 410) {
-                        console.error("Received HTTP GONE - reloading page as test is finished:");
-                        location.reload()
-                    } else {
-                        console.error("Request failed with status:", xhr.status);
-                    }
-                }
-            };
-            xhr.onerror = function () {
-                console.error("AJAX error occurred.");
-                location.reload()
-            };
-            xhr.send();
+            xhrRequest(runStatusUri, (content) => {
+                setTimeout(fetchStatus, pollRateMs);
+                handleNewStatus(content);
+            }, (status, content) => {
+                setTimeout(fetchStatus, pollRateMs);
+                handleStatusError(status, content);
+            });
         }
 
         setTimeout(fetchStatus, pollRateMs); // start the loop after initial poll delay

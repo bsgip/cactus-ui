@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from os import environ as env
 from typing import Any, Callable, Generic, TypeVar
 
@@ -27,6 +28,9 @@ class RunResponse:
     test_procedure_id: str
     test_url: str
     status: str
+    all_criteria_met: bool | None
+    created_at: datetime
+    finalised_at: datetime | None
 
 
 @dataclass
@@ -47,6 +51,18 @@ class ConfigResponse:
     subscription_domain: str
     is_static_uri: bool
     static_uri: str | None
+
+
+@dataclass
+class ProcedureRunSummaryResponse:
+    """Ideally this would be defined in a shared cactus-schema but that doesn't exist. Instead, ensure this remains
+    in sync with cactus-orchestrator.schema.TestProcedureRunSummaryResponse"""
+
+    test_procedure_id: str
+    description: str
+    category: str
+    run_count: int  # Count of runs for this test procedure
+    latest_all_criteria_met: bool | None  # Value for all_criteria_met of the most recent Run
 
 
 PaginatedType = TypeVar("PaginatedType")
@@ -247,7 +263,13 @@ def fetch_runs(access_token: str, page: int) -> Pagination[RunResponse] | None:
     return handle_pagination(
         response.json(),
         lambda r: RunResponse(
-            run_id=r["run_id"], test_procedure_id=r["test_procedure_id"], test_url=r["test_url"], status=r["status"]
+            run_id=r["run_id"],
+            test_procedure_id=r["test_procedure_id"],
+            test_url=r["test_url"],
+            status=r["status"],
+            all_criteria_met=r["all_criteria_met"],
+            created_at=r["created_at"],
+            finalised_at=r["finalised_at"],
         ),
     )
 
@@ -261,7 +283,13 @@ def fetch_individual_run(access_token: str, run_id: str) -> RunResponse | None:
 
     r = response.json()
     return RunResponse(
-        run_id=r["run_id"], test_procedure_id=r["test_procedure_id"], test_url=r["test_url"], status=r["status"]
+        run_id=r["run_id"],
+        test_procedure_id=r["test_procedure_id"],
+        test_url=r["test_url"],
+        status=r["status"],
+        all_criteria_met=r["all_criteria_met"],
+        created_at=r["created_at"],
+        finalised_at=r["finalised_at"],
     )
 
 
@@ -284,3 +312,45 @@ def fetch_procedure_yaml(access_token: str, test_procedure_id: str) -> str | Non
         return None
 
     return response.text
+
+
+def fetch_runs_for_procedure(access_token: str, test_procedure_id: str) -> Pagination[RunResponse] | None:
+    """Given a test procedure ID - fetch the runs"""
+
+    uri = generate_uri(f"procedure_runs/{test_procedure_id}")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return handle_pagination(
+        response.json(),
+        lambda r: RunResponse(
+            run_id=r["run_id"],
+            test_procedure_id=r["test_procedure_id"],
+            test_url=r["test_url"],
+            status=r["status"],
+            all_criteria_met=r["all_criteria_met"],
+            created_at=r["created_at"],
+            finalised_at=r["finalised_at"],
+        ),
+    )
+
+
+def fetch_procedure_run_summaries(access_token: str) -> list[ProcedureRunSummaryResponse] | None:
+    """Fetch all test procedures and their associated run summaries"""
+
+    uri = generate_uri("procedure_runs")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return [
+        ProcedureRunSummaryResponse(
+            test_procedure_id=r["test_procedure_id"],
+            description=r["description"],
+            category=r["category"],
+            run_count=r["run_count"],
+            latest_all_criteria_met=r["latest_all_criteria_met"],
+        )
+        for r in response.json()
+    ]
