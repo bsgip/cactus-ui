@@ -257,7 +257,7 @@
         if (status === null) {
             console.error("AJAX error occurred.");
             location.reload()
-        } else if (xhr.status === 410) {
+        } else if (status === 410) {
             console.error("Received HTTP GONE - reloading page as test is finished:");
             location.reload()
         } else {
