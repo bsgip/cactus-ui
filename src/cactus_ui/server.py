@@ -271,10 +271,12 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
                 init_result = orchestrator.init_run(access_token, test_procedure_id)
                 if init_result.run_id is not None:
                     return redirect(url_for("run_status_page", run_id=init_result.run_id))
-                elif init_result.expired_cert:
+                elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
                     error = "Your certificate has expired. Please generate and download a new certificate."
+                elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
+                    error = "You cannot start a second test run while your DeviceCapability URI is set to static."
                 else:
-                    error = "Failed to trigger a new run."
+                    error = "Failed to trigger a new run due to an unknown error."
 
         # Handle starting a run / test procedure phase
         elif request.form.get("action") == "start":

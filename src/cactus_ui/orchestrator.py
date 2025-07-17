@@ -1,6 +1,8 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime
+from enum import IntEnum, auto
+from http import HTTPStatus
 from os import environ as env
 from typing import Any, Callable, Generic, TypeVar
 
@@ -198,10 +200,19 @@ def download_cert(access_token: str) -> bytes | None:
     return response.content
 
 
+class InitialiseRunFailureType(IntEnum):
+    NO_FAILURE = auto()
+    UNKNOWN_FAILURE = auto()  # Failed for some sort of undetermined reason
+    EXPIRED_CERT = auto()  # User certs have expired
+    EXISTING_STATIC_INSTANCE = (
+        auto()
+    )  # User is expecting a static URI but one is already allocated (shut it down first)
+
+
 @dataclass
 class InitialiseRunResult:
     run_id: int | None  # The run_id that was initialised (or None for failure)
-    expired_cert: bool  # True if the failure is due to an expired certificate
+    failure_type: InitialiseRunFailureType
 
 
 def init_run(access_token: str, test_procedure_id: str) -> InitialiseRunResult:
@@ -215,15 +226,20 @@ def init_run(access_token: str, test_procedure_id: str) -> InitialiseRunResult:
         json={"test_procedure_id": test_procedure_id},
     )
 
-    expired_cert = False
+    # Figure out what sort of failure has occurred (if any)
+    failure_type = InitialiseRunFailureType.NO_FAILURE
     run_id: int | None = None
     if response is None or not is_success_response(response):
-        if response is not None and response.status_code == 409:
-            expired_cert = True
+        failure_type = InitialiseRunFailureType.UNKNOWN_FAILURE
+        if response is not None:
+            if response.status_code == HTTPStatus.EXPECTATION_FAILED:
+                failure_type = InitialiseRunFailureType.EXPIRED_CERT
+            elif response.status_code == HTTPStatus.CONFLICT:
+                failure_type = InitialiseRunFailureType.EXISTING_STATIC_INSTANCE
     else:
         run_id = int(response.json()["run_id"])
 
-    return InitialiseRunResult(run_id=run_id, expired_cert=expired_cert)
+    return InitialiseRunResult(run_id=run_id, failure_type=failure_type)
 
 
 def start_run(access_token: str, run_id: str) -> bool:
