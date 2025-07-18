@@ -256,6 +256,10 @@ def finalise_run(access_token: str, run_id: str) -> bytes | None:
     if response is None or not is_success_response(response):
         return None
 
+    # This is a special case - we DID finalize but got no data due to a downstream error. Treat it as a general failure.
+    if response.status_code == HTTPStatus.NO_CONTENT:
+        return None
+
     return response.content
 
 
