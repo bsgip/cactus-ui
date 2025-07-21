@@ -1,7 +1,10 @@
 """Python Flask WebApp Auth0 integration example"""
 
 import io
+import json
 import logging
+import logging.config
+import os
 from base64 import b64encode
 from datetime import datetime, timezone
 from functools import lru_cache, wraps
@@ -29,6 +32,14 @@ from werkzeug.wrappers.response import Response
 
 import cactus_ui.orchestrator as orchestrator
 from cactus_ui.common import find_first
+
+# Setup logs
+logconf_fp = "./logconf.json"
+if os.path.exists(logconf_fp):
+    with open(logconf_fp, "r") as f:
+        logging.config.dictConfig(json.load(f))
+else:
+    logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
