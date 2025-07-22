@@ -211,13 +211,13 @@ def config_page(access_token: str) -> str | Response:
     if request.method == "POST":
         # Refresh cert - render the password
         if request.form.get("action") == "refresh":
-            pwd = orchestrator.refresh_cert(access_token)
+            pwd = orchestrator.refresh_aggregator_cert(access_token)
             if pwd is None:
                 error = "Failed to generate certificate."
 
         # Download certificate - serve a new download
         elif request.form.get("action") == "download":
-            cert_data = orchestrator.download_cert(access_token)
+            cert_data = orchestrator.download_aggregator_cert(access_token)
             if cert_data is None:
                 error = "Failed to retrieve the certificate."
             else:
@@ -236,6 +236,7 @@ def config_page(access_token: str) -> str | Response:
                 access_token,
                 subscription_domain=domain,
                 is_static_uri=static_uri,
+                is_device_cert=False,
             ):
                 error = "Failed to update configuration."
             else:
