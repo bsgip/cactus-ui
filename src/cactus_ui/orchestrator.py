@@ -33,6 +33,7 @@ class RunResponse:
     all_criteria_met: bool | None
     created_at: datetime
     finalised_at: datetime | None
+    is_device_cert: bool
 
 
 @dataclass
@@ -53,6 +54,9 @@ class ConfigResponse:
     subscription_domain: str
     is_static_uri: bool
     static_uri: str | None
+    is_device_cert: bool  # if true - all test instances will spawn using the device certificate. Otherwise use agg cert
+    aggregator_certificate_expiry: datetime | None  # When the current user aggregator cert expires. None = expired
+    device_certificate_expiry: datetime | None  # When the current user device cert expires. None = expired
 
 
 @dataclass
@@ -164,10 +168,15 @@ def fetch_config(access_token: str) -> ConfigResponse | None:
         subscription_domain=data["subscription_domain"],
         is_static_uri=data["is_static_uri"],
         static_uri=data.get("static_uri", None),
+        is_device_cert=data["is_device_cert"],
+        device_certificate_expiry=data["device_certificate_expiry"],
+        aggregator_certificate_expiry=data["aggregator_certificate_expiry"],
     )
 
 
-def update_config(access_token: str, subscription_domain: str, is_static_uri: bool) -> bool:
+def update_config(
+    access_token: str, subscription_domain: str | None, is_static_uri: bool | None, is_device_cert: bool | None
+) -> bool:
     """Update the current config"""
     uri = generate_uri("/config")
     response = safe_request(
@@ -175,14 +184,18 @@ def update_config(access_token: str, subscription_domain: str, is_static_uri: bo
         uri,
         generate_headers(access_token),
         CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
-        json={"subscription_domain": subscription_domain, "is_static_uri": is_static_uri},
+        json={
+            "subscription_domain": subscription_domain,
+            "is_static_uri": is_static_uri,
+            "is_device_cert": is_device_cert,
+        },
     )
     return response is None or is_success_response(response)
 
 
-def refresh_cert(access_token: str) -> str | None:
-    """Refreshes the current cert - returns the new password for the cert"""
-    uri = generate_uri("/certificate")
+def refresh_aggregator_cert(access_token: str) -> str | None:
+    """Refreshes the current aggregator cert - returns the new password for the cert"""
+    uri = generate_uri("/certificate/aggregator")
     response = safe_request("PUT", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
         return None
@@ -190,9 +203,29 @@ def refresh_cert(access_token: str) -> str | None:
     return response.headers["X-Certificate-Password"]
 
 
-def download_cert(access_token: str) -> bytes | None:
+def download_aggregator_cert(access_token: str) -> bytes | None:
     """Downloads the current cert - returns the raw p12 bytes"""
-    uri = generate_uri("/certificate")
+    uri = generate_uri("/certificate/aggregator")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return response.content
+
+
+def refresh_device_cert(access_token: str) -> str | None:
+    """Refreshes the current device cert - returns the new password for the cert"""
+    uri = generate_uri("/certificate/device")
+    response = safe_request("PUT", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return response.headers["X-Certificate-Password"]
+
+
+def download_device_cert(access_token: str) -> bytes | None:
+    """Downloads the device cert - returns the raw p12 bytes"""
+    uri = generate_uri("/certificate/device")
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
         return None
@@ -290,6 +323,7 @@ def fetch_runs(access_token: str, page: int) -> Pagination[RunResponse] | None:
             all_criteria_met=r["all_criteria_met"],
             created_at=r["created_at"],
             finalised_at=r["finalised_at"],
+            is_device_cert=r["is_device_cert"],
         ),
     )
 
@@ -310,6 +344,7 @@ def fetch_individual_run(access_token: str, run_id: str) -> RunResponse | None:
         all_criteria_met=r["all_criteria_met"],
         created_at=r["created_at"],
         finalised_at=r["finalised_at"],
+        is_device_cert=r["is_device_cert"],
     )
 
 
@@ -352,6 +387,7 @@ def fetch_runs_for_procedure(access_token: str, test_procedure_id: str) -> Pagin
             all_criteria_met=r["all_criteria_met"],
             created_at=r["created_at"],
             finalised_at=r["finalised_at"],
+            is_device_cert=r["is_device_cert"],
         ),
     )
 
