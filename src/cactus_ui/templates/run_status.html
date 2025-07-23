@@ -13,7 +13,7 @@
             <h5 class="card-title">Run {{ run_id }} ({{ run_status }})</h5>
 
             <p class="card-text">
-            <pre>{{ run_test_uri }}</pre>
+                <code style="user-select: all;">{{ run_test_uri }}</code>
             </p>
 
             {% if run_status == 'initialised' %}

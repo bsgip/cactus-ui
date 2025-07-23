@@ -11,45 +11,126 @@
 </p>
 
 <hr>
+
 {% if pwd %}
 <div class="alert alert-warning mt-3">
-    <strong>Generated a new certificate (.p12). This passphrase will not be shown again:
-
-    </strong> {{ pwd }}
+    <strong>Generated a new certificate (.p12). This passphrase will not be shown again:</strong> {{ pwd }}
 </div>
-{% elif error %}
+{% endif %}
+
+{% if error %}
 <div class="alert alert-danger mt-3">
     <strong>Error:</strong> {{ error }}
 </div>
+{% elif aggregator_certificate_expiry is none and device_certificate_expiry is none %}
+<div class="alert alert-danger" role="alert">
+    No client certificates have been generated. Please generate one below, otherwise you will be unable to start a a
+    test run
+</div>
+{% elif not is_device_cert and aggregator_certificate_expiry is none %}
+<div class="alert alert-danger" role="alert">
+    You have opted to use an aggregator certificate but there is no valid aggregate certificate on record. Please
+    generate one below.
+</div>
+{% elif is_device_cert and device_certificate_expiry is none %}
+<div class="alert alert-danger" role="alert">
+    You have opted to use an device certificate but there is no valid device certificate on record. Please generate one
+    below.
+</div>
 {% endif %}
+
+
 
 <div class="row">
     <div class="card-group">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Download Aggregator Certificate</h5>
-                <p class="card-text">Download the latest p12/pfx encoded certificate/key that was generated. Your client
-                    will need this to access test runs.</p>
-                <p class="card-text"><small class="text-body-secondary"></small></p>
+                <h5 class="card-title">Manage Client Certificates</h5>
+                <p class="card-text">Each test run will have <strong>either</strong> a device or aggregator certificate
+                    installed. A device certificate can only create a single <code>EndDevice</code> whose
+                    <code>lfdi</code> and <code>sfdi</code> must match the device certificate exactly. An aggregator
+                    certificate can instead manage multiple <code>EndDevice</code> instances with relaxed rules around
+                    <code>lfdi</code> and <code>sfdi</code> values.
+                </p>
+
+
+                <table class="table" style="max-width: 650px;">
+                    <tbody>
+                        <tr {% if not is_device_cert %}class="table-success" {% endif %}>
+                            <td>Aggregator Certificate</td>
+                            <td id="aggregator-expiry">Not generated</td>
+
+                            <td>
+                                <form method="POST" action="{{ url_for('config_page') }}">
+                                    <input type="hidden" name="certificate" , value="aggregator">
+                                    <div class="btn-group" role="group">
+                                        {% if aggregator_certificate_expiry %}
+                                        <button type="submit" name="action" value="download"
+                                            class="btn btn-outline-primary">
+                                            <i class="fas fa-download"></i> Download
+                                        </button>
+                                        {% endif %}
+                                        <button type="submit" name="action" value="refresh"
+                                            class="btn btn-outline-danger">
+                                            <i class="fas fa-sync-alt"></i>
+                                            {% if aggregator_certificate_expiry %}
+                                            Refresh
+                                            {% else %}
+                                            Generate
+                                            {% endif %}
+                                        </button>
+
+
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr {% if is_device_cert %}class="table-success" {% endif %}>
+                            <td>Device Certificate</td>
+                            <td id="device-expiry">Not generated</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('config_page') }}">
+                                    <input type="hidden" name="certificate" , value="device">
+                                    <div class="btn-group" role="group">
+                                        {% if device_certificate_expiry %}
+                                        <button type="submit" name="action" value="download"
+                                            class="btn btn-outline-primary">
+                                            <i class="fas fa-download"></i> Download
+                                        </button>
+                                        {% endif %}
+                                        <button type="submit" name="action" value="refresh"
+                                            class="btn btn-outline-danger">
+                                            <i class="fas fa-sync-alt"></i>
+                                            {% if device_certificate_expiry %}
+                                            Refresh
+                                            {% else %}
+                                            Generate
+                                            {% endif %}
+                                        </button>
+
+
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+
+                <p class="card-text"><small class="text-body-secondary">Currently using <strong>{{'Device' if
+                            is_device_cert else 'Aggregator'}}</strong>
+                        certificate</small></p>
+
                 <form method="POST" action="{{ url_for('config_page') }}">
-                    <button type="submit" name="action" value="download" class="btn btn-primary">
-                        <i class="fas fa-download"></i> Download
+                    <input type="hidden" name="certificate" , value="{{'aggregator' if is_device_cert else 'device'}}">
+                    <button type="submit" name="action" value="setcert" class="btn btn-primary">
+                        <i class="fas fa-arrow-right-arrow-left"></i> Swap to {{'Aggregator' if
+                        is_device_cert else 'Device'}} certificate
                     </button>
                 </form>
             </div>
         </div>
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Refresh Certificate</h5>
-                <p class="card-text">This will deprecate any prior certificates and generate a fresh set. This will only
-                    affect newly created test runs.</p>
-                <form method="POST" action="{{ url_for('config_page') }}">
-                    <button type="submit" name="action" value="refresh" class="btn btn-danger">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
-                </form>
-            </div>
-        </div>
+
     </div>
 </div>
 
@@ -66,12 +147,11 @@
                     subscription notifications. Attempts to register notification URI outside of this domain will be
                     rejected.</p>
                 <form method="POST" action="{{ url_for('config_page') }}">
-                    <input type="hidden" name="static_uri" , value="{{ static_uri }}">
                     <input type="text" class="form-control" id="inputDomain1" name="subscription_domain"
                         aria-describedby="domainHelp" placeholder="Enter a FQDN (eg my.example.com)"
                         value="{{ domain }}">
                     <br>
-                    <button type="submit" name="action" value="update" class="btn btn-primary">
+                    <button type="submit" name="action" value="setsubscribeddomain" class="btn btn-primary">
                         <i class="fas fa-pen"></i> Update Domain
                     </button>
                 </form>
@@ -94,26 +174,38 @@
 
                 <p></p>
 
-
                 <form method="POST" action="{{ url_for('config_page') }}">
                     <input type="hidden" name="static_uri" , value="{{ not static_uri }}">
-                    <input type="hidden" name="subscription_domain" , value="{{ domain }}">
 
-                    {% if static_uri %}
-                    <button type="submit" name="action" value="update" class="btn btn-primary">
-                        <i class="fas fa-pen"></i> Swap to dynamic URI
+                    <button type="submit" name="action" value="setstaticuri" class="btn btn-primary">
+                        <i class="fas fa-arrow-right-arrow-left"></i>
+                        {% if static_uri %}
+                        Swap to dynamic URI
+                        {% else %}
+                        Swap to static URI
+                        {% endif %}
                     </button>
-                    {% else %}
-                    <button type="submit" name="action" value="update" class="btn btn-primary">
-                        <i class="fas fa-pen"></i> Swap to static URI
-                    </button>
-                    {% endif %}
-
                 </form>
             </div>
         </div>
     </div>
 </div>
 
+<script>
+    addEventListener("load", (event) => {
+        const aggregator_expiry_raw = "{{ aggregator_certificate_expiry if aggregator_certificate_expiry else '' }}";
+        const device_expiry_raw = "{{ device_certificate_expiry if device_certificate_expiry else '' }}";
+
+        if (aggregator_expiry_raw) {
+            d = new Date(Date.parse(aggregator_expiry_raw))
+            document.getElementById('aggregator-expiry').innerHTML = `Expires ${formatRelativeDate(d)}`;
+        }
+
+        if (device_expiry_raw) {
+            d = new Date(Date.parse(device_expiry_raw));
+            document.getElementById('device-expiry').innerHTML = `Expires ${formatRelativeDate(d)}`;
+        }
+    });
+</script>
 
 {% endblock %}

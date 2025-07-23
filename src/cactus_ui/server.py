@@ -192,9 +192,57 @@ def procedure_yaml_page(access_token: str, test_procedure_id: str) -> str | Resp
 
 @app.route("/config", methods=["GET", "POST"])
 @login_required
-def config_page(access_token: str) -> str | Response:
+def config_page(access_token: str) -> str | Response:  # noqa: C901
+    error = None
+    pwd = None
+    if request.method == "POST":
+        action = request.form.get("action")
+        certificate = request.form.get("certificate", None)
+        if action == "refresh":
+            if certificate == "aggregator":
+                pwd = orchestrator.refresh_aggregator_cert(access_token)
+            elif certificate == "device":
+                pwd = orchestrator.refresh_device_cert(access_token)
 
-    # If we can't reach the current config - any page load will be borked. Best we can do is report on an error
+            if pwd is None:
+                error = f"Failed to generate/refresh {certificate} certificate."
+        elif action == "download":
+            if certificate == "aggregator":
+                cert_data = orchestrator.download_aggregator_cert(access_token)
+            elif certificate == "device":
+                cert_data = orchestrator.download_device_cert(access_token)
+
+            if cert_data is None:
+                error = f"Failed to retrieve {certificate} certificate."
+            else:
+                return send_file(
+                    io.BytesIO(cert_data),
+                    as_attachment=True,
+                    download_name=f"{certificate}-certificate.p12",
+                    mimetype="application/x-pkcs12",
+                )
+        elif action == "setcert":
+            is_device_cert = certificate == "device"
+            if not orchestrator.update_config(
+                access_token, subscription_domain=None, is_device_cert=is_device_cert, is_static_uri=None
+            ):
+                error = "Failed to swap device/aggregator certificate"
+        elif action == "setsubscribeddomain":
+            domain = request.form.get("subscription_domain", None)
+            if domain is None:
+                domain = ""
+            if not orchestrator.update_config(
+                access_token, subscription_domain=domain, is_device_cert=None, is_static_uri=None
+            ):
+                error = "Failed to update subscription domain"
+        elif action == "setstaticuri":
+            static_uri = parse_bool(request.form.get("static_uri"))
+            if not orchestrator.update_config(
+                access_token, subscription_domain=None, is_device_cert=None, is_static_uri=static_uri
+            ):
+                error = "Failed to update static URI"
+
+    # Fetch after doing any updates so we always render the latest version of the config
     config = orchestrator.fetch_config(access_token)
     if config is None:
         return render_template(
@@ -202,57 +250,16 @@ def config_page(access_token: str) -> str | Response:
             error="Unable to communicate with test server. Please try refreshing the page or re-logging in.",
         )
 
-    domain = config.subscription_domain
-    static_uri_example = config.static_uri
-    static_uri = config.is_static_uri
-    error = None
-    pwd = None
-
-    if request.method == "POST":
-        # Refresh cert - render the password
-        if request.form.get("action") == "refresh":
-            pwd = orchestrator.refresh_aggregator_cert(access_token)
-            if pwd is None:
-                error = "Failed to generate certificate."
-
-        # Download certificate - serve a new download
-        elif request.form.get("action") == "download":
-            cert_data = orchestrator.download_aggregator_cert(access_token)
-            if cert_data is None:
-                error = "Failed to retrieve the certificate."
-            else:
-                return send_file(
-                    io.BytesIO(cert_data),
-                    as_attachment=True,
-                    download_name="certificate.p12",
-                    mimetype="application/x-pkcs12",
-                )
-        # Update the configuration
-        elif request.form.get("action") == "update":
-            domain = str(request.form.get("subscription_domain"))
-            static_uri = parse_bool(request.form.get("static_uri"))
-
-            if not orchestrator.update_config(
-                access_token,
-                subscription_domain=domain,
-                is_static_uri=static_uri,
-                is_device_cert=False,
-            ):
-                error = "Failed to update configuration."
-            else:
-                # Need to refetch the new value for static_uri_example
-                config = orchestrator.fetch_config(access_token)
-                if config is None:
-                    return render_template(
-                        "config.html",
-                        error="Unable to communicate with test server. Please try refreshing the page / re-logging in.",
-                    )
-                domain = config.subscription_domain
-                static_uri = config.is_static_uri
-                static_uri_example = config.static_uri
-
     return render_template(
-        "config.html", pwd=pwd, error=error, domain=domain, static_uri=static_uri, static_uri_example=static_uri_example
+        "config.html",
+        pwd=pwd,
+        error=error,
+        domain=config.subscription_domain,
+        static_uri=config.is_static_uri,
+        static_uri_example=config.static_uri,
+        is_device_cert=config.is_device_cert,
+        aggregator_certificate_expiry=config.aggregator_certificate_expiry,
+        device_certificate_expiry=config.device_certificate_expiry,
     )
 
 
