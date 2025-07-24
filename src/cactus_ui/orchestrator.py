@@ -306,9 +306,12 @@ def fetch_run_artifact(access_token: str, run_id: str) -> bytes | None:
     return response.content
 
 
-def fetch_runs(access_token: str, page: int) -> Pagination[RunResponse] | None:
+def fetch_runs(access_token: str, page: int, finalised: bool | None) -> Pagination[RunResponse] | None:
     """Fetches runs for a page"""
     uri = generate_uri(f"/run?page={page}")
+    if finalised is not None:
+        uri = uri + f"&finalised={finalised}"
+
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
         return None
