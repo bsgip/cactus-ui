@@ -277,6 +277,20 @@ def procedure_runs_json(access_token: str, test_procedure_id: str) -> Response:
     return jsonify(runs_page)
 
 
+@app.route("/active_runs", methods=["GET"])
+@login_required
+def active_runs_json(access_token: str) -> Response:
+    runs_page = orchestrator.fetch_runs(access_token, 1, False)
+    if runs_page is None:
+        return Response(
+            response="Unable to active runs.",
+            status=HTTPStatus.NOT_FOUND,
+            mimetype="text/plain",
+        )
+
+    return jsonify(runs_page)
+
+
 @app.route("/runs", methods=["GET", "POST"])
 @login_required
 def runs_page(access_token: str) -> str | Response:  # noqa: C901
