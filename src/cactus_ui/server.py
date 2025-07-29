@@ -209,17 +209,25 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
         elif action == "download":
             if certificate == "aggregator":
                 cert_data = orchestrator.download_aggregator_cert(access_token)
+                mime_type = "application/x-pkcs12"
+                file_name = f"{certificate}-certificate.p12"
             elif certificate == "device":
                 cert_data = orchestrator.download_device_cert(access_token)
+                mime_type = "application/x-pkcs12"
+                file_name = f"{certificate}-certificate.p12"
+            elif certificate == "authority":
+                cert_data = orchestrator.download_certificate_authority_cert(access_token)
+                mime_type = "application/x-x509-ca-cert"
+                file_name = "cactus-ca-certificate.der"
 
-            if cert_data is None:
+            if cert_data is None or mime_type is None or file_name is None:
                 error = f"Failed to retrieve {certificate} certificate."
             else:
                 return send_file(
                     io.BytesIO(cert_data),
                     as_attachment=True,
-                    download_name=f"{certificate}-certificate.p12",
-                    mimetype="application/x-pkcs12",
+                    download_name=file_name,
+                    mimetype=mime_type,
                 )
         elif action == "setcert":
             is_device_cert = certificate == "device"

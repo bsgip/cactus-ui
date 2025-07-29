@@ -53,6 +53,17 @@
                     <code>lfdi</code> and <code>sfdi</code> values.
                 </p>
 
+                <p class="card-text">
+                    All certificates will be signed by the CACTUS certificate authority.
+                <form method="POST" action="{{ url_for('config_page') }}">
+                    <input type="hidden" name="certificate" , value="authority">
+                    <div class="btn-group" role="group">
+                        <button type="submit" name="action" value="download" class="btn btn-outline-secondary">
+                            <i class="fas fa-download"></i> Download CA Certificate
+                        </button>
+                    </div>
+                </form>
+                </p>
 
                 <table class="table" style="max-width: 650px;">
                     <tbody>
