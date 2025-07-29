@@ -193,6 +193,16 @@ def update_config(
     return response is None or is_success_response(response)
 
 
+def download_certificate_authority_cert(access_token: str) -> bytes | None:
+    """Downloads the current CA cert - returns the raw x509 bytes"""
+    uri = generate_uri("/certificate/authority")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return response.content
+
+
 def refresh_aggregator_cert(access_token: str) -> str | None:
     """Refreshes the current aggregator cert - returns the new password for the cert"""
     uri = generate_uri("/certificate/aggregator")
