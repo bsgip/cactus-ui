@@ -47,6 +47,17 @@
 </div>
 <br>
 <div class="row justify-content-center">
+    <div class="card status-container" id="precondition-checks-card">
+        <div class="card-body">
+            <h5 class="card-title">Precondition Checks</h5>
+            <table class="table">
+                <tbody id="update-precondition-checks-table"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<br>
+<div class="row justify-content-center">
     <div class="card status-container ">
         <div class="card-body">
             <h5 class="card-title">Current Criteria</h5>
@@ -158,6 +169,22 @@
         );
 
         return fragments;
+    }
+
+    function preconditionChecksTableBody(preconditionChecks) {
+        fragments = []
+        for (const c of preconditionChecks) {
+            color = c.success ? "success" : "danger";
+            icon = c.success ? "check" : "x";
+            fragments.push(`
+                <tr>
+                    <th scope="row">${c.type}</th>
+                    <td><span class="text-${color}"><i class="fas fa-${icon}"></i></span></td>
+                    <td>${c.details}</td>
+                </tr>
+            `)
+        }
+        return fragments
     }
 
     function criteriaTableBody(criteria) {
@@ -281,9 +308,21 @@
         // the element 'update-initialised-card' will only exist in the dom if the test is in the init-phase.
         initialisedCard = document.getElementById('update-initialised-card')
         if (initialisedCard !== null) {
-            let instructions = "instructions" in status ? status.instructions : ["Precondition Instruction 1", "Precondition Instruction 2"]
-            console.log(instructions)
-            initialisedCard.innerHTML = initialisedCardBody(instructions)
+            // Allow to work with older version of cactus runner that doesn't send the instruction in the runner status
+            let instructions = "instructions" in status ? status.instructions : null 
+            initialisedCard.innerHTML = initialisedCardBody(instructions);
+        }
+
+        // update precondition checks table
+        preconditionChecksTable = document.getElementById('update-precondition-checks-table');
+        let preconditionChecks = "precondition_checks" in status ? status.precondition_checks : [{success: false, type: "miaow", details: "More info here." }]
+        preconditionChecks = null;
+        if (preconditionChecks) {
+            preconditionChecksTable.innerHTML = preconditionChecksTableBody(preconditionChecks);
+        } else {
+            // If there aren't any precondition checks we remove the card entirely.
+            const preconditionCard = document.getElementById('precondition-checks-card');
+            if (preconditionCard) preconditionCard.remove();
         }
 
         // update cactus log entries
@@ -308,7 +347,8 @@
 
         // update step instructions
         if ("{{run_status}}" === "started") {
-            let instructions = "instructions" in status ? status.instructions : ["Instruction 1", "Instruction 2", "Instruction 3"]
+            // Allow to work with older version of cactus runner that doesn't send the instruction in the runner status
+            let instructions = "instructions" in status ? status.instructions : null 
             message = getStepInstructions(instructions);
             document.getElementById('step-instructions').innerHTML = alertBanner(message);
         }
