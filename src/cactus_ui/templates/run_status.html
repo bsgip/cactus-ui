@@ -17,13 +17,7 @@
             </p>
 
             {% if run_status == 'initialised' %}
-            <p class="card-text">This test run is in the "pre start" phase. Please load up any preconditions (eg:
-                registering EndDevice's) before starting the test.</p>
-            <form method="POST" action="{{ url_for('runs_page') }}">
-                <input type="hidden" name="run_id" value="{{ run_id }}">
-                <input type="hidden" name="action" value="start">
-                <button type="submit" class="btn btn-primary">Start</button>
-            </form>
+            <div id="update-initialised-card"></div>
             {% elif run_status == 'started' %}
             <p class="card-text">The test is now underway - the server will have loaded any initial preconditions
                 (eg: DERControls) and its now time for your client to respond appropriately. When you're ready to
@@ -67,6 +61,7 @@
     <div class="card status-container ">
         <div class="card-body">
             <h5 class="card-title">Steps</h5>
+            <div id="step-instructions"></div>
             <table class="table">
                 <tbody id="update-steps-table"></tbody>
             </table>
@@ -227,8 +222,69 @@
         return fragments
     }
 
+    function alertBanner(message) {
+        return `
+        <div class="alert alert-primary" role="alert">
+            ${message}
+        </div>`;
+    }
+
+    function getStepInstructions(instructions) {
+        fragments = []
+        fragments.push(`
+        <p>Before continuing, perform the following operations:
+            <ul>
+        `);
+        for (const instruction of instructions) {
+            fragments.push(`<li>${instruction}</li>`)
+        }
+        fragments.push(`
+            </ul>
+        </p>`);
+        return fragments.join("");
+    }
+
+    function initialisedCardBody(instructions) {
+        fragments = []
+        
+        const startButton = `
+        <form method="POST" action="{{ url_for('runs_page') }}">
+            <input type="hidden" name="run_id" value="{{ run_id }}">
+            <input type="hidden" name="action" value="start">
+            <button type="submit" class="btn btn-primary">Start</button>
+        </form>`;
+        
+        if (instructions === null) {
+            fragments.push(`
+            <p class="card-text">This run is currently in the pre-start phase. It can started at any time.</p>`);
+            fragments.push(startButton);
+        } else {
+            fragments.push(`
+            <div class="alert alert-primary" role="alert">
+                <p>This run is currently in the pre-start phase.</p>
+                <p>Please perform the following operations <i>before</i> starting the test:</p>
+                <ul>`);
+            for (const instruction of instructions) {
+                fragments.push(`<li>${instruction}</li>`)
+            }
+            fragments.push(`</ul>`);
+            fragments.push(startButton);
+            fragments.push(`</div>`);
+        }
+        return fragments.join("");
+    }
+
     function handleNewStatus(rawJsonString) {
         const status = JSON.parse(rawJsonString);
+
+        // update test initialisation text
+        // the element 'update-initialised-card' will only exist in the dom if the test is in the init-phase.
+        initialisedCard = document.getElementById('update-initialised-card')
+        if (initialisedCard !== null) {
+            let instructions = "instructions" in status ? status.instructions : ["Precondition Instruction 1", "Precondition Instruction 2"]
+            console.log(instructions)
+            initialisedCard.innerHTML = initialisedCardBody(instructions)
+        }
 
         // update cactus log entries
         log_data = status.log_envoy ? status.log_envoy : "No logs recorded";
@@ -250,6 +306,12 @@
         generalTable = document.getElementById('update-general-table');
         generalTable.innerHTML = generalTableBody(status).join("");
 
+        // update step instructions
+        if ("{{run_status}}" === "started") {
+            let instructions = "instructions" in status ? status.instructions : ["Instruction 1", "Instruction 2", "Instruction 3"]
+            message = getStepInstructions(instructions);
+            document.getElementById('step-instructions').innerHTML = alertBanner(message);
+        }
 
     }
 
