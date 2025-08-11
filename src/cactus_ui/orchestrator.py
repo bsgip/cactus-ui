@@ -71,6 +71,34 @@ class ProcedureRunSummaryResponse:
     latest_all_criteria_met: bool | None  # Value for all_criteria_met of the most recent Run
 
 
+@dataclass
+class CSIPAusVersionResponse:
+    """Ideally this would be defined in a shared cactus-schema but that doesn't exist. Instead, ensure this remains
+    in sync with cactus-orchestrator.schema.CSIPAusVersionResponse"""
+
+    version: str  # Derived from the cactus_test_definitions.CSIPAusVersion enum
+
+
+@dataclass
+class RunGroupRequest:
+    """Ideally this would be defined in a shared cactus-schema but that doesn't exist. Instead, ensure this remains
+    in sync with cactus-orchestrator.schema.RunGroupRequest"""
+
+    csip_aus_version: str
+
+
+@dataclass
+class RunGroupResponse:
+    """Ideally this would be defined in a shared cactus-schema but that doesn't exist. Instead, ensure this remains
+    in sync with cactus-orchestrator.schema.RunGroupResponse"""
+
+    run_group_id: int
+    name: str
+    csip_aus_version: str
+    created_at: datetime
+    total_runs: int
+
+
 PaginatedType = TypeVar("PaginatedType")
 
 
@@ -316,9 +344,11 @@ def fetch_run_artifact(access_token: str, run_id: str) -> bytes | None:
     return response.content
 
 
-def fetch_runs(access_token: str, page: int, finalised: bool | None) -> Pagination[RunResponse] | None:
+def fetch_runs_for_group(
+    access_token: str, run_group_id: int, page: int, finalised: bool | None
+) -> Pagination[RunResponse] | None:
     """Fetches runs for a page"""
-    uri = generate_uri(f"/run?page={page}")
+    uri = generate_uri(f"/run_group/{run_group_id}/run?page={page}")
     if finalised is not None:
         uri = uri + f"&finalised={finalised}"
 
@@ -382,10 +412,12 @@ def fetch_procedure_yaml(access_token: str, test_procedure_id: str) -> str | Non
     return response.text
 
 
-def fetch_runs_for_procedure(access_token: str, test_procedure_id: str) -> Pagination[RunResponse] | None:
-    """Given a test procedure ID - fetch the runs"""
+def fetch_group_runs_for_procedure(
+    access_token: str, run_group_id: int, test_procedure_id: str
+) -> Pagination[RunResponse] | None:
+    """Given a test procedure ID - fetch the runs  (under a run group)"""
 
-    uri = generate_uri(f"procedure_runs/{test_procedure_id}")
+    uri = generate_uri(f"procedure_runs/{run_group_id}/{test_procedure_id}")
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
         return None
@@ -405,10 +437,12 @@ def fetch_runs_for_procedure(access_token: str, test_procedure_id: str) -> Pagin
     )
 
 
-def fetch_procedure_run_summaries(access_token: str) -> list[ProcedureRunSummaryResponse] | None:
-    """Fetch all test procedures and their associated run summaries"""
+def fetch_group_procedure_run_summaries(
+    access_token: str, run_group_id: int
+) -> list[ProcedureRunSummaryResponse] | None:
+    """Fetch all test procedures and their associated run summaries (under a run group)"""
 
-    uri = generate_uri("procedure_runs")
+    uri = generate_uri(f"procedure_runs/{run_group_id}")
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
         return None
@@ -423,3 +457,100 @@ def fetch_procedure_run_summaries(access_token: str) -> list[ProcedureRunSummary
         )
         for r in response.json()
     ]
+
+
+def fetch_csip_aus_versions(access_token: str, page: int) -> Pagination[CSIPAusVersionResponse] | None:
+    """Fetches available csip-aus versions for a page"""
+    uri = generate_uri(f"/version?page={page}")
+
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return handle_pagination(
+        response.json(),
+        lambda v: CSIPAusVersionResponse(
+            version=v["version"],
+        ),
+    )
+
+
+def fetch_run_groups(access_token: str, page: int) -> Pagination[RunGroupResponse] | None:
+    """Fetches available run groups for the current user"""
+    uri = generate_uri(f"/run_group?page={page}")
+
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return handle_pagination(
+        response.json(),
+        lambda r: RunGroupResponse(
+            created_at=r["created_at"],
+            csip_aus_version=r["csip_aus_version"],
+            name=r["name"],
+            run_group_id=r["run_group_id"],
+            total_runs=r["total_runs"],
+        ),
+    )
+
+
+def create_run_group(access_token: str, csip_aus_version: str) -> RunGroupResponse | None:
+    """Creates a new run group with the specified csip aus version - returns the created"""
+    uri = generate_uri("/run_group")
+    response = safe_request(
+        "POST",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+        json={"csip_aus_version": csip_aus_version},
+    )
+    if response is None or not is_success_response(response):
+        return None
+
+    raw_response = response.json()
+    return RunGroupResponse(
+        created_at=raw_response["created_at"],
+        csip_aus_version=raw_response["csip_aus_version"],
+        name=raw_response["name"],
+        run_group_id=raw_response["run_group_id"],
+        total_runs=raw_response["total_runs"],
+    )
+
+
+def update_run_group(access_token: str, run_group_id: int, name: str) -> RunGroupResponse | None:
+    """updates an existing run group with the specified id - returns the updated version of the RunGroup"""
+    uri = generate_uri(f"/run_group/{run_group_id}")
+    response = safe_request(
+        "PUT",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+        json={"name": name},
+    )
+    if response is None or not is_success_response(response):
+        return None
+
+    raw_response = response.json()
+    return RunGroupResponse(
+        created_at=raw_response["created_at"],
+        csip_aus_version=raw_response["csip_aus_version"],
+        name=raw_response["name"],
+        run_group_id=raw_response["run_group_id"],
+        total_runs=raw_response["total_runs"],
+    )
+
+
+def delete_run_group(access_token: str, run_group_id: int) -> bool:
+    """updates an existing run group with the specified id - returns the updated version of the RunGroup"""
+    uri = generate_uri(f"/run_group/{run_group_id}")
+    response = safe_request(
+        "DELETE",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+    )
+    if response is None or not is_success_response(response):
+        return False
+
+    return True

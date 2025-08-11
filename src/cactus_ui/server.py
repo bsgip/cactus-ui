@@ -252,7 +252,9 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
 
     # Fetch after doing any updates so we always render the latest version of the config
     config = orchestrator.fetch_config(access_token)
-    if config is None:
+    run_groups = orchestrator.fetch_run_groups(access_token, 1)
+    csip_aus_versions = orchestrator.fetch_csip_aus_versions(access_token, 1)
+    if config is None or run_groups is None or csip_aus_versions is None:
         return render_template(
             "config.html",
             error="Unable to communicate with test server. Please try refreshing the page or re-logging in.",
@@ -268,13 +270,15 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
         is_device_cert=config.is_device_cert,
         aggregator_certificate_expiry=config.aggregator_certificate_expiry,
         device_certificate_expiry=config.device_certificate_expiry,
+        run_groups=run_groups,
+        csip_aus_versions=csip_aus_versions,
     )
 
 
-@app.route("/procedure_runs/<test_procedure_id>", methods=["GET"])
+@app.route("/run_group/<run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
 @login_required
-def procedure_runs_json(access_token: str, test_procedure_id: str) -> Response:
-    runs_page = orchestrator.fetch_runs_for_procedure(access_token, test_procedure_id)
+def procedure_runs_json(access_token: str, run_group_id: int, test_procedure_id: str) -> Response:
+    runs_page = orchestrator.fetch_group_runs_for_procedure(access_token, run_group_id, test_procedure_id)
     if runs_page is None:
         return Response(
             response=f"Unable to fetch runs for {test_procedure_id}.",
@@ -285,13 +289,13 @@ def procedure_runs_json(access_token: str, test_procedure_id: str) -> Response:
     return jsonify(runs_page)
 
 
-@app.route("/active_runs", methods=["GET"])
+@app.route("/run_group/<run_group_id>/active_runs", methods=["GET"])
 @login_required
-def active_runs_json(access_token: str) -> Response:
-    runs_page = orchestrator.fetch_runs(access_token, 1, False)
+def active_runs_json(access_token: str, run_group_id: int) -> Response:
+    runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, False)
     if runs_page is None:
         return Response(
-            response="Unable to active runs.",
+            response="Unable to load active runs.",
             status=HTTPStatus.NOT_FOUND,
             mimetype="text/plain",
         )
