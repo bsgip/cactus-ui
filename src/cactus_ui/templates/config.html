@@ -202,6 +202,7 @@
     </div>
 </div>
 
+<br>
 
 <div class="row">
     <div class="card-group">
@@ -209,39 +210,32 @@
             <div class="card-body">
                 <h5 class="card-title">Run Groups</h5>
                 <p class="card-text">Each run group represents progress towards certification for a single device /
-                    client against a specific version of CSIP-Aus.</p>
-                <form method="POST" action="{{ url_for('config_page') }}">
-                    <input type="text" class="form-control" id="inputDomain1" name="subscription_domain"
-                        aria-describedby="domainHelp" placeholder="Enter a FQDN (eg my.example.com)"
-                        value="{{ domain }}">
-                    <br>
-                    <button type="submit" name="action" value="setsubscribeddomain" class="btn btn-primary">
-                        <i class="fas fa-pen"></i> Update Domain
-                    </button>
-                </form>
+                    client.</p>
 
-                <table class="table" style="max-width: 650px;">
+                <table class="table align-middle">
                     <tbody>
                         {% for rg in run_groups %}
                         <tr>
                             <td>
                                 <form method="POST" action="{{ url_for('config_page') }}">
-                                    <input type="hidden" name="run-group-id" value="{% rg.run_group_id %}">
-                                    <input type="email" name="name" class="form-control" value="{% rg.name %}">
-                                    <button type="submit" name="action" value="update-run-group"
-                                        class="btn btn-outline-primary">
-                                        <i class="fas fa-floppy-disk"></i>
-                                    </button>
+                                    <input type="hidden" name="run_group_id" value="{{ rg.run_group_id }}">
+                                    <div class="input-group">
+                                        <input type="text" name="name" class="form-control" value="{{ rg.name }}">
+                                        <button type="submit" name="action" value="updaterungroup"
+                                            class="btn btn-outline-primary">
+                                            <i class="fas fa-floppy-disk"></i>
+                                        </button>
+                                    </div>
 
                                 </form>
                             </td>
-                            <td>{% rg.csip_aus_version %}</td>
-                            <td>{% rg.total_runs %} total run(s)</td>
+                            <td><code>{{ rg.csip_aus_version }}</code></td>
+                            <td>{{ rg.total_runs }} total run(s)</td>
                             <td>
                                 <form method="POST" action="{{ url_for('config_page') }}">
-                                    <input type="hidden" name="run-group-id" value="{% rg.run_group_id %}">
+                                    <input type="hidden" name="run_group_id" value="{{ rg.run_group_id }}">
 
-                                    <button type="submit" name="action" value="delete-run-group"
+                                    <button type="submit" name="action" value="deleterungroup"
                                         class="btn btn-outline-danger">
                                         <i class="fas fa-trash-can"></i> Delete
                                     </button>
@@ -249,17 +243,18 @@
                                 </form>
                             </td>
                         </tr>
-                        {% end for %}
+                        {% endfor %}
                     </tbody>
                 </table>
 
                 <form method="POST" action="{{ url_for('config_page') }}">
-                    <input type="hidden" name="action" value="create-run-group">
+                    <input type="hidden" name="action" value="createrungroup">
                     <div class="btn-group" role="group">
                         {% for csip_aus_version in csip_aus_versions %}
-                        <button type="submit" name="version" class="btn btn-primary">Create {% csip_aus_version.version
-                            %} Group</button>
-                        {% end for %}
+                        <button type="submit" name="version" value="{{ csip_aus_version.version }}"
+                            class="btn btn-outline-primary">New {{ csip_aus_version.version
+                            }} Group</button>
+                        {% endfor %}
                     </div>
                 </form>
             </div>

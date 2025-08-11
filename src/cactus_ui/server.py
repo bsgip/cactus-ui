@@ -249,6 +249,19 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
                 access_token, subscription_domain=None, is_device_cert=None, is_static_uri=static_uri
             ):
                 error = "Failed to update static URI"
+        elif action == "updaterungroup":
+            new_name = request.form["name"]
+            run_group_id = int(request.form["run_group_id"])
+            if not orchestrator.update_run_group(access_token, run_group_id, new_name):
+                error = "Failed to update name"
+        elif action == "createrungroup":
+            version = request.form["version"]
+            if not orchestrator.create_run_group(access_token, version):
+                error = "Failed to create run group"
+        elif action == "deleterungroup":
+            run_group_id = int(request.form["run_group_id"])
+            if not orchestrator.delete_run_group(access_token, run_group_id):
+                error = "Failed to delete run group"
 
     # Fetch after doing any updates so we always render the latest version of the config
     config = orchestrator.fetch_config(access_token)
@@ -270,8 +283,8 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
         is_device_cert=config.is_device_cert,
         aggregator_certificate_expiry=config.aggregator_certificate_expiry,
         device_certificate_expiry=config.device_certificate_expiry,
-        run_groups=run_groups,
-        csip_aus_versions=csip_aus_versions,
+        run_groups=run_groups.items,
+        csip_aus_versions=csip_aus_versions.items,
     )
 
 
