@@ -10,26 +10,26 @@
 
 <div class="max-page-height" style="padding-top:10px; display: flex; flex-direction: column;">
     <div style="display: flex;">
-        {% if run_groups|length == 0 %}
-        <h2>Runs for {{ rg.name }}</h2>
-        {% else %}
+        {% if run_groups|length < 2 %} {% if active_run_group %} <h2>Runs for {{ active_run_group.name }}</h2>
+            {% endif %}
+            {% else %}
 
-        <h2>Runs for </h2>
-        <div class="dropdown" style="margin-left: 10px;">
-            <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown"
-                aria-expanded="false">
-                {{ active_run_group.name }}
-            </button>
-            <ul class="dropdown-menu">
-                {% for rg in run_groups %}
-                {% if rg.run_group_id != run_group_id %}
-                <li><a class="dropdown-item"
-                        href="{{ url_for('group_runs_page', run_group_id=rg.run_group_id) }}">{{rg.name}}</a></li>
-                {% endif %}
-                {% endfor %}
-            </ul>
-        </div>
-        {% endif %}
+            <h2>Runs for </h2>
+            <div class="dropdown" style="margin-left: 10px;">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                    {{ active_run_group.name }}
+                </button>
+                <ul class="dropdown-menu">
+                    {% for rg in run_groups %}
+                    {% if rg.run_group_id != run_group_id %}
+                    <li><a class="dropdown-item"
+                            href="{{ url_for('group_runs_page', run_group_id=rg.run_group_id) }}">{{rg.name}}</a></li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
     </div>
 
     <hr>
@@ -213,7 +213,7 @@
             const created = new Date(Date.parse(r.created_at));
             return `
                 <tr class="${row_class}">
-                    <td><a href="run/${r.run_id}">${r.run_id}</a></td>
+                    <td><a href="/run/${r.run_id}">${r.run_id}</a></td>
                     <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})<small></td>
                     <td>${r.status}</td>
                     <td>${icon}</td>

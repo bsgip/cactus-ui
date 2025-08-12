@@ -292,9 +292,9 @@ class InitialiseRunResult:
     failure_type: InitialiseRunFailureType
 
 
-def init_run(access_token: str, test_procedure_id: str) -> InitialiseRunResult:
-    """Creates a new test run, initialiased with the specified test_procedure_id"""
-    uri = generate_uri("/run")
+def init_run(access_token: str, run_group_id: int, test_procedure_id: str) -> InitialiseRunResult:
+    """Creates a new test run underneath run_group_id, initialised with the specified test_procedure_id"""
+    uri = generate_uri(f"/run_group/{run_group_id}/run")
     response = safe_request(
         "POST",
         uri,
