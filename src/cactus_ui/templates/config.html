@@ -39,6 +39,12 @@
 </div>
 {% endif %}
 
+{% if not run_groups %}
+<div class="alert alert-danger" role="alert">
+    There are no Run Groups configured. Please create one below in order to start testing.
+</div>
+{% endif %}
+
 
 
 <div class="row">
@@ -212,6 +218,10 @@
                 <p class="card-text">Each run group represents progress towards certification for a single device /
                     client.</p>
 
+                {% if not run_groups %}
+                <p class="card-text"><strong>There doesn't seem to be anything here...</strong></p>
+                {% endif %}
+
                 <table class="table align-middle">
                     <tbody>
                         {% for rg in run_groups %}
@@ -232,15 +242,43 @@
                             <td><code>{{ rg.csip_aus_version }}</code></td>
                             <td>{{ rg.total_runs }} total run(s)</td>
                             <td>
-                                <form method="POST" action="{{ url_for('config_page') }}">
-                                    <input type="hidden" name="run_group_id" value="{{ rg.run_group_id }}">
+                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal"
+                                    data-bs-target="#delmodal-{{ rg.run_group_id }}">
+                                    <i class="fas fa-trash-can"></i> Delete
+                                </button>
 
-                                    <button type="submit" name="action" value="deleterungroup"
-                                        class="btn btn-outline-danger">
-                                        <i class="fas fa-trash-can"></i> Delete
-                                    </button>
+                                <div class="modal fade" id="delmodal-{{ rg.run_group_id }}" tabindex="-1"
+                                    aria-labelledby="delmodal-{{ rg.run_group_id }}-label" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h1 class="modal-title fs-5" id="delmodal-{{ rg.run_group_id }}-label">
+                                                    Confirm Delete</h1>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                You are about to permanently delete <strong>{{ rg.name }}</strong>
+                                                <code>{{ rg.csip_aus_version }}</code>. Once deleted, this group and the
+                                                associated {{ rg.total_runs }} run(s) will be gone forever.
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary"
+                                                    data-bs-dismiss="modal">Cancel</button>
+                                                <form method="POST" action="{{ url_for('config_page') }}">
+                                                    <input type="hidden" name="run_group_id"
+                                                        value="{{ rg.run_group_id }}">
 
-                                </form>
+                                                    <button type="submit" name="action" value="deleterungroup"
+                                                        class="btn btn-danger">
+                                                        <i class="fas fa-trash-can"></i> Delete {{ rg.name }}
+                                                    </button>
+
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -252,7 +290,7 @@
                     <div class="btn-group" role="group">
                         {% for csip_aus_version in csip_aus_versions %}
                         <button type="submit" name="version" value="{{ csip_aus_version.version }}"
-                            class="btn btn-outline-primary">New {{ csip_aus_version.version
+                            class="btn btn-outline-primary"> <i class="fas fa-plus"></i> New {{ csip_aus_version.version
                             }} Group</button>
                         {% endfor %}
                     </div>

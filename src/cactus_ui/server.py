@@ -288,7 +288,7 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
     )
 
 
-@app.route("/run_group/<run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
+@app.route("/run_group/<int:run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
 @login_required
 def procedure_runs_json(access_token: str, run_group_id: int, test_procedure_id: str) -> Response:
     runs_page = orchestrator.fetch_group_runs_for_procedure(access_token, run_group_id, test_procedure_id)
@@ -302,7 +302,7 @@ def procedure_runs_json(access_token: str, run_group_id: int, test_procedure_id:
     return jsonify(runs_page)
 
 
-@app.route("/run_group/<run_group_id>/active_runs", methods=["GET"])
+@app.route("/run_group/<int:run_group_id>/active_runs", methods=["GET"])
 @login_required
 def active_runs_json(access_token: str, run_group_id: int) -> Response:
     runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, False)
@@ -316,9 +316,21 @@ def active_runs_json(access_token: str, run_group_id: int) -> Response:
     return jsonify(runs_page)
 
 
-@app.route("/runs", methods=["GET", "POST"])
+@app.route("/runs", methods=["GET"])
 @login_required
 def runs_page(access_token: str) -> str | Response:  # noqa: C901
+    """Just redirects to the "first" RunGroup page"""
+
+    run_groups = orchestrator.fetch_run_groups(access_token, 1)
+    if not run_groups or not run_groups.items:
+        return redirect(url_for("config_page"))
+
+    return redirect(url_for("group_runs_page", run_group_id=run_groups.items[0].run_group_id))
+
+
+@app.route("/group/<int:run_group_id>/runs", methods=["GET", "POST"])
+@login_required
+def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # noqa: C901
     error: str | None = None
 
     # Handle POST for triggering a new run / precondition phase
@@ -384,7 +396,7 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
                     )
 
     # Fetch procedures
-    procedures = orchestrator.fetch_procedure_run_summaries(access_token)
+    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
     grouped_procedures: list[tuple[str, list[orchestrator.ProcedureRunSummaryResponse]]] = []
     if procedures is None:
         error = "Unable to fetch test procedures."
@@ -399,14 +411,28 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
             else:
                 grouped_procedures.append((p.category, [p]))
 
+    # Fetch the run groups (for the breadcrumbs selector)
+    run_groups = orchestrator.fetch_run_groups(access_token, 1)
+    active_run_group: orchestrator.RunGroupResponse | None = None
+    if not run_groups or not run_groups.items:
+        error = "Unable to fetch run groups."
+    else:
+        for rg in run_groups.items:
+            if rg.run_group_id == run_group_id:
+                active_run_group = rg
+                break
+
     return render_template(
         "runs.html",
         error=error,
         grouped_procedures=grouped_procedures,
+        run_groups=[] if run_groups is None else run_groups.items,
+        run_group_id=run_group_id,
+        active_run_group=active_run_group,
     )
 
 
-@app.route("/run/<run_id>", methods=["GET"])
+@app.route("/run/<int:run_id>", methods=["GET"])
 @login_required
 def run_status_page(access_token: str, run_id: str) -> str:
 
@@ -441,7 +467,7 @@ def run_status_page(access_token: str, run_id: str) -> str:
     )
 
 
-@app.route("/run/<run_id>/status", methods=["GET"])
+@app.route("/run/<int:run_id>/status", methods=["GET"])
 @login_required
 def run_status_json(access_token: str, run_id: str) -> Response:
 
