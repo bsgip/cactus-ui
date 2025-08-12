@@ -356,10 +356,15 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
             if not run_id:
                 error = "No run ID specified."
             else:
-                if orchestrator.start_run(access_token, run_id):
+                start_result = orchestrator.start_run(access_token, run_id)
+                if start_result.success:
                     return redirect(url_for("run_status_page", run_id=run_id))
                 else:
-                    error = "Failed to start the test run."
+                    error = (
+                        "Failed to start the test run."
+                        if start_result.error_message is None
+                        else start_result.error_message
+                    )
 
         # Handle finalising a run
         elif request.form.get("action") == "finalise":
@@ -432,9 +437,46 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
     )
 
 
-@app.route("/run/<int:run_id>", methods=["GET"])
+@app.route("/run/<int:run_id>", methods=["GET", "POST"])
 @login_required
-def run_status_page(access_token: str, run_id: str) -> str:
+def run_status_page(access_token: str, run_id: str) -> str | Response:
+    error: str | None = None
+
+    if request.method == "POST":
+        if request.form.get("action") == "start":
+            start_result = orchestrator.start_run(access_token, run_id)
+            if not start_result or not start_result.success:
+                error = (
+                    "Failed to start the test run."
+                    if start_result is None or start_result.error_message is None
+                    else start_result.error_message
+                )
+
+        # Handle finalising a run
+        elif request.form.get("action") == "finalise":
+            archive_data = orchestrator.finalise_run(access_token, run_id)
+            if archive_data is None:
+                error = "Failed to finalise the run or retrieve artifacts."
+            else:
+                return send_file(
+                    io.BytesIO(archive_data),
+                    as_attachment=True,
+                    download_name=f"{run_id}_artifacts.zip",
+                    mimetype="application/zip",
+                )
+
+        # Handle downloading a prior run's artifacts
+        elif request.form.get("action") == "artifact":
+            artifact_data = orchestrator.fetch_run_artifact(access_token, run_id)
+            if artifact_data is None:
+                error = "Failed to retrieve artifacts."
+            else:
+                return send_file(
+                    io.BytesIO(artifact_data),
+                    as_attachment=True,
+                    download_name=f"{run_id}_artifacts.zip",
+                    mimetype="application/zip",
+                )
 
     status = orchestrator.fetch_run_status(access_token=access_token, run_id=run_id)
     run_is_live = status is not None
@@ -464,6 +506,7 @@ def run_status_page(access_token: str, run_id: str) -> str:
         run_status=run_status,
         run_test_uri=run_test_uri,
         run_procedure_id=run_procedure_id,
+        error=error,
     )
 
 
