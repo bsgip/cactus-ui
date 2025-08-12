@@ -99,6 +99,12 @@ class RunGroupResponse:
     total_runs: int
 
 
+@dataclass
+class StartResult:
+    success: bool
+    error_message: str | None
+
+
 PaginatedType = TypeVar("PaginatedType")
 
 
@@ -313,11 +319,27 @@ def init_run(access_token: str, test_procedure_id: str) -> InitialiseRunResult:
     return InitialiseRunResult(run_id=run_id, failure_type=failure_type)
 
 
-def start_run(access_token: str, run_id: str) -> bool:
+def start_run(access_token: str, run_id: str) -> StartResult:
     """Given an already initialised run - move it to the "started" state"""
     uri = generate_uri(f"/run/{run_id}")
     response = safe_request("POST", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
-    return response is None or is_success_response(response)
+
+    if response is None:
+        return StartResult(success=False, error_message="Internal server error. Try again later.")
+
+    if is_success_response(response):
+        return StartResult(success=True, error_message=None)
+    elif response.status_code == HTTPStatus.PRECONDITION_FAILED:
+        try:
+            error_data = response.json()
+            return StartResult(success=False, error_message=error_data["detail"])
+        except Exception as exc:
+            logger.error("Unable to parse error response", exc_info=exc)
+            return StartResult(
+                success=False, error_message="Unexpected response. One or more preconditions are not met."
+            )
+    else:
+        return StartResult(success=False, error_message="Unexpected error when attempting to start the run.")
 
 
 def finalise_run(access_token: str, run_id: str) -> bytes | None:
