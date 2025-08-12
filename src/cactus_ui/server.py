@@ -369,7 +369,8 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
     # Fetch procedures
     procedures = orchestrator.fetch_procedure_run_summaries(access_token)
     grouped_procedures: list[tuple[str, list[orchestrator.ProcedureRunSummaryResponse]]] = []
-    classes = {}
+    classes_by_test: dict[str, list[str]] = {}
+    classes_by_category = {}
     if procedures is None:
         error = "Unable to fetch test procedures."
     else:
@@ -384,18 +385,21 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
                 grouped_procedures.append((p.category, [p]))
             
             c = ["A"] if p.category in ["Registration"] else ["G"]  # These should be defined on the procedure 'p'
-            if p.category in classes:
-                classes[p.category].update(c)
+            if p.category in classes_by_category:
+                classes_by_category[p.category].update(c)
             else:
-                classes[p.category] = set(c)
-            classes[p.test_procedure_id] = c
-        classes = {key: list(value) for key, value in classes.items()}
+                classes_by_category[p.category] = set(c)
+            classes_by_test[p.test_procedure_id] = c
+        
+        # convert sets to lists (sets are not serializable as json)
+        classes_by_category = {key: list(value) for key, value in classes_by_category.items()}
 
     return render_template(
         "runs.html",
         error=error,
         grouped_procedures=grouped_procedures,
-        classes_b64=b64encode(json.dumps(classes).encode()).decode(),
+        classes_by_test_b64=b64encode(json.dumps(classes_by_test).encode()).decode(),
+        classes_by_category_b64=b64encode(json.dumps(classes_by_category).encode()).decode(),
     )
 
 

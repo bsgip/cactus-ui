@@ -25,8 +25,7 @@
                 </div>
             </div>
 
-            <input type="search" placeholder="Filter test procedures" class="search" oninput="filterProcedures(event)">
-
+            <input type="search" id="filter-procedures-input" placeholder="Filter tests by compliance class e.g. A, DR-G" class="search" oninput="filterProceduresHandler(event)">
             {% for gp in grouped_procedures %}
             <div id="{{gp[0]}}" class="card" style="border-radius: 0; border-bottom: none;">
                 <button class="btn btn-success text-start" type="button" data-bs-toggle="collapse"
@@ -57,6 +56,7 @@
 
             </div>
             {% endfor %}
+            <div id="filter-warning" class="card" style="padding: 10px"></div>
         </div>
     </div>
     <div class="col">
@@ -143,29 +143,50 @@
 </style>
 
 <script>
-    function filterProcedures(event) {
-        const filterText = event.target.value;
-        const classes = JSON.parse(atob("{{ classes_b64 }}"));
-
-        if (filterText === "") {
-            // Remove 'hidden' class from all procedures
-            for (const [key, value] of Object.entries(classes)) {
-                const element = document.getElementById(key)
+    function filterByComplianceClass(classes, filterText) {
+        let filtered_count = 0
+        for (const [id, value] of Object.entries(classes)) {
+            const element = document.getElementById(id)
+            if (filterText === "") {
                 element.classList.remove("hidden")
+            } else if (value.includes(filterText)) {
+                element.classList.remove("hidden");
+            } else {
+                element.classList.add("hidden");
+                filtered_count++;
             }
-        } else {
-           for (const [key, value] of Object.entries(classes)) {
-                const element = document.getElementById(key)
-                if (value.includes(filterText)) {
-                    element.classList.remove("hidden");
-                } else {
-                    console.log(`hiding ${key} procedure`)
-                    element.classList.add("hidden");
-                }
-           }
-
         }
+        const all_filtered = filtered_count === Object.entries(classes).length;
+        return all_filtered
     }
+
+    function filterProcedures(rawFilterText) {
+        const filterText = rawFilterText.toUpperCase();  // allow both DER-A and der-a to match
+        const classesByTest = JSON.parse(atob("{{ classes_by_test_b64 }}"));
+        const classesByCategory = JSON.parse(atob("{{ classes_by_category_b64 }}"))
+
+        const allTestsFilteredOut = filterByComplianceClass(classesByTest, filterText);
+        filterByComplianceClass(classesByCategory, filterText);
+
+        const filterWarning = document.getElementById("filter-warning");
+        if (allTestsFilteredOut) {
+            filterWarning.innerHTML = `
+            <p class="card-text" >Your search - <b>${rawFilterText}</b> - did not match any test procedures.</p>
+            <br>
+            <p class="card-text">The test procedures can be filtered by the following compliance classes:</p>
+            <p class="card-text"><b>A, G, L, C, DER-A, DER-G, DER-L, DR-A, DR-D, DR-L, DR-G</b></p>
+            <p class="card-text">To filter by more than one compliance class, use a comma separated list e.g. "<b>G, DER-L, DR-D</b>"</p>
+            `;
+        } else {
+            filterWarning.innerHTML = '';
+        }
+        
+    }
+
+    function filterProceduresHandler(event) {
+        filterProcedures(event.target.value);
+    }
+
     function statusToBtn(run_id, run_status) {
         switch (run_status) {
             case "initialised":
@@ -316,7 +337,11 @@
         // Enable collapsing procedure cards
         // const collapseElementList = document.querySelectorAll('.collapse')
         // const collapseList = [...collapseElementList].map(collapseEl => new bootstrap.Collapse(collapseEl))
+    
+        // Apply filter correctly of page (re)load
+        filterProcedures(document.getElementById("filter-procedures-input").value);
     });
+
 
 </script>
 
