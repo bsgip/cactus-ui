@@ -369,6 +369,7 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
     # Fetch procedures
     procedures = orchestrator.fetch_procedure_run_summaries(access_token)
     grouped_procedures: list[tuple[str, list[orchestrator.ProcedureRunSummaryResponse]]] = []
+    classes = {}
     if procedures is None:
         error = "Unable to fetch test procedures."
     else:
@@ -381,11 +382,20 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
                 existing_group[1].append(p)
             else:
                 grouped_procedures.append((p.category, [p]))
+            
+            c = ["A"] if p.category in ["Registration"] else ["G"]  # These should be defined on the procedure 'p'
+            if p.category in classes:
+                classes[p.category].update(c)
+            else:
+                classes[p.category] = set(c)
+            classes[p.test_procedure_id] = c
+        classes = {key: list(value) for key, value in classes.items()}
 
     return render_template(
         "runs.html",
         error=error,
         grouped_procedures=grouped_procedures,
+        classes_b64=b64encode(json.dumps(classes).encode()).decode(),
     )
 
 

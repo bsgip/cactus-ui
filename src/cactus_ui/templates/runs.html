@@ -25,8 +25,10 @@
                 </div>
             </div>
 
+            <input type="search" placeholder="Filter test procedures" class="search" oninput="filterProcedures(event)">
+
             {% for gp in grouped_procedures %}
-            <div class="card" style="border-radius: 0; border-bottom: none;">
+            <div id="{{gp[0]}}" class="card" style="border-radius: 0; border-bottom: none;">
                 <button class="btn btn-success text-start" type="button" data-bs-toggle="collapse"
                     data-bs-target="#{{gp[0]}}-body" style="border-radius: 0;">
 
@@ -84,6 +86,15 @@
         flex-direction: column;
     }
 
+    .hidden {
+        display: none !important;
+    }
+
+    .search {
+        width: 100%;
+        margin-top: 10px;
+        margin-bottom: 5px;
+    }
     .main-footer {
         margin-top: 0 !important;
     }
@@ -132,6 +143,29 @@
 </style>
 
 <script>
+    function filterProcedures(event) {
+        const filterText = event.target.value;
+        const classes = JSON.parse(atob("{{ classes_b64 }}"));
+
+        if (filterText === "") {
+            // Remove 'hidden' class from all procedures
+            for (const [key, value] of Object.entries(classes)) {
+                const element = document.getElementById(key)
+                element.classList.remove("hidden")
+            }
+        } else {
+           for (const [key, value] of Object.entries(classes)) {
+                const element = document.getElementById(key)
+                if (value.includes(filterText)) {
+                    element.classList.remove("hidden");
+                } else {
+                    console.log(`hiding ${key} procedure`)
+                    element.classList.add("hidden");
+                }
+           }
+
+        }
+    }
     function statusToBtn(run_id, run_status) {
         switch (run_status) {
             case "initialised":
