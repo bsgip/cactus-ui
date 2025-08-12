@@ -249,10 +249,25 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
                 access_token, subscription_domain=None, is_device_cert=None, is_static_uri=static_uri
             ):
                 error = "Failed to update static URI"
+        elif action == "updaterungroup":
+            new_name = request.form["name"]
+            run_group_id = int(request.form["run_group_id"])
+            if not orchestrator.update_run_group(access_token, run_group_id, new_name):
+                error = "Failed to update name"
+        elif action == "createrungroup":
+            version = request.form["version"]
+            if not orchestrator.create_run_group(access_token, version):
+                error = "Failed to create run group"
+        elif action == "deleterungroup":
+            run_group_id = int(request.form["run_group_id"])
+            if not orchestrator.delete_run_group(access_token, run_group_id):
+                error = "Failed to delete run group"
 
     # Fetch after doing any updates so we always render the latest version of the config
     config = orchestrator.fetch_config(access_token)
-    if config is None:
+    run_groups = orchestrator.fetch_run_groups(access_token, 1)
+    csip_aus_versions = orchestrator.fetch_csip_aus_versions(access_token, 1)
+    if config is None or run_groups is None or csip_aus_versions is None:
         return render_template(
             "config.html",
             error="Unable to communicate with test server. Please try refreshing the page or re-logging in.",
@@ -268,13 +283,15 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
         is_device_cert=config.is_device_cert,
         aggregator_certificate_expiry=config.aggregator_certificate_expiry,
         device_certificate_expiry=config.device_certificate_expiry,
+        run_groups=run_groups.items,
+        csip_aus_versions=csip_aus_versions.items,
     )
 
 
-@app.route("/procedure_runs/<test_procedure_id>", methods=["GET"])
+@app.route("/run_group/<int:run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
 @login_required
-def procedure_runs_json(access_token: str, test_procedure_id: str) -> Response:
-    runs_page = orchestrator.fetch_runs_for_procedure(access_token, test_procedure_id)
+def procedure_runs_json(access_token: str, run_group_id: int, test_procedure_id: str) -> Response:
+    runs_page = orchestrator.fetch_group_runs_for_procedure(access_token, run_group_id, test_procedure_id)
     if runs_page is None:
         return Response(
             response=f"Unable to fetch runs for {test_procedure_id}.",
@@ -285,13 +302,13 @@ def procedure_runs_json(access_token: str, test_procedure_id: str) -> Response:
     return jsonify(runs_page)
 
 
-@app.route("/active_runs", methods=["GET"])
+@app.route("/run_group/<int:run_group_id>/active_runs", methods=["GET"])
 @login_required
-def active_runs_json(access_token: str) -> Response:
-    runs_page = orchestrator.fetch_runs(access_token, 1, False)
+def active_runs_json(access_token: str, run_group_id: int) -> Response:
+    runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, False)
     if runs_page is None:
         return Response(
-            response="Unable to active runs.",
+            response="Unable to load active runs.",
             status=HTTPStatus.NOT_FOUND,
             mimetype="text/plain",
         )
@@ -299,9 +316,21 @@ def active_runs_json(access_token: str) -> Response:
     return jsonify(runs_page)
 
 
-@app.route("/runs", methods=["GET", "POST"])
+@app.route("/runs", methods=["GET"])
 @login_required
 def runs_page(access_token: str) -> str | Response:  # noqa: C901
+    """Just redirects to the "first" RunGroup page"""
+
+    run_groups = orchestrator.fetch_run_groups(access_token, 1)
+    if not run_groups or not run_groups.items:
+        return redirect(url_for("config_page"))
+
+    return redirect(url_for("group_runs_page", run_group_id=run_groups.items[0].run_group_id))
+
+
+@app.route("/group/<int:run_group_id>/runs", methods=["GET", "POST"])
+@login_required
+def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # noqa: C901
     error: str | None = None
 
     # Handle POST for triggering a new run / precondition phase
@@ -367,7 +396,7 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
                     )
 
     # Fetch procedures
-    procedures = orchestrator.fetch_procedure_run_summaries(access_token)
+    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
     grouped_procedures: list[tuple[str, list[orchestrator.ProcedureRunSummaryResponse]]] = []
     if procedures is None:
         error = "Unable to fetch test procedures."
@@ -382,14 +411,28 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
             else:
                 grouped_procedures.append((p.category, [p]))
 
+    # Fetch the run groups (for the breadcrumbs selector)
+    run_groups = orchestrator.fetch_run_groups(access_token, 1)
+    active_run_group: orchestrator.RunGroupResponse | None = None
+    if not run_groups or not run_groups.items:
+        error = "Unable to fetch run groups."
+    else:
+        for rg in run_groups.items:
+            if rg.run_group_id == run_group_id:
+                active_run_group = rg
+                break
+
     return render_template(
         "runs.html",
         error=error,
         grouped_procedures=grouped_procedures,
+        run_groups=[] if run_groups is None else run_groups.items,
+        run_group_id=run_group_id,
+        active_run_group=active_run_group,
     )
 
 
-@app.route("/run/<run_id>", methods=["GET"])
+@app.route("/run/<int:run_id>", methods=["GET"])
 @login_required
 def run_status_page(access_token: str, run_id: str) -> str:
 
@@ -424,7 +467,7 @@ def run_status_page(access_token: str, run_id: str) -> str:
     )
 
 
-@app.route("/run/<run_id>/status", methods=["GET"])
+@app.route("/run/<int:run_id>/status", methods=["GET"])
 @login_required
 def run_status_json(access_token: str, run_id: str) -> Response:
 
