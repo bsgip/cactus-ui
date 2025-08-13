@@ -213,8 +213,9 @@
             <p class="card-text"><b>A, G, L, C, S, M, DER-A, DER-G, DER-L, DR-A, DR-D, DR-L, DR-G</b></p>
             <p class="card-text">To filter by more than one compliance class, use a comma separated list e.g. "<b>G, DER-L, DR-D</b>"</p>
             `;
+            filterWarning.classList.remove("hidden");
         } else {
-            filterWarning.innerHTML = '';
+            filterWarning.classList.add("hidden");
         }
         
     }
