@@ -2,3 +2,6 @@
 !.gitignore
 !js/
 !*.js
+!*.png
+!*.ico
+!*.webmanifest
