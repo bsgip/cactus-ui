@@ -13,11 +13,6 @@
 <p>The following test procedure is described and maintained at <a
         href="https://github.com/bsgip/cactus-test-definitions">CACTUS Test Definitions</a> repository</p>
 
-<form method="POST" id="submit-run-form"
-    action="{{ url_for('procedure_yaml_page', test_procedure_id=test_procedure_id) }}">
-    <input type="hidden" name="action" value="initialise">
-    <button id="submit-run-btn" type="submit" class="btn btn-success">Start Run</button>
-</form>
 <br>
 <pre><code class="language-yaml">{{ yaml }}</code></pre>
 

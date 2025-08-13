@@ -5,6 +5,10 @@
 {% block content %}
 
 
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
 {% if run_is_live %}
 
 <div class="row justify-content-center">
@@ -22,8 +26,7 @@
             <p class="card-text">The test is now underway - the server will have loaded any initial preconditions
                 (eg: DERControls) and its now time for your client to respond appropriately. When you're ready to
                 end the test, press the Finalise button</p>
-            <form method="POST" action="{{ url_for('runs_page') }}">
-                <input type="hidden" name="run_id" value="{{ run_id }}">
+            <form method="POST" action="{{ url_for('run_status_page', run_id=run_id) }}">
                 <input type="hidden" name="action" value="finalise">
                 <button type="submit" class="btn btn-warning">Finalise</button>
             </form>
@@ -108,8 +111,7 @@
         It appears that this run is no longer active. All results are available as test artifacts.
     </div>
 
-    <form method="POST" action="{{ url_for('runs_page') }}">
-        <input type="hidden" name="run_id" value="{{ run_id }}">
+    <form method="POST" action="{{ url_for('run_status_page', run_id=run_id) }}">
         <input type="hidden" name="action" value="artifact">
         <button type="submit" class="btn btn-primary">Download Artifacts</button>
     </form>
@@ -273,14 +275,13 @@
 
     function initialisedCardBody(instructions) {
         fragments = []
-        
+
         const startButton = `
-        <form method="POST" action="{{ url_for('runs_page') }}">
-            <input type="hidden" name="run_id" value="{{ run_id }}">
+        <form method="POST" action="{{ url_for('run_status_page', run_id=run_id) }}">
             <input type="hidden" name="action" value="start">
             <button type="submit" class="btn btn-primary">Start</button>
         </form>`;
-        
+
         if (instructions === null) {
             fragments.push(`
             <p class="card-text">This run is currently in the pre-start phase. It can started at any time.</p>`);
@@ -309,13 +310,13 @@
         initialisedCard = document.getElementById('update-initialised-card')
         if (initialisedCard !== null) {
             // Allow to work with older version of cactus runner that doesn't send the instruction in the runner status
-            let instructions = "instructions" in status ? status.instructions : null 
+            let instructions = "instructions" in status ? status.instructions : null
             initialisedCard.innerHTML = initialisedCardBody(instructions);
         }
 
         // update precondition checks table
         preconditionChecksTable = document.getElementById('update-precondition-checks-table');
-        let preconditionChecks = "precondition_checks" in status ? status.precondition_checks : [{success: false, type: "miaow", details: "More info here." }]
+        let preconditionChecks = "precondition_checks" in status ? status.precondition_checks : [{ success: false, type: "miaow", details: "More info here." }]
         preconditionChecks = null;
         if (preconditionChecks) {
             preconditionChecksTable.innerHTML = preconditionChecksTableBody(preconditionChecks);
@@ -348,7 +349,7 @@
         // update step instructions
         if ("{{run_status}}" === "started") {
             // Allow to work with older version of cactus runner that doesn't send the instruction in the runner status
-            let instructions = "instructions" in status ? status.instructions : null 
+            let instructions = "instructions" in status ? status.instructions : null
             message = getStepInstructions(instructions);
             document.getElementById('step-instructions').innerHTML = alertBanner(message);
         }

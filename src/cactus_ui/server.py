@@ -163,24 +163,24 @@ def procedures_page(access_token: str) -> str:
     )
 
 
-@app.route("/procedure/<test_procedure_id>", methods=["GET", "POST"])
+@app.route("/procedure/<test_procedure_id>", methods=["GET"])
 @login_required
 def procedure_yaml_page(access_token: str, test_procedure_id: str) -> str | Response:
 
     error: str | None = None
 
     # Handle POST for triggering a new run / precondition phase
-    if request.method == "POST":
-        if request.form.get("action") == "initialise":
-            init_result = orchestrator.init_run(access_token, test_procedure_id)
-            if init_result.run_id is not None:
-                return redirect(url_for("run_status_page", run_id=init_result.run_id))
-            elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
-                error = "Your certificate has expired. Please generate and download a new certificate."
-            elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
-                error = "You cannot start a second test run while your DeviceCapability URI is set to static."
-            else:
-                error = "Failed to trigger a new run due to an unknown error."
+    # if request.method == "POST":
+    #     if request.form.get("action") == "initialise":
+    #         init_result = orchestrator.init_run(access_token, test_procedure_id)
+    #         if init_result.run_id is not None:
+    #             return redirect(url_for("run_status_page", run_id=init_result.run_id))
+    #         elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
+    #             error = "Your certificate has expired. Please generate and download a new certificate."
+    #         elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
+    #             error = "You cannot start a second test run while your DeviceCapability URI is set to static."
+    #         else:
+    #             error = "Failed to trigger a new run due to an unknown error."
 
     # Request the paginated list of procedures from upstream
     yaml = orchestrator.fetch_procedure_yaml(access_token, test_procedure_id)
@@ -249,10 +249,25 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
                 access_token, subscription_domain=None, is_device_cert=None, is_static_uri=static_uri
             ):
                 error = "Failed to update static URI"
+        elif action == "updaterungroup":
+            new_name = request.form["name"]
+            run_group_id = int(request.form["run_group_id"])
+            if not orchestrator.update_run_group(access_token, run_group_id, new_name):
+                error = "Failed to update name"
+        elif action == "createrungroup":
+            version = request.form["version"]
+            if not orchestrator.create_run_group(access_token, version):
+                error = "Failed to create run group"
+        elif action == "deleterungroup":
+            run_group_id = int(request.form["run_group_id"])
+            if not orchestrator.delete_run_group(access_token, run_group_id):
+                error = "Failed to delete run group"
 
     # Fetch after doing any updates so we always render the latest version of the config
     config = orchestrator.fetch_config(access_token)
-    if config is None:
+    run_groups = orchestrator.fetch_run_groups(access_token, 1)
+    csip_aus_versions = orchestrator.fetch_csip_aus_versions(access_token, 1)
+    if config is None or run_groups is None or csip_aus_versions is None:
         return render_template(
             "config.html",
             error="Unable to communicate with test server. Please try refreshing the page or re-logging in.",
@@ -268,13 +283,15 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
         is_device_cert=config.is_device_cert,
         aggregator_certificate_expiry=config.aggregator_certificate_expiry,
         device_certificate_expiry=config.device_certificate_expiry,
+        run_groups=run_groups.items,
+        csip_aus_versions=csip_aus_versions.items,
     )
 
 
-@app.route("/procedure_runs/<test_procedure_id>", methods=["GET"])
+@app.route("/run_group/<int:run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
 @login_required
-def procedure_runs_json(access_token: str, test_procedure_id: str) -> Response:
-    runs_page = orchestrator.fetch_runs_for_procedure(access_token, test_procedure_id)
+def procedure_runs_json(access_token: str, run_group_id: int, test_procedure_id: str) -> Response:
+    runs_page = orchestrator.fetch_group_runs_for_procedure(access_token, run_group_id, test_procedure_id)
     if runs_page is None:
         return Response(
             response=f"Unable to fetch runs for {test_procedure_id}.",
@@ -285,13 +302,13 @@ def procedure_runs_json(access_token: str, test_procedure_id: str) -> Response:
     return jsonify(runs_page)
 
 
-@app.route("/active_runs", methods=["GET"])
+@app.route("/run_group/<int:run_group_id>/active_runs", methods=["GET"])
 @login_required
-def active_runs_json(access_token: str) -> Response:
-    runs_page = orchestrator.fetch_runs(access_token, 1, False)
+def active_runs_json(access_token: str, run_group_id: int) -> Response:
+    runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, False)
     if runs_page is None:
         return Response(
-            response="Unable to active runs.",
+            response="Unable to load active runs.",
             status=HTTPStatus.NOT_FOUND,
             mimetype="text/plain",
         )
@@ -299,9 +316,21 @@ def active_runs_json(access_token: str) -> Response:
     return jsonify(runs_page)
 
 
-@app.route("/runs", methods=["GET", "POST"])
+@app.route("/runs", methods=["GET"])
 @login_required
 def runs_page(access_token: str) -> str | Response:  # noqa: C901
+    """Just redirects to the "first" RunGroup page"""
+
+    run_groups = orchestrator.fetch_run_groups(access_token, 1)
+    if not run_groups or not run_groups.items:
+        return redirect(url_for("config_page"))
+
+    return redirect(url_for("group_runs_page", run_group_id=run_groups.items[0].run_group_id))
+
+
+@app.route("/group/<int:run_group_id>/runs", methods=["GET", "POST"])
+@login_required
+def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # noqa: C901
     error: str | None = None
 
     # Handle POST for triggering a new run / precondition phase
@@ -311,7 +340,7 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
             if not test_procedure_id:
                 error = "No test procedure selected."
             else:
-                init_result = orchestrator.init_run(access_token, test_procedure_id)
+                init_result = orchestrator.init_run(access_token, run_group_id, test_procedure_id)
                 if init_result.run_id is not None:
                     return redirect(url_for("run_status_page", run_id=init_result.run_id))
                 elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
@@ -327,10 +356,15 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
             if not run_id:
                 error = "No run ID specified."
             else:
-                if orchestrator.start_run(access_token, run_id):
+                start_result = orchestrator.start_run(access_token, run_id)
+                if start_result.success:
                     return redirect(url_for("run_status_page", run_id=run_id))
                 else:
-                    error = "Failed to start the test run."
+                    error = (
+                        "Failed to start the test run."
+                        if start_result.error_message is None
+                        else start_result.error_message
+                    )
 
         # Handle finalising a run
         elif request.form.get("action") == "finalise":
@@ -367,7 +401,7 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
                     )
 
     # Fetch procedures
-    procedures = orchestrator.fetch_procedure_run_summaries(access_token)
+    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
     grouped_procedures: list[tuple[str, list[orchestrator.ProcedureRunSummaryResponse]]] = []
     classes_by_test: dict[str, list[str]] = {}
     classes_by_category = {}
@@ -394,18 +428,69 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
         # convert sets to lists (sets are not serializable as json)
         classes_by_category = {key: list(value) for key, value in classes_by_category.items()}
 
+    # Fetch the run groups (for the breadcrumbs selector)
+    run_groups = orchestrator.fetch_run_groups(access_token, 1)
+    active_run_group: orchestrator.RunGroupResponse | None = None
+    if not run_groups or not run_groups.items:
+        error = "Unable to fetch run groups."
+    else:
+        for rg in run_groups.items:
+            if rg.run_group_id == run_group_id:
+                active_run_group = rg
+                break
+
     return render_template(
         "runs.html",
         error=error,
         grouped_procedures=grouped_procedures,
         classes_by_test_b64=b64encode(json.dumps(classes_by_test).encode()).decode(),
         classes_by_category_b64=b64encode(json.dumps(classes_by_category).encode()).decode(),
+        run_groups=[] if run_groups is None else run_groups.items,
+        run_group_id=run_group_id,
+        active_run_group=active_run_group,
     )
 
 
-@app.route("/run/<run_id>", methods=["GET"])
+@app.route("/run/<int:run_id>", methods=["GET", "POST"])
 @login_required
-def run_status_page(access_token: str, run_id: str) -> str:
+def run_status_page(access_token: str, run_id: str) -> str | Response:
+    error: str | None = None
+
+    if request.method == "POST":
+        if request.form.get("action") == "start":
+            start_result = orchestrator.start_run(access_token, run_id)
+            if not start_result or not start_result.success:
+                error = (
+                    "Failed to start the test run."
+                    if start_result is None or start_result.error_message is None
+                    else start_result.error_message
+                )
+
+        # Handle finalising a run
+        elif request.form.get("action") == "finalise":
+            archive_data = orchestrator.finalise_run(access_token, run_id)
+            if archive_data is None:
+                error = "Failed to finalise the run or retrieve artifacts."
+            else:
+                return send_file(
+                    io.BytesIO(archive_data),
+                    as_attachment=True,
+                    download_name=f"{run_id}_artifacts.zip",
+                    mimetype="application/zip",
+                )
+
+        # Handle downloading a prior run's artifacts
+        elif request.form.get("action") == "artifact":
+            artifact_data = orchestrator.fetch_run_artifact(access_token, run_id)
+            if artifact_data is None:
+                error = "Failed to retrieve artifacts."
+            else:
+                return send_file(
+                    io.BytesIO(artifact_data),
+                    as_attachment=True,
+                    download_name=f"{run_id}_artifacts.zip",
+                    mimetype="application/zip",
+                )
 
     status = orchestrator.fetch_run_status(access_token=access_token, run_id=run_id)
     run_is_live = status is not None
@@ -435,10 +520,11 @@ def run_status_page(access_token: str, run_id: str) -> str:
         run_status=run_status,
         run_test_uri=run_test_uri,
         run_procedure_id=run_procedure_id,
+        error=error,
     )
 
 
-@app.route("/run/<run_id>/status", methods=["GET"])
+@app.route("/run/<int:run_id>/status", methods=["GET"])
 @login_required
 def run_status_json(access_token: str, run_id: str) -> Response:
 

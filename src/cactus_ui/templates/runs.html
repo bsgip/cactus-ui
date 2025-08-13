@@ -8,74 +8,100 @@
 <div class="alert alert-danger">{{ error }}</div>
 {% endif %}
 
+<div class="max-page-height" style="padding-top:10px; display: flex; flex-direction: column;">
+    <div style="display: flex;">
+        {% if run_groups|length < 2 %} {% if active_run_group %} <h2>Runs for {{ active_run_group.name }}</h2>
+            {% endif %}
+            {% else %}
 
-<div class="row max-page-height">
-    <div class="col procedure-col">
-        <h2>Procedures</h2>
-
-        <div class="procedure-container">
-
-            <div class="card" style="border-radius: 0; border-bottom: none;">
-                <div class="list-group list-group-flush">
-                    <a id="active-runs-button" href="#"
-                        class="procedure-btn list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                        style="border-radius: 0; width:100%">
-                        Active Runs
-                    </a>
-                </div>
-            </div>
-
-            <input type="search" id="filter-procedures-input" placeholder="Filter tests by compliance class e.g. A, DR-G" class="search" oninput="filterProceduresHandler(event)">
-            {% for gp in grouped_procedures %}
-            <div id="{{gp[0]}}" class="card" style="border-radius: 0; border-bottom: none;">
-                <button class="btn btn-success text-start" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#{{gp[0]}}-body" style="border-radius: 0;">
-
-                    <i class="fa fas"></i> {{gp[0]}}
-
+            <h2>Runs for </h2>
+            <div class="dropdown" style="margin-left: 10px;">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                    {{ active_run_group.name }}
                 </button>
-                <div class="list-group list-group-flush collapse show" id="{{gp[0]}}-body">
-                    {% for procedure in gp[1] %}
-                    <a href="#" id="{{ procedure.test_procedure_id }}" _description="{{ procedure.description }}"
-                        class="procedure-btn list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        {{procedure.test_procedure_id }}
-
-                        {% if procedure.run_count > 0 %}
-                        {% if procedure.latest_all_criteria_met == true %}
-                        <span class="badge text-bg-success">{{ procedure.run_count }}</span>
-                        {% elif procedure.latest_all_criteria_met == false %}
-                        <span class="badge text-bg-danger">{{ procedure.run_count }}</span>
-                        {% else %}
-                        <span class="badge text-bg-secondary">{{ procedure.run_count }}</span>
-                        {% endif %}
-                        {% endif %}
-
-                    </a>
+                <ul class="dropdown-menu">
+                    {% for rg in run_groups %}
+                    {% if rg.run_group_id != run_group_id %}
+                    <li><a class="dropdown-item"
+                            href="{{ url_for('group_runs_page', run_group_id=rg.run_group_id) }}">{{rg.name}}</a></li>
+                    {% endif %}
                     {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+    </div>
+
+    <hr>
+
+    <div class="row" style="flex: 1; overflow: hidden;">
+        <div class="col procedure-col">
+            <h5>Procedures</h5>
+
+            <div class="procedure-container">
+
+                <div class="card" style="border-radius: 0; border-bottom: none;">
+                    <div class="list-group list-group-flush">
+                        <a id="active-runs-button" href="#"
+                            class="procedure-btn list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                            style="border-radius: 0; width:100%">
+                            Active Runs
+                        </a>
+                    </div>
                 </div>
 
+                <input type="search" id="filter-procedures-input" placeholder="Filter tests by compliance class e.g. A, DR-G" class="search" oninput="filterProceduresHandler(event)">
+                {% for gp in grouped_procedures %}
+                <div id="{{gp[0]}}" class="card" style="border-radius: 0; border-bottom: none;">
+                    <button class="btn btn-success text-start" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#{{gp[0]}}-body" style="border-radius: 0;">
+
+                        <i class="fa fas"></i> {{gp[0]}}
+
+                    </button>
+                    <div class="list-group list-group-flush collapse show" id="{{gp[0]}}-body">
+                        {% for procedure in gp[1] %}
+                        <a href="#" id="{{ procedure.test_procedure_id }}" _description="{{ procedure.description }}"
+                            class="procedure-btn list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            {{procedure.test_procedure_id }}
+
+                            {% if procedure.run_count > 0 %}
+                            {% if procedure.latest_all_criteria_met == true %}
+                            <span class="badge text-bg-success">{{ procedure.run_count }}</span>
+                            {% elif procedure.latest_all_criteria_met == false %}
+                            <span class="badge text-bg-danger">{{ procedure.run_count }}</span>
+                            {% else %}
+                            <span class="badge text-bg-secondary">{{ procedure.run_count }}</span>
+                            {% endif %}
+                            {% endif %}
+
+                        </a>
+                        {% endfor %}
+                    </div>
+
+                </div>
+                {% endfor %}
+                <div id="filter-warning" class="card" style="padding: 10px"></div>
             </div>
-            {% endfor %}
-            <div id="filter-warning" class="card" style="padding: 10px"></div>
         </div>
-    </div>
-    <div class="col">
-        <div style="display:flex; padding-top: 5px; padding-bottom: 5px; align-items: center;">
-            <h2 id="runs-title" style="flex: 1;">Runs</h2>
-            <div id="runs-actions" style="margin-left: 10px;"></div>
-        </div>
-        <div class="runs-table-container">
-            <table class="table">
-                <tbody id="runs-table-body">
-                    <tr>
-                        <td>Start by selecting a test procedure to either start a new run or view historical runs.</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="col">
+            <div style="display:flex; padding-top: 5px; padding-bottom: 5px; align-items: center;">
+                <h5 id="runs-title" style="flex: 1;">Runs</h5>
+                <div id="runs-actions" style="margin-left: 10px;"></div>
+            </div>
+            <div class="runs-table-container">
+                <table class="table">
+                    <tbody id="runs-table-body">
+                        <tr>
+                            <td>Start by selecting a test procedure to either start a new run or view historical runs.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
-
 <style>
     html,
     body {
@@ -120,10 +146,10 @@
     .procedure-col {
         max-width: 400px;
         min-width: 200px;
+        overflow: auto;
     }
 
     .procedure-container {
-        overflow: auto;
         flex: 1;
     }
 
@@ -190,19 +216,19 @@
     function statusToBtn(run_id, run_status) {
         switch (run_status) {
             case "initialised":
-                return `<form method="POST" action="{{ url_for('runs_page') }}">
+                return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
                 <input type="hidden" name="run_id" value="${run_id}">
                 <input type="hidden" name="action" value="start">
                 <button type="submit" class="btn btn-primary">Start</button>
             </form>`;
             case "started":
-                return `<form method="POST" action="{{ url_for('runs_page') }}">
+                return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
                 <input type="hidden" name="run_id" value="${run_id}">
                 <input type="hidden" name="action" value="finalise">
                 <button type="submit" class="btn btn-warning">Finalise</button>
             </form>`;
             default:
-                return `<form method="POST" action="{{ url_for('runs_page') }}">
+                return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
                 <input type="hidden" name="run_id" value="${run_id}">
                 <input type="hidden" name="action" value="artifact">
                 <button type="submit" class="btn btn-secondary">Download</button>
@@ -242,7 +268,7 @@
             const created = new Date(Date.parse(r.created_at));
             return `
                 <tr class="${row_class}">
-                    <td><a href="run/${r.run_id}">${r.run_id}</a></td>
+                    <td><a href="/run/${r.run_id}">${r.run_id}</a></td>
                     <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})<small></td>
                     <td>${r.status}</td>
                     <td>${icon}</td>
@@ -284,13 +310,14 @@
     function loadProcedureRuns(test_procedure_id) {
         handleRunsLoading();
 
-        xhrRequest(`/procedure_runs/${test_procedure_id}`, handleNewRuns, handleRunsError);
+        xhrRequest(`/run_group/{{ run_group_id }}/procedure_runs/${test_procedure_id}`, handleNewRuns, handleRunsError);
     }
 
     function loadActiveRuns() {
         handleRunsLoading();
 
-        xhrRequest(`/active_runs`, handleNewRuns, handleRunsError);
+
+        xhrRequest(`/run_group/{{ run_group_id }}/active_runs`, handleNewRuns, handleRunsError);
     }
 
     function handleSpawnButtonClick(e) {
@@ -317,7 +344,7 @@
             // handle the other test procedure buttons
             document.getElementById("runs-title").innerHTML = `<a href="procedure/${test_procedure_id}">${test_procedure_id}</a> ${description}`;
 
-            document.getElementById("runs-actions").innerHTML = `<form method="POST" action="{{ url_for('runs_page') }}">
+            document.getElementById("runs-actions").innerHTML = `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
                 <input type="hidden" name="test_procedure_id" value="${test_procedure_id}">
                 <input type="hidden" name="action" value="initialise">
                 <button type="submit" class="btn btn-primary" onclick="handleSpawnButtonClick(event)">Spawn Test Run</button>
