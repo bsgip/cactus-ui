@@ -403,6 +403,9 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
     # Fetch procedures
     procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
     grouped_procedures: list[tuple[str, list[orchestrator.ProcedureRunSummaryResponse]]] = []
+
+    # This hard-coded list of test compliance classes allows the ui to work with previous
+    # versions of the orchestrator
     classes_by_test: dict[str, list[str]] = {
         "ALL-01": ["A", "DR-A"],
         "ALL-02": ["A"],
@@ -469,6 +472,14 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
         "DRL-01": ["DR-L"],
         "DRG-01": ["DR-G"],
     }
+    classes_present = False
+
+    # If the (procedure) class information is present use it in preference to
+    # the hard-coded list above.
+    if len(procedures) > 0 and procedures[0].classes is not None:
+        classes_present = True
+        classes_by_test = {}
+
     classes_by_category = {}
     if procedures is None:
         error = "Unable to fetch test procedures."
@@ -483,13 +494,18 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
             else:
                 grouped_procedures.append((p.category, [p]))
 
-            classes = classes_by_test[p.test_procedure_id] if p.test_procedure_id in classes_by_test else []
+            if classes_present:
+                classes = p.classes
+                classes_by_test[p.test_procedure_id] = classes
+            else:
+                classes = classes_by_test[p.test_procedure_id] if p.test_procedure_id in classes_by_test else []
+
             if p.category in classes_by_category:
                 classes_by_category[p.category].update(classes)
             else:
                 classes_by_category[p.category] = set(classes)
 
-        # convert sets to lists (sets are not serializable as json)
+        # convert sets to lists (sets are not serializable to json)
         classes_by_category = {key: list(value) for key, value in classes_by_category.items()}
 
     # Fetch the run groups (for the breadcrumbs selector)
