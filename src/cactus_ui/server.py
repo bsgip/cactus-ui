@@ -476,11 +476,11 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
 
     # If the (procedure) class information is present use it in preference to
     # the hard-coded list above.
-    if len(procedures) > 0 and procedures[0].classes is not None:
+    if procedures and procedures[0].classes is not None:
         classes_present = True
         classes_by_test = {}
 
-    classes_by_category = {}
+    tmp_classes_by_category: dict[str, set[str]] = {}
     if procedures is None:
         error = "Unable to fetch test procedures."
     else:
@@ -495,18 +495,18 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
                 grouped_procedures.append((p.category, [p]))
 
             if classes_present:
-                classes = p.classes
+                classes = p.classes if p.classes else []
                 classes_by_test[p.test_procedure_id] = classes
             else:
                 classes = classes_by_test[p.test_procedure_id] if p.test_procedure_id in classes_by_test else []
 
-            if p.category in classes_by_category:
-                classes_by_category[p.category].update(classes)
+            if p.category in tmp_classes_by_category:
+                tmp_classes_by_category[p.category].update(classes)
             else:
-                classes_by_category[p.category] = set(classes)
+                tmp_classes_by_category[p.category] = set(classes)
 
         # convert sets to lists (sets are not serializable to json)
-        classes_by_category = {key: list(value) for key, value in classes_by_category.items()}
+        classes_by_category: dict[str, list[str]] = {key: list(value) for key, value in tmp_classes_by_category.items()}
 
     # Fetch the run groups (for the breadcrumbs selector)
     run_groups = orchestrator.fetch_run_groups(access_token, 1)
