@@ -50,7 +50,9 @@
                     </div>
                 </div>
 
-                <input type="search" id="filter-procedures-input" placeholder="Filter tests by compliance class e.g. A, DR-G" class="search" oninput="filterProceduresHandler(event)">
+                <form class="form-inline">
+                    <input id="filter-procedures-input" class="form-control mr-sm-2 search" type="search" placeholder="Filter tests by compliance class e.g. A, DR-G" aria-label="Search" oninput="filterProceduresHandler(event)">
+                </form>
                 {% for gp in grouped_procedures %}
                 <div id="{{gp[0]}}" class="card" style="border-radius: 0; border-bottom: none;">
                     <button class="btn btn-success text-start" type="button" data-bs-toggle="collapse"
@@ -169,30 +171,38 @@
 </style>
 
 <script>
-    function filterByComplianceClass(classes, filterText) {
+    function filterByComplianceClass(classesByGroup, filters) {
         let filtered_count = 0
-        for (const [id, value] of Object.entries(classes)) {
-            const element = document.getElementById(id)
-            if (filterText === "") {
+        for (const [id, classes] of Object.entries(classesByGroup)) {
+            const element = document.getElementById(id);
+            if (element === null) {
+                filtered_count++;
+                continue;
+            }
+            if (filters.length === 0) {
                 element.classList.remove("hidden")
-            } else if (value.includes(filterText)) {
+            } else if (filters.filter(element => classes.includes(element)).length > 0) {
                 element.classList.remove("hidden");
             } else {
                 element.classList.add("hidden");
                 filtered_count++;
             }
         }
-        const all_filtered = filtered_count === Object.entries(classes).length;
+        console.log(` filtered_count ${filtered_count} total count ${Object.entries(classesByGroup).length}`)
+        const all_filtered = filtered_count === Object.entries(classesByGroup).length;
         return all_filtered
     }
 
     function filterProcedures(rawFilterText) {
+        const split = s => s.split(/,\s*/);
+        
         const filterText = rawFilterText.toUpperCase();  // allow both DER-A and der-a to match
+        const filters = split(filterText)[0] === "" ? [] : split(filterText);
         const classesByTest = JSON.parse(atob("{{ classes_by_test_b64 }}"));
         const classesByCategory = JSON.parse(atob("{{ classes_by_category_b64 }}"))
 
-        const allTestsFilteredOut = filterByComplianceClass(classesByTest, filterText);
-        filterByComplianceClass(classesByCategory, filterText);
+        const allTestsFilteredOut = filterByComplianceClass(classesByTest, filters);
+        filterByComplianceClass(classesByCategory, filters);
 
         const filterWarning = document.getElementById("filter-warning");
         if (allTestsFilteredOut) {
@@ -200,7 +210,7 @@
             <p class="card-text" >Your search - <b>${rawFilterText}</b> - did not match any test procedures.</p>
             <br>
             <p class="card-text">The test procedures can be filtered by the following compliance classes:</p>
-            <p class="card-text"><b>A, G, L, C, DER-A, DER-G, DER-L, DR-A, DR-D, DR-L, DR-G</b></p>
+            <p class="card-text"><b>A, G, L, C, S, M, DER-A, DER-G, DER-L, DR-A, DR-D, DR-L, DR-G</b></p>
             <p class="card-text">To filter by more than one compliance class, use a comma separated list e.g. "<b>G, DER-L, DR-D</b>"</p>
             `;
         } else {

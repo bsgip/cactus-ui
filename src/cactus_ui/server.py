@@ -403,7 +403,72 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
     # Fetch procedures
     procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
     grouped_procedures: list[tuple[str, list[orchestrator.ProcedureRunSummaryResponse]]] = []
-    classes_by_test: dict[str, list[str]] = {}
+    classes_by_test: dict[str, list[str]] = {
+        "ALL-01": ["A", "DR-A"],
+        "ALL-02": ["A"],
+        "ALL-03": [],
+        "ALL-04": ["A"],
+        "ALL-05": ["A"],
+        "ALL-06": ["A", "DR-A"],
+        "ALL-07": ["A"],
+        "ALL-08": ["A"],
+        "ALL-09": ["A"],
+        "ALL-10": ["A", "DR-A"],
+        "GEN-01": ["G"],
+        "GEN-02": ["G"],
+        "LOA-01": ["L"],
+        "LOA-02": ["L"],
+        "ALL-11": ["A"],
+        "ALL-12": ["A"],
+        "GEN-03": ["G"],
+        "GEN-04": ["G"],
+        "LOA-03": ["L"],
+        "LOA-04": ["L"],
+        "ALL-13": ["A"],
+        "ALL-14": ["S"],
+        "GEN-05": ["G", "S"],
+        "GEN-06": ["G", "S"],
+        "LOA-05": ["L", "S"],
+        "LOA-06": ["L", "S"],
+        "ALL-15": ["A", "S"],
+        "ALL-16": ["A", "S"],
+        "GEN-07": ["G", "S"],
+        "GEN-08": ["G", "S"],
+        "LOA-07": ["L", "S"],
+        "LOA-08": ["L", "S"],
+        "ALL-17": ["A", "S"],
+        "ALL-18": ["A"],
+        "ALL-19": ["A", "DR-A"],
+        "ALL-20": ["A", "DR-A"],
+        "ALL-21": ["A", "DR-A"],
+        "ALL-22": ["A", "DR-A"],
+        "ALL-23": ["A"],
+        "ALL-24": ["A"],
+        "ALL-25": ["A"],
+        "MUL-01": ["M"],
+        "MUL-02": ["M"],
+        "MUL-03": ["M"],
+        "GEN-09": ["DER-G"],
+        "LOA-09": ["DER-L"],
+        "ALL-26": ["DER-A"],
+        "ALL-27": ["DER-A"],
+        "ALL-28": ["DER-A"],
+        "ALL-29": ["DER-A"],
+        "ALL-30": ["DER-A"],
+        "GEN-10": ["DER-G"],
+        "LOA-10": ["DER-L"],
+        "GEN-11": ["DER-G"],
+        "GEN-12": ["DER-G"],
+        "LOA-11": ["DER-L"],
+        "LOA-12": ["DER-L"],
+        "GEN-13": ["DER-G"],
+        "LOA-13": ["DER-L"],
+        "DRA-01": ["DR-A"],
+        "DRD-01": ["DR-D"],
+        "DRA-02": ["DR-L", "DR-G"],
+        "DRL-01": ["DR-L"],
+        "DRG-01": ["DR-G"],
+    }
     classes_by_category = {}
     if procedures is None:
         error = "Unable to fetch test procedures."
@@ -417,14 +482,13 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
                 existing_group[1].append(p)
             else:
                 grouped_procedures.append((p.category, [p]))
-            
-            c = ["A"] if p.category in ["Registration"] else ["G"]  # These should be defined on the procedure 'p'
+
+            classes = classes_by_test[p.test_procedure_id] if p.test_procedure_id in classes_by_test else []
             if p.category in classes_by_category:
-                classes_by_category[p.category].update(c)
+                classes_by_category[p.category].update(classes)
             else:
-                classes_by_category[p.category] = set(c)
-            classes_by_test[p.test_procedure_id] = c
-        
+                classes_by_category[p.category] = set(classes)
+
         # convert sets to lists (sets are not serializable as json)
         classes_by_category = {key: list(value) for key, value in classes_by_category.items()}
 
