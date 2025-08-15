@@ -403,6 +403,10 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
     # Fetch procedures
     procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
     grouped_procedures: list[tuple[str, list[orchestrator.ProcedureRunSummaryResponse]]] = []
+
+    classes_by_test: dict[str, list[str]] = {}
+    tmp_classes_by_category: dict[str, set[str]] = {}
+
     if procedures is None:
         error = "Unable to fetch test procedures."
     else:
@@ -415,6 +419,17 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
                 existing_group[1].append(p)
             else:
                 grouped_procedures.append((p.category, [p]))
+
+            classes = p.classes if p.classes else []
+            classes_by_test[p.test_procedure_id] = classes
+
+            if p.category in tmp_classes_by_category:
+                tmp_classes_by_category[p.category].update(classes)
+            else:
+                tmp_classes_by_category[p.category] = set(classes)
+
+        # convert sets to lists (sets are not serializable to json)
+        classes_by_category: dict[str, list[str]] = {key: list(value) for key, value in tmp_classes_by_category.items()}
 
     # Fetch the run groups (for the breadcrumbs selector)
     run_groups = orchestrator.fetch_run_groups(access_token, 1)
@@ -431,6 +446,8 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
         "runs.html",
         error=error,
         grouped_procedures=grouped_procedures,
+        classes_by_test_b64=b64encode(json.dumps(classes_by_test).encode()).decode(),
+        classes_by_category_b64=b64encode(json.dumps(classes_by_category).encode()).decode(),
         run_groups=[] if run_groups is None else run_groups.items,
         run_group_id=run_group_id,
         active_run_group=active_run_group,

@@ -67,6 +67,7 @@ class ProcedureRunSummaryResponse:
     test_procedure_id: str
     description: str
     category: str
+    classes: list[str] | None
     run_count: int  # Count of runs for this test procedure
     latest_all_criteria_met: bool | None  # Value for all_criteria_met of the most recent Run
 
@@ -474,6 +475,7 @@ def fetch_group_procedure_run_summaries(
             test_procedure_id=r["test_procedure_id"],
             description=r["description"],
             category=r["category"],
+            classes=r["classes"] if "classes" in r else None,
             run_count=r["run_count"],
             latest_all_criteria_met=r["latest_all_criteria_met"],
         )
