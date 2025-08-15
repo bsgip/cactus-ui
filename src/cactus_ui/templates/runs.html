@@ -51,7 +51,9 @@
                 </div>
 
                 <form class="form-inline">
-                    <input id="filter-procedures-input" class="form-control mr-sm-2 search" type="search" placeholder="Filter tests by compliance class e.g. A, DR-G" aria-label="Search" oninput="filterProceduresHandler(event)">
+                    <input id="filter-procedures-input" class="form-control mr-sm-2 search" type="search"
+                        placeholder="Filter tests by compliance class e.g. A, DR-G" aria-label="Search"
+                        oninput="filterProceduresHandler(event)">
                 </form>
                 {% for gp in grouped_procedures %}
                 <div id="{{gp[0]}}" class="card" style="border-radius: 0; border-bottom: none;">
@@ -123,6 +125,7 @@
         margin-top: 10px;
         margin-bottom: 5px;
     }
+
     .main-footer {
         margin-top: 0 !important;
     }
@@ -195,7 +198,7 @@
 
     function filterProcedures(rawFilterText) {
         const split = s => s.split(/,\s*/);
-        
+
         const filterText = rawFilterText.toUpperCase();  // allow both DER-A and der-a to match
         const filters = split(filterText)[0] === "" ? [] : split(filterText);
         const classesByTest = JSON.parse(atob("{{ classes_by_test_b64 }}"));
@@ -217,7 +220,7 @@
         } else {
             filterWarning.classList.add("hidden");
         }
-        
+
     }
 
     function filterProceduresHandler(event) {
@@ -353,7 +356,7 @@
             loadActiveRuns()
         } else {
             // handle the other test procedure buttons
-            document.getElementById("runs-title").innerHTML = `<a href="procedure/${test_procedure_id}">${test_procedure_id}</a> ${description}`;
+            document.getElementById("runs-title").innerHTML = `<a href="/procedure/${test_procedure_id}">${test_procedure_id}</a> ${description}`;
 
             document.getElementById("runs-actions").innerHTML = `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
                 <input type="hidden" name="test_procedure_id" value="${test_procedure_id}">
@@ -375,7 +378,7 @@
         // Enable collapsing procedure cards
         // const collapseElementList = document.querySelectorAll('.collapse')
         // const collapseList = [...collapseElementList].map(collapseEl => new bootstrap.Collapse(collapseEl))
-    
+
         // Apply filter correctly of page (re)load
         filterProcedures(document.getElementById("filter-procedures-input").value);
     });
