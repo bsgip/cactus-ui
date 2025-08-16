@@ -208,8 +208,26 @@
     function stepStatusTableBody(stepStatus) {
         fragments = []
         for (const [step, status] of Object.entries(stepStatus)) {
-            color = status ? "success" : "secondary";
-            icon = status ? "check" : "question"
+            let color = ""
+            let icon = ""
+            switch (status) {
+                case 0:
+                    //PENDING
+                    color = "secondary"
+                    icon = "minus"
+                    break;
+                case 1:
+                    //ACTIVE
+                    color = "primary"
+                    icon = "play"
+                    break;
+                case 1:
+                    //RESOLVED
+                    color = "success"
+                    icon = "check"
+                    break;
+
+            }
             fragments.push(`
                 <tr>
                      <th scope="row">${step}</th>
