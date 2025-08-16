@@ -414,6 +414,16 @@ def fetch_individual_run(access_token: str, run_id: str) -> RunResponse | None:
     )
 
 
+def delete_individual_run(access_token: str, run_id: str) -> bool:
+    """Deletes a single run (cleaning up any existing resources)"""
+    uri = generate_uri(f"/run/{run_id}")
+    response = safe_request("DELETE", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return False
+
+    return True
+
+
 def fetch_run_status(access_token: str, run_id: str) -> str | None:
     """Given an already started run - fetch the status as a raw JSON string"""
     uri = generate_uri(f"/run/{run_id}/status")

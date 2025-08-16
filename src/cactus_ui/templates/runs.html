@@ -287,6 +287,13 @@
                     <td>${r.status}</td>
                     <td>${icon}</td>
                     <td>${statusToBtn(r.run_id, r.status)}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
+                            <input type="hidden" name="run_id" value="{{ run_group_id }}">
+                            <input type="hidden" name="action" value="delete">
+                            <button type="submit" class="btn btn-outline-danger" onclick="handleButtonClick(event)"><i class="fas fa-trash-can"></i></button>
+                        </form>
+                    </td>
                 </tr>
             `
         });
@@ -334,7 +341,7 @@
         xhrRequest(`/run_group/{{ run_group_id }}/active_runs`, handleNewRuns, handleRunsError);
     }
 
-    function handleSpawnButtonClick(e) {
+    function handleButtonClick(e) {
         e.target.innerHTML = `<div class="spinner-border spinner-border-sm" role="status"></div>`;
         e.target.disabled = true;
         e.target.closest('form').submit();
@@ -361,7 +368,7 @@
             document.getElementById("runs-actions").innerHTML = `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
                 <input type="hidden" name="test_procedure_id" value="${test_procedure_id}">
                 <input type="hidden" name="action" value="initialise">
-                <button type="submit" class="btn btn-primary" onclick="handleSpawnButtonClick(event)">Spawn Test Run</button>
+                <button type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">Spawn Test Run</button>
             </form>`;
 
             loadProcedureRuns(test_procedure_id)

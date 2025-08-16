@@ -399,6 +399,12 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
                         download_name=f"{run_id}_artifacts.zip",
                         mimetype="application/zip",
                     )
+        # Handle downloading a prior run's artifacts
+        elif request.form.get("action") == "delete":
+            run_id = request.form.get("run_id")
+            delete_result = orchestrator.delete_individual_run(access_token, run_id)
+            if not delete_result:
+                error = "Failed to delete run."
 
     # Fetch procedures
     procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
