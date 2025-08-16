@@ -28,7 +28,7 @@
                 end the test, press the Finalise button</p>
             <form method="POST" action="{{ url_for('run_status_page', run_id=run_id) }}">
                 <input type="hidden" name="action" value="finalise">
-                <button type="submit" class="btn btn-warning">Finalise</button>
+                <button type="submit" class="btn btn-warning" onclick="handleButtonClick(event)">Finalise</button>
             </form>
             {% endif %}
 
@@ -132,6 +132,12 @@
 </style>
 
 <script>
+    function handleButtonClick(e) {
+        e.target.innerHTML = `<div class="spinner-border spinner-border-sm" role="status"></div>`;
+        e.target.disabled = true;
+        e.target.closest('form').submit();
+    }
+
     function generalTableBody(status) {
         fragments = [];
 
@@ -297,7 +303,7 @@
         const startButton = `
         <form method="POST" action="{{ url_for('run_status_page', run_id=run_id) }}">
             <input type="hidden" name="action" value="start">
-            <button type="submit" class="btn btn-primary">Start</button>
+            <button type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">Start</button>
         </form>`;
 
         if (instructions === null) {
@@ -321,6 +327,9 @@
     }
 
     function handleNewStatus(rawJsonString) {
+        if (!rawJsonString) {
+            return
+        }
         const status = JSON.parse(rawJsonString);
 
         // update test initialisation text
@@ -380,10 +389,10 @@
     function handleStatusError(status, content) {
         if (status === null) {
             console.error("AJAX error occurred.");
-            location.reload()
+            window.location = "{{ url_for('run_status_page', run_id=run_id) }}"
         } else if (status === 410) {
             console.error("Received HTTP GONE - reloading page as test is finished:");
-            location.reload()
+            window.location = "{{ url_for('run_status_page', run_id=run_id) }}"
         } else {
             console.error("Request failed with status and content:", status, content);
         }
