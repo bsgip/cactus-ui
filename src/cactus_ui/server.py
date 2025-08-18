@@ -401,7 +401,7 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
                     )
         # Handle downloading a prior run's artifacts
         elif request.form.get("action") == "delete":
-            run_id = request.form.get("run_id")
+            run_id = request.form["run_id"]
             delete_result = orchestrator.delete_individual_run(access_token, run_id)
             if not delete_result:
                 error = "Failed to delete run."
