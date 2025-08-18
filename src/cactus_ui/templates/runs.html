@@ -368,7 +368,7 @@
             document.getElementById("runs-actions").innerHTML = `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
                 <input type="hidden" name="test_procedure_id" value="${test_procedure_id}">
                 <input type="hidden" name="action" value="initialise">
-                <button type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">Spawn Test Run</button>
+                <button type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">New Test Run</button>
             </form>`;
 
             loadProcedureRuns(test_procedure_id)
