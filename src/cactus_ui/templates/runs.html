@@ -56,16 +56,17 @@
                         oninput="filterProceduresHandler(event)">
                 </form>
                 {% for gp in grouped_procedures %}
-                <div id="{{gp[0]}}" class="card" style="border-radius: 0; border-bottom: none;">
+                <div id="{{gp.slug}}" class="card" style="border-radius: 0; border-bottom: none;">
                     <button class="btn btn-success text-start" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#{{gp[0]}}-body" style="border-radius: 0;">
+                        data-bs-target="#{{gp.slug}}-body" style="border-radius: 0;">
 
-                        <i class="fa fas"></i> {{gp[0]}}
+                        <i class="fa fas"></i> {{gp.category}}
 
                     </button>
-                    <div class="list-group list-group-flush collapse show" id="{{gp[0]}}-body">
-                        {% for procedure in gp[1] %}
+                    <div class="list-group list-group-flush collapse show" id="{{gp.slug}}-body">
+                        {% for procedure in gp.summaries %}
                         <a href="#" id="{{ procedure.test_procedure_id }}" _description="{{ procedure.description }}"
+                            _classes="{{ ','.join(procedure.classes) }}"
                             class="procedure-btn list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             {{procedure.test_procedure_id }}
 
@@ -191,7 +192,6 @@
                 filtered_count++;
             }
         }
-        console.log(` filtered_count ${filtered_count} total count ${Object.entries(classesByGroup).length}`)
         const all_filtered = filtered_count === Object.entries(classesByGroup).length;
         return all_filtered
     }
@@ -350,6 +350,7 @@
     function handleProcedureButtonClick(e) {
         const test_procedure_id = this.id;
         const description = this.getAttribute("_description")
+        const classes = this.getAttribute("_classes").split(",")
 
         // update active class
         document.querySelectorAll(".procedure-btn").forEach(el => el.classList.remove('active'));

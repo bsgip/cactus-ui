@@ -44,6 +44,7 @@ class ProcedureResponse:
     test_procedure_id: str
     description: str
     category: str
+    classes: list[str]
 
 
 @dataclass
@@ -186,7 +187,10 @@ def fetch_procedures(access_token: str, page: int) -> Pagination[ProcedureRespon
     return handle_pagination(
         response.json(),
         lambda i: ProcedureResponse(
-            test_procedure_id=i["test_procedure_id"], description=i["description"], category=i["category"]
+            test_procedure_id=i["test_procedure_id"],
+            description=i["description"],
+            category=i["category"],
+            classes=i.get("classes", []),
         ),
     )
 

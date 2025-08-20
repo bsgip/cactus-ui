@@ -6,6 +6,7 @@ import logging
 import logging.config
 import os
 from base64 import b64encode
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import lru_cache, wraps
 from http import HTTPStatus
@@ -71,6 +72,13 @@ CACTUS_PLATFORM_VERSION = env["CACTUS_PLATFORM_VERSION"]
 CACTUS_PLATFORM_SUPPORT_EMAIL = env["CACTUS_PLATFORM_SUPPORT_EMAIL"]
 
 F = TypeVar("F", bound=Callable[..., object])
+
+
+@dataclass
+class GroupedProcedure:
+    slug: str
+    category: str
+    summaries: list[orchestrator.ProcedureRunSummaryResponse]
 
 
 def get_access_token() -> str | None:
@@ -408,7 +416,7 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
 
     # Fetch procedures
     procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
-    grouped_procedures: list[tuple[str, list[orchestrator.ProcedureRunSummaryResponse]]] = []
+    grouped_procedures: list[GroupedProcedure] = []
 
     classes_by_test: dict[str, list[str]] = {}
     tmp_classes_by_category: dict[str, set[str]] = {}
@@ -418,13 +426,14 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
     else:
         # Organise the procedures by grouping them under the "category" label present (while also preserving order)
         for p in procedures:
+            category_slug = p.category.replace(" ", "-")  # This could do with a more robust slugify method
 
             # Add this procedure to the list of groups
-            existing_group = find_first(grouped_procedures, lambda x: x[0] == p.category)
+            existing_group = find_first(grouped_procedures, lambda x: x.slug == category_slug)
             if existing_group:
-                existing_group[1].append(p)
+                existing_group.summaries.append(p)
             else:
-                grouped_procedures.append((p.category, [p]))
+                grouped_procedures.append(GroupedProcedure(category_slug, p.category, [p]))
 
             classes = p.classes if p.classes else []
             classes_by_test[p.test_procedure_id] = classes
