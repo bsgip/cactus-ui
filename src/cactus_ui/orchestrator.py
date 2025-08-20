@@ -58,6 +58,7 @@ class ConfigResponse:
     is_device_cert: bool  # if true - all test instances will spawn using the device certificate. Otherwise use agg cert
     aggregator_certificate_expiry: datetime | None  # When the current user aggregator cert expires. None = expired
     device_certificate_expiry: datetime | None  # When the current user device cert expires. None = expired
+    pen: int | None
 
 
 @dataclass
@@ -210,11 +211,16 @@ def fetch_config(access_token: str) -> ConfigResponse | None:
         is_device_cert=data["is_device_cert"],
         device_certificate_expiry=data["device_certificate_expiry"],
         aggregator_certificate_expiry=data["aggregator_certificate_expiry"],
+        pen=data["pen"] if "pen" in data else 0,
     )
 
 
 def update_config(
-    access_token: str, subscription_domain: str | None, is_static_uri: bool | None, is_device_cert: bool | None
+    access_token: str,
+    subscription_domain: str | None = None,
+    is_static_uri: bool | None = None,
+    is_device_cert: bool | None = None,
+    pen: int | None = None,
 ) -> bool:
     """Update the current config"""
     uri = generate_uri("/config")
@@ -227,6 +233,7 @@ def update_config(
             "subscription_domain": subscription_domain,
             "is_static_uri": is_static_uri,
             "is_device_cert": is_device_cert,
+            "pen": pen,
         },
     )
     return response is None or is_success_response(response)

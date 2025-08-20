@@ -239,23 +239,24 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
                 )
         elif action == "setcert":
             is_device_cert = certificate == "device"
-            if not orchestrator.update_config(
-                access_token, subscription_domain=None, is_device_cert=is_device_cert, is_static_uri=None
-            ):
+            if not orchestrator.update_config(access_token, is_device_cert=is_device_cert):
                 error = "Failed to swap device/aggregator certificate"
+        elif action == "setpen":
+            try:
+                pen: int = int(request.form.get("pen", 0))
+                if not orchestrator.update_config(access_token, pen=pen):
+                    error = "Failed to update PEN"
+            except ValueError:
+                error = "Failed to parse PEN"
         elif action == "setsubscribeddomain":
             domain = request.form.get("subscription_domain", None)
             if domain is None:
                 domain = ""
-            if not orchestrator.update_config(
-                access_token, subscription_domain=domain, is_device_cert=None, is_static_uri=None
-            ):
+            if not orchestrator.update_config(access_token, subscription_domain=domain):
                 error = "Failed to update subscription domain"
         elif action == "setstaticuri":
             static_uri = parse_bool(request.form.get("static_uri"))
-            if not orchestrator.update_config(
-                access_token, subscription_domain=None, is_device_cert=None, is_static_uri=static_uri
-            ):
+            if not orchestrator.update_config(access_token, is_static_uri=static_uri):
                 error = "Failed to update static URI"
         elif action == "updaterungroup":
             new_name = request.form["name"]
@@ -293,6 +294,9 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
         device_certificate_expiry=config.device_certificate_expiry,
         run_groups=run_groups.items,
         csip_aus_versions=csip_aus_versions.items,
+        pen=(
+            "" if config.pen == 0 else config.pen
+        ),  # A PEN of 0 is reserved. Replace with "" to trigger display of placeholder text # noqa: 501
     )
 
 
