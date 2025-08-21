@@ -50,11 +50,47 @@
                     </div>
                 </div>
 
-                <form class="form-inline">
-                    <input id="filter-procedures-input" class="form-control mr-sm-2 search" type="search"
-                        placeholder="Filter tests by compliance class e.g. A, DR-G" aria-label="Search"
-                        oninput="filterProceduresHandler(event)">
-                </form>
+                <div
+                    style="display: flex; flex-direction: row; align-items: center; margin-top: 3px; margin-bottom: 3px;">
+                    <p id="filter-summary" style="flex: 1; margin: 0;">Showing ALL compliance classes</p>
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                        data-bs-target="#filter-modal"><i class="fas fa-sliders"></i></button>
+                </div>
+
+                <div class="modal fade" id="filter-modal" tabindex="-1" aria-labelledby="filter-modal-label"
+                    aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5" id="filter-modal-label">Filter Compliance Classes</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="filterform">
+                                    <p>The following compliance classes are defined in TS 5573:2025 (Table 12.5)</p>
+                                    {% for c in classes %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="{{ c.name }}"
+                                            name="{{ c.name }}" id="check-{{ c.name }}"
+                                            oninput="filterProceduresCheckHandler()" checked>
+                                        <label class="form-check-label" for="check-{{ c.name }}"><strong>({{ c.name
+                                                }})</strong> {{
+                                            c.description }}</label>
+                                    </div>
+                                    {% endfor %}
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button id="filter-btn-all" type="button" class="btn btn-outline-primary"
+                                    onclick="filterAllHandler()">Select ALL</button>
+                                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
                 {% for gp in grouped_procedures %}
                 <div id="{{gp.slug}}" class="card" style="border-radius: 0; border-bottom: none;">
                     <button class="btn btn-success text-start" type="button" data-bs-toggle="collapse"
@@ -86,7 +122,6 @@
 
                 </div>
                 {% endfor %}
-                <div id="filter-warning" class="card" style="padding: 10px"></div>
             </div>
         </div>
         <div class="col">
@@ -175,6 +210,12 @@
 </style>
 
 <script>
+    const classesByTest = JSON.parse(atob("{{ classes_by_test_b64 }}"));
+    const classesByCategory = JSON.parse(atob("{{ classes_by_category_b64 }}"));
+    const allClasses = [
+        {% for c in classes %}"{{ c.name }}", {% endfor %}
+    ];
+
     function filterByComplianceClass(classesByGroup, filters) {
         let filtered_count = 0
         for (const [id, classes] of Object.entries(classesByGroup)) {
@@ -183,9 +224,7 @@
                 filtered_count++;
                 continue;
             }
-            if (filters.length === 0) {
-                element.classList.remove("hidden")
-            } else if (filters.filter(element => classes.includes(element)).length > 0) {
+            if (filters.filter(element => classes.includes(element)).length > 0) {
                 element.classList.remove("hidden");
             } else {
                 element.classList.add("hidden");
@@ -196,35 +235,50 @@
         return all_filtered
     }
 
-    function filterProcedures(rawFilterText) {
-        const split = s => s.split(/,\s*/);
-
-        const filterText = rawFilterText.toUpperCase();  // allow both DER-A and der-a to match
-        const filters = split(filterText)[0] === "" ? [] : split(filterText);
-        const classesByTest = JSON.parse(atob("{{ classes_by_test_b64 }}"));
-        const classesByCategory = JSON.parse(atob("{{ classes_by_category_b64 }}"))
-
+    function filterProcedures(filters) {
         const allTestsFilteredOut = filterByComplianceClass(classesByTest, filters);
         filterByComplianceClass(classesByCategory, filters);
 
-        const filterWarning = document.getElementById("filter-warning");
-        if (allTestsFilteredOut) {
-            filterWarning.innerHTML = `
-            <p class="card-text" >Your search - <b>${rawFilterText}</b> - did not match any test procedures.</p>
-            <br>
-            <p class="card-text">The test procedures can be filtered by the following compliance classes:</p>
-            <p class="card-text"><b>A, G, L, C, S, M, DER-A, DER-G, DER-L, DR-A, DR-D, DR-L, DR-G</b></p>
-            <p class="card-text">To filter by more than one compliance class, use a comma separated list e.g. "<b>G, DER-L, DR-D</b>"</p>
-            `;
-            filterWarning.classList.remove("hidden");
+        enabledFilterCount = filters.length;
+        if (enabledFilterCount < allClasses.length) {
+
+            document.getElementById("filter-btn-all").innerHTML = "Select ALL";
+            if (enabledFilterCount == 0) {
+                document.getElementById("filter-summary").innerHTML = `Showing NO compliance classes`;
+            } else if (enabledFilterCount < 5) {
+                document.getElementById("filter-summary").innerHTML = `Showing ${filters.join(", ")}`;
+            } else {
+                document.getElementById("filter-summary").innerHTML = `Showing ${enabledFilterCount} compliance classes`;
+            }
+
+
         } else {
-            filterWarning.classList.add("hidden");
+            document.getElementById("filter-btn-all").innerHTML = "Select NONE";
+            document.getElementById("filter-summary").innerHTML = "Showing ALL compliance classes";
         }
 
     }
 
-    function filterProceduresHandler(event) {
-        filterProcedures(event.target.value);
+    function getSelectedFilters() {
+        filterForm = document.forms.filterform;
+        return Array.from(new FormData(filterForm).values())
+    }
+
+    function filterAllHandler() {
+        enabledFilterCount = getSelectedFilters().length;
+        selecting = enabledFilterCount < allClasses.length; // are we enabling or disabling all the checks
+
+        for (let input of document.forms.filterform.querySelectorAll("input")) {
+            if (input.checked !== selecting) {
+                input.checked = selecting
+            }
+        }
+
+        filterProceduresCheckHandler();
+    }
+
+    function filterProceduresCheckHandler() {
+        filterProcedures(getSelectedFilters());
     }
 
     function statusToBtn(run_id, run_status) {
@@ -289,7 +343,7 @@
                     <td>${statusToBtn(r.run_id, r.status)}</td>
                     <td>
                         <form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
-                            <input type="hidden" name="run_id" value="{{ run_group_id }}">
+                            <input type="hidden" name="run_id" value="${r.run_id}">
                             <input type="hidden" name="action" value="delete">
                             <button type="submit" class="btn btn-outline-danger" onclick="handleButtonClick(event)"><i class="fas fa-trash-can"></i></button>
                         </form>
@@ -350,7 +404,7 @@
     function handleProcedureButtonClick(e) {
         const test_procedure_id = this.id;
         const description = this.getAttribute("_description")
-        const classes = this.getAttribute("_classes").split(",")
+        const classes = this.getAttribute("_classes") ? this.getAttribute("_classes").split(",") : [];
 
         // update active class
         document.querySelectorAll(".procedure-btn").forEach(el => el.classList.remove('active'));
@@ -388,7 +442,7 @@
         // const collapseList = [...collapseElementList].map(collapseEl => new bootstrap.Collapse(collapseEl))
 
         // Apply filter correctly of page (re)load
-        filterProcedures(document.getElementById("filter-procedures-input").value);
+        filterProceduresCheckHandler()
     });
 
 

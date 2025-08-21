@@ -33,6 +33,7 @@ from werkzeug.wrappers.response import Response
 
 import cactus_ui.orchestrator as orchestrator
 from cactus_ui.common import find_first
+from cactus_ui.compliance_class import fetch_compliance_classes
 
 # Setup logs
 logconf_fp = "./logconf.json"
@@ -411,7 +412,7 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
                         download_name=f"{run_id}_artifacts.zip",
                         mimetype="application/zip",
                     )
-        # Handle downloading a prior run's artifacts
+        # Handle deleting a prior run
         elif request.form.get("action") == "delete":
             run_id = request.form["run_id"]
             delete_result = orchestrator.delete_individual_run(access_token, run_id)
@@ -422,6 +423,7 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
     procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
     grouped_procedures: list[GroupedProcedure] = []
 
+    all_classes: set[str] = set()
     classes_by_test: dict[str, list[str]] = {}
     tmp_classes_by_category: dict[str, set[str]] = {}
 
@@ -441,11 +443,12 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
 
             classes = p.classes if p.classes else []
             classes_by_test[p.test_procedure_id] = classes
+            all_classes.update(classes)
 
-            if p.category in tmp_classes_by_category:
-                tmp_classes_by_category[p.category].update(classes)
+            if category_slug in tmp_classes_by_category:
+                tmp_classes_by_category[category_slug].update(classes)
             else:
-                tmp_classes_by_category[p.category] = set(classes)
+                tmp_classes_by_category[category_slug] = set(classes)
 
         # convert sets to lists (sets are not serializable to json)
         classes_by_category: dict[str, list[str]] = {key: list(value) for key, value in tmp_classes_by_category.items()}
@@ -465,6 +468,7 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
         "runs.html",
         error=error,
         grouped_procedures=grouped_procedures,
+        classes=fetch_compliance_classes(all_classes),
         classes_by_test_b64=b64encode(json.dumps(classes_by_test).encode()).decode(),
         classes_by_category_b64=b64encode(json.dumps(classes_by_category).encode()).decode(),
         run_groups=[] if run_groups is None else run_groups.items,
