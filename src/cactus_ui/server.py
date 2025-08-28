@@ -14,6 +14,7 @@ from os import environ as env
 from pathlib import Path
 from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
+import zipfile
 
 from authlib.integrations.flask_client import OAuth
 from dotenv import find_dotenv, load_dotenv
@@ -199,6 +200,18 @@ def procedure_yaml_page(access_token: str, test_procedure_id: str) -> str | Resp
     return render_template("procedure_yaml.html", test_procedure_id=test_procedure_id, yaml=yaml, error=error)
 
 
+def send_zip_file(filename: str, files: dict[str, bytes | None]) -> Response:
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, mode="w") as zip_archive:
+        for name, data in files.items():
+            if data:
+                zip_archive.writestr(zinfo_or_arcname=name, data=data)
+    zip_buffer.seek(0)
+
+    mimetype = "application/zip"
+    return send_file(zip_buffer, as_attachment=True, download_name=filename, mimetype=mimetype)
+
+
 @app.route("/config", methods=["GET", "POST"])
 @login_required
 def config_page(access_token: str) -> str | Response:  # noqa: C901
@@ -215,28 +228,39 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
 
             if pwd is None:
                 error = f"Failed to generate/refresh {certificate} certificate."
-        elif action == "download":
+        elif action == "download-certs":
+            files = {}
+            basename = f"{certificate}-cert"
+            filename = f"{basename}-certificates.zip"
             if certificate == "aggregator":
-                cert_data = orchestrator.download_aggregator_cert(access_token)
-                mime_type = "application/x-pkcs12"
-                file_name = f"{certificate}-certificate.p12"
+                p12_cert_data = orchestrator.download_aggregator_cert(access_token)
+                pem_cert = orchestrator.download_aggregator_pem_cert(access_token)
+                pem_key = orchestrator.download_aggregator_pem_key(access_token)
+                files = {f"{basename}.p12": p12_cert_data, f"{basename}.crt": pem_cert, f"{basename}.key": pem_key}
             elif certificate == "device":
-                cert_data = orchestrator.download_device_cert(access_token)
-                mime_type = "application/x-pkcs12"
-                file_name = f"{certificate}-certificate.p12"
-            elif certificate == "authority":
-                cert_data = orchestrator.download_certificate_authority_cert(access_token)
-                mime_type = "application/x-x509-ca-cert"
-                file_name = "cactus-ca-certificate.der"
+                p12_cert_data = orchestrator.download_device_cert(access_token)
+                pem_cert = orchestrator.download_device_pem_cert(access_token)
+                pem_key = orchestrator.download_device_pem_key(access_token)
+                files = {f"{basename}.p12": p12_cert_data, f"{basename}.crt": pem_cert, f"{basename}.key": pem_key}
+            if not files:
+                error = f"Failed to retrieve certificates for {certificate}."
+            else:
+                return send_zip_file(filename=filename, files=files)
 
-            if cert_data is None or mime_type is None or file_name is None:
+        elif action == "download-ca":
+            cert_data = mimetype = filename = None
+            if certificate == "authority":
+                cert_data = orchestrator.download_certificate_authority_cert(access_token)
+                mimetype = "application/x-x509-ca-cert"
+                filename = "cactus-ca-certificate.der"
+            if cert_data is None or mimetype is None or filename is None:
                 error = f"Failed to retrieve {certificate} certificate."
             else:
                 return send_file(
                     io.BytesIO(cert_data),
                     as_attachment=True,
-                    download_name=file_name,
-                    mimetype=mime_type,
+                    download_name=filename,
+                    mimetype=mimetype,
                 )
         elif action == "setcert":
             is_device_cert = certificate == "device"
