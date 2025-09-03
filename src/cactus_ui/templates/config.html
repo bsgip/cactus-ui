@@ -64,7 +64,7 @@
                 <form method="POST" action="{{ url_for('config_page') }}">
                     <input type="hidden" name="certificate" , value="authority">
                     <div class="btn-group" role="group">
-                        <button type="submit" name="action" value="download" class="btn btn-outline-secondary">
+                        <button type="submit" name="action" value="download-ca" class="btn btn-outline-secondary">
                             <i class="fas fa-download"></i> Download CA Certificate
                         </button>
                     </div>
@@ -82,7 +82,7 @@
                                     <input type="hidden" name="certificate" , value="aggregator">
                                     <div class="btn-group" role="group">
                                         {% if aggregator_certificate_expiry %}
-                                        <button type="submit" name="action" value="download"
+                                        <button type="submit" name="action" value="download-certs"
                                             class="btn btn-outline-primary">
                                             <i class="fas fa-download"></i> Download
                                         </button>
@@ -110,7 +110,7 @@
                                     <input type="hidden" name="certificate" , value="device">
                                     <div class="btn-group" role="group">
                                         {% if device_certificate_expiry %}
-                                        <button type="submit" name="action" value="download"
+                                        <button type="submit" name="action" value="download-certs"
                                             class="btn btn-outline-primary">
                                             <i class="fas fa-download"></i> Download
                                         </button>
