@@ -87,6 +87,16 @@
 <div class="row justify-content-center">
     <div class="card status-container ">
         <div class="card-body">
+            <h5 class="card-title">Timeline</h5>
+            <div id="timelineError" class="alert alert-info">No timeline (DERControl / Reading) data is available.</div>
+            <canvas id="timelineChart"></canvas>
+        </div>
+    </div>
+</div>
+<br>
+<div class="row justify-content-center">
+    <div class="card status-container ">
+        <div class="card-body">
             <h5 class="card-title">CSIP-Aus Requests</h5>
             <table class="table">
                 <tbody id="update-requests-table"></tbody>
@@ -133,6 +143,8 @@
 </style>
 
 <script>
+    var timelineChart = null;
+
     function handleButtonClick(e) {
         e.target.innerHTML = `<div class="spinner-border spinner-border-sm" role="status"></div>`;
         e.target.disabled = true;
@@ -293,7 +305,7 @@
     function getStepInstructions(instructions) {
         fragments = []
         fragments.push(`
-        <p>Before continuing, perform the following operations:
+        <p>
             <ul>
         `);
         for (const instruction of instructions) {
@@ -334,6 +346,119 @@
         return fragments.join("");
     }
 
+    function updateChart(timeline) {
+
+        if (!timeline) {
+            document.getElementById("timelineError").style = ""
+            document.getElementById("timelineChart").style = "display: none;"
+            return;
+        } else {
+            document.getElementById("timelineError").style = "display: none;"
+            document.getElementById("timelineChart").style = ""
+        }
+
+        // Load the datasets and annotations (the only things that change between updates)
+        const datasets = timeline.data_streams.map(ds => {
+            return {
+                label: ds.label,
+                stepped: ds.stepped,
+                borderDash: ds.dashed ? [5, 5] : undefined,
+                data: ds.data,
+                animation: false
+            }
+        });
+
+        const annotations = [{
+            type: 'line',
+            borderColor: 'black',
+            borderWidth: 1,
+            display: (ctx) => ctx.chart.isDatasetVisible(1),
+            label: {
+                display: true,
+                content: 'Now',
+                position: 'start'
+            },
+            scaleID: 'x',
+            value: timeline.now_offset
+        }];
+        if (timeline.set_max_w !== null) {
+            annotations.push({
+                type: 'line',
+                borderColor: 'black',
+                borderWidth: 3,
+                borderDash: [5, 5],
+                scaleID: 'y',
+                value: timeline.set_max_w
+            });
+            annotations.push({
+                type: 'line',
+                borderColor: 'black',
+                borderWidth: 3,
+                borderDash: [5, 5],
+                scaleID: 'y',
+                value: -timeline.set_max_w
+            });
+        }
+
+
+        if (!timelineChart) {
+            // We haven't rendered a chart yet
+            timelineChart = new Chart(document.getElementById('timelineChart'),
+                {
+                    type: 'line',
+                    data: {
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        interaction: {
+                            mode: 'index',
+                            intersect: true,
+                        },
+                        stacked: false,
+                        plugins: {
+                            annotation: {
+                                common: {
+                                    drawTime: 'beforeDraw'
+                                },
+                                annotations: annotations
+                            }
+                        },
+                        parsing: {
+                            xAxisKey: 'offset',
+                            yAxisKey: 'watts'
+                        },
+                        scales: {
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: "Watts"
+                                },
+                                grid: {
+                                    color: function (context) {
+                                        if (context.tick.value == 0)
+                                            return "#000000";
+                                        else
+                                            return undefined;
+                                    },
+                                },
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: "Relative Time"
+                                }
+                            }
+                        }
+                    }
+                });
+        } else {
+            // We just need to update the existing chart
+            timelineChart.data.datasets = datasets;
+            timelineChart.options.plugins.annotation.annotations = annotations;
+            timelineChart.update()
+        }
+    }
     function checkStatus(rawJsonString) {
         if (!rawJsonString) return false;
 
@@ -349,7 +474,7 @@
 
         // Clear any previous error
         document.getElementById('error-div').innerHTML = "";
-        
+
         if (!rawJsonString) {
             return
         }
@@ -406,6 +531,8 @@
             }
         }
 
+        // update timeline chart
+        updateChart(status.timeline);
     }
 
     function handleStatusError(status, content) {
@@ -454,6 +581,10 @@
 
 </script>
 
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.js"
+    integrity="sha512-D4pL3vNgjkHR/qq+nZywuS6Hg1gwR+UzrdBW6Yg8l26revKyQHMgPq9CLJ2+HHalepS+NuGw1ayCCsGXu9JCXA=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"
+    integrity="sha256-/wN4amD2yTzKz+D7tsLjxnHXkwhWo2ifLzkxE9jWVew=" crossorigin="anonymous"></script>
 
 {% endblock %}
