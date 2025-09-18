@@ -9,6 +9,7 @@
 <div class="alert alert-danger">{{ error }}</div>
 {% endif %}
 
+<div id="error-div"></div>
 {% if run_is_live %}
 
 <div class="row justify-content-center">
@@ -294,6 +295,13 @@
         </div>`;
     }
 
+    function errorBanner(message) {
+        return `
+        <div class="alert alert-danger" role="alert">
+            ${message}
+        </div>`;
+    }
+
     function getStepInstructions(instructions) {
         fragments = []
         fragments.push(`
@@ -451,8 +459,22 @@
             timelineChart.update()
         }
     }
+    function checkStatus(rawJsonString) {
+        if (!rawJsonString) return false;
 
-    function handleNewStatus(rawJsonString) {
+        const status = JSON.parse(rawJsonString);
+        return status.instructions && status.precondition_checks && status.request_history && status.step_status && status.criteria && status.status_summary
+    }
+    
+    function handleNewStatus(rawJsonString, validStatus) {
+        if (!validStatus) {
+            document.getElementById('error-div').innerHTML = errorBanner("Failed to retrieve current status.");
+            return;
+        } 
+
+        // Clear any previous error
+        document.getElementById('error-div').innerHTML = "";
+
         if (!rawJsonString) {
             return
         }
@@ -469,8 +491,7 @@
 
         // update precondition checks table
         preconditionChecksTable = document.getElementById('update-precondition-checks-table');
-        let preconditionChecks = "precondition_checks" in status ? status.precondition_checks : [{ success: false, type: "miaow", details: "More info here." }]
-        preconditionChecks = null;
+        let preconditionChecks = "precondition_checks" in status ? status.precondition_checks : null
         if (preconditionChecks) {
             preconditionChecksTable.innerHTML = preconditionChecksTableBody(preconditionChecks);
         } else {
@@ -530,7 +551,11 @@
         function fetchStatus() {
             xhrRequest(runStatusUri, (content) => {
                 setTimeout(fetchStatus, pollRateMs);
-                handleNewStatus(content);
+                const validStatus = checkStatus(content);
+                if (!validStatus) {
+                    console.error("Received invalid status from poll with content:", content)
+                }
+                handleNewStatus(content, validStatus);
             }, (status, content) => {
                 setTimeout(fetchStatus, pollRateMs);
                 handleStatusError(status, content);
@@ -543,7 +568,7 @@
     addEventListener("load", (event) => {
         // Load initial status at startup
         const initialStatusJson = atob("{{ initial_status_b64 }}");
-        handleNewStatus(initialStatusJson)
+        handleNewStatus(initialStatusJson, true)
 
 
         // Start polling
