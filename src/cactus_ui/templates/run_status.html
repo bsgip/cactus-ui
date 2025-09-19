@@ -174,13 +174,16 @@
             );
         }
 
-        interaction_time = new Date(Date.parse(status.last_client_interaction.timestamp))
-        fragments.push(`
-            <tr>
-                <th scope="row">Last Interaction</th>
-                <td>${formatDate(interaction_time)} (${formatRelativeDate(interaction_time)})</td>
-            </tr>`
-        );
+        const timestamp = status.last_client_interaction?.timestamp ?? null;
+        if (timestamp) {
+            interaction_time = new Date(Date.parse(timestamp));
+            fragments.push(`
+                <tr>
+                    <th scope="row">Last Interaction</th>
+                    <td>${formatDate(interaction_time)} (${formatRelativeDate(interaction_time)})</td>
+                </tr>`
+            );
+        }
 
         fragments.push(`
             <tr>
@@ -209,7 +212,7 @@
     }
 
     function criteriaTableBody(criteria) {
-        fragments = []
+        const fragments = []
         for (const c of criteria) {
             color = c.success ? "success" : "danger";
             icon = c.success ? "check" : "x";
@@ -295,11 +298,14 @@
         </div>`;
     }
 
-    function errorBanner(message) {
-        return `
-        <div class="alert alert-danger" role="alert">
-            ${message}
-        </div>`;
+    function showCommsError(message) {
+        errorEl = document.getElementById('error-div')
+        if (message) {
+            errorEl.innerHTML = `<div class="alert alert-danger" role="alert">${message}</div>`;
+        } else {
+            errorEl.innerHTML = "";
+        }
+
     }
 
     function getStepInstructions(instructions) {
@@ -326,7 +332,7 @@
             <button type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">Start</button>
         </form>`;
 
-        if (instructions === null) {
+        if (instructions.length === 0) {
             fragments.push(`
             <p class="card-text">This run is currently in the pre-start phase. It can started at any time.</p>`);
             fragments.push(startButton);
@@ -334,7 +340,7 @@
             fragments.push(`
             <div class="alert alert-primary" role="alert">
                 <p>This run is currently in the pre-start phase.</p>
-                <p>Please perform the following operations <i>before</i> starting the test:</p>
+                <p>Please ensure the following <i>before</i> starting the test:</p>
                 <ul>`);
             for (const instruction of instructions) {
                 fragments.push(`<li>${instruction}</li>`)
@@ -381,7 +387,7 @@
             scaleID: 'x',
             value: timeline.now_offset
         }];
-        if (timeline.set_max_w !== null) {
+        if (timeline.set_max_w !== null && timeline.set_max_w !== undefined) {
             annotations.push({
                 type: 'line',
                 borderColor: 'black',
@@ -459,39 +465,40 @@
             timelineChart.update()
         }
     }
-    function checkStatus(rawJsonString) {
-        if (!rawJsonString) return false;
+    function parseStatus(rawJsonString) {
+        if (!rawJsonString) return null;
 
-        const status = JSON.parse(rawJsonString);
-        return status.instructions && status.precondition_checks && status.request_history && status.step_status && status.criteria && status.status_summary
-    }
-    
-    function handleNewStatus(rawJsonString, validStatus) {
-        if (!validStatus) {
-            document.getElementById('error-div').innerHTML = errorBanner("Failed to retrieve current status.");
-            return;
-        } 
-
-        // Clear any previous error
-        document.getElementById('error-div').innerHTML = "";
-
-        if (!rawJsonString) {
-            return
+        try {
+            return JSON.parse(rawJsonString);
+        } catch (error) {
+            console.error("Error parsing status content", error);
+            console.error(rawJsonString);
+            return null;
         }
-        const status = JSON.parse(rawJsonString);
+
+    }
+
+    function handleNewStatus(status) {
+
+        if (status === null || status === undefined) {
+            showCommsError("Failed to retrieve current status.");
+            return;
+        } else {
+            showCommsError(null)
+        }
 
         // update test initialisation text
         // the element 'update-initialised-card' will only exist in the dom if the test is in the init-phase.
-        initialisedCard = document.getElementById('update-initialised-card')
+        const instructions = status.instructions ?? []
+        const initialisedCard = document.getElementById('update-initialised-card')
         if (initialisedCard !== null) {
             // Allow to work with older version of cactus runner that doesn't send the instruction in the runner status
-            let instructions = "instructions" in status ? status.instructions : null
             initialisedCard.innerHTML = initialisedCardBody(instructions);
         }
 
         // update precondition checks table
-        preconditionChecksTable = document.getElementById('update-precondition-checks-table');
-        let preconditionChecks = "precondition_checks" in status ? status.precondition_checks : null
+        const preconditionChecksTable = document.getElementById('update-precondition-checks-table');
+        const preconditionChecks = status.precondition_checks ?? null;
         if (preconditionChecks) {
             preconditionChecksTable.innerHTML = preconditionChecksTableBody(preconditionChecks);
         } else {
@@ -501,33 +508,31 @@
         }
 
         // update cactus log entries
-        log_data = status.log_envoy ? status.log_envoy : "No logs recorded";
-        document.getElementById('update-log-envoy').innerHTML = log_data;
+        document.getElementById('update-log-envoy').innerHTML = status.log_envoy ?? "No logs recorded";
 
         // update requests table
-        requestTable = document.getElementById('update-requests-table');
-        requestTable.innerHTML = requestsTableBody(status.request_history).join("");
+        const requestTable = document.getElementById('update-requests-table');
+        requestTable.innerHTML = requestsTableBody(status.request_history ?? []).join("");
 
         // update steps table
-        stepsTable = document.getElementById('update-steps-table');
-        stepsTable.innerHTML = stepStatusTableBody(status.step_status).join("");
+        const stepsTable = document.getElementById('update-steps-table');
+        stepsTable.innerHTML = stepStatusTableBody(status.step_status ?? {}).join("");
 
         // update criteria table
-        criteriaTable = document.getElementById('update-criteria-table');
-        criteriaTable.innerHTML = criteriaTableBody(status.criteria).join("");
+        const criteriaTable = document.getElementById('update-criteria-table');
+        criteriaTable.innerHTML = criteriaTableBody(status.criteria ?? []).join("");
 
         // update generate table
-        generalTable = document.getElementById('update-general-table');
+        const generalTable = document.getElementById('update-general-table');
         generalTable.innerHTML = generalTableBody(status).join("");
 
         // update step instructions
         if ("{{run_status}}" === "started") {
-            // Allow to work with older version of cactus runner that doesn't send the instruction in the runner status
-            let instructions = "instructions" in status ? status.instructions : null
-            if (instructions !== null && instructions.length >= 0) {
-                document.getElementById('step-instructions').innerHTML = alertBanner(getStepInstructions(instructions));
+            stepInstructionsEl = document.getElementById('step-instructions')
+            if (instructions.length > 0) {
+                stepInstructionsEl.innerHTML = alertBanner(getStepInstructions(instructions));
             } else {
-                document.getElementById('step-instructions').innerHTML = "";
+                stepInstructionsEl.innerHTML = ""
             }
         }
 
@@ -551,11 +556,20 @@
         function fetchStatus() {
             xhrRequest(runStatusUri, (content) => {
                 setTimeout(fetchStatus, pollRateMs);
-                const validStatus = checkStatus(content);
-                if (!validStatus) {
+
+                const status = parseStatus(content);
+                if (status === null) {
                     console.error("Received invalid status from poll with content:", content)
                 }
-                handleNewStatus(content, validStatus);
+
+                try {
+                    handleNewStatus(status);
+                } catch (error) {
+                    console.error("Error during handleNewStatus", error);
+                    showCommsError("Error parsing status object from test harness.");
+                }
+
+
             }, (status, content) => {
                 setTimeout(fetchStatus, pollRateMs);
                 handleStatusError(status, content);
@@ -568,7 +582,13 @@
     addEventListener("load", (event) => {
         // Load initial status at startup
         const initialStatusJson = atob("{{ initial_status_b64 }}");
-        handleNewStatus(initialStatusJson, true)
+        const status = parseStatus(initialStatusJson);
+        try {
+            handleNewStatus(status);
+        } catch (error) {
+            console.error("Error during handleNewStatus", error);
+            showCommsError("Error parsing status object from test harness.");
+        }
 
 
         // Start polling
