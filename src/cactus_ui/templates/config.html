@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Certificate - Cactus{% endblock %}
+{% block title %}Certificate - CACTUS{% endblock %}
 
 {% block content %}
 <h2>User Configuration</h2>
@@ -158,12 +158,14 @@
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Private Enterprise Number (PEN)</h5>
-                <p class="card-text">A Private Enterprise Number (PEN) is a numeric identifier for an organisation, individual or other entity. CSIP-Aus requires clients to encode a PEN within various requests to the server.</p>
-                <p class="card-text">A PEN can be obtained from <a href="https://www.iana.org/">IANA</a> for free from the following <a href="https://www.iana.org/assignments/enterprise-numbers/">link</a>.</p>
+                <p class="card-text">A Private Enterprise Number (PEN) is a numeric identifier for an organisation,
+                    individual or other entity. CSIP-Aus requires clients to encode a PEN within various requests to the
+                    server.</p>
+                <p class="card-text">A PEN can be obtained from <a href="https://www.iana.org/">IANA</a> for free from
+                    the following <a href="https://www.iana.org/assignments/enterprise-numbers/">link</a>.</p>
                 <form method="POST" action="{{ url_for('config_page') }}">
-                    <input type="number" step="any", min="1", max="4294967295" class="form-control" id="inputPen" name="pen"
-                        aria-describedby="penHelp" placeholder="Enter PEN (e.g. 123456)"
-                        value="{{ pen }}">
+                    <input type="number" step="any" , min="1" , max="4294967295" class="form-control" id="inputPen"
+                        name="pen" aria-describedby="penHelp" placeholder="Enter PEN (e.g. 123456)" value="{{ pen }}">
                     <br>
                     <button type="submit" name="action" value="setpen" class="btn btn-primary">
                         <i class="fas fa-pen"></i> Update PEN
@@ -175,7 +177,8 @@
             <div class="card-body">
                 <h5 class="card-title">Subscription Notification Domain</h5>
                 <p class="card-text">This domain will be authorised for receiving subscription notifications.</p>
-                <p class="card-text"><b>Note:</b> Attempts to register notification URIs outside of this domain will be rejected.</p>
+                <p class="card-text"><b>Note:</b> Attempts to register notification URIs outside of this domain will be
+                    rejected.</p>
                 <br>
                 <br>
                 <form method="POST" action="{{ url_for('config_page') }}">
@@ -193,7 +196,9 @@
             <div class="card-body">
                 <h5 class="card-title">DeviceCapability URI</h5>
                 <p class="card-text">The DeviceCapability URI can set to be either "static" or "dynamic".</p>
-                <p class="card-text">A "static" value results in sharing the same DeviceCapability URI across all test runs. <b>Note:</b> when "static" is set only <i>one</i> test run can be active at any given time.</p>
+                <p class="card-text">A "static" value results in sharing the same DeviceCapability URI across all test
+                    runs. <b>Note:</b> when "static" is set only <i>one</i> test run can be active at any given time.
+                </p>
                 <p>
                     {% if static_uri_example %}
                     Currently <span class="badge text-bg-primary">Static</span><br><u>{{static_uri_example}}</u>
@@ -202,7 +207,7 @@
                     {% endif %}
                 </p>
 
-            <br>
+                <br>
 
                 <form method="POST" action="{{ url_for('config_page') }}">
                     <input type="hidden" name="static_uri" , value="{{ not static_uri }}">

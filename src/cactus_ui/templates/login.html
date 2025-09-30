@@ -15,6 +15,7 @@
             flex-direction: column;
             min-height: 100vh;
         }
+
         .footer-text {
             margin-top: auto;
             padding-bottom: 20px;
@@ -25,13 +26,13 @@
 <body class="bg-light">
 
     <div class="d-flex flex-column align-items-center justify-content-center text-center flex-grow-1">
-        <h1 class="mb-3">🌵 Welcome to Cactus</h1>
+        <h1 class="mb-3">🌵 Welcome to CACTUS</h1>
         <h2 class="h5 text-muted mb-3">Client Testing Harness</h2>
 
         {% if session and session.get('access_token') %}
-            <a href="/logout" id="qsLogoutBtn" class="btn btn-outline-danger">Logout</a>
+        <a href="/logout" id="qsLogoutBtn" class="btn btn-outline-danger">Logout</a>
         {% else %}
-            <a href="/login" id="qsLoginBtn" class="btn btn-success">Login</a>
+        <a href="/login" id="qsLoginBtn" class="btn btn-success">Login</a>
         {% endif %}
     </div>
 
