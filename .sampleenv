@@ -1,0 +1,20 @@
+# Flask
+APP_SECRET_KEY=local-development-secret-key
+CACTUS_UI_LOCALDEV=true # (dis/en)ables ProxyFix middleware for deployment/local
+
+# Auth0
+AUTH0_DOMAIN=auth0-domain.auth0.com
+AUTH0_CLIENT_ID=auth0-client-id
+AUTH0_CLIENT_SECRET=auth0-client-secret
+
+# Orchestrator
+CACTUS_ORCHESTRATOR_AUDIENCE=https://orchestrator-api-audience
+
+# Platform
+CACTUS_PLATFORM_VERSION=1.0.0-dev
+CACTUS_PLATFORM_SUPPORT_EMAIL=support@example.com
+
+# Production Only Settings
+# FLASK_ENV=production
+# FLASK_DEBUG=false
+# LOG_LEVEL=INFO
