@@ -206,24 +206,47 @@
         return fragments;
     }
 
-    function metadataTableBody(timeline) {
+    function metadataTableBody(endDeviceMetadata) {
         fragments = [];
         
-        if (timeline && timeline.set_max_w !== null && timeline.set_max_w !== undefined) {
+        if (!endDeviceMetadata) {
             fragments.push(`
                 <tr>
-                    <th scope="row">Set Max W</th>
-                    <td>${timeline.set_max_w}</td>
+                    <td colspan="2" class="text-center">No device metadata available</td>
                 </tr>`
             );
-        } else {
-            fragments.push(`
-                <tr>
-                    <th scope="row">Set Max W</th>
-                    <td>Not available</td>
-                </tr>`
-            );
+            return fragments;
         }
+        
+        // Helper function to display value or "Not available"
+        const displayValue = (value) => value !== null && value !== undefined ? value : "Not available";
+        
+        fragments.push(`
+            <tr>
+                <th scope="row">EDEV ID</th>
+                <td>${displayValue(endDeviceMetadata.edevid)}</td>
+            </tr>
+            <tr>
+                <th scope="row">LFDI</th>
+                <td>${displayValue(endDeviceMetadata.lfdi)}</td>
+            </tr>
+            <tr>
+                <th scope="row">NMI</th>
+                <td>${displayValue(endDeviceMetadata.nmi)}</td>
+            </tr>
+            <tr>
+                <th scope="row">Aggregator ID</th>
+                <td>${displayValue(endDeviceMetadata.aggregator_id)}</td>
+            </tr>
+            <tr>
+                <th scope="row">Timezone ID</th>
+                <td>${displayValue(endDeviceMetadata.timezone_id)}</td>
+            </tr>
+            <tr>
+                <th scope="row">Set Max W</th>
+                <td>${displayValue(endDeviceMetadata.set_max_w)}</td>
+            </tr>`
+        );
         
         return fragments;
     }
@@ -561,7 +584,7 @@
 
         // update metadata table
         const metadataTable = document.getElementById('update-metadata-table');
-        metadataTable.innerHTML = metadataTableBody(status.timeline).join("");
+        metadataTable.innerHTML = metadataTableBody(status.end_device_metadata).join("");
 
         // update step instructions
         if ("{{run_status}}" === "started") {
