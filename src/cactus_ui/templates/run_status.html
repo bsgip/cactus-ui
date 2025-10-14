@@ -95,6 +95,17 @@
 </div>
 <br>
 <div class="row justify-content-center">
+    <div class="card status-container">
+        <div class="card-body">
+            <h5 class="card-title">Active Device Metadata</h5>
+            <table class="table">
+                <tbody id="update-metadata-table"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<br>
+<div class="row justify-content-center">
     <div class="card status-container ">
         <div class="card-body">
             <h5 class="card-title">CSIP-Aus Requests</h5>
@@ -192,6 +203,28 @@
             </tr>`
         );
 
+        return fragments;
+    }
+
+    function metadataTableBody(timeline) {
+        fragments = [];
+        
+        if (timeline && timeline.set_max_w !== null && timeline.set_max_w !== undefined) {
+            fragments.push(`
+                <tr>
+                    <th scope="row">Set Max W</th>
+                    <td>${timeline.set_max_w}</td>
+                </tr>`
+            );
+        } else {
+            fragments.push(`
+                <tr>
+                    <th scope="row">Set Max W</th>
+                    <td>Not available</td>
+                </tr>`
+            );
+        }
+        
         return fragments;
     }
 
@@ -525,6 +558,10 @@
         // update generate table
         const generalTable = document.getElementById('update-general-table');
         generalTable.innerHTML = generalTableBody(status).join("");
+
+        // update metadata table
+        const metadataTable = document.getElementById('update-metadata-table');
+        metadataTable.innerHTML = metadataTableBody(status.timeline).join("");
 
         // update step instructions
         if ("{{run_status}}" === "started") {
