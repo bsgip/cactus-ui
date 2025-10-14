@@ -34,6 +34,7 @@ class RunResponse:
     created_at: datetime
     finalised_at: datetime | None
     is_device_cert: bool
+    set_max_W: int | None
 
 
 @dataclass
@@ -441,6 +442,7 @@ def fetch_runs_for_group(
             created_at=r["created_at"],
             finalised_at=r["finalised_at"],
             is_device_cert=r["is_device_cert"],
+            set_max_W=r["set_max_W"],
         ),
     )
 
@@ -462,6 +464,7 @@ def fetch_individual_run(access_token: str, run_id: str) -> RunResponse | None:
         created_at=r["created_at"],
         finalised_at=r["finalised_at"],
         is_device_cert=r["is_device_cert"],
+        set_max_W=r["set_max_W"],
     )
 
 
@@ -517,6 +520,7 @@ def fetch_group_runs_for_procedure(
             created_at=r["created_at"],
             finalised_at=r["finalised_at"],
             is_device_cert=r["is_device_cert"],
+            set_max_W=r["set_max_W"],
         ),
     )
 
