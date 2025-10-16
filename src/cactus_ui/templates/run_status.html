@@ -209,42 +209,26 @@
     function metadataTableBody(endDeviceMetadata) {
         fragments = [];
         
-        if (!endDeviceMetadata) {
-            fragments.push(`
-                <tr>
-                    <td colspan="2" class="text-center">No device metadata available</td>
-                </tr>`
-            );
-            return fragments;
-        }
+        // Helper function to display value or "Not set"
+        const displayValue = (value) => value !== null && value !== undefined ? value : "Not set";
         
-        // Helper function to display value or "Not available"
-        const displayValue = (value) => value !== null && value !== undefined ? value : "Not available";
-        
+        // Always display all rows
         fragments.push(`
             <tr>
-                <th scope="row">EDEV ID</th>
-                <td>${displayValue(endDeviceMetadata.edevid)}</td>
+                <th scope="row">End Device href</th>
+                <td>${displayValue(endDeviceMetadata?.edevid)}</td>
             </tr>
             <tr>
                 <th scope="row">LFDI</th>
-                <td>${displayValue(endDeviceMetadata.lfdi)}</td>
+                <td>${displayValue(endDeviceMetadata?.lfdi)}</td>
             </tr>
             <tr>
                 <th scope="row">NMI</th>
-                <td>${displayValue(endDeviceMetadata.nmi)}</td>
+                <td>${displayValue(endDeviceMetadata?.nmi)}</td>
             </tr>
             <tr>
-                <th scope="row">Aggregator ID</th>
-                <td>${displayValue(endDeviceMetadata.aggregator_id)}</td>
-            </tr>
-            <tr>
-                <th scope="row">Timezone ID</th>
-                <td>${displayValue(endDeviceMetadata.timezone_id)}</td>
-            </tr>
-            <tr>
-                <th scope="row">Set Max W</th>
-                <td>${displayValue(endDeviceMetadata.set_max_w)}</td>
+                <th scope="row">Set Max W (W)</th>
+                <td>${displayValue(endDeviceMetadata?.set_max_w)}</td>
             </tr>`
         );
         
