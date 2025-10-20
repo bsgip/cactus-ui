@@ -291,6 +291,7 @@ def admin_group_runs_page(access_token: str, run_group_id: int) -> str | Respons
         run_groups=[] if run_groups is None else run_groups.items,
         run_group_id=run_group_id,
         active_run_group=active_run_group,
+        is_admin_view=True,
     )
 
 
