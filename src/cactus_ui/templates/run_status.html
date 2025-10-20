@@ -119,6 +119,17 @@
 <div class="row justify-content-center">
     <div class="card status-container ">
         <div class="card-body">
+            <h5 class="card-title">Latest XSD Validation Error</h5>
+            <table class="table">
+                <tbody id="update-xsd-table"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<br>
+<div class="row justify-content-center">
+    <div class="card status-container ">
+        <div class="card-body">
             <h5 class="card-title">Envoy Logs</h5>
             <pre id="update-log-envoy">Loading...</pre>
         </div>
@@ -322,6 +333,83 @@
         }
 
         return fragments
+    }
+    function xsdTableBody(requests) {
+        // Find the most recent request with XSD errors
+        const requestsWithErrors = requests
+            .filter(r => r.body_xml_errors && r.body_xml_errors.length > 0)
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
+        if (requestsWithErrors.length === 0) {
+            return [`
+                <tr>
+                    <td colspan="2" class="text-center text-muted">No XSD validation errors detected</td>
+                </tr>`
+            ];
+        }
+        
+        // Get the most recent request with errors
+        const latestErrorRequest = requestsWithErrors[0];
+        const errorTimestamp = new Date(Date.parse(latestErrorRequest.timestamp));
+        
+        const fragments = [];
+        
+        fragments.push(`
+            <tr>
+                <th scope="row">Timestamp</th>
+                <td>${formatDate(errorTimestamp)} (${formatRelativeDate(errorTimestamp)})</td>
+            </tr>
+        `);
+        
+        fragments.push(`
+            <tr>
+                <th scope="row">Request</th>
+                <td>${latestErrorRequest.method} ${latestErrorRequest.path}</td>
+            </tr>
+        `);
+        
+        fragments.push(`
+            <tr>
+                <th scope="row">URL</th>
+                <td><code style="word-break: break-all;">${latestErrorRequest.url}</code></td>
+            </tr>
+        `);
+        
+        fragments.push(`
+            <tr>
+                <th scope="row">Status Code</th>
+                <td><span class="badge text-bg-${latestErrorRequest.status < 200 || latestErrorRequest.status > 299 ? 'danger' : 'success'}">${latestErrorRequest.status}</span></td>
+            </tr>
+        `);
+        
+        fragments.push(`
+            <tr>
+                <th scope="row">Step</th>
+                <td>${latestErrorRequest.step_name === "Unmatched" ? "<em>Unmatched</em>" : latestErrorRequest.step_name}</td>
+            </tr>
+        `);
+        
+        // Truncate long error messages
+        const MAX_ERROR_LENGTH = 500;
+        const truncateError = (error) => {
+            if (error.length <= MAX_ERROR_LENGTH) {
+                return error;
+            }
+            return error.substring(0, MAX_ERROR_LENGTH) + '... <em>(truncated)</em>';
+        };
+        
+        fragments.push(`
+            <tr>
+                <th scope="row">XSD Errors</th>
+                <td>
+                    <ul class="mb-0" style="max-height: 300px; overflow-y: auto;">
+                        ${latestErrorRequest.body_xml_errors.map(err => `<li><code style="white-space: pre-wrap; word-break: break-word;">${truncateError(err)}</code></li>`).join('')}
+                    </ul>
+                </td>
+            </tr>
+        `);
+        
+        return fragments;
     }
 
     function alertBanner(message) {
@@ -562,6 +650,10 @@
         // update metadata table
         const metadataTable = document.getElementById('update-metadata-table');
         metadataTable.innerHTML = metadataTableBody(status.timeline).join("");
+
+        // update xsd validation errors
+        const xsdTable = document.getElementById('update-xsd-table');
+        xsdTable.innerHTML = xsdTableBody(status.request_history ?? []).join("");
 
         // update step instructions
         if ("{{run_status}}" === "started") {
