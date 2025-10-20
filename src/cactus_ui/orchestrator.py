@@ -718,7 +718,7 @@ def admin_fetch_group_procedure_run_summaries(
 ) -> list[ProcedureRunSummaryResponse] | None:
     """Fetch all test procedures and their associated run summaries (under a run group)"""
 
-    uri = generate_uri(f"admin/procedure_runs/{run_group_id}")
+    uri = generate_uri(f"/admin/procedure_runs/{run_group_id}")
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
         return None
@@ -734,3 +734,13 @@ def admin_fetch_group_procedure_run_summaries(
         )
         for r in response.json()
     ]
+
+
+def admin_fetch_run_artifact(access_token: str, run_id: str) -> bytes | None:
+    """Given an already started run - finalise it and return the resulting ZIP file bytes"""
+    uri = generate_uri(f"/admin/run/{run_id}/artifact")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return response.content

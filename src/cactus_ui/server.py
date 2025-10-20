@@ -215,79 +215,24 @@ def admin_page(access_token: str) -> str:
 def admin_group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # noqa: C901
     error: str | None = None
     """This is the admin equivalent of group_runs_page"""
-    # Handle POST for triggering a new run / precondition phase
+    # Handle POST for triggering an artifact download
     if request.method == "POST":
-        error = f"Not Implemented. Unable to perform action '{request.form.get("action")}' for admin user."
-        # if request.form.get("action") == "initialise":
-        #     test_procedure_id = request.form.get("test_procedure_id")
-        #     if not test_procedure_id:
-        #         error = "No test procedure selected."
-        #     else:
-        #         init_result = orchestrator.init_run(access_token, run_group_id, test_procedure_id)
-        #         if init_result.run_id is not None:
-        #             return redirect(url_for("run_status_page", run_id=init_result.run_id))
-        #         elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
-        #             error = "Your certificate has expired. Please generate and download a new certificate."
-        #         elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
-        #             error = "You cannot start a second test run while your DeviceCapability URI is set to static."
-        #         else:
-        #             error = "Failed to trigger a new run due to an unknown error."
-        #
-        # # Handle starting a run / test procedure phase
-        # elif request.form.get("action") == "start":
-        #     run_id = request.form.get("run_id")
-        #     if not run_id:
-        #         error = "No run ID specified."
-        #     else:
-        #         start_result = orchestrator.start_run(access_token, run_id)
-        #         if start_result.success:
-        #             return redirect(url_for("run_status_page", run_id=run_id))
-        #         else:
-        #             error = (
-        #                 "Failed to start the test run."
-        #                 if start_result.error_message is None
-        #                 else start_result.error_message
-        #             )
-        #
-        # # Handle finalising a run
-        # elif request.form.get("action") == "finalise":
-        #     run_id = request.form.get("run_id")
-        #     if not run_id:
-        #         error = "No run ID specified."
-        #     else:
-        #         archive_data = orchestrator.finalise_run(access_token, run_id)
-        #         if archive_data is None:
-        #             error = "Failed to finalise the run or retrieve artifacts."
-        #         else:
-        #             return send_file(
-        #                 io.BytesIO(archive_data),
-        #                 as_attachment=True,
-        #                 download_name=f"{run_id}_artifacts.zip",
-        #                 mimetype="application/zip",
-        #             )
-        #
-        # # Handle dl artifact
-        # elif request.form.get("action") == "artifact":
-        #     run_id = request.form.get("run_id")
-        #     if not run_id:
-        #         error = "No run ID specified."
-        #     else:
-        #         artifact_data = orchestrator.fetch_run_artifact(access_token, run_id)
-        #         if artifact_data is None:
-        #             error = "Failed to retrieve artifacts."
-        #         else:
-        #             return send_file(
-        #                 io.BytesIO(artifact_data),
-        #                 as_attachment=True,
-        #                 download_name=f"{run_id}_artifacts.zip",
-        #                 mimetype="application/zip",
-        #             )
-        # # Handle deleting a prior run
-        # elif request.form.get("action") == "delete":
-        #     run_id = request.form["run_id"]
-        #     delete_result = orchestrator.delete_individual_run(access_token, run_id)
-        #     if not delete_result:
-        #         error = "Failed to delete run."
+        # Handle dl artifact
+        if request.form.get("action") == "artifact":
+            run_id = request.form.get("run_id")
+            if not run_id:
+                error = "No run ID specified."
+            else:
+                artifact_data = orchestrator.admin_fetch_run_artifact(access_token, run_id)
+                if artifact_data is None:
+                    error = "Failed to retrieve artifacts."
+                else:
+                    return send_file(
+                        io.BytesIO(artifact_data),
+                        as_attachment=True,
+                        download_name=f"{run_id}_artifacts.zip",
+                        mimetype="application/zip",
+                    )
 
     # Fetch procedures
     procedures = orchestrator.admin_fetch_group_procedure_run_summaries(
