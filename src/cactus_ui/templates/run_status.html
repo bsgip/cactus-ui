@@ -119,7 +119,12 @@
 <div class="row justify-content-center">
     <div class="card status-container ">
         <div class="card-body">
-            <h5 class="card-title">Latest XSD Validation Error</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title mb-0" id="xsd-section-title">Latest XSD Validation Error</h5>
+                <div class="btn-group" role="group" id="xsd-navigation">
+                    <!-- Navigation buttons will be inserted here -->
+                </div>
+            </div>
             <table class="table">
                 <tbody id="update-xsd-table"></tbody>
             </table>
@@ -166,6 +171,7 @@
 
 <script>
     var timelineChart = null;
+    var cachedXsdRequests = null;
 
     function handleButtonClick(e) {
         e.target.innerHTML = `<div class="spinner-border spinner-border-sm" role="status"></div>`;
@@ -335,12 +341,40 @@
         return fragments
     }
     function xsdTableBody(requests) {
-        // Find the most recent request with XSD errors
-        const requestsWithErrors = requests
-            .filter(r => r.body_xml_errors && r.body_xml_errors.length > 0)
-            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        // Only filter and sort once, or when requests change
+        if (!cachedXsdRequests || cachedXsdRequests.sourceLength !== requests.length) {
+            cachedXsdRequests = {
+                list: requests
+                    .filter(r => r.body_xml_errors && r.body_xml_errors.length > 0)
+                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                    .slice(0, 10),
+                sourceLength: requests.length
+            };
+        }
+        
+        const requestsWithErrors = cachedXsdRequests.list;
+        
+        // Update the title based on count
+        const titleElement = document.querySelector('#xsd-section-title');
+        if (titleElement) {
+            // Count total errors before slicing
+            const totalErrorCount = requests
+                .filter(r => r.body_xml_errors && r.body_xml_errors.length > 0)
+                .length;
+            
+            if (requestsWithErrors.length === 0 || requestsWithErrors.length === 1) {
+                titleElement.textContent = 'Latest XSD Validation Error';
+            } else if (totalErrorCount > 10) {
+                titleElement.textContent = `Latest XSD Validation Errors: Showing 10/${totalErrorCount}`;
+            } else {
+                titleElement.textContent = 'Latest XSD Validation Errors';
+            }
+        }
         
         if (requestsWithErrors.length === 0) {
+            // Rmeove navigation
+            document.getElementById('xsd-navigation').innerHTML = '';
+            
             return [`
                 <tr>
                     <td colspan="2" class="text-center text-muted">No XSD validation errors detected</td>
@@ -348,9 +382,36 @@
             ];
         }
         
-        // Get the most recent request with errors
-        const latestErrorRequest = requestsWithErrors[0];
-        const errorTimestamp = new Date(Date.parse(latestErrorRequest.timestamp));
+        const currentIndex = parseInt(document.getElementById('xsdErrorIndex')?.value || '0', 10);
+        const currentRequest = requestsWithErrors[currentIndex];
+        const errorTimestamp = new Date(Date.parse(currentRequest.timestamp));
+        
+        // Update navigation buttons
+        const navContainer = document.getElementById('xsd-navigation');
+        if (requestsWithErrors.length > 1) {
+            navContainer.innerHTML = `
+                <button type="button" class="btn btn-sm btn-outline-primary" 
+                        onclick="cycleXsdError(-1)" 
+                        ${currentIndex === 0 ? 'disabled' : ''}>
+                    ← Previous
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" disabled>
+                    ${currentIndex + 1} of ${requestsWithErrors.length}
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" 
+                        onclick="cycleXsdError(1)"
+                        ${currentIndex === requestsWithErrors.length - 1 ? 'disabled' : ''}>
+                    Next →
+                </button>
+                <input type="hidden" id="xsdErrorIndex" value="${currentIndex}">
+                <input type="hidden" id="xsdErrorCount" value="${requestsWithErrors.length}">
+            `;
+        } else {
+            navContainer.innerHTML = `
+                <input type="hidden" id="xsdErrorIndex" value="0">
+                <input type="hidden" id="xsdErrorCount" value="1">
+            `;
+        }
         
         const fragments = [];
         
@@ -364,32 +425,31 @@
         fragments.push(`
             <tr>
                 <th scope="row">Request</th>
-                <td>${latestErrorRequest.method} ${latestErrorRequest.path}</td>
+                <td>${currentRequest.method} ${currentRequest.path}</td>
             </tr>
         `);
         
         fragments.push(`
             <tr>
                 <th scope="row">URL</th>
-                <td><code style="word-break: break-all;">${latestErrorRequest.url}</code></td>
+                <td><code style="word-break: break-all;">${currentRequest.url}</code></td>
             </tr>
         `);
         
         fragments.push(`
             <tr>
                 <th scope="row">Status Code</th>
-                <td><span class="badge text-bg-${latestErrorRequest.status < 200 || latestErrorRequest.status > 299 ? 'danger' : 'success'}">${latestErrorRequest.status}</span></td>
+                <td><span class="badge text-bg-${currentRequest.status < 200 || currentRequest.status > 299 ? 'danger' : 'success'}">${currentRequest.status}</span></td>
             </tr>
         `);
         
         fragments.push(`
             <tr>
                 <th scope="row">Step</th>
-                <td>${latestErrorRequest.step_name === "Unmatched" ? "<em>Unmatched</em>" : latestErrorRequest.step_name}</td>
+                <td>${currentRequest.step_name === "Unmatched" ? "<em>Unmatched</em>" : currentRequest.step_name}</td>
             </tr>
         `);
         
-        // Truncate long error messages
         const MAX_ERROR_LENGTH = 500;
         const truncateError = (error) => {
             if (error.length <= MAX_ERROR_LENGTH) {
@@ -403,13 +463,31 @@
                 <th scope="row">XSD Errors</th>
                 <td>
                     <ul class="mb-0" style="max-height: 300px; overflow-y: auto;">
-                        ${latestErrorRequest.body_xml_errors.map(err => `<li><code style="white-space: pre-wrap; word-break: break-word;">${truncateError(err)}</code></li>`).join('')}
+                        ${currentRequest.body_xml_errors.map(err => `<li><code style="white-space: pre-wrap; word-break: break-word;">${truncateError(err)}</code></li>`).join('')}
                     </ul>
                 </td>
             </tr>
         `);
         
         return fragments;
+    }
+
+    function cycleXsdError(direction) {
+        const indexInput = document.getElementById('xsdErrorIndex');      // Current position
+        const countInput = document.getElementById('xsdErrorCount');      // Total number of errors
+        
+        if (!indexInput || !countInput) return;  // Safety check
+        
+        // Get the current values
+        const currentIndex = parseInt(indexInput.value, 10);  // e.g., error #2 (index 1)
+        const maxCount = parseInt(countInput.value, 10);      // e.g., 5 total errors
+        
+        const newIndex = Math.max(0, Math.min(maxCount - 1, currentIndex + direction)); // Calculate the new index       
+        indexInput.value = newIndex; // Update the stored index
+        
+        // Re-render the table
+        const xsdTable = document.getElementById('update-xsd-table');
+        xsdTable.innerHTML = xsdTableBody(window.currentStatus.request_history ?? []).join("");
     }
 
     function alertBanner(message) {
@@ -600,6 +678,8 @@
     }
 
     function handleNewStatus(status) {
+        // Store status globally for cycleXsdError
+        window.currentStatus = status;
 
         if (status === null || status === undefined) {
             showCommsError("Failed to retrieve current status.");
