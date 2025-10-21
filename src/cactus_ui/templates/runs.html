@@ -287,7 +287,7 @@
             switch (run_status) {
                 case "initialised":
                 case "started":
-                        // admin shouldn't be starting or finalizing tests.
+                        // admin shouldn't be starting or finalizing tests for other users.
                         // button is disabled
                         return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
                         <input type="hidden" name="run_id" value="${run_id}">
@@ -440,10 +440,11 @@
             // handle the other test procedure buttons
             document.getElementById("runs-title").innerHTML = `<a href="/procedure/${test_procedure_id}">${test_procedure_id}</a> ${description}`;
 
+            disabled = isAdminView ? "Disabled" : ""
             document.getElementById("runs-actions").innerHTML = `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
                 <input type="hidden" name="test_procedure_id" value="${test_procedure_id}">
                 <input type="hidden" name="action" value="initialise">
-                <button type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">New Test Run</button>
+                <button ${disabled} type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">New Test Run</button>
             </form>`;
 
             loadProcedureRuns(test_procedure_id)
