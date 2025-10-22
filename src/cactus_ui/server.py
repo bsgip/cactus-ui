@@ -295,6 +295,36 @@ def admin_group_runs_page(access_token: str, run_group_id: int) -> str | Respons
     )
 
 
+@app.route("/admin/run_group/<int:run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_procedure_runs_json(access_token: str, run_group_id: int, test_procedure_id: str) -> Response:
+    runs_page = orchestrator.admin_fetch_group_runs_for_procedure(access_token, run_group_id, test_procedure_id)
+    if runs_page is None:
+        return Response(
+            response=f"Unable to fetch runs for {test_procedure_id}.",
+            status=HTTPStatus.NOT_FOUND,
+            mimetype="text/plain",
+        )
+
+    return jsonify(runs_page)
+
+
+@app.route("/admin/run_group/<int:run_group_id>/active_runs", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_active_runs_json(access_token: str, run_group_id: int) -> Response:
+    runs_page = orchestrator.admin_fetch_runs_for_group(access_token, run_group_id, 1, False)
+    if runs_page is None:
+        return Response(
+            response="Unable to load active runs.",
+            status=HTTPStatus.NOT_FOUND,
+            mimetype="text/plain",
+        )
+
+    return jsonify(runs_page)
+
+
 @app.route("/procedures", methods=["GET"])
 @login_required
 def procedures_page(access_token: str) -> str:

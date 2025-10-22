@@ -744,3 +744,56 @@ def admin_fetch_run_artifact(access_token: str, run_id: str) -> bytes | None:
         return None
 
     return response.content
+
+
+def admin_fetch_group_runs_for_procedure(
+    access_token: str, run_group_id: int, test_procedure_id: str
+) -> Pagination[RunResponse] | None:
+    """Given a test procedure ID - fetch the runs  (under a run group)"""
+
+    uri = generate_uri(f"/admin/procedure_runs/{run_group_id}/{test_procedure_id}")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return handle_pagination(
+        response.json(),
+        lambda r: RunResponse(
+            run_id=r["run_id"],
+            test_procedure_id=r["test_procedure_id"],
+            test_url=r["test_url"],
+            status=r["status"],
+            all_criteria_met=r["all_criteria_met"],
+            created_at=r["created_at"],
+            finalised_at=r["finalised_at"],
+            is_device_cert=r["is_device_cert"],
+        ),
+    )
+
+
+def admin_fetch_runs_for_group(
+    access_token: str, run_group_id: int, page: int, finalised: bool | None
+) -> Pagination[RunResponse] | None:
+    """Fetches runs for a page"""
+    uri = generate_uri(f"/admin/run_group/{run_group_id}/run?page={page}")
+    if finalised is not None:
+        uri = uri + f"&finalised={finalised}"
+
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return handle_pagination(
+        response.json(),
+        lambda r: RunResponse(
+            run_id=r["run_id"],
+            test_procedure_id=r["test_procedure_id"],
+            test_url=r["test_url"],
+            status=r["status"],
+            all_criteria_met=r["all_criteria_met"],
+            created_at=r["created_at"],
+            finalised_at=r["finalised_at"],
+            is_device_cert=r["is_device_cert"],
+        ),
+    )
+

@@ -354,9 +354,10 @@
 
             }
             const created = new Date(Date.parse(r.created_at));
+            const url = `${isAdminView ? "/admin" : ""}/run/${r.run_id}`;
             return `
                 <tr class="${row_class}">
-                    <td><a href="/run/${r.run_id}">${r.run_id}</a></td>
+                    <td><a href="${url}">${r.run_id}</a></td>
                     <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})<small></td>
                     <td>${r.status}</td>
                     <td>${icon}</td>
@@ -404,15 +405,16 @@
 
     function loadProcedureRuns(test_procedure_id) {
         handleRunsLoading();
+        const url = `${isAdminView ? "/admin" : ""}/run_group/{{ run_group_id }}/procedure_runs/${test_procedure_id}`;
 
-        xhrRequest(`/run_group/{{ run_group_id }}/procedure_runs/${test_procedure_id}`, handleNewRuns, handleRunsError);
+        xhrRequest(url, handleNewRuns, handleRunsError);
     }
 
     function loadActiveRuns() {
         handleRunsLoading();
+        const url = `${isAdminView ? "/admin" : ""}/run_group/{{ run_group_id }}/active_runs`;
 
-
-        xhrRequest(`/run_group/{{ run_group_id }}/active_runs`, handleNewRuns, handleRunsError);
+        xhrRequest(url, handleNewRuns, handleRunsError);
     }
 
     function handleButtonClick(e) {
