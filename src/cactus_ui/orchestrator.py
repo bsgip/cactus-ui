@@ -695,7 +695,7 @@ def admin_fetch_run_groups(access_token: str, run_group_id: int, page: int) -> P
 
     Since this is for the admin user we can't identify the user using the access token.
     """
-    uri = generate_uri(f"/admin/run_groups/{run_group_id}?page={page}")
+    uri = generate_uri(f"/admin/run_group?run_group_id={run_group_id}&page={page}")
 
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
