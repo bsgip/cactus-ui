@@ -24,7 +24,7 @@
                     {% for rg in run_groups %}
                     {% if rg.run_group_id != run_group_id %}
                     <li><a class="dropdown-item"
-                            href="{{ url_for('group_runs_page', run_group_id=rg.run_group_id) }}">{{rg.name}}</a></li>
+                            href="{{ url_for('admin_group_runs_page', run_group_id=rg.run_group_id) if is_admin_view else url_for('group_runs_page', run_group_id=rg.run_group_id) }}">{{rg.name}}</a></li>
                     {% endif %}
                     {% endfor %}
                 </ul>
@@ -295,7 +295,7 @@
                         <button disabled type="submit" class="btn btn-secondary">Running...</button>
                     </form>`;
                 default:
-                    return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
+                    return `<form method="POST" action="{{ url_for('admin_group_runs_page', run_group_id=run_group_id) }}">
                     <input type="hidden" name="run_id" value="${run_id}">
                     <input type="hidden" name="action" value="artifact">
                     <button type="submit" class="btn btn-secondary">Download</button>
@@ -366,7 +366,7 @@
                         <form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
                             <input type="hidden" name="run_id" value="${r.run_id}">
                             <input type="hidden" name="action" value="delete">
-                            <button type="submit" class="btn btn-outline-danger" onclick="handleButtonClick(event)"><i class="fas fa-trash-can"></i></button>
+                            <button ${isAdminView ? "hidden":""} type="submit"  class="btn btn-outline-danger" onclick="handleButtonClick(event)"><i class="fas fa-trash-can"></i></button>
                         </form>
                     </td>
                 </tr>
@@ -442,11 +442,11 @@
             // handle the other test procedure buttons
             document.getElementById("runs-title").innerHTML = `<a href="/procedure/${test_procedure_id}">${test_procedure_id}</a> ${description}`;
 
-            disabled = isAdminView ? "Disabled" : ""
+            const hidden = isAdminView ? "hidden" : ""
             document.getElementById("runs-actions").innerHTML = `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
                 <input type="hidden" name="test_procedure_id" value="${test_procedure_id}">
                 <input type="hidden" name="action" value="initialise">
-                <button ${disabled} type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">New Test Run</button>
+                <button ${hidden} type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">New Test Run</button>
             </form>`;
 
             loadProcedureRuns(test_procedure_id)

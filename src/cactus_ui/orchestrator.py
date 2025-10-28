@@ -797,3 +797,32 @@ def admin_fetch_runs_for_group(
         ),
     )
 
+
+def admin_fetch_run_status(access_token: str, run_id: str) -> str | None:
+    """Given an already started run - fetch the status as a raw JSON string"""
+    uri = generate_uri(f"/admin/run/{run_id}/status")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return response.text
+
+
+def admin_fetch_individual_run(access_token: str, run_id: str) -> RunResponse | None:
+    """Fetches runs for a page"""
+    uri = generate_uri(f"/admin/run/{run_id}")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    r = response.json()
+    return RunResponse(
+        run_id=r["run_id"],
+        test_procedure_id=r["test_procedure_id"],
+        test_url=r["test_url"],
+        status=r["status"],
+        all_criteria_met=r["all_criteria_met"],
+        created_at=r["created_at"],
+        finalised_at=r["finalised_at"],
+        is_device_cert=r["is_device_cert"],
+    )

@@ -325,6 +325,77 @@ def admin_active_runs_json(access_token: str, run_group_id: int) -> Response:
     return jsonify(runs_page)
 
 
+@app.route("/admin/run/<int:run_id>", methods=["GET", "POST"])
+@login_required
+@admin_role_required
+def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
+    error: str | None = None
+
+    if request.method == "POST":
+        # Handle downloading a prior run's artifacts
+        if request.form.get("action") == "artifact":
+            artifact_data = orchestrator.admin_fetch_run_artifact(access_token, run_id)
+            if artifact_data is None:
+                error = "Failed to retrieve artifacts."
+            else:
+                return send_file(
+                    io.BytesIO(artifact_data),
+                    as_attachment=True,
+                    download_name=f"{run_id}_artifacts.zip",
+                    mimetype="application/zip",
+                )
+
+    status = orchestrator.admin_fetch_run_status(access_token=access_token, run_id=run_id)
+    run_is_live = status is not None
+
+    run_status = None
+    run_test_uri = None
+    run_procedure_id = None
+
+    run_response = orchestrator.admin_fetch_individual_run(access_token, run_id)
+    if run_response:
+        run_status = run_response.status
+        run_test_uri = run_response.test_url
+        run_procedure_id = run_response.test_procedure_id
+
+    # Take the big JSON response string and encode it using base64 so we can embed it in the template and re-hydrate
+    # it easily enough
+    if status is not None:
+        initial_status_b64 = b64encode(status.encode()).decode()
+    else:
+        initial_status_b64 = ""
+
+    return render_template(
+        "run_status.html",
+        run_is_live=run_is_live,
+        run_id=run_id,
+        initial_status_b64=initial_status_b64,
+        run_status=run_status,
+        run_test_uri=run_test_uri,
+        run_procedure_id=run_procedure_id,
+        error=error,
+        is_admin_view=True,
+        user_buttons_state="disabled",
+    )
+
+
+@app.route("/admin/run/<int:run_id>/status", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_run_status_json(access_token: str, run_id: str) -> Response:
+
+    status = orchestrator.admin_fetch_run_status(access_token=access_token, run_id=run_id)
+
+    if status is None:
+        return Response(
+            response="Unable to fetch runner status. Likely terminated available.",
+            status=HTTPStatus.GONE,
+            mimetype="text/plain",
+        )
+
+    return Response(response=status, status=200, mimetype="application/json")
+
+
 @app.route("/procedures", methods=["GET"])
 @login_required
 def procedures_page(access_token: str) -> str:

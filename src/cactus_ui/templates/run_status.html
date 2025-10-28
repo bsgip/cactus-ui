@@ -9,8 +9,9 @@
 <div class="alert alert-danger">{{ error }}</div>
 {% endif %}
 
-<div id="error-div"></div>
+
 {% if run_is_live %}
+<div id="error-div"></div>
 
 <div class="row justify-content-center">
     <div class="card status-container">
@@ -27,9 +28,9 @@
             <p class="card-text">The test is now underway - the server will have loaded any initial preconditions
                 (eg: DERControls) and its now time for your client to respond appropriately. When you're ready to
                 end the test, press the Finalise button</p>
-            <form method="POST" action="{{ url_for('run_status_page', run_id=run_id) }}">
+            <form id='finalise-form' method="POST">
                 <input type="hidden" name="action" value="finalise">
-                <button type="submit" class="btn btn-warning" onclick="handleButtonClick(event)">Finalise</button>
+                <button {{user_buttons_state}} type="submit" class="btn btn-warning" onclick="handleButtonClick(event)">Finalise</button>
             </form>
             {% endif %}
 
@@ -117,15 +118,17 @@
 {% else %}
 
 <div class="row">
-    <h2>Run {{ run_id }} has finalised</h2>
-    <div class="alert alert-danger" role="alert">
-        It appears that this run is no longer active. All results are available as test artifacts.
+    <h2>Run {{ run_id }} [Finalised]</h2>
+    <div class="alert alert-primary" role="alert">
+        <p>This run has been finalised and is no longer active.</p>
+        <p>Click the button below to download the run's artifacts.</p>
+        <form id='download-form' method="POST" action="{{ url_for('run_status_page', run_id=run_id) }}">
+            <input type="hidden" name="action" value="artifact">
+            <button type="submit" class="btn btn-primary">Download Artifacts</button>
+        </form>
     </div>
 
-    <form method="POST" action="{{ url_for('run_status_page', run_id=run_id) }}">
-        <input type="hidden" name="action" value="artifact">
-        <button type="submit" class="btn btn-primary">Download Artifacts</button>
-    </form>
+
 </div>
 
 
@@ -144,6 +147,26 @@
 
 <script>
     var timelineChart = null;
+    const isAdminView = "{{ is_admin_view }}" === 'True';
+    const userButtonsState = "{{ user_buttons_state }}";
+    const runIsLive = "{{ run_is_live }}" === 'True';
+    const userRunStatusUri = "{{ url_for('run_status_page', run_id=run_id) }}";
+    const adminRunStatusUri = "{{ url_for('admin_run_status_page', run_id=run_id) }}";
+    const runStatusUri = isAdminView ? adminRunStatusUri : userRunStatusUri;
+    const formAction = runStatusUri 
+
+    if (isAdminView) {
+        // Update actions for forms defined in template
+        const downloadForm = document.getElementById('download-form');
+        if (downloadForm) {
+            downloadForm.action = formAction;
+        }
+
+        const finaliseForm = document.getElementById('finalise-form');
+        if (finaliseForm) {
+            finaliseForm.action = formAction;
+        }
+    }
 
     function handleButtonClick(e) {
         e.target.innerHTML = `<div class="spinner-border spinner-border-sm" role="status"></div>`;
@@ -299,7 +322,8 @@
     }
 
     function showCommsError(message) {
-        errorEl = document.getElementById('error-div')
+        const errorEl = document.getElementById('error-div')
+        if (!errorEl) return;
         if (message) {
             errorEl.innerHTML = `<div class="alert alert-danger" role="alert">${message}</div>`;
         } else {
@@ -327,9 +351,9 @@
         fragments = []
 
         const startButton = `
-        <form method="POST" action="{{ url_for('run_status_page', run_id=run_id) }}">
+        <form method="POST" action="${formAction}">
             <input type="hidden" name="action" value="start">
-            <button type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">Start</button>
+            <button ${userButtonsState} type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">Start</button>
         </form>`;
 
         if (instructions.length === 0) {
@@ -543,10 +567,10 @@
     function handleStatusError(status, content) {
         if (status === null) {
             console.error("AJAX error occurred.");
-            window.location = "{{ url_for('run_status_page', run_id=run_id) }}"
+            window.location = runStatusUri;
         } else if (status === 410) {
             console.error("Received HTTP GONE - reloading page as test is finished:");
-            window.location = "{{ url_for('run_status_page', run_id=run_id) }}"
+            window.location = runStatusUri;
         } else {
             console.error("Request failed with status and content:", status, content);
         }
@@ -592,9 +616,11 @@
 
 
         // Start polling
-        const uri = "{{ url_for('run_status_json', run_id=run_id) }}";
-        const pollRateMs = 10000; // 10 seconds
-        startPollingRunStatus(uri, pollRateMs);
+        if (runIsLive) {
+            const uri = isAdminView ? "{{ url_for('admin_run_status_json', run_id=run_id) }}" : "{{ url_for('run_status_json', run_id=run_id) }}";
+            const pollRateMs = 10000; // 10 seconds
+            startPollingRunStatus(uri, pollRateMs);
+        }
     });
 
 
