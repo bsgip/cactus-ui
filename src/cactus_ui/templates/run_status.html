@@ -248,7 +248,7 @@
                 </tr>
             `)
         }
-        return fragments
+        return fragments.join('');
     }
 
     function criteriaTableBody(criteria) {
@@ -269,7 +269,23 @@
 
     function stepStatusTableBody(stepStatus) {
         fragments = []
-        for (const [step, status] of Object.entries(stepStatus)) {
+        for (const [step, stepInfo] of Object.entries(stepStatus)) {
+            // Handle both old format (number) and new format (object)
+            let status;
+            if (typeof stepInfo == 'number') {
+                // Legacy format
+                status = stepInfo;
+            } else {
+                // New format - derive status from StepInfo
+                if (stepInfo.completed_at) {
+                    status = 2; // RESOLVED
+                } else if (stepInfo.started_at) {
+                    status = 1; // ACTIVE
+                } else {
+                    status = 0; // PENDING
+                }
+            }
+            
             let color = ""
             let icon = ""
             switch (status) {
@@ -288,12 +304,12 @@
                     color = "success"
                     icon = "check"
                     break;
-
+                    
             }
             fragments.push(`
                 <tr>
-                     <th scope="row">${step}</th>
-                     <td><span class="text-${color}"><i class="fas fa-${icon}"></i></span></td>
+                    <th scope="row">${step}</th>
+                    <td><span class="text-${color}"><i class="fas fa-${icon}"></i></span></td>
                 </tr>`);
         }
 
