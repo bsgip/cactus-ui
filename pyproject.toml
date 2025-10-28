@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cactus-ui"
-version = "0.0.1"
+dynamic = ["version", "readme"]
 requires-python = ">= 3.12"
 description = "A web user interface for the CSIP Aus test harness"
 dependencies = ["flask", "python-dotenv", "authlib", "requests", "pyjwt"]
@@ -37,6 +37,10 @@ where = ["src"]
     "static/*.ico",
     "static/site.webmanifest",
 ]
+
+[tool.setuptools.dynamic]
+version = { attr = "cactus_ui.__version__" }
+readme = { file = ["README.md"], content-type = "text/markdown" }
 
 [tool.black]
 line-length = 120

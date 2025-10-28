@@ -25,6 +25,10 @@
             <!-- TODO: proper home/landing page -->
             <a class="navbar-brand text-white" href="{{ url_for('login_or_home_page') }}">🌵</a>
 
+            {% if username %}
+            <span class="text-white ms-3">User: {{ username }}</span>
+            {% endif %}
+
             <div class="d-inline ms-auto">
                 {% if permissions and "admin:all" in permissions %}
                 <a class="text-white me-3" href="{{ url_for('admin_page') }}">Admin</a>

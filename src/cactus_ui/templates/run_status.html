@@ -96,6 +96,17 @@
 </div>
 <br>
 <div class="row justify-content-center">
+    <div class="card status-container">
+        <div class="card-body">
+            <h5 class="card-title">Active Device Metadata</h5>
+            <table class="table">
+                <tbody id="update-metadata-table"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<br>
+<div class="row justify-content-center">
     <div class="card status-container ">
         <div class="card-body">
             <h5 class="card-title">CSIP-Aus Requests</h5>
@@ -215,6 +226,35 @@
             </tr>`
         );
 
+        return fragments;
+    }
+
+    function metadataTableBody(endDeviceMetadata) {
+        fragments = [];
+        
+        // Helper function to display value or "Not set"
+        const displayValue = (value) => value !== null && value !== undefined ? value : "Not set";
+        
+        // Always display all rows
+        fragments.push(`
+            <tr>
+                <th scope="row">End Device href</th>
+                <td>${displayValue(endDeviceMetadata?.edevid)}</td>
+            </tr>
+            <tr>
+                <th scope="row">LFDI</th>
+                <td>${displayValue(endDeviceMetadata?.lfdi)}</td>
+            </tr>
+            <tr>
+                <th scope="row">NMI</th>
+                <td>${displayValue(endDeviceMetadata?.nmi)}</td>
+            </tr>
+            <tr>
+                <th scope="row">Set Max W (W)</th>
+                <td>${displayValue(endDeviceMetadata?.set_max_w)}</td>
+            </tr>`
+        );
+        
         return fragments;
     }
 
@@ -549,6 +589,10 @@
         // update generate table
         const generalTable = document.getElementById('update-general-table');
         generalTable.innerHTML = generalTableBody(status).join("");
+
+        // update metadata table
+        const metadataTable = document.getElementById('update-metadata-table');
+        metadataTable.innerHTML = metadataTableBody(status.end_device_metadata).join("");
 
         // update step instructions
         if ("{{run_status}}" === "started") {

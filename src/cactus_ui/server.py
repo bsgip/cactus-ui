@@ -73,6 +73,7 @@ oauth.register(
 CACTUS_ORCHESTRATOR_AUDIENCE = env["CACTUS_ORCHESTRATOR_AUDIENCE"]
 CACTUS_PLATFORM_VERSION = env["CACTUS_PLATFORM_VERSION"]
 CACTUS_PLATFORM_SUPPORT_EMAIL = env["CACTUS_PLATFORM_SUPPORT_EMAIL"]
+BANNER_MESSAGE = env.get("BANNER_MESSAGE")
 
 F = TypeVar("F", bound=Callable[..., object])
 
@@ -119,6 +120,22 @@ def get_access_token() -> str | None:
         return None
 
     return access_token
+
+
+def get_username_from_session() -> str | None:
+    """
+    Extracts the username from the OAuth2 session token.
+
+    Returns:
+        Username string if user is logged in, None otherwise.
+        Tries common OAuth2 fields in order of preference
+    """
+    if "user" not in session:
+        return None
+
+    user_info = session["user"].get("userinfo", {})
+
+    return user_info.get("name")
 
 
 def login_required(f: F) -> F:
@@ -895,6 +912,8 @@ def inject_global_template_context() -> dict:
        o NOTE: All (.webp) images under './static/base/' path will be included.
     - sets platform version from CACTUS_PLATFORM_VERSION envvar
     - Adds support email from CACTUS_PLATFORM_SUPPORT_EMAIL envvar.
+    - Adds the users name (if not None)
+    - Adds the BANNER_MESSAGE envvar (optional)
     """
 
     return {
@@ -902,6 +921,8 @@ def inject_global_template_context() -> dict:
         "hosted_images": get_hosted_images(),
         "support_email": CACTUS_PLATFORM_SUPPORT_EMAIL,
         "permissions": get_permissions(),
+        "username": get_username_from_session(),
+        "banner_message": BANNER_MESSAGE,
     }
 
 
