@@ -24,7 +24,7 @@
                     {% for rg in run_groups %}
                     {% if rg.run_group_id != run_group_id %}
                     <li><a class="dropdown-item"
-                            href="{{ url_for('group_runs_page', run_group_id=rg.run_group_id) }}">{{rg.name}}</a></li>
+                            href="{{ url_for('admin_group_runs_page', run_group_id=rg.run_group_id) if is_admin_view else url_for('group_runs_page', run_group_id=rg.run_group_id) }}">{{rg.name}}</a></li>
                     {% endif %}
                     {% endfor %}
                 </ul>
@@ -215,6 +215,7 @@
     const allClasses = [
         {% for c in classes %}"{{ c.name }}", {% endfor %}
     ];
+    const isAdminView = "{{ is_admin_view }}" === 'True';
 
     function filterByComplianceClass(classesByGroup, filters) {
         let filtered_count = 0
@@ -281,27 +282,46 @@
         filterProcedures(getSelectedFilters());
     }
 
-    function statusToBtn(run_id, run_status) {
-        switch (run_status) {
-            case "initialised":
-                return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
-                <input type="hidden" name="run_id" value="${run_id}">
-                <input type="hidden" name="action" value="start">
-                <button type="submit" class="btn btn-primary">Start</button>
-            </form>`;
-            case "started":
-                return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
-                <input type="hidden" name="run_id" value="${run_id}">
-                <input type="hidden" name="action" value="finalise">
-                <button type="submit" class="btn btn-warning">Finalise</button>
-            </form>`;
-            default:
-                return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
-                <input type="hidden" name="run_id" value="${run_id}">
-                <input type="hidden" name="action" value="artifact">
-                <button type="submit" class="btn btn-secondary">Download</button>
-            </form>`;
+    function statusToBtn(run_id, run_status, isAdminView) {
+        if (isAdminView) {
+            switch (run_status) {
+                case "initialised":
+                case "started":
+                        // admin shouldn't be starting or finalizing tests for other users.
+                        // button is disabled
+                        return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
+                        <input type="hidden" name="run_id" value="${run_id}">
+                        <input type="hidden" name="action" value="artifact">
+                        <button disabled type="submit" class="btn btn-secondary">Running...</button>
+                    </form>`;
+                default:
+                    return `<form method="POST" action="{{ url_for('admin_group_runs_page', run_group_id=run_group_id) }}">
+                    <input type="hidden" name="run_id" value="${run_id}">
+                    <input type="hidden" name="action" value="artifact">
+                    <button type="submit" class="btn btn-secondary">Download</button>
+                </form>`;
+            }
         }
+            switch (run_status) {
+                case "initialised":
+                    return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
+                    <input type="hidden" name="run_id" value="${run_id}">
+                    <input type="hidden" name="action" value="start">
+                    <button type="submit" class="btn btn-primary">Start</button>
+                </form>`;
+                case "started":
+                    return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
+                    <input type="hidden" name="run_id" value="${run_id}">
+                    <input type="hidden" name="action" value="finalise">
+                    <button type="submit" class="btn btn-warning">Finalise</button>
+                </form>`;
+                default:
+                    return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
+                    <input type="hidden" name="run_id" value="${run_id}">
+                    <input type="hidden" name="action" value="artifact">
+                    <button type="submit" class="btn btn-secondary">Download</button>
+                </form>`;
+            }
     }
 
     function handleNewRuns(rawRunsJson) {
@@ -334,18 +354,19 @@
 
             }
             const created = new Date(Date.parse(r.created_at));
+            const url = `${isAdminView ? "/admin" : ""}/run/${r.run_id}`;
             return `
                 <tr class="${row_class}">
-                    <td><a href="/run/${r.run_id}">${r.run_id}</a></td>
+                    <td><a href="${url}">${r.run_id}</a></td>
                     <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})<small></td>
                     <td>${r.status}</td>
                     <td>${icon}</td>
-                    <td>${statusToBtn(r.run_id, r.status)}</td>
+                    <td>${statusToBtn(r.run_id, r.status, isAdminView)}</td>
                     <td>
                         <form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
                             <input type="hidden" name="run_id" value="${r.run_id}">
                             <input type="hidden" name="action" value="delete">
-                            <button type="submit" class="btn btn-outline-danger" onclick="handleButtonClick(event)"><i class="fas fa-trash-can"></i></button>
+                            <button ${isAdminView ? "hidden":""} type="submit"  class="btn btn-outline-danger" onclick="handleButtonClick(event)"><i class="fas fa-trash-can"></i></button>
                         </form>
                     </td>
                 </tr>
@@ -384,15 +405,16 @@
 
     function loadProcedureRuns(test_procedure_id) {
         handleRunsLoading();
+        const url = `${isAdminView ? "/admin" : ""}/run_group/{{ run_group_id }}/procedure_runs/${test_procedure_id}`;
 
-        xhrRequest(`/run_group/{{ run_group_id }}/procedure_runs/${test_procedure_id}`, handleNewRuns, handleRunsError);
+        xhrRequest(url, handleNewRuns, handleRunsError);
     }
 
     function loadActiveRuns() {
         handleRunsLoading();
+        const url = `${isAdminView ? "/admin" : ""}/run_group/{{ run_group_id }}/active_runs`;
 
-
-        xhrRequest(`/run_group/{{ run_group_id }}/active_runs`, handleNewRuns, handleRunsError);
+        xhrRequest(url, handleNewRuns, handleRunsError);
     }
 
     function handleButtonClick(e) {
@@ -420,10 +442,11 @@
             // handle the other test procedure buttons
             document.getElementById("runs-title").innerHTML = `<a href="/procedure/${test_procedure_id}">${test_procedure_id}</a> ${description}`;
 
+            const hidden = isAdminView ? "hidden" : ""
             document.getElementById("runs-actions").innerHTML = `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
                 <input type="hidden" name="test_procedure_id" value="${test_procedure_id}">
                 <input type="hidden" name="action" value="initialise">
-                <button type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">New Test Run</button>
+                <button ${hidden} type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">New Test Run</button>
             </form>`;
 
             loadProcedureRuns(test_procedure_id)

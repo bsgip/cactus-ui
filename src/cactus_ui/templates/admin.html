@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Cactus{% endblock %}
+
+{% block content %}
+<h2>Admin</h2>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% else %}
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Run Groups</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.user_id }}</td>
+            <td>{{ user.name }}</td>
+            <td>
+                {% if user.run_groups %}
+                {% for run_group in user.run_groups %}
+                <a class="separated-links" href="{{ url_for('admin_group_runs_page', run_group_id=run_group) }}">
+                    {{ run_group }}
+                </a>
+                {% endfor %}
+                {% else %}
+                No run groups found.
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4" class="text-center">No procedures available.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+<style>
+    .separated-links {
+        margin-left: 2px;
+        margin-right: 2px;
+    }
+</style>
+<script></script>
+
+{% endblock %}
+

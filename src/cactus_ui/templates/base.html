@@ -30,6 +30,10 @@
             {% endif %}
 
             <div class="d-inline ms-auto">
+                {% if permissions and "admin:all" in permissions %}
+                <a class="text-white me-3" href="{{ url_for('admin_page') }}">Admin</a>
+                <span class="text-white">|</span>
+                {% endif %}
                 <a class="text-white me-3" href="{{ url_for('procedures_page') }}">Procedures</a>
                 <span class="text-white">|</span>
                 <a class="text-white mx-3" href="{{ url_for('runs_page') }}">Runs</a>
