@@ -37,6 +37,16 @@ class RunResponse:
 
 
 @dataclass
+class UserResponse:
+    """Ideally this would be defined in a shared cactus-schema but that doesn't exist. Instead, ensure this remains
+    in sync with cactus-orchestrator.schema.Procedure"""
+
+    user_id: int
+    name: str
+    run_groups: list[int]
+
+
+@dataclass
 class ProcedureResponse:
     """Ideally this would be defined in a shared cactus-schema but that doesn't exist. Instead, ensure this remains
     in sync with cactus-orchestrator.schema.Procedure"""
@@ -235,6 +245,21 @@ def update_config(
             "is_device_cert": is_device_cert,
             "pen": pen,
         },
+    )
+    return response is None or is_success_response(response)
+
+
+def update_username(
+    access_token: str,
+    user_name: str,
+) -> bool:
+    uri = generate_uri("/user")
+    response = safe_request(
+        "PATCH",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+        json={"user_name": user_name},
     )
     return response is None or is_success_response(response)
 
@@ -639,3 +664,165 @@ def delete_run_group(access_token: str, run_group_id: int) -> bool:
         return False
 
     return True
+
+
+# ----------------------------------------------------------------------------------
+#
+#  Admin only functions
+#
+# ----------------------------------------------------------------------------------
+
+
+def admin_fetch_users(access_token: str, page: int) -> Pagination[UserResponse] | None:
+    """Fetch the list of all users (admin only)"""
+    uri = generate_uri(f"/admin/users?page={page}")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return handle_pagination(
+        response.json(),
+        lambda i: UserResponse(
+            user_id=i["user_id"],
+            name=i["name"],
+            run_groups=i["run_groups"],
+        ),
+    )
+
+
+def admin_fetch_run_groups(access_token: str, run_group_id: int, page: int) -> Pagination[RunGroupResponse] | None:
+    """Fetches available run groups for the user with run_group_id (admin only)
+
+    Since this is for the admin user we can't identify the user using the access token.
+    """
+    uri = generate_uri(f"/admin/run_group?run_group_id={run_group_id}&page={page}")
+
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return handle_pagination(
+        response.json(),
+        lambda r: RunGroupResponse(
+            created_at=r["created_at"],
+            csip_aus_version=r["csip_aus_version"],
+            name=r["name"],
+            run_group_id=r["run_group_id"],
+            total_runs=r["total_runs"],
+        ),
+    )
+
+
+def admin_fetch_group_procedure_run_summaries(
+    access_token: str, run_group_id: int
+) -> list[ProcedureRunSummaryResponse] | None:
+    """Fetch all test procedures and their associated run summaries (under a run group)"""
+
+    uri = generate_uri(f"/admin/procedure_runs/{run_group_id}")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return [
+        ProcedureRunSummaryResponse(
+            test_procedure_id=r["test_procedure_id"],
+            description=r["description"],
+            category=r["category"],
+            classes=r["classes"] if "classes" in r else None,
+            run_count=r["run_count"],
+            latest_all_criteria_met=r["latest_all_criteria_met"],
+        )
+        for r in response.json()
+    ]
+
+
+def admin_fetch_run_artifact(access_token: str, run_id: str) -> bytes | None:
+    """Given an already started run - finalise it and return the resulting ZIP file bytes"""
+    uri = generate_uri(f"/admin/run/{run_id}/artifact")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return response.content
+
+
+def admin_fetch_group_runs_for_procedure(
+    access_token: str, run_group_id: int, test_procedure_id: str
+) -> Pagination[RunResponse] | None:
+    """Given a test procedure ID - fetch the runs  (under a run group)"""
+
+    uri = generate_uri(f"/admin/procedure_runs/{run_group_id}/{test_procedure_id}")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return handle_pagination(
+        response.json(),
+        lambda r: RunResponse(
+            run_id=r["run_id"],
+            test_procedure_id=r["test_procedure_id"],
+            test_url=r["test_url"],
+            status=r["status"],
+            all_criteria_met=r["all_criteria_met"],
+            created_at=r["created_at"],
+            finalised_at=r["finalised_at"],
+            is_device_cert=r["is_device_cert"],
+        ),
+    )
+
+
+def admin_fetch_runs_for_group(
+    access_token: str, run_group_id: int, page: int, finalised: bool | None
+) -> Pagination[RunResponse] | None:
+    """Fetches runs for a page"""
+    uri = generate_uri(f"/admin/run_group/{run_group_id}/run?page={page}")
+    if finalised is not None:
+        uri = uri + f"&finalised={finalised}"
+
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return handle_pagination(
+        response.json(),
+        lambda r: RunResponse(
+            run_id=r["run_id"],
+            test_procedure_id=r["test_procedure_id"],
+            test_url=r["test_url"],
+            status=r["status"],
+            all_criteria_met=r["all_criteria_met"],
+            created_at=r["created_at"],
+            finalised_at=r["finalised_at"],
+            is_device_cert=r["is_device_cert"],
+        ),
+    )
+
+
+def admin_fetch_run_status(access_token: str, run_id: str) -> str | None:
+    """Given an already started run - fetch the status as a raw JSON string"""
+    uri = generate_uri(f"/admin/run/{run_id}/status")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return response.text
+
+
+def admin_fetch_individual_run(access_token: str, run_id: str) -> RunResponse | None:
+    """Fetches runs for a page"""
+    uri = generate_uri(f"/admin/run/{run_id}")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    r = response.json()
+    return RunResponse(
+        run_id=r["run_id"],
+        test_procedure_id=r["test_procedure_id"],
+        test_url=r["test_url"],
+        status=r["status"],
+        all_criteria_met=r["all_criteria_met"],
+        created_at=r["created_at"],
+        finalised_at=r["finalised_at"],
+        is_device_cert=r["is_device_cert"],
+    )

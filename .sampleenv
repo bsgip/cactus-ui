@@ -16,3 +16,5 @@ CACTUS_ORCHESTRATOR_BASEURL="http://localhost:8088"
 APP_SECRET_KEY="secret-key"
 CACTUS_UI_LOCALDEV=true
 PORT=5000
+BANNER_MESSAGE = "This is a test error message." # Will show on the Main, Procedures, Runs, Config pages
+LOGIN_BANNER_MESSAGE = "This is a test error message." # Will show on the login page only

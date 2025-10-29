@@ -31,6 +31,7 @@ from flask import (
 )
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.wrappers.response import Response
+import jwt
 
 import cactus_ui.orchestrator as orchestrator
 from cactus_ui.common import find_first
@@ -63,7 +64,7 @@ oauth.register(
     client_id=env.get("AUTH0_CLIENT_ID"),
     client_secret=env.get("AUTH0_CLIENT_SECRET"),
     client_kwargs={
-        "scope": "user:all",
+        "scope": "user:all openid profile email",
     },
     server_metadata_url=f'https://{env.get("AUTH0_DOMAIN")}/.well-known/openid-configuration',
 )  # type: ignore
@@ -72,6 +73,8 @@ oauth.register(
 CACTUS_ORCHESTRATOR_AUDIENCE = env["CACTUS_ORCHESTRATOR_AUDIENCE"]
 CACTUS_PLATFORM_VERSION = env["CACTUS_PLATFORM_VERSION"]
 CACTUS_PLATFORM_SUPPORT_EMAIL = env["CACTUS_PLATFORM_SUPPORT_EMAIL"]
+BANNER_MESSAGE = env.get("BANNER_MESSAGE")
+LOGIN_BANNER_MESSAGE = env.get("LOGIN_BANNER_MESSAGE")
 
 F = TypeVar("F", bound=Callable[..., object])
 
@@ -148,6 +151,36 @@ def login_required(f: F) -> F:
     return cast(F, decorated)
 
 
+def get_permissions() -> list[str] | None:
+    if "user" not in session:
+        return None
+
+    user = session["user"]
+
+    if "access_token" not in user:
+        return None
+
+    encoded_jwt = user["access_token"]
+    decoded_jwt = jwt.decode(encoded_jwt, options={"verify_signature": False})
+
+    if "permissions" not in decoded_jwt:
+        return None
+
+    return decoded_jwt["permissions"]
+
+
+def admin_role_required(f: F) -> F:
+    @wraps(f)
+    def decorated(*args: Any, **kwargs: Any) -> Any:
+        permissions = get_permissions()
+        if not permissions or "admin:all" not in permissions:
+            return redirect(url_for("login_or_home_page"))
+
+        return f(*args, **kwargs)
+
+    return cast(F, decorated)
+
+
 def parse_bool(v: str | None) -> bool:
     if not v:
         return False
@@ -166,6 +199,219 @@ def login_or_home_page() -> str:
             "login.html",
         )
     return render_template("home.html")
+
+
+@app.route("/admin")
+@login_required
+@admin_role_required
+def admin_page(access_token: str) -> str:
+    page = request.args.get("page", 1, type=int)  # Default to page 1
+
+    user_pages = orchestrator.admin_fetch_users(access_token, page)
+    if user_pages is None:
+        # return render_template("admin.html", error="Failed to retrieve users.")
+        users = [
+            orchestrator.UserResponse(user_id=1, name="User 1", run_groups=[78]),
+            orchestrator.UserResponse(user_id=2, name="User 2", run_groups=[12, 45]),
+        ]
+        return render_template("admin.html", users=users)
+
+    return render_template(
+        "admin.html",
+        users=user_pages.items,
+        next_page=user_pages.next_page,
+        prev_page=user_pages.prev_page,
+        total_items=user_pages.total_items,
+        page_size=user_pages.page_size,
+        current_page=user_pages.current_page,
+    )
+
+
+@app.route("/admin/group/<int:run_group_id>/runs", methods=["GET", "POST"])
+@login_required
+@admin_role_required
+def admin_group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # noqa: C901
+    error: str | None = None
+    """This is the admin equivalent of group_runs_page"""
+    # Handle POST for triggering an artifact download
+    if request.method == "POST":
+        # Handle dl artifact
+        if request.form.get("action") == "artifact":
+            run_id = request.form.get("run_id")
+            if not run_id:
+                error = "No run ID specified."
+            else:
+                artifact_data = orchestrator.admin_fetch_run_artifact(access_token, run_id)
+                if artifact_data is None:
+                    error = "Failed to retrieve artifacts."
+                else:
+                    return send_file(
+                        io.BytesIO(artifact_data),
+                        as_attachment=True,
+                        download_name=f"{run_id}_artifacts.zip",
+                        mimetype="application/zip",
+                    )
+
+    # Fetch procedures
+    procedures = orchestrator.admin_fetch_group_procedure_run_summaries(
+        access_token=access_token, run_group_id=run_group_id
+    )
+    grouped_procedures: list[GroupedProcedure] = []
+
+    all_classes: set[str] = set()
+    classes_by_test: dict[str, list[str]] = {}
+    tmp_classes_by_category: dict[str, set[str]] = {}
+
+    if procedures is None:
+        error = "Unable to fetch test procedures."
+    else:
+        # Organise the procedures by grouping them under the "category" label present (while also preserving order)
+        for p in procedures:
+            category_slug = p.category.replace(" ", "-")  # This could do with a more robust slugify method
+
+            # Add this procedure to the list of groups
+            existing_group = find_first(grouped_procedures, lambda x: x.slug == category_slug)
+            if existing_group:
+                existing_group.summaries.append(p)
+            else:
+                grouped_procedures.append(GroupedProcedure(category_slug, p.category, [p]))
+
+            classes = p.classes if p.classes else []
+            classes_by_test[p.test_procedure_id] = classes
+            all_classes.update(classes)
+
+            if category_slug in tmp_classes_by_category:
+                tmp_classes_by_category[category_slug].update(classes)
+            else:
+                tmp_classes_by_category[category_slug] = set(classes)
+
+    # convert sets to lists (sets are not serializable to json)
+    classes_by_category: dict[str, list[str]] = {key: list(value) for key, value in tmp_classes_by_category.items()}
+
+    # Fetch the run groups (for the breadcrumbs selector)
+    run_groups = orchestrator.admin_fetch_run_groups(access_token=access_token, run_group_id=run_group_id, page=1)
+    active_run_group: orchestrator.RunGroupResponse | None = None
+    if not run_groups or not run_groups.items:
+        error = "Unable to fetch run groups."
+    else:
+        for rg in run_groups.items:
+            if rg.run_group_id == run_group_id:
+                active_run_group = rg
+                break
+
+    return render_template(
+        "runs.html",
+        error=error,
+        grouped_procedures=grouped_procedures,
+        classes=fetch_compliance_classes(all_classes),
+        classes_by_test_b64=b64encode(json.dumps(classes_by_test).encode()).decode(),
+        classes_by_category_b64=b64encode(json.dumps(classes_by_category).encode()).decode(),
+        run_groups=[] if run_groups is None else run_groups.items,
+        run_group_id=run_group_id,
+        active_run_group=active_run_group,
+        is_admin_view=True,
+    )
+
+
+@app.route("/admin/run_group/<int:run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_procedure_runs_json(access_token: str, run_group_id: int, test_procedure_id: str) -> Response:
+    runs_page = orchestrator.admin_fetch_group_runs_for_procedure(access_token, run_group_id, test_procedure_id)
+    if runs_page is None:
+        return Response(
+            response=f"Unable to fetch runs for {test_procedure_id}.",
+            status=HTTPStatus.NOT_FOUND,
+            mimetype="text/plain",
+        )
+
+    return jsonify(runs_page)
+
+
+@app.route("/admin/run_group/<int:run_group_id>/active_runs", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_active_runs_json(access_token: str, run_group_id: int) -> Response:
+    runs_page = orchestrator.admin_fetch_runs_for_group(access_token, run_group_id, 1, False)
+    if runs_page is None:
+        return Response(
+            response="Unable to load active runs.",
+            status=HTTPStatus.NOT_FOUND,
+            mimetype="text/plain",
+        )
+
+    return jsonify(runs_page)
+
+
+@app.route("/admin/run/<int:run_id>", methods=["GET", "POST"])
+@login_required
+@admin_role_required
+def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
+    error: str | None = None
+
+    if request.method == "POST":
+        # Handle downloading a prior run's artifacts
+        if request.form.get("action") == "artifact":
+            artifact_data = orchestrator.admin_fetch_run_artifact(access_token, run_id)
+            if artifact_data is None:
+                error = "Failed to retrieve artifacts."
+            else:
+                return send_file(
+                    io.BytesIO(artifact_data),
+                    as_attachment=True,
+                    download_name=f"{run_id}_artifacts.zip",
+                    mimetype="application/zip",
+                )
+
+    status = orchestrator.admin_fetch_run_status(access_token=access_token, run_id=run_id)
+    run_is_live = status is not None
+
+    run_status = None
+    run_test_uri = None
+    run_procedure_id = None
+
+    run_response = orchestrator.admin_fetch_individual_run(access_token, run_id)
+    if run_response:
+        run_status = run_response.status
+        run_test_uri = run_response.test_url
+        run_procedure_id = run_response.test_procedure_id
+
+    # Take the big JSON response string and encode it using base64 so we can embed it in the template and re-hydrate
+    # it easily enough
+    if status is not None:
+        initial_status_b64 = b64encode(status.encode()).decode()
+    else:
+        initial_status_b64 = ""
+
+    return render_template(
+        "run_status.html",
+        run_is_live=run_is_live,
+        run_id=run_id,
+        initial_status_b64=initial_status_b64,
+        run_status=run_status,
+        run_test_uri=run_test_uri,
+        run_procedure_id=run_procedure_id,
+        error=error,
+        is_admin_view=True,
+        user_buttons_state="disabled",
+    )
+
+
+@app.route("/admin/run/<int:run_id>/status", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_run_status_json(access_token: str, run_id: str) -> Response:
+
+    status = orchestrator.admin_fetch_run_status(access_token=access_token, run_id=run_id)
+
+    if status is None:
+        return Response(
+            response="Unable to fetch runner status. Likely terminated available.",
+            status=HTTPStatus.GONE,
+            mimetype="text/plain",
+        )
+
+    return Response(response=status, status=200, mimetype="application/json")
 
 
 @app.route("/procedures", methods=["GET"])
@@ -490,8 +736,8 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
             else:
                 tmp_classes_by_category[category_slug] = set(classes)
 
-        # convert sets to lists (sets are not serializable to json)
-        classes_by_category: dict[str, list[str]] = {key: list(value) for key, value in tmp_classes_by_category.items()}
+    # convert sets to lists (sets are not serializable to json)
+    classes_by_category: dict[str, list[str]] = {key: list(value) for key, value in tmp_classes_by_category.items()}
 
     # Fetch the run groups (for the breadcrumbs selector)
     run_groups = orchestrator.fetch_run_groups(access_token, 1)
@@ -610,6 +856,20 @@ def run_status_json(access_token: str, run_id: str) -> Response:
 def callback() -> Response:
     token = oauth.auth0.authorize_access_token()
     session["user"] = token
+    access_token = get_access_token()
+
+    # Try update the user's username on successful login
+    if access_token and "userinfo" in token and "name" in token["userinfo"]:
+        user_name = token["userinfo"]["name"]
+        try:
+            success = orchestrator.update_username(access_token=access_token, user_name=user_name)
+            if not success:
+                logger.error(f"Failed to update username '{user_name}'.")
+        except Exception as e:
+            logger.error(f"Exception trying to update username '{user_name}'", exc_info=e)
+    else:
+        logger.error("Unable to update username. User info or access token missing from token.")
+
     return redirect("/")
 
 
@@ -654,13 +914,17 @@ def inject_global_template_context() -> dict:
     - sets platform version from CACTUS_PLATFORM_VERSION envvar
     - Adds support email from CACTUS_PLATFORM_SUPPORT_EMAIL envvar.
     - Adds the users name (if not None)
+    - Adds the BANNER_MESSAGE and LOGIN_BANNER_MESSAGE envvars (both optional)
     """
 
     return {
         "version": CACTUS_PLATFORM_VERSION,
         "hosted_images": get_hosted_images(),
         "support_email": CACTUS_PLATFORM_SUPPORT_EMAIL,
+        "permissions": get_permissions(),
         "username": get_username_from_session(),
+        "banner_message": BANNER_MESSAGE,
+        "login_banner_message": LOGIN_BANNER_MESSAGE,
     }
 
 

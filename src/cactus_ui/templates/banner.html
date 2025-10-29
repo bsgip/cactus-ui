@@ -1,0 +1,6 @@
+{% if banner_message %}
+<div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
+  {{ banner_message | safe }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
