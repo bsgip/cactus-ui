@@ -34,6 +34,12 @@
         {% else %}
         <a href="/login" id="qsLoginBtn" class="btn btn-success">Login</a>
         {% endif %}
+
+        {% if login_banner_message %}
+        <div class="alert alert-danger fade show mb-4 mt-3" role="alert" style="max-width: 600px;">
+            {{ login_banner_message | safe }}
+        </div>
+        {% endif %}
     </div>
 
     <div class="text-center text-muted footer-text">

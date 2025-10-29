@@ -74,6 +74,7 @@ CACTUS_ORCHESTRATOR_AUDIENCE = env["CACTUS_ORCHESTRATOR_AUDIENCE"]
 CACTUS_PLATFORM_VERSION = env["CACTUS_PLATFORM_VERSION"]
 CACTUS_PLATFORM_SUPPORT_EMAIL = env["CACTUS_PLATFORM_SUPPORT_EMAIL"]
 BANNER_MESSAGE = env.get("BANNER_MESSAGE")
+LOGIN_BANNER_MESSAGE = env.get("LOGIN_BANNER_MESSAGE")
 
 F = TypeVar("F", bound=Callable[..., object])
 
@@ -913,7 +914,7 @@ def inject_global_template_context() -> dict:
     - sets platform version from CACTUS_PLATFORM_VERSION envvar
     - Adds support email from CACTUS_PLATFORM_SUPPORT_EMAIL envvar.
     - Adds the users name (if not None)
-    - Adds the BANNER_MESSAGE envvar (optional)
+    - Adds the BANNER_MESSAGE and LOGIN_BANNER_MESSAGE envvars (both optional)
     """
 
     return {
@@ -923,6 +924,7 @@ def inject_global_template_context() -> dict:
         "permissions": get_permissions(),
         "username": get_username_from_session(),
         "banner_message": BANNER_MESSAGE,
+        "login_banner_message": LOGIN_BANNER_MESSAGE,
     }
 
 
