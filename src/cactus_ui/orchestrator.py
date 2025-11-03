@@ -605,6 +605,18 @@ def fetch_run_groups(access_token: str, page: int) -> Pagination[RunGroupRespons
     )
 
 
+def fetch_request_details(access_token: str, request_id: int) -> str | None:
+    """Fetch raw request/response data for a specific request."""
+    uri = generate_uri(f"/request/{request_id}")
+
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+
+    if response is None or not is_success_response(response):
+        return None
+
+    return response.text
+
+
 def create_run_group(access_token: str, csip_aus_version: str) -> RunGroupResponse | None:
     """Creates a new run group with the specified csip aus version - returns the created"""
     uri = generate_uri("/run_group")

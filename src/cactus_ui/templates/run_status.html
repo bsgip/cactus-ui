@@ -168,7 +168,29 @@
         max-width: 1000px;
         max-height: 600px;
         overflow-y: auto;
-
+    }
+    #update-xsd-table th {
+        width: 120px;
+        white-space: nowrap;
+    }
+    #requestModal .modal-backdrop {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); z-index: 9999;
+        display: flex; align-items: center; justify-content: center;
+    }
+    #requestModal .modal-content {
+        background: white; width: 90%; max-width: 1200px; max-height: 90vh;
+        padding: 20px; overflow-y: auto;
+    }
+    #requestModal .modal-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 15px;
+    }
+    #requestModal .modal-header button {
+        border: none; background: none; font-size: 24px; cursor: pointer;
+    }
+    #requestModal pre {
+        background: #f8f9fa; padding: 10px; overflow-x: auto;
     }
 </style>
 
@@ -364,6 +386,7 @@
                 <td></td>
                 <td></td>
                 <td></td>
+                <td></td>
             </tr>`];
         }
 
@@ -381,6 +404,11 @@
                 <td>${r.method} ${r.path} <span class="badge text-bg-${statusColor}">${r.status}</span></td>
                 <td>${stepName}</td>
                 <td><span class="badge text-bg-${schemaColor}">${schemaText}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="showRequestDetails(${r.request_id})">
+                        Details
+                    </button>
+                </td>
             </tr>`);
         }
 
@@ -511,6 +539,17 @@
                     <ul class="mb-0" style="max-height: 300px; overflow-y: auto;">
                         ${currentRequest.body_xml_errors.map(err => `<li><code style="white-space: pre-wrap; word-break: break-word;">${truncateError(err)}</code></li>`).join('')}
                     </ul>
+                </td>
+            </tr>
+        `);
+
+        fragments.push(`
+            <tr>
+                <th scope="row">Details</th>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="showRequestDetails(${currentRequest.request_id})">
+                        View Full Request Details
+                    </button>
                 </td>
             </tr>
         `);
@@ -833,6 +872,34 @@
         }
 
         setTimeout(fetchStatus, pollRateMs); // start the loop after initial poll delay
+    }
+
+    function showRequestDetails(requestId) {
+        xhrRequest(`/request/${requestId}`, (content) => {
+            const data = JSON.parse(content);
+            const escape = (s) => s ? s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) : '';
+            
+            const modal = document.createElement('div');
+            modal.id = 'requestModal';
+            modal.innerHTML = `
+                <div class="modal-backdrop" onclick="this.parentElement.remove()">
+                    <div class="modal-content" onclick="event.stopPropagation()">
+                        <div class="modal-header">
+                            <h5>Request Details (ID: ${data.request_id})</h5>
+                            <button onclick="this.closest('#requestModal').remove()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <h6>Request</h6>
+                            <pre><code>${escape(data.request || 'No request data')}</code></pre>
+                            <h6>Response</h6>
+                            <pre><code>${escape(data.response || 'No response data')}</code></pre>
+                        </div>
+                        <button class="btn btn-secondary" onclick="this.closest('#requestModal').remove()">Close</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }, () => alert('Failed to load request details'));
     }
 
     addEventListener("load", (event) => {

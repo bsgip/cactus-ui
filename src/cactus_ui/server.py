@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
 import zipfile
-
+import jwt
 from authlib.integrations.flask_client import OAuth
 from dotenv import find_dotenv, load_dotenv
 from flask import (
@@ -31,7 +31,6 @@ from flask import (
 )
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.wrappers.response import Response
-import jwt
 
 import cactus_ui.orchestrator as orchestrator
 from cactus_ui.common import find_first
@@ -850,6 +849,23 @@ def run_status_json(access_token: str, run_id: str) -> Response:
         )
 
     return Response(response=status, status=200, mimetype="application/json")
+
+
+@app.route("/request/<int:request_id>", methods=["GET"])
+@login_required
+def run_request_details(access_token: str, request_id: int) -> Response:
+    """Fetch raw request/response data for a specific request."""
+
+    request_data = orchestrator.fetch_request_details(access_token=access_token, request_id=request_id)
+
+    if request_data is None:
+        return Response(
+            response=json.dumps({"error": "Request details not found"}),
+            status=HTTPStatus.NOT_FOUND,
+            mimetype="application/json",
+        )
+
+    return Response(response=request_data, status=HTTPStatus.OK, mimetype="application/json")
 
 
 @app.route("/callback", methods=["GET", "POST"])
