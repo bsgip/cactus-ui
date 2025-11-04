@@ -86,12 +86,12 @@
 </div>
 <br>
 <div class="row justify-content-center">
-    <div class="card status-container ">
+    <div class="card status-container timeline-container">
         <div class="card-body">
             <h5 class="card-title">Timeline</h5>
-            <div id="timelineError" class="alert alert-info">No timeline (DERControl / Reading) data is available.</div>
+            <div id="timelineInfo" class="alert alert-info" style="display: none;"></div>
             <canvas id="timelineChart"></canvas>
-            <canvas id="timelineActivityChart" style="margin-top: 10px; height: 150px;"></canvas>
+            <canvas id="timelineActivityChart" style="margin-top: 10px; height: 80px;"></canvas>
         </div>
     </div>
 </div>
@@ -154,6 +154,9 @@
         max-height: 600px;
         overflow-y: auto;
 
+    }
+    .timeline-container {
+        max-height: 900px;
     }
 </style>
 
@@ -434,14 +437,6 @@
         return fragments.join("");
     }
 
-    function getXAxisLabels(dataStreams) {
-        if (!dataStreams || dataStreams.length === 0) return [];
-        
-        // Use the first data stream as reference for x-axis labels
-        const firstStream = dataStreams[0];
-        return firstStream.data.map(point => point.offset);
-    }
-
     function parseOffsetSeconds(offsetStr) {
         const match = offsetStr.match(/(\d+)m(\d+)s|(\d+)s/);
         if (match) {
@@ -454,26 +449,22 @@
         return 0;
     }
 
-    function offsetToIndex(offsetStr, dataStreams) {
-        if (!dataStreams || dataStreams.length === 0) return 0;
-        
-        // Find this offset in the first data stream and return its index
-        const firstStream = dataStreams[0];
-        for (let i = 0; i < firstStream.data.length; i++) {
-            if (firstStream.data[i].offset === offsetStr) {
-                return i;
-            }
+    function formatTimeLabel(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        if (mins > 0) {
+            return `${mins}m${secs}s`;
         }
-        return 0;
+        return `${secs}s`;
     }
 
-    // Convert TimelineStatus.data_streams to Chart.js dataset format with numeric x-axis
+    // Convert TimelineStatus.data_streams to Chart.js dataset format using elapsed seconds
     function convertDataStreamsToChartJs(dataStreams) {
         return dataStreams.map(ds => {
             return {
                 label: ds.label,
-                data: ds.data.map((point, index) => ({
-                    x: index,
+                data: ds.data.map(point => ({
+                    x: parseOffsetSeconds(point.offset),
                     y: point.watts
                 })),
                 stepped: ds.stepped ? 'before' : false,
@@ -484,30 +475,51 @@
         });
     }
 
-    function updateChart(timeline, stepStatus, requestHistory, timelineStart) {
-        if (!timeline || !timeline.data_streams || timeline.data_streams.length === 0) {
-            document.getElementById("timelineError").style = ""
-            document.getElementById("timelineChart").style = "display: none;"
-            document.getElementById("timelineActivityChart").style = "display: none;"
-            return;
-        } else {
-            document.getElementById("timelineError").style = "display: none;"
-            document.getElementById("timelineChart").style = ""
-            document.getElementById("timelineActivityChart").style = ""
+    function calculateMaxTime(timeline, stepStatus, requestHistory, timelineStart) {
+        let maxTime = 0;
+        
+        // Current elapsed time since test start
+        if (timelineStart) {
+            const now = new Date();
+            const start = new Date(timelineStart);
+            maxTime = Math.max(maxTime, (now - start) / 1000);
         }
 
-        // Convert data to numeric
-        const dataStreams = timeline.data_streams || [];
-        const xLabels = getXAxisLabels(dataStreams);
-        const numIntervals = xLabels.length;
-        const datasets = convertDataStreamsToChartJs(dataStreams);
+        // Latest timeline data point
+        if (timeline?.data_streams) {
+            for (const stream of timeline.data_streams) {
+                for (const point of stream.data) {
+                    maxTime = Math.max(maxTime, parseOffsetSeconds(point.offset));
+                }
+            }
+        }
 
-        // Load the annotations (the only things that change between updates)
+        // Add some buffer for future visibility (10% or at least 30 seconds)
+        const buffer = Math.max(maxTime * 0.1, 30);
+        return maxTime + buffer;
+    }
+
+    function updateChart(timeline, stepStatus, requestHistory, timelineStart) {
+        document.getElementById("timelineInfo").style = "display: none;";
+        document.getElementById("timelineChart").style = "";
+        document.getElementById("timelineActivityChart").style = "";
+
+        // Calculate current elapsed time from test start
+        const start = new Date(timelineStart);
+        const nowSeconds = (new Date() - start) / 1000;
+        
+        // Calculate max time for x-axis
+        const maxTime = calculateMaxTime(timeline, stepStatus, requestHistory, timelineStart);
+
+        // Convert data streams (or empty array if none)
+        const dataStreams = timeline?.data_streams || [];
+        const datasets = dataStreams.length > 0 ? convertDataStreamsToChartJs(dataStreams) : [];
+
+        // Build annotations
         const annotations = [{
             type: 'line',
             borderColor: 'black',
             borderWidth: 2,
-            display: (ctx) => ctx.chart.isDatasetVisible(1),
             label: {
                 display: true,
                 content: 'Now',
@@ -516,17 +528,22 @@
                 color: 'white'
             },
             scaleID: 'x',
-            value: offsetToIndex(timeline.now_offset, dataStreams)
+            value: nowSeconds
         }];
         
-        if (timeline.set_max_w !== null && timeline.set_max_w !== undefined) {
+        if (timeline?.set_max_w !== null && timeline?.set_max_w !== undefined) {
             annotations.push({
                 type: 'line',
                 borderColor: 'black',
                 borderWidth: 3,
                 borderDash: [5, 5],
                 scaleID: 'y',
-                value: timeline.set_max_w
+                value: timeline.set_max_w,
+                label: {
+                    display: true,
+                    content: `Max: ${timeline.set_max_w}W`,
+                    position: 'end'
+                }
             });
             annotations.push({
                 type: 'line',
@@ -534,183 +551,217 @@
                 borderWidth: 3,
                 borderDash: [5, 5],
                 scaleID: 'y',
-                value: -timeline.set_max_w
+                value: -timeline.set_max_w,
+                label: {
+                    display: true,
+                    content: `Min: -${timeline.set_max_w}W`,
+                    position: 'end'
+                }
             });
         }
 
         if (!timelineChart) {
-            // We haven't rendered a chart yet
-            timelineChart = new Chart(document.getElementById('timelineChart'),
-                {
-                    type: 'line',
-                    data: {
-                        datasets: datasets
-                    },
-                    options: {
-                        responsive: true,
-                        interaction: {
-                            mode: 'index',
-                            intersect: true,
-                        },
-                        stacked: false,
-                        plugins: {
-                            annotation: {
-                                common: {
-                                    drawTime: 'beforeDraw'
-                                },
-                                annotations: annotations
-                            }
-                        },
-                        scales: {
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: "Watts"
-                                },
-                                grid: {
-                                    color: function (context) {
-                                        if (context.tick.value == 0)
-                                            return "#000000";
-                                        else
-                                            return undefined;
-                                    },
-                                },
-                            },
-                            x: {
-                                type: 'linear',
-                                title: {
-                                    display: true,
-                                    text: "Time"
-                                },
-                                ticks: {
-                                    callback: function(value, index) {
-                                        return xLabels[index] || '';
-                                    },
-                                    autoSkip: true,
-                                    maxTicksLimit: 15
-                                },
-                                min: 0,
-                                max: Math.max(
-                                    numIntervals - 1, 
-                                    offsetToIndex(timeline.now_offset, dataStreams),
-                                    1
-                                )
-                            }
-                        }
-                    }
-                });
-        } else {
-            // We just need to update the existing chart
-            timelineChart.data.datasets = datasets;
-            timelineChart.options.plugins.annotation.annotations = annotations;
-            timelineChart.options.scales.x.max = Math.max(
-                numIntervals - 1,
-                offsetToIndex(timeline.now_offset, dataStreams),
-                1
-            );
-            timelineChart.options.scales.x.ticks.callback = function(value, index) {
-                return xLabels[index] || '';
-            };
-            timelineChart.update('none')
-        }
-        // === ACTIVITY CHART ===
-    
-        const stepCompletions = extractStepCompletions(stepStatus, timelineStart, dataStreams);
-        const requestPositions = extractRequestPositions(requestHistory, timelineStart, dataStreams);
-        const activityDatasets = createActivityChartDatasets(stepCompletions, requestPositions);
-
-        if (!timelineActivityChart) {
-            timelineActivityChart = new Chart(document.getElementById('timelineActivityChart'), {
+            // Create new chart
+            timelineChart = new Chart(document.getElementById('timelineChart'), {
                 type: 'line',
                 data: {
-                    datasets: activityDatasets
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
                     interaction: {
-                        mode: null
+                        mode: 'index',
+                        intersect: false,
                     },
                     plugins: {
-                        legend: {
-                            display: true,
-                            position: 'bottom'
+                        annotation: {
+                            common: {
+                                drawTime: 'beforeDraw'
+                            },
+                            annotations: annotations
                         },
-                        tooltip: {
-                            enabled: false
+                        legend: {
+                            display: datasets.length > 0
                         }
                     },
                     scales: {
                         y: {
-                            display: false,
-                            min: 0,
-                            max: 1
+                            title: {
+                                display: true,
+                                text: "Watts"
+                            },
+                            grid: {
+                                color: function (context) {
+                                    if (context.tick.value == 0)
+                                        return "#000000";
+                                    else
+                                        return undefined;
+                                },
+                            },
                         },
                         x: {
                             type: 'linear',
-                            display: false,
+                            title: {
+                                display: true,
+                                text: "Time"
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return formatTimeLabel(Math.floor(value));
+                                },
+                                autoSkip: true,
+                                maxTicksLimit: 15
+                            },
                             min: 0,
-                            max: Math.max(numIntervals - 1, 1)
+                            max: maxTime
                         }
                     }
                 }
             });
         } else {
-            timelineActivityChart.data.datasets = activityDatasets;
-            timelineActivityChart.options.scales.x.max = Math.max(numIntervals - 1, 1);
-            timelineActivityChart.update('none');
+            // Update existing chart
+            timelineChart.data.datasets = datasets;
+            timelineChart.options.plugins.annotation.annotations = annotations;
+            timelineChart.options.plugins.legend.display = datasets.length > 0;
+            timelineChart.options.scales.x.max = maxTime;
+            timelineChart.update('none');
         }
+
+        // === ACTIVITY CHART ===
+        const stepCompletions = extractStepCompletions(stepStatus, timelineStart);
+        const requestPositions = extractRequestPositions(requestHistory, timelineStart);
+        const activityDatasets = createActivityChartDatasets(stepCompletions, requestPositions);
+
+        if (!timelineActivityChart) {
+        timelineActivityChart = new Chart(document.getElementById('timelineActivityChart'), {
+            type: 'line',
+            data: {
+                datasets: activityDatasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 8,
+                interaction: {
+                    mode: null
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        enabled: false
+                    }
+                },
+                scales: {
+                    y: {
+                        display: false,
+                        min: 0.2,
+                        max: 0.8
+                    },
+                    x: {
+                        type: 'linear',
+                        display: false,
+                        min: 0,
+                        max: maxTime
+                    }
+                }
+            }
+        });
+    } else {
+        timelineActivityChart.data.datasets = activityDatasets;
+        timelineActivityChart.options.scales.x.max = maxTime;
+        timelineActivityChart.update('none');
+    }
     }
 
-    function extractRequestPositions(requestHistory, timelineStart, dataStreams) {
-        if (!requestHistory || requestHistory.length === 0 || !timelineStart || !dataStreams || dataStreams.length === 0) {
-            return [];
+    function extractRequestPositions(requestHistory, timelineStart) {
+        if (!requestHistory || requestHistory.length === 0 || !timelineStart) {
+            return { matched: {}, unmatched: [] };
         }
 
-        const positions = [];
-        const firstStream = dataStreams[0];
-        if (firstStream.data.length < 2) return positions;
-
-        // Calculate interval duration
-        const intervalSeconds = parseOffsetSeconds(firstStream.data[1].offset) - parseOffsetSeconds(firstStream.data[0].offset);
+        const matched = {}; // stepName -> [positions]
+        const unmatched = [];
         const start = new Date(timelineStart);
-        const totalDuration = intervalSeconds * firstStream.data.length;
 
         requestHistory.forEach(request => {
             const timestamp = new Date(request.timestamp);
             const timeOffsetSeconds = (timestamp - start) / 1000;
             
-            if (timeOffsetSeconds >= 0 && timeOffsetSeconds <= totalDuration) {
-                const xPosition = timeOffsetSeconds / intervalSeconds;
-                positions.push(xPosition);
+            if (timeOffsetSeconds >= 0) {
+                if (request.step_name && request.step_name !== "Unmatched") {
+                    if (!matched[request.step_name]) {
+                        matched[request.step_name] = [];
+                    }
+                    matched[request.step_name].push(timeOffsetSeconds);
+                } else {
+                    unmatched.push(timeOffsetSeconds);
+                }
             }
         });
 
-        return positions;
+        return { matched, unmatched };
+    }
+
+    function extractStepCompletions(stepStatus, timelineStart) {
+        if (!stepStatus || !timelineStart) {
+            return [];
+        }
+
+        const completions = [];
+        const stepNames = Object.keys(stepStatus);
+        const defaultColors = [
+            '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+            '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+        ];
+
+        const start = new Date(timelineStart);
+
+        stepNames.forEach((stepName, idx) => {
+            const stepInfo = stepStatus[stepName];
+            if (stepInfo.completed_at) {
+                const completedAt = new Date(stepInfo.completed_at);
+                const timeOffsetSeconds = (completedAt - start) / 1000;
+                
+                if (timeOffsetSeconds >= 0) {
+                    completions.push({
+                        stepName,
+                        xPosition: timeOffsetSeconds,
+                        color: defaultColors[idx % defaultColors.length]
+                    });
+                }
+            }
+        });
+
+        return completions;
     }
 
     function createActivityChartDatasets(stepCompletions, requestPositions) {
         const activityDatasets = [];
+        const defaultColors = [
+            '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+            '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+        ];
 
-        // Add legend entry for requests
-        if (requestPositions.length > 0) {
+        // Add unmatched requests (single grey legend entry)
+        if (requestPositions.unmatched.length > 0) {
             activityDatasets.push({
-                label: 'Requests',
+                label: 'Unmatched Requests',
                 data: [],
-                borderColor: 'grey',
+                borderColor: 'rgba(128, 128, 128, 0.6)',
                 borderWidth: 2,
                 pointRadius: 0
             });
 
-            // Add individual request lines (no legend)
-            requestPositions.forEach(xPos => {
+            requestPositions.unmatched.forEach(xPos => {
                 activityDatasets.push({
                     label: '',
                     data: [
-                        { x: xPos, y: 0.05 },
-                        { x: xPos, y: 0.95 }
+                        { x: xPos, y: 0.2 },
+                        { x: xPos, y: 0.8 }
                     ],
-                    borderColor: 'rgba(0, 0, 0, 0.4)',
+                    borderColor: 'rgba(128, 128, 128, 0.6)',
                     borderWidth: 2,
                     pointRadius: 0,
                     showLine: true,
@@ -719,6 +770,41 @@
             });
         }
 
+        // Add matched requests (colored, grouped by step)
+        const stepColorMap = {};
+        stepCompletions.forEach((completion, idx) => {
+            stepColorMap[completion.stepName] = completion.color;
+        });
+
+        Object.entries(requestPositions.matched).forEach(([stepName, positions]) => {
+            const color = stepColorMap[stepName] || 'rgba(128, 128, 128, 0.6)';
+            
+            // Add legend entry for this step's requests
+            activityDatasets.push({
+                label: `${stepName} Requests`,
+                data: [],
+                borderColor: color,
+                borderWidth: 2,
+                borderDash: [3, 3],
+                pointRadius: 0
+            });
+
+            // Add individual request lines
+            positions.forEach(xPos => {
+                activityDatasets.push({
+                    label: '',
+                    data: [
+                        { x: xPos, y: 0.2 },
+                        { x: xPos, y: 0.8 }
+                    ],
+                    borderColor: color,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    showLine: true,
+                    tension: 0
+                });
+            });
+        });
         // Add step completion lines
         const stepLegendAdded = new Set();
         stepCompletions.forEach(completion => {
@@ -728,8 +814,8 @@
             activityDatasets.push({
                 label: showInLegend ? completion.stepName : '',
                 data: [
-                    { x: completion.xPosition, y: 0.05 },
-                    { x: completion.xPosition, y: 0.95 }
+                    { x: completion.xPosition, y: 0.2 },
+                    { x: completion.xPosition, y: 0.8 }
                 ],
                 borderColor: completion.color,
                 borderWidth: 3,
@@ -741,59 +827,6 @@
 
         return activityDatasets;
     }
-
-    function extractStepCompletions(stepStatus, timelineStart, dataStreams) {
-        if (!stepStatus || !timelineStart || !dataStreams || dataStreams.length === 0) {
-            return [];
-        }
-
-        const completions = [];
-        const stepNames = Object.keys(stepStatus);
-        const defaultColors = [
-            '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-            '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
-        ];
-
-        // Calculate interval duration from first data stream
-        const firstStream = dataStreams[0];
-        if (firstStream.data.length < 2) return completions;
-        
-        const intervalSeconds = parseOffsetSeconds(firstStream.data[1].offset) - parseOffsetSeconds(firstStream.data[0].offset);
-        const start = new Date(timelineStart);
-
-        stepNames.forEach((stepName, idx) => {
-            const stepInfo = stepStatus[stepName];
-            if (stepInfo.completed_at) {
-                const completedAt = new Date(stepInfo.completed_at);
-                const timeOffsetSeconds = (completedAt - start) / 1000;
-                const xPosition = timeOffsetSeconds / intervalSeconds;
-                
-                if (xPosition >= 0 && xPosition <= firstStream.data.length) {
-                    completions.push({
-                        stepName,
-                        xPosition,
-                        color: defaultColors[idx % defaultColors.length]
-                    });
-                }
-            }
-        });
-
-        return completions;
-    }
-
-    function parseStatus(rawJsonString) {
-        if (!rawJsonString) return null;
-
-        try {
-            return JSON.parse(rawJsonString);
-        } catch (error) {
-            console.error("Error parsing status content", error);
-            console.error(rawJsonString);
-            return null;
-        }
-
-    }
-
     function handleNewStatus(status) {
 
         if (status === null || status === undefined) {
