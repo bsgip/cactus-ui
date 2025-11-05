@@ -26,8 +26,10 @@
             <div id="update-initialised-card"></div>
             {% elif run_status == 'started' %}
             <p class="card-text">The test is now underway - the server will have loaded any initial preconditions
-                (eg: DERControls) and its now time for your client to respond appropriately. When you're ready to
-                end the test, press the Finalise button</p>
+                (eg: DERControls) and its now time for your client to respond appropriately.</p>
+                <p>When you're ready to end the test, press the Finalise button. An artefact will be downloaded including
+                    a PDF report, request logs, and server logs to help with debugging.
+                </p>
             <form id='finalise-form' method="POST">
                 <input type="hidden" name="action" value="finalise">
                 <button {{user_buttons_state}} type="submit" class="btn btn-warning" onclick="handleButtonClick(event)">Finalise</button>
