@@ -537,11 +537,11 @@
     }
 
     function extractActivityData(stepStatus, requestHistory, timelineStart) {
-        if (!timelineStart) return { stepCompletions: [], requestPositions: { matched: {}, unmatched: [] } };
+        if (!timelineStart) return { stepCompletions: [], allRequests: [] };
         
         const start = new Date(timelineStart);
         const stepCompletions = [];
-        const requestPositions = { matched: {}, unmatched: [] };
+        const allRequests = [];
 
         // Extract step completions
         Object.entries(stepStatus || {}).forEach(([stepName, stepInfo], idx) => {
@@ -557,53 +557,68 @@
             }
         });
 
-        // Extract request positions
+        // Extract ALL request positions (treat all as "Requests")
         (requestHistory || []).forEach(request => {
             const timeOffset = (new Date(request.timestamp) - start) / 1000;
             if (timeOffset >= 0) {
-                if (request.step_name && request.step_name !== 'Unmatched') {
-                    if (!requestPositions.matched[request.step_name]) {
-                        requestPositions.matched[request.step_name] = [];
-                    }
-                    requestPositions.matched[request.step_name].push(timeOffset);
-                } else {
-                    requestPositions.unmatched.push(timeOffset);
-                }
+                allRequests.push(timeOffset);
             }
         });
 
-        return { stepCompletions, requestPositions };
+        return { stepCompletions, allRequests };
     }
 
-    function createActivityDatasets(stepCompletions, requestPositions) {
+    function createActivityDatasets(stepCompletions, allRequests) {
         const datasets = [];
         
-        // Build a consistent color map for all steps
-        const allStepNames = [...new Set([
-            ...stepCompletions.map(s => s.stepName),
-            ...Object.keys(requestPositions.matched)
-        ])];
+        // Add step completions FIRST (for legend order, but will be drawn last)
+        const stepLegendAdded = new Set();
+        const completionLines = [];
         
-        const stepColorMap = {};
-        allStepNames.forEach((stepName, idx) => {
-            stepColorMap[stepName] = getStepColor(stepName, idx);
+        stepCompletions.forEach(completion => {
+            const showInLegend = !stepLegendAdded.has(completion.stepName);
+            
+            if (showInLegend) {
+                stepLegendAdded.add(completion.stepName);
+                datasets.push({
+                    label: `${completion.stepName} (completed)`,
+                    data: [],
+                    borderColor: completion.color,
+                    borderWidth: 4,  // Increased from 3
+                    pointRadius: 0
+                });
+            }
+
+            // Store completion lines to add later (so they draw on top)
+            completionLines.push({
+                label: '',
+                data: [
+                    { x: completion.xPosition, y: 0.2 },
+                    { x: completion.xPosition, y: 0.8 }
+                ],
+                borderColor: completion.color,
+                borderWidth: 4,  // Increased from 3
+                pointRadius: 0,
+                showLine: true,
+                tension: 0
+            });
         });
 
-        // Add unmatched requests (grey)
-        if (requestPositions.unmatched.length > 0) {
+        // Add ALL requests as grey (will be drawn first, behind completions)
+        if (allRequests.length > 0) {
             datasets.push({
                 label: 'Requests',
                 data: [],
-                borderColor: 'rgba(128, 128, 128, 0.8)',
+                borderColor: 'rgba(128, 128, 128, 0.4)',  // Reduced opacity from 0.8 to 0.4
                 borderWidth: 2,
                 pointRadius: 0
             });
 
-            requestPositions.unmatched.forEach(xPos => {
+            allRequests.forEach(xPos => {
                 datasets.push({
                     label: '',
                     data: [{ x: xPos, y: 0.2 }, { x: xPos, y: 0.8 }],
-                    borderColor: 'rgba(128, 128, 128, 0.8)',
+                    borderColor: 'rgba(128, 128, 128, 0.4)',  // Reduced opacity from 0.8 to 0.4
                     borderWidth: 2,
                     pointRadius: 0,
                     showLine: true,
@@ -612,55 +627,8 @@
             });
         }
 
-        // Add matched requests
-        Object.entries(requestPositions.matched).forEach(([stepName, positions]) => {
-            const color = stepColorMap[stepName] || 'rgba(128, 128, 128, 0.8)';
-            
-            positions.forEach(xPos => {
-                datasets.push({
-                    label: '',
-                    data: [{ x: xPos, y: 0.2 }, { x: xPos, y: 0.8 }],
-                    borderColor: color,
-                    borderWidth: 2,
-                    borderDash: [3, 3],
-                    pointRadius: 0,
-                    showLine: true,
-                    tension: 0
-                });
-            });
-        });
-
-        // Add step completions (colored)
-        const stepLegendAdded = new Set();
-        stepCompletions.forEach(completion => {
-            const color = stepColorMap[completion.stepName];
-            const showInLegend = !stepLegendAdded.has(completion.stepName);
-            
-            if (showInLegend) {
-                stepLegendAdded.add(completion.stepName);
-                datasets.push({
-                    label: `${completion.stepName} (completed)`,
-                    data: [],
-                    borderColor: color,
-                    borderWidth: 3,
-                    pointRadius: 0
-                });
-            }
-
-            // Add the completion marker line
-            datasets.push({
-                label: '',
-                data: [
-                    { x: completion.xPosition, y: 0.2 },
-                    { x: completion.xPosition, y: 0.8 }
-                ],
-                borderColor: color,
-                borderWidth: 3,
-                pointRadius: 0,
-                showLine: true,
-                tension: 0
-            });
-        });
+        // Add completion lines last so they draw on top
+        datasets.push(...completionLines);
 
         return datasets;
     }
@@ -764,8 +732,8 @@
         }
 
         // Activity chart
-        const { stepCompletions, requestPositions } = extractActivityData(stepStatus, requestHistory, timelineStart);
-        const activityDatasets = createActivityDatasets(stepCompletions, requestPositions);
+        const { stepCompletions, allRequests } = extractActivityData(stepStatus, requestHistory, timelineStart);
+        const activityDatasets = createActivityDatasets(stepCompletions, allRequests);
 
         if (!timelineActivityChart) {
             timelineActivityChart = new Chart(document.getElementById('timelineActivityChart'), {
