@@ -190,6 +190,43 @@
         e.target.closest('form').submit();
     }
 
+    function getStepColor(stepName, index) {
+        const defaultColors = [
+            '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+            '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+            '#393b79', '#637939', '#8c6d31', '#843c39', '#7b4173',
+            '#5254a3', '#8ca252', '#bd9e39', '#ad494a', '#a55194'
+        ];
+        return defaultColors[index % defaultColors.length];
+    }
+
+    function parseOffsetSeconds(offsetStr) {
+        const match = offsetStr.match(/(\d+)m(\d+)s|(\d+)s/);
+        if (!match) return 0;
+        
+        if (match[1] && match[2]) {
+            return parseInt(match[1]) * 60 + parseInt(match[2]);
+        }
+        return parseInt(match[3]) || 0;
+    }
+
+    function formatTimeLabel(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return mins > 0 ? `${mins}m${secs}s` : `${secs}s`;
+    }
+
+    function showCommsError(message) {
+        const errorEl = document.getElementById('error-div');
+        if (!errorEl) return;
+        
+        errorEl.innerHTML = message 
+            ? `<div class="alert alert-danger" role="alert">${message}</div>`
+            : '';
+    }
+
+    // TABLES   
+
     function generalTableBody(status) {
         fragments = [];
 
@@ -382,17 +419,6 @@
         </div>`;
     }
 
-    function showCommsError(message) {
-        const errorEl = document.getElementById('error-div')
-        if (!errorEl) return;
-        if (message) {
-            errorEl.innerHTML = `<div class="alert alert-danger" role="alert">${message}</div>`;
-        } else {
-            errorEl.innerHTML = "";
-        }
-
-    }
-
     function getStepInstructions(instructions) {
         fragments = []
         fragments.push(`
@@ -437,85 +463,42 @@
         return fragments.join("");
     }
 
-    function parseOffsetSeconds(offsetStr) {
-        const match = offsetStr.match(/(\d+)m(\d+)s|(\d+)s/);
-        if (match) {
-            if (match[1] && match[2]) {
-                return parseInt(match[1]) * 60 + parseInt(match[2]);
-            } else if (match[3]) {
-                return parseInt(match[3]);
-            }
-        }
-        return 0;
-    }
-
-    function formatTimeLabel(seconds) {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        if (mins > 0) {
-            return `${mins}m${secs}s`;
-        }
-        return `${secs}s`;
-    }
-
-    // Convert TimelineStatus.data_streams to Chart.js dataset format using elapsed seconds
-    function convertDataStreamsToChartJs(dataStreams) {
-        return dataStreams.map(ds => {
-            return {
-                label: ds.label,
-                data: ds.data.map(point => ({
-                    x: parseOffsetSeconds(point.offset),
-                    y: point.watts
-                })),
-                stepped: ds.stepped ? 'before' : false,
-                borderDash: ds.dashed ? [5, 5] : undefined,
-                tension: 0,
-                spanGaps: true
-            };
-        });
-    }
-
-    function calculateMaxTime(timeline, stepStatus, requestHistory, timelineStart) {
+    // CHARTS
+    
+    function calculateMaxTime(timeline, timelineStart) {
         let maxTime = 0;
         
-        // Current elapsed time since test start
         if (timelineStart) {
-            const now = new Date();
-            const start = new Date(timelineStart);
-            maxTime = Math.max(maxTime, (now - start) / 1000);
+            maxTime = (new Date() - new Date(timelineStart)) / 1000;
         }
 
-        // Latest timeline data point
-        if (timeline?.data_streams) {
-            for (const stream of timeline.data_streams) {
-                for (const point of stream.data) {
-                    maxTime = Math.max(maxTime, parseOffsetSeconds(point.offset));
-                }
-            }
-        }
+        timeline?.data_streams?.forEach(stream => {
+            stream.data.forEach(point => {
+                maxTime = Math.max(maxTime, parseOffsetSeconds(point.offset));
+            });
+        });
 
-        // Add some buffer for future visibility (10% or at least 30 seconds)
-        const buffer = Math.max(maxTime * 0.1, 30);
-        return maxTime + buffer;
+        return maxTime + Math.max(maxTime * 0.05, 15);
     }
 
-    function updateChart(timeline, stepStatus, requestHistory, timelineStart) {
-        document.getElementById("timelineInfo").style = "display: none;";
-        document.getElementById("timelineChart").style = "";
-        document.getElementById("timelineActivityChart").style = "";
+    function convertDataStreamsToChartJs(dataStreams) {
+        return dataStreams.map(ds => ({
+            label: ds.label,
+            data: ds.data.map(point => ({
+                x: parseOffsetSeconds(point.offset),
+                y: point.watts
+            })),
+            stepped: ds.stepped ? 'before' : false,
+            borderDash: ds.dashed ? [5, 5] : undefined,
+            tension: 0,
+            spanGaps: true
+        }));
+    }
 
-        // Calculate current elapsed time from test start
+    function createChartAnnotations(timeline, timelineStart) {
         const start = new Date(timelineStart);
         const nowSeconds = (new Date() - start) / 1000;
         
-        // Calculate max time for x-axis
-        const maxTime = calculateMaxTime(timeline, stepStatus, requestHistory, timelineStart);
-
-        // Convert data streams (or empty array if none)
-        const dataStreams = timeline?.data_streams || [];
-        const datasets = dataStreams.length > 0 ? convertDataStreamsToChartJs(dataStreams) : [];
-
-        // Build annotations
         const annotations = [{
             type: 'line',
             borderColor: 'black',
@@ -531,237 +514,96 @@
             value: nowSeconds
         }];
         
-        if (timeline?.set_max_w !== null && timeline?.set_max_w !== undefined) {
-            annotations.push({
-                type: 'line',
-                borderColor: 'black',
-                borderWidth: 3,
-                borderDash: [5, 5],
-                scaleID: 'y',
-                value: timeline.set_max_w,
-                label: {
-                    display: true,
-                    content: `Max: ${timeline.set_max_w}W`,
-                    position: 'end'
-                }
-            });
-            annotations.push({
-                type: 'line',
-                borderColor: 'black',
-                borderWidth: 3,
-                borderDash: [5, 5],
-                scaleID: 'y',
-                value: -timeline.set_max_w,
-                label: {
-                    display: true,
-                    content: `Min: -${timeline.set_max_w}W`,
-                    position: 'end'
-                }
-            });
-        }
-
-        if (!timelineChart) {
-            // Create new chart
-            timelineChart = new Chart(document.getElementById('timelineChart'), {
-                type: 'line',
-                data: {
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
-                    plugins: {
-                        annotation: {
-                            common: {
-                                drawTime: 'beforeDraw'
-                            },
-                            annotations: annotations
-                        },
-                        legend: {
-                            display: datasets.length > 0
-                        }
-                    },
-                    scales: {
-                        y: {
-                            title: {
-                                display: true,
-                                text: "Watts"
-                            },
-                            grid: {
-                                color: function (context) {
-                                    if (context.tick.value == 0)
-                                        return "#000000";
-                                    else
-                                        return undefined;
-                                },
-                            },
-                        },
-                        x: {
-                            type: 'linear',
-                            title: {
-                                display: true,
-                                text: "Time"
-                            },
-                            ticks: {
-                                callback: function(value) {
-                                    return formatTimeLabel(Math.floor(value));
-                                },
-                                autoSkip: true,
-                                maxTicksLimit: 15
-                            },
-                            min: 0,
-                            max: maxTime
-                        }
-                    }
-                }
-            });
-        } else {
-            // Update existing chart
-            timelineChart.data.datasets = datasets;
-            timelineChart.options.plugins.annotation.annotations = annotations;
-            timelineChart.options.plugins.legend.display = datasets.length > 0;
-            timelineChart.options.scales.x.max = maxTime;
-            timelineChart.update('none');
-        }
-
-        // === ACTIVITY CHART ===
-        const stepCompletions = extractStepCompletions(stepStatus, timelineStart);
-        const requestPositions = extractRequestPositions(requestHistory, timelineStart);
-        const activityDatasets = createActivityChartDatasets(stepCompletions, requestPositions);
-
-        if (!timelineActivityChart) {
-        timelineActivityChart = new Chart(document.getElementById('timelineActivityChart'), {
-            type: 'line',
-            data: {
-                datasets: activityDatasets
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                aspectRatio: 8,
-                interaction: {
-                    mode: null
-                },
-                plugins: {
-                    legend: {
+        if (timeline?.set_max_w != null) {
+            const maxW = timeline.set_max_w;
+            [maxW, -maxW].forEach((value, idx) => {
+                annotations.push({
+                    type: 'line',
+                    borderColor: 'black',
+                    borderWidth: 3,
+                    borderDash: [5, 5],
+                    scaleID: 'y',
+                    value: value,
+                    label: {
                         display: true,
-                        position: 'bottom'
-                    },
-                    tooltip: {
-                        enabled: false
+                        content: idx === 0 ? `Max: ${maxW}W` : `Min: -${maxW}W`,
+                        position: 'end'
                     }
-                },
-                scales: {
-                    y: {
-                        display: false,
-                        min: 0.2,
-                        max: 0.8
-                    },
-                    x: {
-                        type: 'linear',
-                        display: false,
-                        min: 0,
-                        max: maxTime
-                    }
-                }
-            }
-        });
-    } else {
-        timelineActivityChart.data.datasets = activityDatasets;
-        timelineActivityChart.options.scales.x.max = maxTime;
-        timelineActivityChart.update('none');
-    }
-    }
-
-    function extractRequestPositions(requestHistory, timelineStart) {
-        if (!requestHistory || requestHistory.length === 0 || !timelineStart) {
-            return { matched: {}, unmatched: [] };
+                });
+            });
         }
-
-        const matched = {}; // stepName -> [positions]
-        const unmatched = [];
-        const start = new Date(timelineStart);
-
-        requestHistory.forEach(request => {
-            const timestamp = new Date(request.timestamp);
-            const timeOffsetSeconds = (timestamp - start) / 1000;
-            
-            if (timeOffsetSeconds >= 0) {
-                if (request.step_name && request.step_name !== "Unmatched") {
-                    if (!matched[request.step_name]) {
-                        matched[request.step_name] = [];
-                    }
-                    matched[request.step_name].push(timeOffsetSeconds);
-                } else {
-                    unmatched.push(timeOffsetSeconds);
-                }
-            }
-        });
-
-        return { matched, unmatched };
+        
+        return annotations;
     }
 
-    function extractStepCompletions(stepStatus, timelineStart) {
-        if (!stepStatus || !timelineStart) {
-            return [];
-        }
-
-        const completions = [];
-        const stepNames = Object.keys(stepStatus);
-        const defaultColors = [
-            '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-            '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
-        ];
-
+    function extractActivityData(stepStatus, requestHistory, timelineStart) {
+        if (!timelineStart) return { stepCompletions: [], requestPositions: { matched: {}, unmatched: [] } };
+        
         const start = new Date(timelineStart);
+        const stepCompletions = [];
+        const requestPositions = { matched: {}, unmatched: [] };
 
-        stepNames.forEach((stepName, idx) => {
-            const stepInfo = stepStatus[stepName];
+        // Extract step completions
+        Object.entries(stepStatus || {}).forEach(([stepName, stepInfo], idx) => {
             if (stepInfo.completed_at) {
-                const completedAt = new Date(stepInfo.completed_at);
-                const timeOffsetSeconds = (completedAt - start) / 1000;
-                
-                if (timeOffsetSeconds >= 0) {
-                    completions.push({
+                const timeOffset = (new Date(stepInfo.completed_at) - start) / 1000;
+                if (timeOffset >= 0) {
+                    stepCompletions.push({
                         stepName,
-                        xPosition: timeOffsetSeconds,
-                        color: defaultColors[idx % defaultColors.length]
+                        xPosition: timeOffset,
+                        color: getStepColor(stepName, idx)
                     });
                 }
             }
         });
 
-        return completions;
+        // Extract request positions
+        (requestHistory || []).forEach(request => {
+            const timeOffset = (new Date(request.timestamp) - start) / 1000;
+            if (timeOffset >= 0) {
+                if (request.step_name && request.step_name !== 'Unmatched') {
+                    if (!requestPositions.matched[request.step_name]) {
+                        requestPositions.matched[request.step_name] = [];
+                    }
+                    requestPositions.matched[request.step_name].push(timeOffset);
+                } else {
+                    requestPositions.unmatched.push(timeOffset);
+                }
+            }
+        });
+
+        return { stepCompletions, requestPositions };
     }
 
-    function createActivityChartDatasets(stepCompletions, requestPositions) {
-        const activityDatasets = [];
-        const defaultColors = [
-            '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-            '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
-        ];
+    function createActivityDatasets(stepCompletions, requestPositions) {
+        const datasets = [];
+        
+        // Build a consistent color map for all steps
+        const allStepNames = [...new Set([
+            ...stepCompletions.map(s => s.stepName),
+            ...Object.keys(requestPositions.matched)
+        ])];
+        
+        const stepColorMap = {};
+        allStepNames.forEach((stepName, idx) => {
+            stepColorMap[stepName] = getStepColor(stepName, idx);
+        });
 
-        // Add unmatched requests (single grey legend entry)
+        // Add unmatched requests (grey)
         if (requestPositions.unmatched.length > 0) {
-            activityDatasets.push({
-                label: 'Unmatched Requests',
+            datasets.push({
+                label: 'Requests',
                 data: [],
-                borderColor: 'rgba(128, 128, 128, 0.6)',
+                borderColor: 'rgba(128, 128, 128, 0.8)',
                 borderWidth: 2,
                 pointRadius: 0
             });
 
             requestPositions.unmatched.forEach(xPos => {
-                activityDatasets.push({
+                datasets.push({
                     label: '',
-                    data: [
-                        { x: xPos, y: 0.2 },
-                        { x: xPos, y: 0.8 }
-                    ],
-                    borderColor: 'rgba(128, 128, 128, 0.6)',
+                    data: [{ x: xPos, y: 0.2 }, { x: xPos, y: 0.8 }],
+                    borderColor: 'rgba(128, 128, 128, 0.8)',
                     borderWidth: 2,
                     pointRadius: 0,
                     showLine: true,
@@ -770,54 +612,49 @@
             });
         }
 
-        // Add matched requests (colored, grouped by step)
-        const stepColorMap = {};
-        stepCompletions.forEach((completion, idx) => {
-            stepColorMap[completion.stepName] = completion.color;
-        });
-
+        // Add matched requests
         Object.entries(requestPositions.matched).forEach(([stepName, positions]) => {
-            const color = stepColorMap[stepName] || 'rgba(128, 128, 128, 0.6)';
+            const color = stepColorMap[stepName] || 'rgba(128, 128, 128, 0.8)';
             
-            // Add legend entry for this step's requests
-            activityDatasets.push({
-                label: `${stepName} Requests`,
-                data: [],
-                borderColor: color,
-                borderWidth: 2,
-                borderDash: [3, 3],
-                pointRadius: 0
-            });
-
-            // Add individual request lines
             positions.forEach(xPos => {
-                activityDatasets.push({
+                datasets.push({
                     label: '',
-                    data: [
-                        { x: xPos, y: 0.2 },
-                        { x: xPos, y: 0.8 }
-                    ],
+                    data: [{ x: xPos, y: 0.2 }, { x: xPos, y: 0.8 }],
                     borderColor: color,
                     borderWidth: 2,
+                    borderDash: [3, 3],
                     pointRadius: 0,
                     showLine: true,
                     tension: 0
                 });
             });
         });
-        // Add step completion lines
+
+        // Add step completions (colored)
         const stepLegendAdded = new Set();
         stepCompletions.forEach(completion => {
+            const color = stepColorMap[completion.stepName];
             const showInLegend = !stepLegendAdded.has(completion.stepName);
-            stepLegendAdded.add(completion.stepName);
+            
+            if (showInLegend) {
+                stepLegendAdded.add(completion.stepName);
+                datasets.push({
+                    label: `${completion.stepName} (completed)`,
+                    data: [],
+                    borderColor: color,
+                    borderWidth: 3,
+                    pointRadius: 0
+                });
+            }
 
-            activityDatasets.push({
-                label: showInLegend ? completion.stepName : '',
+            // Add the completion marker line
+            datasets.push({
+                label: '',
                 data: [
                     { x: completion.xPosition, y: 0.2 },
                     { x: completion.xPosition, y: 0.8 }
                 ],
-                borderColor: completion.color,
+                borderColor: color,
                 borderWidth: 3,
                 pointRadius: 0,
                 showLine: true,
@@ -825,16 +662,172 @@
             });
         });
 
-        return activityDatasets;
+        return datasets;
     }
-    function handleNewStatus(status) {
 
-        if (status === null || status === undefined) {
-            showCommsError("Failed to retrieve current status.");
-            return;
-        } else {
-            showCommsError(null)
+    function getChartLayoutPadding() {
+        // Shared padding to ensure x-axes align perfectly with chart above
+        return {
+            left: 0,    // Let Chart.js calculate based on y-axis
+            right: 15,  // Match on both charts
+            top: 5,
+            bottom: 5
+        };
+    }
+
+    function syncChartAlignment() {
+        // After initial render, sync the activity chart padding to match main timeline chart
+        if (timelineChart && timelineActivityChart) {
+            requestAnimationFrame(() => {
+                const mainArea = timelineChart.chartArea;
+                const activityPadding = {
+                    left: mainArea.left,
+                    right: timelineChart.width - mainArea.right,
+                    top: 5,
+                    bottom: 5
+                };
+                
+                timelineActivityChart.options.layout.padding = activityPadding;
+                timelineActivityChart.update('none');
+            });
         }
+    }
+
+    function updateChart(timeline, stepStatus, requestHistory, timelineStart) {
+        document.getElementById('timelineInfo').style.display = 'none';
+        document.getElementById('timelineChart').style = '';
+        document.getElementById('timelineActivityChart').style.display = 'block';
+
+        const maxTime = calculateMaxTime(timeline, timelineStart);
+        const dataStreams = timeline?.data_streams || [];
+        const datasets = dataStreams.length > 0 ? convertDataStreamsToChartJs(dataStreams) : [];
+        const annotations = createChartAnnotations(timeline, timelineStart);
+
+        const sharedXAxisConfig = {
+            type: 'linear',
+            min: 0,
+            max: maxTime,
+            ticks: {
+                callback: value => formatTimeLabel(Math.floor(value)),
+                autoSkip: true,
+                maxTicksLimit: 15
+            }
+        };
+
+        // Main timeline chart
+        if (!timelineChart) {
+            timelineChart = new Chart(document.getElementById('timelineChart'), {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2.5,
+                    layout: {
+                        padding: getChartLayoutPadding()
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        annotation: {
+                            common: { drawTime: 'beforeDraw' },
+                            annotations
+                        },
+                        legend: { display: datasets.length > 0 }
+                    },
+                    scales: {
+                        x: {
+                            ...sharedXAxisConfig,
+                            title: { display: true, text: 'Time' },
+                            grid: {
+                                drawBorder: true,
+                                display: true
+                            }
+                        },
+                        y: {
+                            title: { display: true, text: 'Watts' },
+                            grid: {
+                                color: context => context.tick.value === 0 ? '#000000' : undefined
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            timelineChart.data.datasets = datasets;
+            timelineChart.options.plugins.annotation.annotations = annotations;
+            timelineChart.options.plugins.legend.display = datasets.length > 0;
+            timelineChart.options.scales.x.max = maxTime;
+            timelineChart.update('none');
+        }
+
+        // Activity chart
+        const { stepCompletions, requestPositions } = extractActivityData(stepStatus, requestHistory, timelineStart);
+        const activityDatasets = createActivityDatasets(stepCompletions, requestPositions);
+
+        if (!timelineActivityChart) {
+            timelineActivityChart = new Chart(document.getElementById('timelineActivityChart'), {
+                type: 'line',
+                data: { datasets: activityDatasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 8,
+                    layout: {
+                        padding: getChartLayoutPadding()
+                    },
+                    interaction: { mode: null },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                filter: item => item.text !== ''
+                            }
+                        },
+                        tooltip: { enabled: false }
+                    },
+                    scales: {
+                        x: {
+                            ...sharedXAxisConfig,
+                            display: false,
+                            grid: { drawBorder: false, display: false }
+                        },
+                        y: {
+                            display: false,
+                            min: 0,
+                            max: 1,
+                            grid: { drawBorder: false, display: false }
+                        }
+                    }
+                }
+            });
+            
+            // Sync alignment after both charts are created
+            syncChartAlignment();
+        } else {
+            timelineActivityChart.data.datasets = activityDatasets;
+            timelineActivityChart.options.scales.x.max = maxTime;
+            timelineActivityChart.update('none');
+        }
+        
+        // Re-sync alignment on updates (in case window was resized)
+        if (timelineChart && timelineActivityChart) {
+            syncChartAlignment();
+        }
+    }
+
+    // STATUS UPDATES
+    
+    function handleNewStatus(status) {
+        if (!status) {
+            showCommsError('Failed to retrieve current status.');
+            return;
+        }
+        
+        showCommsError(null);
 
         // update test initialisation text
         // the element 'update-initialised-card' will only exist in the dom if the test is in the init-phase.
@@ -907,6 +900,17 @@
             window.location = runStatusUri;
         } else {
             console.error("Request failed with status and content:", status, content);
+        }
+    }
+
+    function parseStatus(rawJsonString) {
+        if (!rawJsonString) return null;
+        
+        try {
+            return JSON.parse(rawJsonString);
+        } catch (error) {
+            console.error('Error parsing status:', error);
+            return null;
         }
     }
 
