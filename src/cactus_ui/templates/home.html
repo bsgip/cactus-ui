@@ -99,10 +99,41 @@
 
   <hr class="my-4">
 
-  {% if support_email %}
-  <div class="text-center mb-4">
-    <p class="lead mb-0">Need help? Contact <a href="mailto:{{ support_email }}">{{ support_email }}</a></p>
+{% if support_email %}
+<div class="mb-4">
+  <h2 class="mb-3">Need Help?</h2>
+  <div class="row">
+    <div class="col-md-4 mb-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">🐛 Report a Bug</h5>
+          <p class="card-text mb-0">
+            <a href="https://tinyurl.com/mrbu8cwt" target="_blank">tinyurl.com/mrbu8cwt</a>
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 mb-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">📋 Standards Help</h5>
+          <p class="card-text mb-0">
+            <a href="mailto:csipaus-cert@anu.edu.au">csipaus-cert@anu.edu.au</a>
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 mb-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">💬 Software Questions</h5>
+          <p class="card-text mb-0">
+            <a href="mailto:support@bsgip.com">support@bsgip.com</a>
+          </p>
+        </div>
+      </div>
+    </div>
   </div>
-  {% endif %}
 </div>
+{% endif %}
 {% endblock %}
