@@ -605,9 +605,9 @@ def fetch_run_groups(access_token: str, page: int) -> Pagination[RunGroupRespons
     )
 
 
-def fetch_request_details(access_token: str, request_id: int) -> str | None:
+def fetch_request_details(access_token: str, request_id: int, run_id: str) -> str | None:
     """Fetch raw request/response data for a specific request."""
-    uri = generate_uri(f"/request/{request_id}")
+    uri = generate_uri(f"/run/{run_id}/requests/{request_id}")
 
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
 

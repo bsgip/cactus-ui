@@ -851,12 +851,12 @@ def run_status_json(access_token: str, run_id: str) -> Response:
     return Response(response=status, status=200, mimetype="application/json")
 
 
-@app.route("/request/<int:request_id>", methods=["GET"])
+@app.route("/run/<int:run_id>/requests/<int:request_id>", methods=["GET"])
 @login_required
-def run_request_details(access_token: str, request_id: int) -> Response:
+def run_request_details(access_token: str, request_id: int, run_id: str) -> Response:
     """Fetch raw request/response data for a specific request."""
 
-    request_data = orchestrator.fetch_request_details(access_token=access_token, request_id=request_id)
+    request_data = orchestrator.fetch_request_details(access_token=access_token, request_id=request_id, run_id=run_id)
 
     if request_data is None:
         return Response(
