@@ -205,8 +205,12 @@
                     Currently <span class="badge text-bg-primary">Dynamic</span>
                     {% endif %}
                 </p>
-
-                <br>
+                <p class="card-text">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>Note:</strong> Start a test run from the <a href="{{ url_for('runs_page') }}">Runs</a> page to activate the URI.
+                    </small>
+                </p>
 
                 <form method="POST" action="{{ url_for('config_page') }}">
                     <input type="hidden" name="static_uri" , value="{{ not static_uri }}">
