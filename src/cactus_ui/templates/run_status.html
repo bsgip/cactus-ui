@@ -177,10 +177,11 @@
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(0,0,0,0.5); z-index: 9999;
         display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
     }
     #requestModal .modal-content {
         background: white; width: 90%; max-width: 1200px; max-height: 90vh;
-        padding: 20px; overflow-y: auto;
+        padding: 20px; overflow-y: auto; overflow-x: hidden;
     }
     #requestModal .modal-header {
         display: flex; justify-content: space-between; align-items: center;
@@ -191,6 +192,9 @@
     }
     #requestModal pre {
         background: #f8f9fa; padding: 10px; overflow-x: auto;
+    }
+    body.modal-open {
+        overflow: hidden;
     }
 </style>
 
@@ -881,14 +885,20 @@
             const data = JSON.parse(content);
             const escape = (s) => s ? s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) : '';
             
+            // Extract first line of request (e.g., "GET /edev HTTP/1.1")
+            const requestFirstLine = data.request ? data.request.split('\n')[0].trim() : 'Request';
+            
+            // Prevent body scroll
+            document.body.classList.add('modal-open');
+            
             const modal = document.createElement('div');
             modal.id = 'requestModal';
             modal.innerHTML = `
-                <div class="modal-backdrop" onclick="this.parentElement.remove()">
+                <div class="modal-backdrop" onclick="closeRequestModal()">
                     <div class="modal-content" onclick="event.stopPropagation()">
                         <div class="modal-header">
-                            <h5>Request Details (ID: ${data.request_id})</h5>
-                            <button onclick="this.closest('#requestModal').remove()">&times;</button>
+                            <h5>${requestFirstLine}</h5>
+                            <button onclick="closeRequestModal()">&times;</button>
                         </div>
                         <div class="modal-body">
                             <h6>Request</h6>
@@ -896,12 +906,19 @@
                             <h6>Response</h6>
                             <pre><code>${escape(data.response || 'No response data')}</code></pre>
                         </div>
-                        <button class="btn btn-secondary" onclick="this.closest('#requestModal').remove()">Close</button>
                     </div>
                 </div>
             `;
             document.body.appendChild(modal);
         }, () => alert('Failed to load request details'));
+    }
+
+    function closeRequestModal() {
+        const modal = document.getElementById('requestModal');
+        if (modal) {
+            modal.remove();
+            document.body.classList.remove('modal-open');
+        }
     }
 
     addEventListener("load", (event) => {
