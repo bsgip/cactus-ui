@@ -26,8 +26,10 @@
             <div id="update-initialised-card"></div>
             {% elif run_status == 'started' %}
             <p class="card-text">The test is now underway - the server will have loaded any initial preconditions
-                (eg: DERControls) and its now time for your client to respond appropriately. When you're ready to
-                end the test, press the Finalise button</p>
+                (eg: DERControls) and its now time for your client to respond appropriately.</p>
+                <p>When you're ready to end the test, press the Finalise button. An artefact will be downloaded including
+                    a PDF report, request logs, and server logs to help with debugging.
+                </p>
             <form id='finalise-form' method="POST">
                 <input type="hidden" name="action" value="finalise">
                 <button {{user_buttons_state}} type="submit" class="btn btn-warning" onclick="handleButtonClick(event)">Finalise</button>
@@ -121,6 +123,21 @@
 <div class="row justify-content-center">
     <div class="card status-container ">
         <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title mb-0" id="xsd-section-title">Latest XSD Validation Error</h5>
+                <div class="btn-group" role="group" id="xsd-navigation">
+                </div>
+            </div>
+            <table class="table">
+                <tbody id="update-xsd-table"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<br>
+<div class="row justify-content-center">
+    <div class="card status-container ">
+        <div class="card-body">
             <h5 class="card-title">Envoy Logs</h5>
             <pre id="update-log-envoy">Loading...</pre>
         </div>
@@ -153,7 +170,33 @@
         max-width: 1000px;
         max-height: 600px;
         overflow-y: auto;
-
+    }
+    #update-xsd-table th {
+        width: 120px;
+        white-space: nowrap;
+    }
+    #requestModal .modal-backdrop {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); z-index: 9999;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
+    }
+    #requestModal .modal-content {
+        background: white; width: 90%; max-width: 1200px; max-height: 90vh;
+        padding: 20px; overflow-y: auto; overflow-x: hidden;
+    }
+    #requestModal .modal-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 15px;
+    }
+    #requestModal .modal-header button {
+        border: none; background: none; font-size: 24px; cursor: pointer;
+    }
+    #requestModal pre {
+        background: #f8f9fa; padding: 10px; overflow-x: auto;
+    }
+    body.modal-open {
+        overflow: hidden;
     }
     .timeline-container {
         max-height: 900px;
@@ -163,6 +206,8 @@
 <script>
     var timelineChart = null;
     var timelineActivityChart = null;
+    var cachedXsdRequests = null;
+    const runId = parseInt("{{ run_id }}");
     const isAdminView = "{{ is_admin_view }}" === 'True';
     const userButtonsState = "{{ user_buttons_state }}";
     const runIsLive = "{{ run_is_live }}" === 'True';
@@ -170,6 +215,7 @@
     const adminRunStatusUri = "{{ url_for('admin_run_status_page', run_id=run_id) }}";
     const runStatusUri = isAdminView ? adminRunStatusUri : userRunStatusUri;
     const formAction = runStatusUri 
+    
 
     if (isAdminView) {
         // Update actions for forms defined in template
@@ -389,6 +435,7 @@
                 <td></td>
                 <td></td>
                 <td></td>
+                <td></td>
             </tr>`];
         }
 
@@ -406,10 +453,175 @@
                 <td>${r.method} ${r.path} <span class="badge text-bg-${statusColor}">${r.status}</span></td>
                 <td>${stepName}</td>
                 <td><span class="badge text-bg-${schemaColor}">${schemaText}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="showRequestDetails(${r.request_id})">
+                        Details
+                    </button>
+                </td>
             </tr>`);
         }
 
         return fragments
+    }
+    function xsdTableBody(requests) {
+        // Only filter and sort once, or when requests change
+        if (!cachedXsdRequests || cachedXsdRequests.sourceLength !== requests.length) {
+            cachedXsdRequests = {
+                list: requests
+                    .filter(r => r.body_xml_errors && r.body_xml_errors.length > 0)
+                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                    .slice(0, 10),
+                sourceLength: requests.length
+            };
+        }
+        
+        const requestsWithErrors = cachedXsdRequests.list;
+        
+        // Update the title based on count
+        const titleElement = document.querySelector('#xsd-section-title');
+        if (titleElement) {
+            // Count total errors before slicing
+            const totalErrorCount = requests
+                .filter(r => r.body_xml_errors && r.body_xml_errors.length > 0)
+                .length;
+            
+            if (requestsWithErrors.length === 0 || requestsWithErrors.length === 1) {
+                titleElement.textContent = 'Latest XSD Validation Error';
+            } else if (totalErrorCount > 10) {
+                titleElement.textContent = `Latest XSD Validation Errors: Showing 10/${totalErrorCount}`;
+            } else {
+                titleElement.textContent = 'Latest XSD Validation Errors';
+            }
+        }
+        
+        if (requestsWithErrors.length === 0) {
+            // Rmeove navigation
+            document.getElementById('xsd-navigation').innerHTML = '';
+            
+            return [`
+                <tr>
+                    <td colspan="2" class="text-center text-muted">No XSD validation errors detected</td>
+                </tr>`
+            ];
+        }
+        
+        const currentIndex = parseInt(document.getElementById('xsdErrorIndex')?.value || '0', 10);
+        const currentRequest = requestsWithErrors[currentIndex];
+        const errorTimestamp = new Date(Date.parse(currentRequest.timestamp));
+        
+        // Update navigation buttons
+        const navContainer = document.getElementById('xsd-navigation');
+        if (requestsWithErrors.length > 1) {
+            navContainer.innerHTML = `
+                <button type="button" class="btn btn-sm btn-outline-primary" 
+                        onclick="cycleXsdError(-1)" 
+                        ${currentIndex === 0 ? 'disabled' : ''}>
+                    ← Previous
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" disabled>
+                    ${currentIndex + 1} of ${requestsWithErrors.length}
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" 
+                        onclick="cycleXsdError(1)"
+                        ${currentIndex === requestsWithErrors.length - 1 ? 'disabled' : ''}>
+                    Next →
+                </button>
+                <input type="hidden" id="xsdErrorIndex" value="${currentIndex}">
+                <input type="hidden" id="xsdErrorCount" value="${requestsWithErrors.length}">
+            `;
+        } else {
+            navContainer.innerHTML = `
+                <input type="hidden" id="xsdErrorIndex" value="0">
+                <input type="hidden" id="xsdErrorCount" value="1">
+            `;
+        }
+        
+        const fragments = [];
+        
+        fragments.push(`
+            <tr>
+                <th scope="row">Timestamp</th>
+                <td>${formatDate(errorTimestamp)} (${formatRelativeDate(errorTimestamp)})</td>
+            </tr>
+        `);
+        
+        fragments.push(`
+            <tr>
+                <th scope="row">Request</th>
+                <td>${currentRequest.method} ${currentRequest.path}</td>
+            </tr>
+        `);
+        
+        fragments.push(`
+            <tr>
+                <th scope="row">URL</th>
+                <td><code style="word-break: break-all;">${currentRequest.url}</code></td>
+            </tr>
+        `);
+        
+        fragments.push(`
+            <tr>
+                <th scope="row">Status Code</th>
+                <td><span class="badge text-bg-${currentRequest.status < 200 || currentRequest.status > 299 ? 'danger' : 'success'}">${currentRequest.status}</span></td>
+            </tr>
+        `);
+        
+        fragments.push(`
+            <tr>
+                <th scope="row">Step</th>
+                <td>${currentRequest.step_name === "Unmatched" ? "<em>Unmatched</em>" : currentRequest.step_name}</td>
+            </tr>
+        `);
+        
+        const MAX_ERROR_LENGTH = 500;
+        const truncateError = (error) => {
+            if (error.length <= MAX_ERROR_LENGTH) {
+                return error;
+            }
+            return error.substring(0, MAX_ERROR_LENGTH) + '... <em>(truncated)</em>';
+        };
+        
+        fragments.push(`
+            <tr>
+                <th scope="row">XSD Errors</th>
+                <td>
+                    <ul class="mb-0" style="max-height: 300px; overflow-y: auto;">
+                        ${currentRequest.body_xml_errors.map(err => `<li><code style="white-space: pre-wrap; word-break: break-word;">${truncateError(err)}</code></li>`).join('')}
+                    </ul>
+                </td>
+            </tr>
+        `);
+
+        fragments.push(`
+            <tr>
+                <th scope="row">Details</th>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="showRequestDetails(${currentRequest.request_id})">
+                        View Full Request Details
+                    </button>
+                </td>
+            </tr>
+        `);
+        
+        return fragments;
+    }
+
+    function cycleXsdError(direction) {
+        const indexInput = document.getElementById('xsdErrorIndex');      // Current position
+        const countInput = document.getElementById('xsdErrorCount');      // Total number of errors
+        
+        if (!indexInput || !countInput) return;  // Safety check
+        
+        // Get the current values
+        const currentIndex = parseInt(indexInput.value, 10);  // e.g., error #2 (index 1)
+        const maxCount = parseInt(countInput.value, 10);      // e.g., 5 total errors
+        
+        const newIndex = Math.max(0, Math.min(maxCount - 1, currentIndex + direction)); // Calculate the new index       
+        indexInput.value = newIndex; // Update the stored index
+        
+        // Re-render the table
+        const xsdTable = document.getElementById('update-xsd-table');
+        xsdTable.innerHTML = xsdTableBody(window.currentStatus.request_history ?? []).join("");
     }
 
     function alertBanner(message) {
@@ -790,8 +1002,11 @@
     // STATUS UPDATES
     
     function handleNewStatus(status) {
-        if (!status) {
-            showCommsError('Failed to retrieve current status.');
+        // Store status globally for cycleXsdError
+        window.currentStatus = status;
+
+        if (status === null || status === undefined) {
+            showCommsError("Failed to retrieve current status.");
             return;
         }
         
@@ -839,6 +1054,10 @@
         // update metadata table
         const metadataTable = document.getElementById('update-metadata-table');
         metadataTable.innerHTML = metadataTableBody(status.end_device_metadata).join("");
+
+        // update xsd validation errors
+        const xsdTable = document.getElementById('update-xsd-table');
+        xsdTable.innerHTML = xsdTableBody(status.request_history ?? []).join("");
 
         // update step instructions
         if ("{{run_status}}" === "started") {
@@ -907,6 +1126,47 @@
         }
 
         setTimeout(fetchStatus, pollRateMs); // start the loop after initial poll delay
+    }
+
+    function showRequestDetails(requestId) {
+        xhrRequest(`/run/${runId}/requests/${requestId}`, (content) => {
+            const data = JSON.parse(content);
+            const escape = (s) => s ? s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) : '';
+            
+            // Extract first line of request (e.g., "GET /edev HTTP/1.1")
+            const requestFirstLine = data.request ? data.request.split('\n')[0].trim() : 'Request';
+            
+            // Prevent body scroll
+            document.body.classList.add('modal-open');
+            
+            const modal = document.createElement('div');
+            modal.id = 'requestModal';
+            modal.innerHTML = `
+                <div class="modal-backdrop" onclick="closeRequestModal()">
+                    <div class="modal-content" onclick="event.stopPropagation()">
+                        <div class="modal-header">
+                            <h5>${requestFirstLine}</h5>
+                            <button onclick="closeRequestModal()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <h6>Request</h6>
+                            <pre><code>${escape(data.request || 'No request data')}</code></pre>
+                            <h6>Response</h6>
+                            <pre><code>${escape(data.response || 'No response data')}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }, () => alert('Failed to load request details'));
+    }
+
+    function closeRequestModal() {
+        const modal = document.getElementById('requestModal');
+        if (modal) {
+            modal.remove();
+            document.body.classList.remove('modal-open');
+        }
     }
 
     addEventListener("load", (event) => {

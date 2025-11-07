@@ -443,10 +443,12 @@
             document.getElementById("runs-title").innerHTML = `<a href="/procedure/${test_procedure_id}">${test_procedure_id}</a> ${description}`;
 
             const hidden = isAdminView ? "hidden" : ""
-            document.getElementById("runs-actions").innerHTML = `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
+            document.getElementById("runs-actions").innerHTML = `
+            <form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
                 <input type="hidden" name="test_procedure_id" value="${test_procedure_id}">
                 <input type="hidden" name="action" value="initialise">
                 <button ${hidden} type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">New Test Run</button>
+                <small class="text-muted d-block mt-1">May take up to 30s to initialize</small>
             </form>`;
 
             loadProcedureRuns(test_procedure_id)

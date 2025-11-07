@@ -1,62 +1,139 @@
 {% extends "base.html" %}
 
-{% block title %}Guide – CACTUS{% endblock %}
+{% block title %}Welcome – CACTUS{% endblock %}
 
 {% block content %}
 {% include 'banner.html' %}
-<div class="container mt-5">
-  <h1>Quick Start Guide</h1>
-  <p class="lead">Run your CSIP-Australia client against our testing harness in three steps.</p>
+<div class="container mt-4">
+  <div class="text-center mb-4">
+    <h1 class="display-4">Welcome to CACTUS</h1>
+    <p class="lead text-muted">CSIP-Australia client testing for utility services</p>
+  </div>
 
-  <hr>
+  <hr class="my-4">
 
-  <h2>1. Download Your Client Certificate</h2>
-  <p>
-    CSIP-Australia (based on IEEE 2030.5) uses mutual TLS for authentication.
-    Download your certificate from the <a href="/config">Config page</a> and install it in your client.
-    <br><br>
-    <strong>Note:</strong> Certificates expire. Revisit the page to refresh and download a new one when needed.
-  </p>
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <h2 class="mb-3">Getting Started</h2>
+      <ol class="list-group list-group-numbered mb-4">
+        <li class="list-group-item d-flex">
+          <div class="ms-2">
+            <strong>Configure:</strong> Download your certificate from the <a href="/config">Config page</a> and install it in your client. Optionally enable your domain for notifications here too.
+          </div>
+        </li>
+        <li class="list-group-item d-flex">
+          <div class="ms-2">
+            <strong>Test:</strong> Go to the <a href="/runs">Runs page</a>, select a test procedure, and click 'Start Run'. Point your client at the provided test URL.
+          </div>
+        </li>
+        <li class="list-group-item d-flex">
+          <div class="ms-2">
+            <strong>Results:</strong> Once your test is complete, click 'Finalize' to download your test results package.
+          </div>
+        </li>
+      </ol>
+    </div>
+  </div>
 
-  <h2>2. Enable your domain for notifications (Optional)</h2>
-  <p>
-    IEEE 2030.5 allows the registration of arbitrary URIs to receive HTTP notifications. This tool will allow you to
-    register a single authorised domain that can be used to receive these notifications. You can configure this domain
-    from the <a href="/config">Config page</a>
+  <hr class="my-4">
 
-    <br><br>
-    <strong>Note:</strong> Attempting to create a subscription using a notification URI outside of this configured
-    domain will raise an error.
-  </p>
+  <h2 class="mb-3">Essential Resources</h2>
+  
+  <div class="row mb-4">
+    <div class="col-md-6 mb-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <h3 class="card-title h5">📚 Documentation</h3>
+          <p class="card-text">
+            <a href="https://www.csipaus.org/documents" target="_blank">csipaus.org/documents</a> contains:
+          </p>
+          <ul class="card-text mb-0">
+            <li class="mb-2"><strong>CSIP-AUS v1.2 Explainer Document</strong><br>
+              <small class="text-muted">Certificate/LFDI/SFDI/PEN matching and ramp rate explanations</small>
+            </li>
+            <li class="mb-2"><strong>SA TS 5573:2025 Standard</strong><br>
+              <small class="text-muted">Official specification</small>
+            </li>
+            <li class="mb-0"><strong>Open source GitHub repositories</strong><br>
+              <small class="text-muted">All test tools and utility server code</small>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
 
-  <h2>3. Review Test Procedures</h2>
-  <p>
-    Go to the <a href="/procedures">Test Procedures</a> page for the full list of available procedures with
-    descriptions.
-    These follow the <em>DEIP Interoperability Steering Committee – Common Smart Inverter Profile (Australia) – Test
-      Procedures</em>, version 1.2.
-    <!-- TODO: Add link to doc -->
-  </p>
+    <div class="col-md-6 mb-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <h3 class="card-title h5">📦 Your Test Results</h3>
+          <p class="card-text">
+            When you finalize a test run, you'll receive:
+          </p>
+          <ul class="card-text mb-2">
+            <li>PDF test summary with pass/fail results</li>
+            <li>Complete server logs</li>
+            <li>Request/response logs for debugging</li>
+          </ul>
+          <p class="card-text mb-0">
+            <small class="text-muted">Use these artifacts to troubleshoot any test failures.</small>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <h2>4. Use the Runs Page</h2>
-  <p>
-    Go to the <a href="/runs">Runs page</a> to manage everything test-related:
-  </p>
-  <ul>
-    <li>Trigger a new test run by selecting a procedure from the dropdown and clicking <strong>Start Run</strong>.
-      You'll be given a test URL to point your client at.</li>
-    <ul>
-      <li><strong>Note:</strong> It can take up to 30 seconds for your test environment to be ready.</li>
-    </ul>
-    <li>Once the client has completed the procedure steps, click <strong>Finalise</strong> to compile results. A ZIP
-      file will be returned.</li>
-    <li>Download past results at any time from the same page.</li>
-  </ul>
+  <hr class="my-4">
 
-  <hr>
+  <div class="row">
+    <div class="col-lg-10 mx-auto">
+      <h2 class="mb-3">Common Issues</h2>
+      <div class="alert alert-warning" role="alert">
+        <ul class="mb-0">
+          <li class="mb-2"><strong>XSD validation is strict</strong> – Element ordering must be correct</li>
+          <li class="mb-2"><strong>Certificate matching</strong> – Your certificate, LFDI, SFDI, and PEN must align correctly (see CSIP-AUS explainer document)</li>
+          <li class="mb-0"><strong>MirrorMeterReading requirements</strong> – CSIP-AUS enforces only a subset; refer to SA TS 5573:2025, Table 8.1</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 
-  {% if support_email %}
-  <p>Need help? Contact <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
-  {% endif %}
+  <hr class="my-4">
+
+{% if support_email %}
+<div class="mb-4">
+  <h2 class="mb-3">Need Help?</h2>
+  <div class="row">
+    <div class="col-md-4 mb-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">🐛 Report a Bug</h5>
+          <p class="card-text mb-0">
+            <a href="https://tinyurl.com/mrbu8cwt" target="_blank">tinyurl.com/mrbu8cwt</a>
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 mb-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">📋 Standards Help</h5>
+          <p class="card-text mb-0">
+            <a href="mailto:csipaus-cert@anu.edu.au">csipaus-cert@anu.edu.au</a>
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 mb-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">💬 Software Questions</h5>
+          <p class="card-text mb-0">
+            <a href="mailto:support@bsgip.com">support@bsgip.com</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+{% endif %}
 {% endblock %}
