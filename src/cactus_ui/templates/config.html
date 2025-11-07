@@ -176,11 +176,9 @@
         </div>
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Subscription Notification Domain</h5>
+                <h5 class="card-title">Subscription Notification Domain (Optional)</h5>
                 <p class="card-text">This domain will be authorised for receiving subscription notifications.</p>
-                <p class="card-text"><b>Note:</b> Attempts to register notification URIs outside of this domain will be
-                    rejected.</p>
-                <br>
+                <p class="card-text"><b>Note:</b> All subscription notification URIs must use this registered domain, or they will be rejected.</p>
                 <br>
                 <form method="POST" action="{{ url_for('config_page') }}">
                     <input type="text" class="form-control" id="inputDomain1" name="subscription_domain"
@@ -207,8 +205,12 @@
                     Currently <span class="badge text-bg-primary">Dynamic</span>
                     {% endif %}
                 </p>
-
-                <br>
+                <p class="card-text">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i> 
+                        Start a test run from the <a href="{{ url_for('runs_page') }}">Runs</a> page to activate the URI.
+                    </small>
+                </p>
 
                 <form method="POST" action="{{ url_for('config_page') }}">
                     <input type="hidden" name="static_uri" , value="{{ not static_uri }}">
