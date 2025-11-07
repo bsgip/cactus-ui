@@ -65,9 +65,6 @@ class ConfigResponse:
     subscription_domain: str
     is_static_uri: bool
     static_uri: str | None
-    is_device_cert: bool  # if true - all test instances will spawn using the device certificate. Otherwise use agg cert
-    aggregator_certificate_expiry: datetime | None  # When the current user aggregator cert expires. None = expired
-    device_certificate_expiry: datetime | None  # When the current user device cert expires. None = expired
     pen: int | None
 
 
@@ -109,6 +106,9 @@ class RunGroupResponse:
     name: str
     csip_aus_version: str
     created_at: datetime
+    is_device_cert: bool | None
+    certificate_id: int | None
+    certificate_created_at: datetime | None
     total_runs: int
 
 
@@ -218,9 +218,6 @@ def fetch_config(access_token: str) -> ConfigResponse | None:
         subscription_domain=data["subscription_domain"],
         is_static_uri=data["is_static_uri"],
         static_uri=data.get("static_uri", None),
-        is_device_cert=data["is_device_cert"],
-        device_certificate_expiry=data["device_certificate_expiry"],
-        aggregator_certificate_expiry=data["aggregator_certificate_expiry"],
         pen=data["pen"] if "pen" in data else 0,
     )
 
@@ -265,7 +262,7 @@ def update_username(
 
 
 def download_certificate_authority_cert(access_token: str) -> bytes | None:
-    """Downloads the current CA cert - returns the raw x509 bytes"""
+    """Downloads the current CA cert - returns the raw x509 PEM bytes"""
     uri = generate_uri("/certificate/authority")
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
@@ -274,84 +271,42 @@ def download_certificate_authority_cert(access_token: str) -> bytes | None:
     return response.content
 
 
-def refresh_aggregator_cert(access_token: str) -> str | None:
-    """Refreshes the current aggregator cert - returns the new password for the cert"""
-    uri = generate_uri("/certificate/aggregator")
-    response = safe_request("PUT", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
-    if response is None or not is_success_response(response):
-        return None
-
-    return response.headers["X-Certificate-Password"]
+def try_read_file_name(response: requests.Response, default_val: str) -> str:
+    content_disposition = response.headers.get("Content-Disposition", None)
+    if content_disposition and "filename=" in content_disposition:
+        return content_disposition.split("filename=")[1]
+    else:
+        return default_val
 
 
-def download_aggregator_cert(access_token: str) -> bytes | None:
-    """Downloads the current cert - returns the raw p12 bytes"""
-    uri = generate_uri("/certificate/aggregator")
+def download_client_cert(access_token: str, run_group_id: int) -> tuple[bytes | None, str | None]:
+    """Downloads the current client certificate for run_group_id - returns the raw x509 PEM bytes AND an
+    appropriate file name"""
+
+    uri = generate_uri(f"/run_group/{run_group_id}/certificate")
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
-        return None
+        return (None, None)
 
-    return response.content
+    return (response.content, try_read_file_name(response, "client.pem"))
 
 
-def download_aggregator_pem_cert(access_token: str) -> bytes | None:
-    """Downloads the aggregator cert - returns .crt as bytes"""
-    uri = generate_uri("/certificate/pem/aggregator")
-    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+def generate_client_cert(access_token: str, run_group_id: int, is_device_cert: bool) -> tuple[bytes | None, str | None]:
+    """Generates a new client certificate for run_group_id - returns a ZIP stream with all the data and an appropriate
+    file name"""
+
+    uri = generate_uri(f"/run_group/{run_group_id}/certificate")
+    response = safe_request(
+        "PUT",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+        json={"is_device_cert": is_device_cert},
+    )
     if response is None or not is_success_response(response):
-        return None
+        return (None, None)
 
-    return response.content
-
-
-def download_aggregator_pem_key(access_token: str) -> bytes | None:
-    """Downloads the aggregator cert - returns .key as bytes"""
-    uri = generate_uri("/certificate/pem/aggregator?key=true")
-    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
-    if response is None or not is_success_response(response):
-        return None
-
-    return response.content
-
-
-def download_device_pem_cert(access_token: str) -> bytes | None:
-    """Downloads the aggregator cert - returns .crt as bytes"""
-    uri = generate_uri("/certificate/pem/device")
-    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
-    if response is None or not is_success_response(response):
-        return None
-
-    return response.content
-
-
-def download_device_pem_key(access_token: str) -> bytes | None:
-    """Downloads the aggregator cert - returns .key as bytes"""
-    uri = generate_uri("/certificate/pem/device?key=true")
-    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
-    if response is None or not is_success_response(response):
-        return None
-
-    return response.content
-
-
-def refresh_device_cert(access_token: str) -> str | None:
-    """Refreshes the current device cert - returns the new password for the cert"""
-    uri = generate_uri("/certificate/device")
-    response = safe_request("PUT", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
-    if response is None or not is_success_response(response):
-        return None
-
-    return response.headers["X-Certificate-Password"]
-
-
-def download_device_cert(access_token: str) -> bytes | None:
-    """Downloads the device cert - returns the raw p12 bytes"""
-    uri = generate_uri("/certificate/device")
-    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
-    if response is None or not is_success_response(response):
-        return None
-
-    return response.content
+    return (response.content, try_read_file_name(response, "client.pem"))
 
 
 class InitialiseRunFailureType(IntEnum):
@@ -601,6 +556,9 @@ def fetch_run_groups(access_token: str, page: int) -> Pagination[RunGroupRespons
             name=r["name"],
             run_group_id=r["run_group_id"],
             total_runs=r["total_runs"],
+            certificate_created_at=datetime.fromisoformat(r["certificate_created_at"]),
+            certificate_id=r["certificate_id"],
+            is_device_cert=r["is_device_cert"],
         ),
     )
 
@@ -637,6 +595,9 @@ def create_run_group(access_token: str, csip_aus_version: str) -> RunGroupRespon
         name=raw_response["name"],
         run_group_id=raw_response["run_group_id"],
         total_runs=raw_response["total_runs"],
+        certificate_created_at=datetime.fromisoformat(raw_response["certificate_created_at"]),
+        certificate_id=raw_response["certificate_id"],
+        is_device_cert=raw_response["is_device_cert"],
     )
 
 
@@ -660,6 +621,9 @@ def update_run_group(access_token: str, run_group_id: int, name: str) -> RunGrou
         name=raw_response["name"],
         run_group_id=raw_response["run_group_id"],
         total_runs=raw_response["total_runs"],
+        certificate_created_at=datetime.fromisoformat(raw_response["certificate_created_at"]),
+        certificate_id=raw_response["certificate_id"],
+        is_device_cert=raw_response["is_device_cert"],
     )
 
 
@@ -721,6 +685,9 @@ def admin_fetch_run_groups(access_token: str, run_group_id: int, page: int) -> P
             name=r["name"],
             run_group_id=r["run_group_id"],
             total_runs=r["total_runs"],
+            certificate_created_at=datetime.fromisoformat(r["certificate_created_at"]),
+            certificate_id=r["certificate_id"],
+            is_device_cert=r["is_device_cert"],
         ),
     )
 

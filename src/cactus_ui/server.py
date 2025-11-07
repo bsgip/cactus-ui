@@ -5,6 +5,7 @@ import json
 import logging
 import logging.config
 import os
+import zipfile
 from base64 import b64encode
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -14,7 +15,7 @@ from os import environ as env
 from pathlib import Path
 from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
-import zipfile
+
 import jwt
 from authlib.integrations.flask_client import OAuth
 from dotenv import find_dotenv, load_dotenv
@@ -477,56 +478,42 @@ def send_zip_file(filename: str, files: dict[str, bytes | None]) -> Response:
 @login_required
 def config_page(access_token: str) -> str | Response:  # noqa: C901
     error = None
-    pwd = None
+
     if request.method == "POST":
         action = request.form.get("action")
-        certificate = request.form.get("certificate", None)
-        if action == "refresh":
-            if certificate == "aggregator":
-                pwd = orchestrator.refresh_aggregator_cert(access_token)
-            elif certificate == "device":
-                pwd = orchestrator.refresh_device_cert(access_token)
-
-            if pwd is None:
-                error = f"Failed to generate/refresh {certificate} certificate."
-        elif action == "download-certs":
-            files = {}
-            basename = f"{certificate}-cert"
-            filename = f"{basename}-certificates.zip"
-            if certificate == "aggregator":
-                p12_cert_data = orchestrator.download_aggregator_cert(access_token)
-                pem_cert = orchestrator.download_aggregator_pem_cert(access_token)
-                pem_key = orchestrator.download_aggregator_pem_key(access_token)
-                files = {f"{basename}.p12": p12_cert_data, f"{basename}.crt": pem_cert, f"{basename}.key": pem_key}
-            elif certificate == "device":
-                p12_cert_data = orchestrator.download_device_cert(access_token)
-                pem_cert = orchestrator.download_device_pem_cert(access_token)
-                pem_key = orchestrator.download_device_pem_key(access_token)
-                files = {f"{basename}.p12": p12_cert_data, f"{basename}.crt": pem_cert, f"{basename}.key": pem_key}
-            if not files:
-                error = f"Failed to retrieve certificates for {certificate}."
-            else:
-                return send_zip_file(filename=filename, files=files)
-
-        elif action == "download-ca":
-            cert_data = mimetype = filename = None
-            if certificate == "authority":
-                cert_data = orchestrator.download_certificate_authority_cert(access_token)
-                mimetype = "application/x-x509-ca-cert"
-                filename = "cactus-ca-certificate.der"
-            if cert_data is None or mimetype is None or filename is None:
-                error = f"Failed to retrieve {certificate} certificate."
+        if action == "downloadcert":
+            run_group_id = int(request.form.get("run_group_id", ""))
+            download_bytes, download_file_name = orchestrator.download_client_cert(access_token, run_group_id)
+            if not download_bytes or not download_file_name:
+                error = "Failed to retrieve certificate for run group."
             else:
                 return send_file(
-                    io.BytesIO(cert_data),
+                    io.BytesIO(download_bytes), "application/x-x509-user-cert", True, download_name=download_file_name
+                )
+
+        elif action == "download-ca":
+            download_bytes = orchestrator.download_certificate_authority_cert(access_token)
+            mimetype = "application/x-x509-ca-cert"
+            download_file_name = "cactus-serca.pem"
+            if download_bytes is None:
+                error = "Failed to retrieve SERCA."
+            else:
+                return send_file(
+                    io.BytesIO(download_bytes),
                     as_attachment=True,
-                    download_name=filename,
+                    download_name=download_file_name,
                     mimetype=mimetype,
                 )
-        elif action == "setcert":
-            is_device_cert = certificate == "device"
-            if not orchestrator.update_config(access_token, is_device_cert=is_device_cert):
-                error = "Failed to swap device/aggregator certificate"
+        elif action == "generatedevice" or action == "generateagg":
+            run_group_id = int(request.form.get("run_group_id", ""))
+            download_bytes, download_file_name = orchestrator.generate_client_cert(
+                access_token, run_group_id, action == "generatedevice"
+            )
+            if not download_bytes or not download_file_name:
+                error = "Failed to generate certificate for run group."
+            else:
+                return send_file(io.BytesIO(download_bytes), "application/zip", True, download_name=download_file_name)
+
         elif action == "setpen":
             try:
                 pen: int = int(request.form.get("pen", 0))
@@ -570,14 +557,10 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
 
     return render_template(
         "config.html",
-        pwd=pwd,
         error=error,
         domain=config.subscription_domain,
         static_uri=config.is_static_uri,
         static_uri_example=config.static_uri,
-        is_device_cert=config.is_device_cert,
-        aggregator_certificate_expiry=config.aggregator_certificate_expiry,
-        device_certificate_expiry=config.device_certificate_expiry,
         run_groups=run_groups.items,
         csip_aus_versions=csip_aus_versions.items,
         pen=(
