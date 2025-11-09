@@ -556,7 +556,9 @@ def fetch_run_groups(access_token: str, page: int) -> Pagination[RunGroupRespons
             name=r["name"],
             run_group_id=r["run_group_id"],
             total_runs=r["total_runs"],
-            certificate_created_at=datetime.fromisoformat(r["certificate_created_at"]),
+            certificate_created_at=(
+                datetime.fromisoformat(r["certificate_created_at"]) if r["certificate_created_at"] else None
+            ),
             certificate_id=r["certificate_id"],
             is_device_cert=r["is_device_cert"],
         ),
@@ -595,7 +597,11 @@ def create_run_group(access_token: str, csip_aus_version: str) -> RunGroupRespon
         name=raw_response["name"],
         run_group_id=raw_response["run_group_id"],
         total_runs=raw_response["total_runs"],
-        certificate_created_at=datetime.fromisoformat(raw_response["certificate_created_at"]),
+        certificate_created_at=(
+            datetime.fromisoformat(raw_response["certificate_created_at"])
+            if raw_response["certificate_created_at"]
+            else None
+        ),
         certificate_id=raw_response["certificate_id"],
         is_device_cert=raw_response["is_device_cert"],
     )
@@ -621,7 +627,11 @@ def update_run_group(access_token: str, run_group_id: int, name: str) -> RunGrou
         name=raw_response["name"],
         run_group_id=raw_response["run_group_id"],
         total_runs=raw_response["total_runs"],
-        certificate_created_at=datetime.fromisoformat(raw_response["certificate_created_at"]),
+        certificate_created_at=(
+            datetime.fromisoformat(raw_response["certificate_created_at"])
+            if raw_response["certificate_created_at"]
+            else None
+        ),
         certificate_id=raw_response["certificate_id"],
         is_device_cert=raw_response["is_device_cert"],
     )
@@ -685,7 +695,9 @@ def admin_fetch_run_groups(access_token: str, run_group_id: int, page: int) -> P
             name=r["name"],
             run_group_id=r["run_group_id"],
             total_runs=r["total_runs"],
-            certificate_created_at=datetime.fromisoformat(r["certificate_created_at"]),
+            certificate_created_at=(
+                datetime.fromisoformat(r["certificate_created_at"]) if r["certificate_created_at"] else None
+            ),
             certificate_id=r["certificate_id"],
             is_device_cert=r["is_device_cert"],
         ),

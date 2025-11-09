@@ -17,6 +17,7 @@
 <div class="alert alert-danger mt-3">
     <strong>Error:</strong> {{ error }}
 </div>
+{% endif %}
 
 {% if not run_groups %}
 <div class="alert alert-danger" role="alert">
@@ -53,18 +54,24 @@
                         {% for rg in run_groups %}
                         <tr>
                             <td>
-                                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                                    data-bs-target="#certmodal-{{ rg.run_group_id }}">
-                                    <i class="fas fa-lock"></i> Certificate
+                                <button type="button"
+                                    class="btn {{'btn-primary' if not rg.certificate_created_at else 'btn-outline-primary'}}"
+                                    data-bs-toggle="modal" data-bs-target="#certmodal-{{ rg.run_group_id }}">
+                                    {% if rg.certificate_id and rg.certificate_created_at %}
+                                    <i class="fas fa-recycle"></i> {{ 'Device' if rg.is_device_cert else 'Aggregator' }}
+                                    Certificate
+                                    {% else %}
+                                    <i class="fas fa-plus"></i> Generate Certificate
+                                    {% endif %}
                                 </button>
 
                                 <div class="modal fade" id="certmodal-{{ rg.run_group_id }}" tabindex="-1"
                                     aria-labelledby="certmodal-{{ rg.run_group_id }}-label" aria-hidden="true">
-                                    <div class="modal-dialog">
+                                    <div class="modal-dialog modal-lg">
                                         <div class="modal-content">
                                             <div class="modal-header">
                                                 <h1 class="modal-title fs-5" id="certmodal-{{ rg.run_group_id }}-label">
-                                                    Certificate: {{ rg.name }}</h1>
+                                                    Certificate for {{ rg.name }}</h1>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal"
                                                     aria-label="Close"></button>
                                             </div>
@@ -72,11 +79,11 @@
                                                 {% if rg.certificate_id and rg.certificate_created_at %}
 
                                                 The current
-                                                <code>{{ 'Device' if rg.is_device_cert else 'Aggregator' }}</code> with
-                                                ID <code>{{ rg.certificate_id }}</code> was created at
+                                                <code>{{ 'Device' if rg.is_device_cert else 'Aggregator' }}</code>
+                                                certificate (ID <code>{{ rg.certificate_id }}</code>) was created
                                                 <code>{{ rg.certificate_created_at.strftime('%Y-%m-%d') }}</code><br><br>
-                                                <strong>Note:</strong> Generating a new certificate will invalidate this
-                                                one.
+                                                <strong>Note:</strong> Generating a new certificate will invalidate the
+                                                current certificate.
 
                                                 {% else %}
                                                 There is <strong>no</strong> certificate on record for this run group.
@@ -84,28 +91,37 @@
                                                 {% endif %}
                                             </div>
                                             <div class="modal-footer">
-                                                <form method="POST" action="{{ url_for('config_page') }}">
+                                                <form method="POST" action="{{ url_for('config_page') }}"
+                                                    id="download-{{ rg.run_group_id }}" class="cert-download-form"
+                                                    target="hiddenFrame-{{ rg.run_group_id }}">
                                                     <input type="hidden" name="run_group_id"
                                                         value="{{ rg.run_group_id }}">
 
-                                                    {% if rg.certificate_id and rg.certificate_created_at %}
-                                                    <button type="submit" name="action" value="downloadcert"
-                                                        class="btn btn-outline-secondary">
-                                                        <i class="fas fa-download"></i> Download Existing Certificate
-                                                    </button>
-                                                    {% endif %}
+                                                    <div class="btn-group" role="group">
 
-                                                    <button type="submit" name="action" value="generatedevice"
-                                                        class="btn {{ 'btn-danger' if rg.certificate_id else 'btn-primary'}}">
-                                                        <i class="fas fa-recycle"></i> Generate Device Certificate
-                                                    </button>
+                                                        {% if rg.certificate_id and rg.certificate_created_at %}
+                                                        <button type="submit" name="action" value="downloadcert"
+                                                            class="btn btn-outline-secondary">
+                                                            <i class="fas fa-download"></i> Download Existing
+                                                            Certificate
+                                                        </button>
+                                                        {% endif %}
 
-                                                    <button type="submit" name="action" value="generateagg"
-                                                        class="btn {{ 'btn-danger' if rg.certificate_id else 'btn-primary'}}">
-                                                        <i class="fas fa-recycle"></i> Generate Aggregator Certificate
-                                                    </button>
+                                                        <button type="submit" name="action" value="generatedevice"
+                                                            class="btn {{ 'btn-outline-danger' if rg.certificate_id else 'btn-outline-primary'}}">
+                                                            <i class="fas fa-recycle"></i> Device Certificate
+                                                        </button>
+
+                                                        <button type="submit" name="action" value="generateagg"
+                                                            class="btn {{ 'btn-outline-danger' if rg.certificate_id else 'btn-outline-primary'}}">
+                                                            <i class="fas fa-recycle"></i> Aggregator
+                                                            Certificate
+                                                        </button>
+                                                    </div>
 
                                                 </form>
+                                                <iframe name="hiddenFrame-{{ rg.run_group_id }}"
+                                                    style="display:none;"></iframe>
 
                                             </div>
                                         </div>
@@ -267,6 +283,20 @@
 </div>
 
 <br>
+
+<script>
+    addEventListener("load", (event) => {
+        // Force the cert download to refresh the page (this is a little hacky but doing this properly will require
+        // doing some tricky server side logic - this should be good)
+        for (el of document.getElementsByClassName('cert-download-form')) {
+            el.addEventListener('submit', function () {
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            });
+        }
+    });
+</script>
 
 
 {% endblock %}

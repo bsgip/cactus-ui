@@ -18,17 +18,21 @@
       <ol class="list-group list-group-numbered mb-4">
         <li class="list-group-item d-flex">
           <div class="ms-2">
-            <strong>Configure:</strong> Download your certificate from the <a href="/config">Config page</a> and install it in your client. Optionally enable your domain for notifications here too.
+            <strong>Configure:</strong> Create run groups to manage the various devices you wish to certify and download
+            their certificates from the <a href="/config">Config page</a> for use in your client. Optionally enable your
+            domain for notifications here too.
           </div>
         </li>
         <li class="list-group-item d-flex">
           <div class="ms-2">
-            <strong>Test:</strong> Go to the <a href="/runs">Runs page</a>, select a test procedure, and click 'Start Run'. Point your client at the provided test URL.
+            <strong>Test:</strong> Go to the <a href="/runs">Runs page</a>, select a test procedure, and click 'Start
+            Run'. Point your client at the provided test URL.
           </div>
         </li>
         <li class="list-group-item d-flex">
           <div class="ms-2">
-            <strong>Results:</strong> Once your test is complete, click 'Finalize' to download your test results package.
+            <strong>Results:</strong> Once your test is complete, click 'Finalize' to download your test results
+            package.
           </div>
         </li>
       </ol>
@@ -38,7 +42,7 @@
   <hr class="my-4">
 
   <h2 class="mb-3">Essential Resources</h2>
-  
+
   <div class="row mb-4">
     <div class="col-md-6 mb-3">
       <div class="card h-100">
@@ -90,8 +94,10 @@
       <div class="alert alert-warning" role="alert">
         <ul class="mb-0">
           <li class="mb-2"><strong>XSD validation is strict</strong> – Element ordering must be correct</li>
-          <li class="mb-2"><strong>Certificate matching</strong> – Your certificate, LFDI, SFDI, and PEN must align correctly (see CSIP-AUS explainer document)</li>
-          <li class="mb-0"><strong>MirrorMeterReading requirements</strong> – CSIP-AUS enforces only a subset; refer to SA TS 5573:2025, Table 8.1</li>
+          <li class="mb-2"><strong>Certificate matching</strong> – Your certificate, LFDI, SFDI, and PEN must align
+            correctly (see CSIP-AUS explainer document)</li>
+          <li class="mb-0"><strong>MirrorMeterReading requirements</strong> – CSIP-AUS enforces only a subset; refer to
+            SA TS 5573:2025, Table 8.1</li>
         </ul>
       </div>
     </div>
@@ -99,41 +105,41 @@
 
   <hr class="my-4">
 
-{% if support_email %}
-<div class="mb-4">
-  <h2 class="mb-3">Need Help?</h2>
-  <div class="row">
-    <div class="col-md-4 mb-3">
-      <div class="card h-100">
-        <div class="card-body">
-          <h5 class="card-title">🐛 Report a Bug</h5>
-          <p class="card-text mb-0">
-            <a href="https://tinyurl.com/mrbu8cwt" target="_blank">tinyurl.com/mrbu8cwt</a>
-          </p>
+  {% if support_email %}
+  <div class="mb-4">
+    <h2 class="mb-3">Need Help?</h2>
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">🐛 Report a Bug</h5>
+            <p class="card-text mb-0">
+              <a href="https://tinyurl.com/mrbu8cwt" target="_blank">tinyurl.com/mrbu8cwt</a>
+            </p>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="col-md-4 mb-3">
-      <div class="card h-100">
-        <div class="card-body">
-          <h5 class="card-title">📋 Standards Help</h5>
-          <p class="card-text mb-0">
-            <a href="mailto:csipaus-cert@anu.edu.au">csipaus-cert@anu.edu.au</a>
-          </p>
+      <div class="col-md-4 mb-3">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">📋 Standards Help</h5>
+            <p class="card-text mb-0">
+              <a href="mailto:csipaus-cert@anu.edu.au">csipaus-cert@anu.edu.au</a>
+            </p>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="col-md-4 mb-3">
-      <div class="card h-100">
-        <div class="card-body">
-          <h5 class="card-title">💬 Software Questions</h5>
-          <p class="card-text mb-0">
-            <a href="mailto:support@bsgip.com">support@bsgip.com</a>
-          </p>
+      <div class="col-md-4 mb-3">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">💬 Software Questions</h5>
+            <p class="card-text mb-0">
+              <a href="mailto:support@bsgip.com">support@bsgip.com</a>
+            </p>
+          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
-{% endif %}
-{% endblock %}
+  {% endif %}
+  {% endblock %}
