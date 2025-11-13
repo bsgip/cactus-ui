@@ -245,12 +245,26 @@ def admin_page(access_token: str) -> str:
     )
 
 
-@app.route("/admin/group/<int:run_group_id>", methods=["GET"])
+@app.route("/admin/group/<int:run_group_id>", methods=["GET", "POST"])
 @login_required
 @admin_role_required
-def admin_run_group_page(access_token: str, run_group_id: int) -> str:
+def admin_run_group_page(access_token: str, run_group_id: int) -> str | Response:  # noqa: C901
     error: str | None = None
     """This is the admin-only page summarizing compliance across a run group"""
+
+    if request.method == "POST":
+        # Handle dl artifact
+        if request.form.get("action") == "compliance":
+            compliance_report = None
+            if compliance_report is None:
+                error = "Generation of compliance report not implemented."
+            else:
+                return send_file(
+                    io.BytesIO(compliance_report),
+                    as_attachment=True,
+                    download_name=f"{run_group_id}_compliance.pdf",
+                    mimetype="application/pdf",
+                )
 
     # Fetch procedures
     procedures = orchestrator.admin_fetch_group_procedure_run_summaries(
