@@ -79,6 +79,8 @@ class ProcedureRunSummaryResponse:
     classes: list[str] | None
     run_count: int  # Count of runs for this test procedure
     latest_all_criteria_met: bool | None  # Value for all_criteria_met of the most recent Run
+    latest_run_status: int | None
+    latest_run_id: int | None
 
 
 @dataclass
@@ -519,6 +521,8 @@ def fetch_group_procedure_run_summaries(
             classes=r["classes"] if "classes" in r else None,
             run_count=r["run_count"],
             latest_all_criteria_met=r["latest_all_criteria_met"],
+            latest_run_status=r["latest_run_status"] if "latest_run_status" in r else None,
+            latest_run_id=r["latest_run_id"] if "latest_run_id" in r else None,
         )
         for r in response.json()
     ]
@@ -722,6 +726,8 @@ def admin_fetch_group_procedure_run_summaries(
             classes=r["classes"] if "classes" in r else None,
             run_count=r["run_count"],
             latest_all_criteria_met=r["latest_all_criteria_met"],
+            latest_run_status=r["latest_run_status"] if "latest_run_status" in r else None,
+            latest_run_id=r["latest_run_id"] if "latest_run_id" in r else None,
         )
         for r in response.json()
     ]

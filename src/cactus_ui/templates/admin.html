@@ -24,7 +24,7 @@
             <td>
                 {% if user.run_groups %}
                 {% for run_group in user.run_groups %}
-                <a class="separated-links" href="{{ url_for('admin_group_runs_page', run_group_id=run_group) }}">
+                <a class="separated-links" href="{{ url_for('admin_run_group_page', run_group_id=run_group) }}">
                     {{ run_group }}
                 </a>
                 {% endfor %}

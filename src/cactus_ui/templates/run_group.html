@@ -1,0 +1,443 @@
+{% extends "base.html" %}
+
+{% block title %}Compliance - CACTUS{% endblock %}
+
+{% block content %}
+{% include 'banner.html' %}
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div class="max-page-height" style="padding-top:10px; display: flex; flex-direction: column;">
+    <div style="display: flex;">
+        {% if run_groups|length < 2 %}
+            {% if active_run_group %}
+                <h2>Compliance for {{ active_run_group.name }}</h2>
+            {% endif %}
+        {% else %}
+            <h2>Compliance for</h2>
+            <div class="dropdown" style="margin-left: 10px;">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                    {{ active_run_group.name }}
+                </button>
+                <ul class="dropdown-menu">
+                    {% for rg in run_groups %}
+                    {% if rg.run_group_id != run_group_id %}
+                    <li><a class="dropdown-item"
+                            href="{{ url_for('admin_run_group_page', run_group_id=rg.run_group_id) if is_admin_view else url_for('group_runs_page', run_group_id=rg.run_group_id) }}">{{rg.name}}</a></li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        <a style="align-content:center;" class="push-right" href="{{ url_for('admin_group_runs_page', run_group_id=run_group_id) }}">All runs for <b>{{active_run_group.name}}</b> →</a>
+    </div>
+
+    <hr>
+
+    <div class="compliance-container">
+        <!-- Only show down compliance report button for admins -->
+        {% if is_admin_view %}
+            <div style="display: flex;justify-content: right; margin-top: 16px;" >
+            <button class="btn btn-primary" type="button" aria-expanded="false">
+                Download Compliance Report
+            </button>
+            </div>
+        {% endif %}
+        
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col"></th>
+                    <th scope="col">Class</th>
+                    <th scope="col"></th>
+                    <th scope="col">Latest Runs</th>
+                </tr>
+            </thead>
+            <tbody id="complete-table-body">
+                {% for class_name, compliance in compliance_by_class.items() %}
+                <tr>
+                    {% if compliance['compliant'] %}
+                    <th scope="row" class="text-bg-success"></th>
+                    {%else%}
+                    <th scope="row"></th>
+                    {% endif %}
+                    <td class="no-wrap"><b>{{class_name}}</b></td>
+                    <td>{{compliance['class_details']['description']}}</td>
+                    <td>
+                    {% for c in compliance['per_run_status'] %}
+                    {% if c['status'] == "unknown" %}
+                    {{c['procedure'].test_procedure_id}}
+                    {% elif c['status'] == "runless" %}
+                    <span class="badge text-bg-secondary breathing-room">{{c['procedure'].test_procedure_id}}</span>
+                    {% elif c['status'] == "active" %}
+                    <span class="badge text-bg-primary breathing-room bigger-badge"><a class="text-bg-primary" href="{{url_for('admin_run_status_page', run_id=c['procedure'].latest_run_id)}}">{{c['procedure'].test_procedure_id}} ({{c['procedure'].latest_run_id}})</a></span>
+                    {% elif c['status'] == "failed" %}
+                    <span class="badge text-bg-danger breathing-room bigger-badge"><a class="text-bg-danger" href="{{url_for('admin_run_status_page', run_id=c['procedure'].latest_run_id)}}">{{c['procedure'].test_procedure_id}} ({{c['procedure'].latest_run_id}})</a></span>
+                    {% elif c['status'] == "success" %}
+                    <span class="badge text-bg-success breathing-room bigger-badge"><a class="text-bg-success" href="{{url_for('admin_run_status_page', run_id=c['procedure'].latest_run_id)}}">{{c['procedure'].test_procedure_id}} ({{c['procedure'].latest_run_id}})</a></span>
+                    {% endif %}
+                    {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+        <div>
+        This table shows each compliance class.
+        <span class="badge text-bg-primary">Active</span>
+        <span class="badge text-bg-secondary">No Runs</span>
+        <span class="badge text-bg-success">Passed</span>
+        <span class="badge text-bg-danger">Failed</span>
+        </div>
+    </div>
+
+    </div>
+</div>
+<style>
+    html,
+    body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    .search {
+        width: 100%;
+        margin-top: 10px;
+        margin-bottom: 5px;
+    }
+
+    .main-footer {
+        margin-top: 0 !important;
+    }
+
+    .main-content {
+        flex: 1;
+        overflow: hidden;
+        padding: 0 !important;
+    }
+
+    .max-page-height {
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .col {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .procedure-col {
+        max-width: 400px;
+        min-width: 200px;
+        overflow: auto;
+    }
+
+    .procedure-container {
+        flex: 1;
+    }
+
+    .runs-table-container {
+        margin-top: 5px;
+        flex: 1;
+        overflow: auto;
+    }
+
+    .push-right {
+        margin: 0 0 0 auto;
+    }
+
+    .no-wrap {
+        white-space: nowrap;
+    }
+
+    .breathing-room {
+        margin-right: 0.3em;
+        margin-bottom: 0.8em;
+    }
+
+    .bigger-badge {
+        font-size: 0.9em;
+    }
+
+    [data-bs-toggle="collapse"] .fa:before {
+        content: "\f139";
+    }
+
+    [data-bs-toggle="collapse"].collapsed .fa:before {
+        content: "\f13a";
+    }
+</style>
+
+<script>
+    const isAdminView = "{{ is_admin_view }}" === 'True';
+
+    function filterByComplianceClass(classesByGroup, filters) {
+        let filtered_count = 0
+        for (const [id, classes] of Object.entries(classesByGroup)) {
+            const element = document.getElementById(id);
+            if (element === null) {
+                filtered_count++;
+                continue;
+            }
+            if (filters.filter(element => classes.includes(element)).length > 0) {
+                element.classList.remove("hidden");
+            } else {
+                element.classList.add("hidden");
+                filtered_count++;
+            }
+        }
+        const all_filtered = filtered_count === Object.entries(classesByGroup).length;
+        return all_filtered
+    }
+
+    function filterProcedures(filters) {
+        const allTestsFilteredOut = filterByComplianceClass(classesByTest, filters);
+        filterByComplianceClass(classesByCategory, filters);
+
+        enabledFilterCount = filters.length;
+        if (enabledFilterCount < allClasses.length) {
+
+            document.getElementById("filter-btn-all").innerHTML = "Select ALL";
+            if (enabledFilterCount == 0) {
+                document.getElementById("filter-summary").innerHTML = `Showing NO compliance classes`;
+            } else if (enabledFilterCount < 5) {
+                document.getElementById("filter-summary").innerHTML = `Showing ${filters.join(", ")}`;
+            } else {
+                document.getElementById("filter-summary").innerHTML = `Showing ${enabledFilterCount} compliance classes`;
+            }
+
+
+        } else {
+            document.getElementById("filter-btn-all").innerHTML = "Select NONE";
+            document.getElementById("filter-summary").innerHTML = "Showing ALL compliance classes";
+        }
+
+    }
+
+    function getSelectedFilters() {
+        filterForm = document.forms.filterform;
+        return Array.from(new FormData(filterForm).values())
+    }
+
+    function filterAllHandler() {
+        enabledFilterCount = getSelectedFilters().length;
+        selecting = enabledFilterCount < allClasses.length; // are we enabling or disabling all the checks
+
+        for (let input of document.forms.filterform.querySelectorAll("input")) {
+            if (input.checked !== selecting) {
+                input.checked = selecting
+            }
+        }
+
+        filterProceduresCheckHandler();
+    }
+
+    function filterProceduresCheckHandler() {
+        filterProcedures(getSelectedFilters());
+    }
+
+    function statusToBtn(run_id, run_status, isAdminView) {
+        if (isAdminView) {
+            switch (run_status) {
+                case "initialised":
+                case "started":
+                        // admin shouldn't be starting or finalizing tests for other users.
+                        // button is disabled
+                        return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
+                        <input type="hidden" name="run_id" value="${run_id}">
+                        <input type="hidden" name="action" value="artifact">
+                        <button disabled type="submit" class="btn btn-secondary">Running...</button>
+                    </form>`;
+                default:
+                    return `<form method="POST" action="{{ url_for('admin_group_runs_page', run_group_id=run_group_id) }}">
+                    <input type="hidden" name="run_id" value="${run_id}">
+                    <input type="hidden" name="action" value="artifact">
+                    <button type="submit" class="btn btn-secondary">Download</button>
+                </form>`;
+            }
+        }
+            switch (run_status) {
+                case "initialised":
+                    return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
+                    <input type="hidden" name="run_id" value="${run_id}">
+                    <input type="hidden" name="action" value="start">
+                    <button type="submit" class="btn btn-primary">Start</button>
+                </form>`;
+                case "started":
+                    return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
+                    <input type="hidden" name="run_id" value="${run_id}">
+                    <input type="hidden" name="action" value="finalise">
+                    <button type="submit" class="btn btn-warning">Finalise</button>
+                </form>`;
+                default:
+                    return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
+                    <input type="hidden" name="run_id" value="${run_id}">
+                    <input type="hidden" name="action" value="artifact">
+                    <button type="submit" class="btn btn-secondary">Download</button>
+                </form>`;
+            }
+    }
+
+    function handleNewRuns(rawRunsJson) {
+        const page = JSON.parse(rawRunsJson);
+        const runs = page.items
+        if (runs.length === 0) {
+            handleRunsEmpty();
+            return;
+        }
+
+        fragments = runs.map(r => {
+            let row_class = "";
+            let icon = "";
+            switch (r.all_criteria_met) {
+                case null:
+                    if (r.status == "initialised" || r.status == "started") {
+                        row_class = "table-info";
+                    } else {
+                        icon = `<span class="text-secondary"><i class="fas fa-question"></i></span>`;
+                    }
+                    break
+                case true:
+                    row_class = "table-success";
+                    icon = `<span class="text-success"><i class="fas fa-check"></i></span>`;
+                    break;
+                default:
+                    row_class = "table-danger";
+                    icon = `<span class="text-danger"><i class="fas fa-x"></i></span>`;
+                    break;
+
+            }
+            const created = new Date(Date.parse(r.created_at));
+            const url = `${isAdminView ? "/admin" : ""}/run/${r.run_id}`;
+            return `
+                <tr class="${row_class}">
+                    <td><a href="${url}">${r.run_id}</a></td>
+                    <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})<small></td>
+                    <td>${r.status}</td>
+                    <td>${icon}</td>
+                    <td>${statusToBtn(r.run_id, r.status, isAdminView)}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
+                            <input type="hidden" name="run_id" value="${r.run_id}">
+                            <input type="hidden" name="action" value="delete">
+                            <button ${isAdminView ? "hidden":""} type="submit"  class="btn btn-outline-danger" onclick="handleButtonClick(event)"><i class="fas fa-trash-can"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            `
+        });
+        document.getElementById("runs-table-body").innerHTML = fragments.join("")
+    }
+
+    function handleRunsError(status, error) {
+        document.getElementById("runs-table-body").innerHTML = `
+            <tr class="table-danger">
+                <td>${error}</td>
+            </tr>
+        `
+    }
+
+    function handleRunsEmpty() {
+        document.getElementById("runs-table-body").innerHTML = `
+            <tr>
+                <td>No runs were returned.</td>
+            </tr>
+        `
+    }
+
+    function handleRunsLoading() {
+        document.getElementById("runs-table-body").innerHTML = `
+            <tr>
+                <td>
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </td>
+            </tr>
+        `
+    }
+
+    function loadProcedureRuns(test_procedure_id) {
+        handleRunsLoading();
+        const url = `${isAdminView ? "/admin" : ""}/run_group/{{ run_group_id }}/procedure_runs/${test_procedure_id}`;
+
+        xhrRequest(url, handleNewRuns, handleRunsError);
+    }
+
+    function loadActiveRuns() {
+        handleRunsLoading();
+        const url = `${isAdminView ? "/admin" : ""}/run_group/{{ run_group_id }}/active_runs`;
+
+        xhrRequest(url, handleNewRuns, handleRunsError);
+    }
+
+    function handleButtonClick(e) {
+        e.target.innerHTML = `<div class="spinner-border spinner-border-sm" role="status"></div>`;
+        e.target.disabled = true;
+        e.target.closest('form').submit();
+    }
+
+    function handleProcedureButtonClick(e) {
+        const test_procedure_id = this.id;
+        const description = this.getAttribute("_description")
+        const classes = this.getAttribute("_classes") ? this.getAttribute("_classes").split(",") : [];
+
+        // update active class
+        document.querySelectorAll(".procedure-btn").forEach(el => el.classList.remove('active'));
+        this.classList.add('active');
+
+        // update title and buttons
+        if (this.id === "active-runs-button") {
+            // active runs is a special case
+            document.getElementById("runs-title").innerHTML = "Active Runs";
+            document.getElementById("runs-actions").innerHTML = "";
+            loadActiveRuns()
+        } else {
+            // handle the other test procedure buttons
+            document.getElementById("runs-title").innerHTML = `<a href="/procedure/${test_procedure_id}">${test_procedure_id}</a> ${description}`;
+
+            const hidden = isAdminView ? "hidden" : ""
+            document.getElementById("runs-actions").innerHTML = `
+            <form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
+                <input type="hidden" name="test_procedure_id" value="${test_procedure_id}">
+                <input type="hidden" name="action" value="initialise">
+                <button ${hidden} type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">New Test Run</button>
+                <small class="text-muted d-block mt-1">May take up to 30s to initialize</small>
+            </form>`;
+
+            loadProcedureRuns(test_procedure_id)
+        }
+    }
+
+    addEventListener("load", (event) => {
+        // Install onclick handlers for procedure btns
+        document.querySelectorAll(".procedure-btn").forEach(el => el.onclick = handleProcedureButtonClick);
+
+        // Start the page loaded with the active procedures
+        handleProcedureButtonClick.call(document.getElementById("active-runs-button"))
+
+        // Enable collapsing procedure cards
+        // const collapseElementList = document.querySelectorAll('.collapse')
+        // const collapseList = [...collapseElementList].map(collapseEl => new bootstrap.Collapse(collapseEl))
+
+        // Apply filter correctly of page (re)load
+        filterProceduresCheckHandler()
+    });
+
+
+</script>
+
+
+{% endblock %}
