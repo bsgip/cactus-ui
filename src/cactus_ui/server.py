@@ -192,6 +192,23 @@ def parse_bool(v: str | None) -> bool:
     return True
 
 
+def run_summary_to_compliance_status(test_procedure: orchestrator.ProcedureRunSummaryResponse) -> str:
+    ACTIVE_RUN_STATUSES = [1, 2, 6]  # initialized, started, provisioning
+    FINALIZED_RUN_STATUSES = [3, 4]  # finalized by user, finalized by timeout
+
+    if test_procedure.latest_run_status in ACTIVE_RUN_STATUSES:
+        return "active"
+    elif test_procedure.run_count == 0:
+        return "runless"
+    elif test_procedure.latest_run_status in FINALIZED_RUN_STATUSES:
+        if test_procedure.latest_all_criteria_met:
+            return "success"
+        else:
+            return "failed"
+    else:
+        return "unknown"
+
+
 # Controllers API
 @app.route("/")
 def login_or_home_page() -> str:
@@ -245,23 +262,6 @@ def admin_run_group_page(access_token: str, run_group_id: int) -> str:
     if procedures is None:
         error = "Unabled to fetch test procedures."
     else:
-
-        def get_status(test_procedure: orchestrator.ProcedureRunSummaryResponse) -> str:
-            ACTIVE_RUN_STATUSES = [1, 2, 6]  # initialized, started, provisioning
-            FINALIZED_RUN_STATUSES = [3, 4]
-
-            if test_procedure.latest_run_status in ACTIVE_RUN_STATUSES:
-                return "active"
-            elif test_procedure.run_count == 0:
-                return "runless"
-            elif test_procedure.latest_run_status in FINALIZED_RUN_STATUSES:
-                if test_procedure.latest_all_criteria_met:
-                    return "success"
-                else:
-                    return "failed"
-            else:
-                return "unknown"
-
         tests_by_class = defaultdict(list)
         for p in procedures:
             if p.classes:
@@ -271,7 +271,10 @@ def admin_run_group_page(access_token: str, run_group_id: int) -> str:
         procedure_map = {p.test_procedure_id: p for p in procedures}
 
         for compliance_class, tests in tests_by_class.items():
-            per_run_status = [{"procedure": procedure_map[t], "status": get_status(procedure_map[t])} for t in tests]
+            per_run_status = [
+                {"procedure": procedure_map[t], "status": run_summary_to_compliance_status(procedure_map[t])}
+                for t in tests
+            ]
             compliant: bool = all([run["status"] == "success" for run in per_run_status])
             compliance_by_class[compliance_class] = {
                 "class_details": fetch_compliance_class(compliance_class),
@@ -697,23 +700,6 @@ def run_group_page(access_token: str, run_group_id: int) -> str:
     if procedures is None:
         error = "Unabled to fetch test procedures."
     else:
-
-        def get_status(test_procedure: orchestrator.ProcedureRunSummaryResponse) -> str:
-            ACTIVE_RUN_STATUSES = [1, 2, 6]  # initialized, started, provisioning
-            FINALIZED_RUN_STATUSES = [3, 4]
-
-            if test_procedure.latest_run_status in ACTIVE_RUN_STATUSES:
-                return "active"
-            elif test_procedure.run_count == 0:
-                return "runless"
-            elif test_procedure.latest_run_status in FINALIZED_RUN_STATUSES:
-                if test_procedure.latest_all_criteria_met:
-                    return "success"
-                else:
-                    return "failed"
-            else:
-                return "unknown"
-
         tests_by_class = defaultdict(list)
         for p in procedures:
             if p.classes:
@@ -723,7 +709,10 @@ def run_group_page(access_token: str, run_group_id: int) -> str:
         procedure_map = {p.test_procedure_id: p for p in procedures}
 
         for compliance_class, tests in tests_by_class.items():
-            per_run_status = [{"procedure": procedure_map[t], "status": get_status(procedure_map[t])} for t in tests]
+            per_run_status = [
+                {"procedure": procedure_map[t], "status": run_summary_to_compliance_status(procedure_map[t])}
+                for t in tests
+            ]
             compliant: bool = all([run["status"] == "success" for run in per_run_status])
             compliance_by_class[compliance_class] = {
                 "class_details": fetch_compliance_class(compliance_class),
