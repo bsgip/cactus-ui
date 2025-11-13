@@ -10,10 +10,11 @@
 
 <div class="max-page-height" style="padding-top:10px; display: flex; flex-direction: column;">
     <div style="display: flex;">
-        {% if run_groups|length < 2 %} {% if active_run_group %} <h2>Runs for {{ active_run_group.name }}</h2>
+        {% if run_groups|length < 2 %}
+            {% if active_run_group %}
+                <h2>Runs for {{ active_run_group.name }}</h2>
             {% endif %}
-            {% else %}
-
+        {% else %}
             <h2>Runs for </h2>
             <div class="dropdown" style="margin-left: 10px;">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown"
@@ -29,7 +30,12 @@
                     {% endfor %}
                 </ul>
             </div>
-            {% endif %}
+        {% endif %}
+        {% if is_admin_view %}
+            <a style="align-content:center;" class="push-right" href="{{ url_for('admin_run_group_page', run_group_id=run_group_id) }}">Compliance for <b>{{active_run_group.name}}</b> →</a>
+        {% else %}
+            <a style="align-content:center;" class="push-right" href="{{ url_for('run_group_page', run_group_id=run_group_id) }}">Compliance for <b>{{active_run_group.name}}</b> →</a>
+        {% endif %}
     </div>
 
     <hr>
@@ -198,6 +204,10 @@
         margin-top: 5px;
         flex: 1;
         overflow: auto;
+    }
+
+    .push-right {
+        margin: 0 0 0 auto;
     }
 
     [data-bs-toggle="collapse"] .fa:before {
