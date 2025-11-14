@@ -37,16 +37,6 @@ class RunResponse:
 
 
 @dataclass
-class UserResponse:
-    """Ideally this would be defined in a shared cactus-schema but that doesn't exist. Instead, ensure this remains
-    in sync with cactus-orchestrator.schema.Procedure"""
-
-    user_id: int
-    name: str
-    run_groups: list[int]
-
-
-@dataclass
 class ProcedureResponse:
     """Ideally this would be defined in a shared cactus-schema but that doesn't exist. Instead, ensure this remains
     in sync with cactus-orchestrator.schema.Procedure"""
@@ -112,6 +102,17 @@ class RunGroupResponse:
     certificate_id: int | None
     certificate_created_at: datetime | None
     total_runs: int
+
+
+@dataclass
+class UserResponse:
+    """Ideally this would be defined in a shared cactus-schema but that doesn't exist. Instead, ensure this remains
+    in sync with cactus-orchestrator.schema.Procedure"""
+
+    user_id: int
+    name: str
+    subject_id: str
+    run_groups: list[RunGroupResponse]
 
 
 @dataclass
@@ -675,6 +676,7 @@ def admin_fetch_users(access_token: str, page: int) -> Pagination[UserResponse] 
         lambda i: UserResponse(
             user_id=i["user_id"],
             name=i["name"],
+            subject_id=i["subject_id"],
             run_groups=i["run_groups"],
         ),
     )

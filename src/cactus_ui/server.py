@@ -227,12 +227,7 @@ def admin_page(access_token: str) -> str:
 
     user_pages = orchestrator.admin_fetch_users(access_token, page)
     if user_pages is None:
-        # return render_template("admin.html", error="Failed to retrieve users.")
-        users = [
-            orchestrator.UserResponse(user_id=1, name="User 1", run_groups=[78]),
-            orchestrator.UserResponse(user_id=2, name="User 2", run_groups=[12, 45]),
-        ]
-        return render_template("admin.html", users=users)
+        return render_template("admin.html", error="Failed to retrieve users.")
 
     return render_template(
         "admin.html",
