@@ -37,16 +37,6 @@ class RunResponse:
 
 
 @dataclass
-class UserResponse:
-    """Ideally this would be defined in a shared cactus-schema but that doesn't exist. Instead, ensure this remains
-    in sync with cactus-orchestrator.schema.Procedure"""
-
-    user_id: int
-    name: str
-    run_groups: list[int]
-
-
-@dataclass
 class ProcedureResponse:
     """Ideally this would be defined in a shared cactus-schema but that doesn't exist. Instead, ensure this remains
     in sync with cactus-orchestrator.schema.Procedure"""
@@ -79,6 +69,8 @@ class ProcedureRunSummaryResponse:
     classes: list[str] | None
     run_count: int  # Count of runs for this test procedure
     latest_all_criteria_met: bool | None  # Value for all_criteria_met of the most recent Run
+    latest_run_status: int | None
+    latest_run_id: int | None
 
 
 @dataclass
@@ -110,6 +102,17 @@ class RunGroupResponse:
     certificate_id: int | None
     certificate_created_at: datetime | None
     total_runs: int
+
+
+@dataclass
+class UserResponse:
+    """Ideally this would be defined in a shared cactus-schema but that doesn't exist. Instead, ensure this remains
+    in sync with cactus-orchestrator.schema.Procedure"""
+
+    user_id: int
+    name: str
+    subject_id: str
+    run_groups: list[RunGroupResponse]
 
 
 @dataclass
@@ -519,6 +522,8 @@ def fetch_group_procedure_run_summaries(
             classes=r["classes"] if "classes" in r else None,
             run_count=r["run_count"],
             latest_all_criteria_met=r["latest_all_criteria_met"],
+            latest_run_status=r["latest_run_status"] if "latest_run_status" in r else None,
+            latest_run_id=r["latest_run_id"] if "latest_run_id" in r else None,
         )
         for r in response.json()
     ]
@@ -671,6 +676,7 @@ def admin_fetch_users(access_token: str, page: int) -> Pagination[UserResponse] 
         lambda i: UserResponse(
             user_id=i["user_id"],
             name=i["name"],
+            subject_id=i["subject_id"],
             run_groups=i["run_groups"],
         ),
     )
@@ -722,6 +728,8 @@ def admin_fetch_group_procedure_run_summaries(
             classes=r["classes"] if "classes" in r else None,
             run_count=r["run_count"],
             latest_all_criteria_met=r["latest_all_criteria_met"],
+            latest_run_status=r["latest_run_status"] if "latest_run_status" in r else None,
+            latest_run_id=r["latest_run_id"] if "latest_run_id" in r else None,
         )
         for r in response.json()
     ]

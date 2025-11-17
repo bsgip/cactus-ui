@@ -11,8 +11,8 @@
 <table class="table table-striped">
     <thead>
         <tr>
-            <th>ID</th>
-            <th>Name</th>
+            <th>User ID</th>
+            <th>User Name</th>
             <th>Run Groups</th>
         </tr>
     </thead>
@@ -20,12 +20,16 @@
         {% for user in users %}
         <tr>
             <td>{{ user.user_id }}</td>
-            <td>{{ user.name }}</td>
+            {% if user.name %}
+            <td><b>{{ user.name }}</b></td>
+            {% else %}
+            <td>Unknown</td>
+            {% endif %}
             <td>
                 {% if user.run_groups %}
                 {% for run_group in user.run_groups %}
-                <a class="separated-links" href="{{ url_for('admin_group_runs_page', run_group_id=run_group) }}">
-                    {{ run_group }}
+                <a class="separated-links" href="{{ url_for('admin_run_group_page', run_group_id=run_group.run_group_id) }}">
+                    {{run_group.name}} ({{ run_group.run_group_id }})
                 </a>
                 {% endfor %}
                 {% else %}
@@ -43,8 +47,7 @@
 {% endif %}
 <style>
     .separated-links {
-        margin-left: 2px;
-        margin-right: 2px;
+        margin-right: 0.7em;
     }
 </style>
 <script></script>

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Compliance - CACTUS{% endblock %}
+
+{% block content %}
+{% include 'banner.html' %}
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div class="max-page-height" style="padding-top:10px; display: flex; flex-direction: column;">
+    <div style="display: flex;">
+        {% if run_groups|length < 2 %}
+            {% if active_run_group %}
+                <h2>Compliance for {{ active_run_group.name }}</h2>
+            {% endif %}
+        {% else %}
+            <h2>Compliance for</h2>
+            <div class="dropdown" style="margin-left: 10px;">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                    {{ active_run_group.name }}
+                </button>
+                <ul class="dropdown-menu">
+                    {% for rg in run_groups %}
+                    {% if rg.run_group_id != run_group_id %}
+                    <li><a class="dropdown-item"
+                            href="{{ url_for('admin_run_group_page', run_group_id=rg.run_group_id) if is_admin_view else url_for('group_runs_page', run_group_id=rg.run_group_id) }}">{{rg.name}}</a></li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        <a style="align-content:center;" class="push-right" href="{{ url_for('admin_group_runs_page', run_group_id=run_group_id) }}">All runs for <b>{{active_run_group.name}}</b> →</a>
+    </div>
+
+    <hr>
+
+    <div class="compliance-container">
+        <!-- Only show down compliance report button for admins -->
+        {% if is_admin_view %}
+            <div style="display: flex;justify-content: right; margin-top: 16px;" >
+                <form id='download-form' method="POST" action="{{ url_for('admin_run_group_page', run_group_id=run_group_id) }}">
+                    <input type="hidden" name="action" value="compliance">
+                    <button type="submit" class="btn btn-primary">Download Compliance Report</button>
+                </form>
+            </div>
+        {% endif %}
+        
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col"></th>
+                    <th scope="col">Class</th>
+                    <th scope="col"></th>
+                    <th scope="col">Latest Runs</th>
+                </tr>
+            </thead>
+            <tbody id="complete-table-body">
+                {% for class_name, compliance in compliance_by_class.items() %}
+                <tr>
+                    {% if compliance['compliant'] %}
+                    <th scope="row" class="text-bg-success"></th>
+                    {%else%}
+                    <th scope="row"></th>
+                    {% endif %}
+                    <td class="no-wrap"><b>{{class_name}}</b></td>
+                    <td>{{compliance['class_details']['description']}}</td>
+                    <td>
+                    {% for c in compliance['per_run_status'] %}
+                    {% if c['status'] == "unknown" %}
+                    <span class="badge text-bg-secondary breathing-room">{{c['procedure'].test_procedure_id}}</span>
+                    {% elif c['status'] == "runless" %}
+                    <span class="badge text-bg-secondary breathing-room">{{c['procedure'].test_procedure_id}}</span>
+                    {% elif c['status'] == "active" %}
+                    <span class="badge text-bg-primary breathing-room bigger-badge"><a class="text-bg-primary" href="{{url_for('admin_run_status_page', run_id=c['procedure'].latest_run_id)}}">{{c['procedure'].test_procedure_id}} ({{c['procedure'].latest_run_id}})</a></span>
+                    {% elif c['status'] == "failed" %}
+                    <span class="badge text-bg-danger breathing-room bigger-badge"><a class="text-bg-danger" href="{{url_for('admin_run_status_page', run_id=c['procedure'].latest_run_id)}}">{{c['procedure'].test_procedure_id}} ({{c['procedure'].latest_run_id}})</a></span>
+                    {% elif c['status'] == "success" %}
+                    <span class="badge text-bg-success breathing-room bigger-badge"><a class="text-bg-success" href="{{url_for('admin_run_status_page', run_id=c['procedure'].latest_run_id)}}">{{c['procedure'].test_procedure_id}} ({{c['procedure'].latest_run_id}})</a></span>
+                    {% endif %}
+                    {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+        <div>
+        This compliance table shows whether the criteria for each compliance class has been met. Each test procedure required by a compliance class is shown next to the compliance class. The test procedures are colour-coded by the success of the <i>most recent run</i>, for example
+        <span class="badge text-bg-success">Passed</span>
+        or
+        <span class="badge text-bg-danger">Failed</span>
+        .
+        <span class="badge text-bg-primary">Active</span>
+        indicates the test procedure is currently in progress and 
+        <span class="badge text-bg-secondary">No Runs</span>
+        indicates test procedures that have never been run.
+
+        </div>
+    </div>
+
+    </div>
+</div>
+<style>
+    html,
+    body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .push-right {
+        margin: 0 0 0 auto;
+    }
+
+    .no-wrap {
+        white-space: nowrap;
+    }
+
+    .breathing-room {
+        margin-right: 0.3em;
+        margin-bottom: 0.8em;
+    }
+
+    .bigger-badge {
+        font-size: 0.9em;
+    }
+
+    [data-bs-toggle="collapse"] .fa:before {
+        content: "\f139";
+    }
+
+    [data-bs-toggle="collapse"].collapsed .fa:before {
+        content: "\f13a";
+    }
+</style>
+
+<script>
+    addEventListener("load", (event) => {
+    });
+
+
+</script>
+
+
+{% endblock %}

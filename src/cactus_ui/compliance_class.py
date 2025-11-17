@@ -50,3 +50,10 @@ def fetch_compliance_classes(class_names: set[str]) -> list[ComplianceClass]:
             items.append(ComplianceClass(class_name, ""))
 
     return items
+
+
+def fetch_compliance_class(class_name: str) -> ComplianceClass | None:
+    classes = fetch_compliance_classes({class_name})
+    if classes:
+        return classes[0]
+    return None

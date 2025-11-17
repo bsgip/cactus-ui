@@ -15,6 +15,7 @@ from os import environ as env
 from pathlib import Path
 from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
+from collections import defaultdict
 
 import jwt
 from authlib.integrations.flask_client import OAuth
@@ -35,7 +36,7 @@ from werkzeug.wrappers.response import Response
 
 import cactus_ui.orchestrator as orchestrator
 from cactus_ui.common import find_first
-from cactus_ui.compliance_class import fetch_compliance_classes
+from cactus_ui.compliance_class import fetch_compliance_classes, fetch_compliance_class
 
 # Setup logs
 logconf_fp = "./logconf.json"
@@ -191,6 +192,23 @@ def parse_bool(v: str | None) -> bool:
     return True
 
 
+def run_summary_to_compliance_status(test_procedure: orchestrator.ProcedureRunSummaryResponse) -> str:
+    ACTIVE_RUN_STATUSES = [1, 2, 6]  # initialized, started, provisioning
+    FINALIZED_RUN_STATUSES = [3, 4]  # finalized by user, finalized by timeout
+
+    if test_procedure.latest_run_status in ACTIVE_RUN_STATUSES:
+        return "active"
+    elif test_procedure.run_count == 0:
+        return "runless"
+    elif test_procedure.latest_run_status in FINALIZED_RUN_STATUSES:
+        if test_procedure.latest_all_criteria_met:
+            return "success"
+        else:
+            return "failed"
+    else:
+        return "unknown"
+
+
 # Controllers API
 @app.route("/")
 def login_or_home_page() -> str:
@@ -209,12 +227,7 @@ def admin_page(access_token: str) -> str:
 
     user_pages = orchestrator.admin_fetch_users(access_token, page)
     if user_pages is None:
-        # return render_template("admin.html", error="Failed to retrieve users.")
-        users = [
-            orchestrator.UserResponse(user_id=1, name="User 1", run_groups=[78]),
-            orchestrator.UserResponse(user_id=2, name="User 2", run_groups=[12, 45]),
-        ]
-        return render_template("admin.html", users=users)
+        return render_template("admin.html", error="Failed to retrieve users.")
 
     return render_template(
         "admin.html",
@@ -224,6 +237,79 @@ def admin_page(access_token: str) -> str:
         total_items=user_pages.total_items,
         page_size=user_pages.page_size,
         current_page=user_pages.current_page,
+    )
+
+
+@app.route("/admin/group/<int:run_group_id>", methods=["GET", "POST"])
+@login_required
+@admin_role_required
+def admin_run_group_page(access_token: str, run_group_id: int) -> str | Response:  # noqa: C901
+    error: str | None = None
+    """This is the admin-only page summarizing compliance across a run group"""
+
+    if request.method == "POST":
+        # Handle dl artifact
+        if request.form.get("action") == "compliance":
+            compliance_report = None
+            if compliance_report is None:
+                error = "Generation of compliance report not implemented."
+            else:
+                return send_file(
+                    io.BytesIO(compliance_report),
+                    as_attachment=True,
+                    download_name=f"{run_group_id}_compliance.pdf",
+                    mimetype="application/pdf",
+                )
+
+    # Fetch procedures
+    procedures = orchestrator.admin_fetch_group_procedure_run_summaries(
+        access_token=access_token, run_group_id=run_group_id
+    )
+
+    compliance_by_class = {}
+
+    if procedures is None:
+        error = "Unabled to fetch test procedures."
+    else:
+        tests_by_class = defaultdict(list)
+        for p in procedures:
+            if p.classes:
+                for c in p.classes:
+                    tests_by_class[c].append(p.test_procedure_id)
+
+        procedure_map = {p.test_procedure_id: p for p in procedures}
+
+        for compliance_class, tests in tests_by_class.items():
+            per_run_status = [
+                {"procedure": procedure_map[t], "status": run_summary_to_compliance_status(procedure_map[t])}
+                for t in tests
+            ]
+            compliant: bool = all([run["status"] == "success" for run in per_run_status])
+            compliance_by_class[compliance_class] = {
+                "class_details": fetch_compliance_class(compliance_class),
+                "compliant": compliant,
+                "per_run_status": per_run_status,
+            }
+
+    # Fetch the run groups (for the breadcrumbs selector)
+    run_groups = orchestrator.admin_fetch_run_groups(access_token=access_token, run_group_id=run_group_id, page=1)
+    active_run_group: orchestrator.RunGroupResponse | None = None
+    if not run_groups or not run_groups.items:
+        error = "Unable to fetch run groups."
+    else:
+        for rg in run_groups.items:
+            if rg.run_group_id == run_group_id:
+                active_run_group = rg
+                break
+
+    return render_template(
+        "run_group.html",
+        error=error,
+        compliance_by_class=compliance_by_class,
+        run_groups=[] if run_groups is None else run_groups.items,
+        run_group_id=run_group_id,
+        active_run_group=active_run_group,
+        is_admin_view=True,
     )
 
 
@@ -607,6 +693,62 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
         return redirect(url_for("config_page"))
 
     return redirect(url_for("group_runs_page", run_group_id=run_groups.items[0].run_group_id))
+
+
+@app.route("/group/<int:run_group_id>", methods=["GET"])
+@login_required
+def run_group_page(access_token: str, run_group_id: int) -> str:
+    error: str | None = None
+    """This page summarizes compliance across a run group"""
+
+    # Fetch procedures
+    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token=access_token, run_group_id=run_group_id)
+
+    compliance_by_class = {}
+
+    if procedures is None:
+        error = "Unabled to fetch test procedures."
+    else:
+        tests_by_class = defaultdict(list)
+        for p in procedures:
+            if p.classes:
+                for c in p.classes:
+                    tests_by_class[c].append(p.test_procedure_id)
+
+        procedure_map = {p.test_procedure_id: p for p in procedures}
+
+        for compliance_class, tests in tests_by_class.items():
+            per_run_status = [
+                {"procedure": procedure_map[t], "status": run_summary_to_compliance_status(procedure_map[t])}
+                for t in tests
+            ]
+            compliant: bool = all([run["status"] == "success" for run in per_run_status])
+            compliance_by_class[compliance_class] = {
+                "class_details": fetch_compliance_class(compliance_class),
+                "compliant": compliant,
+                "per_run_status": per_run_status,
+            }
+
+    # Fetch the run groups (for the breadcrumbs selector)
+    run_groups = orchestrator.fetch_run_groups(access_token=access_token, page=1)
+    active_run_group: orchestrator.RunGroupResponse | None = None
+    if not run_groups or not run_groups.items:
+        error = "Unable to fetch run groups."
+    else:
+        for rg in run_groups.items:
+            if rg.run_group_id == run_group_id:
+                active_run_group = rg
+                break
+
+    return render_template(
+        "run_group.html",
+        error=error,
+        compliance_by_class=compliance_by_class,
+        run_groups=[] if run_groups is None else run_groups.items,
+        run_group_id=run_group_id,
+        active_run_group=active_run_group,
+        is_admin_view=False,
+    )
 
 
 @app.route("/group/<int:run_group_id>/runs", methods=["GET", "POST"])
