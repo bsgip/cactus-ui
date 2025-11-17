@@ -8,7 +8,7 @@
 <div class="alert alert-danger">{{ error }}</div>
 {% endif %}
 
-<div class="max-page-height" style="padding-top:10px; display: flex; flex-direction: column;">
+<div class="max-page-height scroll-parent" style="padding-top:10px; display: flex; flex-direction: column;">
     <div style="display: flex;">
         {% if run_groups|length < 2 %}
             {% if active_run_group %}
@@ -25,7 +25,7 @@
                     {% for rg in run_groups %}
                     {% if rg.run_group_id != run_group_id %}
                     <li><a class="dropdown-item"
-                            href="{{ url_for('admin_run_group_page', run_group_id=rg.run_group_id) if is_admin_view else url_for('group_runs_page', run_group_id=rg.run_group_id) }}">{{rg.name}}</a></li>
+                            href="{{ url_for('admin_run_group_page', run_group_id=rg.run_group_id) if is_admin_view else url_for('run_group_page', run_group_id=rg.run_group_id) }}">{{rg.name}}</a></li>
                     {% endif %}
                     {% endfor %}
                 </ul>
@@ -36,16 +36,17 @@
 
     <hr>
 
-    <div class="compliance-container">
-        <!-- Only show down compliance report button for admins -->
+            <!-- Only show down compliance report button for admins -->
         {% if is_admin_view %}
-            <div style="display: flex;justify-content: right; margin-top: 16px;" >
+            <div style="display: flex;justify-content: right; margin-top: 16px; margin-bottom: 16px;" >
                 <form id='download-form' method="POST" action="{{ url_for('admin_run_group_page', run_group_id=run_group_id) }}">
                     <input type="hidden" name="action" value="compliance">
                     <button type="submit" class="btn btn-primary">Download Compliance Report</button>
                 </form>
             </div>
         {% endif %}
+    <div class="compliance-container make-scroll">
+
         
         <table class="table table-striped">
             <thead>
@@ -86,7 +87,9 @@
                 </tr>
             </tbody>
         </table>
-        <div>
+
+    </div>
+    <div style="margin-top: 0.5em;">
         This compliance table shows whether the criteria for each compliance class has been met. Each test procedure required by a compliance class is shown next to the compliance class. The test procedures are colour-coded by the success of the <i>most recent run</i>, for example
         <span class="badge text-bg-success">Passed</span>
         or
@@ -97,7 +100,6 @@
         <span class="badge text-bg-secondary">No Runs</span>
         indicates test procedures that have never been run.
 
-        </div>
     </div>
 
     </div>
@@ -110,6 +112,20 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
+    }
+    
+    .container {
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .scroll-parent {
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .make-scroll {
+        overflow: auto;
     }
 
     .push-right {
