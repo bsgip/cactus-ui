@@ -694,19 +694,38 @@
     }
 
     function convertDataStreamsToChartJs(dataStreams) {
-        return dataStreams.map(ds => ({
-            label: ds.label,
-            data: ds.data.map(point => ({
-                x: parseOffsetSeconds(point.offset),
-                y: point.watts
-            })),
-            stepped: ds.stepped ? 'before' : false,
-            borderDash: ds.dashed ? [5, 5] : undefined,
-            tension: 0,
-            spanGaps: true
-        }));
+        return dataStreams.map(ds => {
+            // Sort data by offset time
+            const sortedData = [...ds.data].sort((a, b) => 
+                parseOffsetSeconds(a.offset) - parseOffsetSeconds(b.offset)
+            );
+            // Each point is stored as a 20s interval
+            const expandedData = [];
+            sortedData.forEach((point, index) => {
+                const startX = parseOffsetSeconds(point.offset);
+                const endX = startX + 20;
+                
+                // Add start and end points
+                expandedData.push({ x: startX, y: point.watts });
+                expandedData.push({ x: endX, y: point.watts });
+                
+                // If not at the end, add the connecting point at the start of next segment
+                if (index < sortedData.length - 1) {
+                    const nextStartX = parseOffsetSeconds(sortedData[index + 1].offset);
+                    const nextWatts = sortedData[index + 1].watts;
+                    expandedData.push({ x: nextStartX, y: nextWatts });
+                }
+            });
+            
+            return {
+                label: ds.label,
+                data: expandedData,
+                borderDash: ds.dashed ? [5, 5] : undefined,
+                tension: 0,
+                spanGaps: false
+            };
+        });
     }
-
     function createChartAnnotations(timeline, timelineStart) {
         const start = new Date(timelineStart);
         const nowSeconds = (new Date() - start) / 1000;
