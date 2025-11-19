@@ -5,6 +5,7 @@ from enum import IntEnum, auto
 from http import HTTPStatus
 from os import environ as env
 from typing import Any, Callable, Generic, TypeVar
+from dataclass_wizard import JSONWizard
 
 import requests
 from dotenv import find_dotenv, load_dotenv
@@ -90,7 +91,7 @@ class RunGroupRequest:
 
 
 @dataclass
-class RunGroupResponse:
+class RunGroupResponse(JSONWizard):
     """Ideally this would be defined in a shared cactus-schema but that doesn't exist. Instead, ensure this remains
     in sync with cactus-orchestrator.schema.RunGroupResponse"""
 
@@ -105,14 +106,13 @@ class RunGroupResponse:
 
 
 @dataclass
-class UserResponse:
-    """Ideally this would be defined in a shared cactus-schema but that doesn't exist. Instead, ensure this remains
-    in sync with cactus-orchestrator.schema.Procedure"""
+class UserResponse(JSONWizard):
 
     user_id: int
     name: str
     subject_id: str
     run_groups: list[RunGroupResponse]
+    matchable_description: str
 
 
 @dataclass
@@ -664,22 +664,37 @@ def delete_run_group(access_token: str, run_group_id: int) -> bool:
 # ----------------------------------------------------------------------------------
 
 
-def admin_fetch_users(access_token: str, page: int) -> Pagination[UserResponse] | None:
+def get_matchable_description(u: dict) -> str:
+    """Convert a user into a string that can be matched against a search term
+
+    | characters are used to separate fields to prevent matching across fields.
+    """
+    matchable_description = f"{u["user_id"]}"
+    if u["name"]:
+        matchable_description += f"|{u["name"]}"
+    for rg in u["run_groups"]:
+        matchable_description += f"|{rg["run_group_id"]}|{rg["name"]}"
+    return matchable_description
+
+
+def admin_fetch_users(access_token: str) -> list[UserResponse] | None:
     """Fetch the list of all users (admin only)"""
-    uri = generate_uri(f"/admin/users?page={page}")
+    uri = generate_uri("/admin/users")
+
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
         return None
 
-    return handle_pagination(
-        response.json(),
-        lambda i: UserResponse(
+    return [
+        UserResponse(
             user_id=i["user_id"],
             name=i["name"],
             subject_id=i["subject_id"],
             run_groups=i["run_groups"],
-        ),
-    )
+            matchable_description=get_matchable_description(i),
+        )
+        for i in response.json()
+    ]
 
 
 def admin_fetch_run_groups(access_token: str, run_group_id: int, page: int) -> Pagination[RunGroupResponse] | None:

@@ -223,20 +223,21 @@ def login_or_home_page() -> str:
 @login_required
 @admin_role_required
 def admin_page(access_token: str) -> str:
-    page = request.args.get("page", 1, type=int)  # Default to page 1
-
-    user_pages = orchestrator.admin_fetch_users(access_token, page)
-    if user_pages is None:
+    users = orchestrator.admin_fetch_users(access_token)
+    if users is None:
         return render_template("admin.html", error="Failed to retrieve users.")
+
+    def custom_serializer(obj: Any) -> str:
+        # Use JSONWizard for serialization of UserResponse or RunGroupResponse
+        if isinstance(obj, orchestrator.UserResponse) or isinstance(obj, orchestrator.RunGroupResponse):
+            return obj.to_json()
+        # other rely on standard serialization
+        return json.dumps(obj)
 
     return render_template(
         "admin.html",
-        users=user_pages.items,
-        next_page=user_pages.next_page,
-        prev_page=user_pages.prev_page,
-        total_items=user_pages.total_items,
-        page_size=user_pages.page_size,
-        current_page=user_pages.current_page,
+        users=users,
+        users_b64=b64encode(json.dumps(users, default=custom_serializer).encode()).decode(),
     )
 
 

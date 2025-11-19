@@ -3,11 +3,18 @@
 {% block title %}Admin - Cactus{% endblock %}
 
 {% block content %}
-<h2>Admin</h2>
+
 
 {% if error %}
 <div class="alert alert-danger">{{ error }}</div>
 {% else %}
+<div class="max-page-height scroll-parent" style="padding-top:10px; display: flex; flex-direction: column;">
+    <h2>Admin</h2>
+
+<form class="form-inline form-margin">
+    <input id="filter-users-input" class="form-control mr-sm-2 search" type="search" placeholder="e.g. user@example.com" aria-label="Search" oninput="filterUsersHandler(event)">
+</form>
+<div class="make-scroll">
 <table class="table table-striped">
     <thead>
         <tr>
@@ -16,41 +23,135 @@
             <th>Run Groups</th>
         </tr>
     </thead>
-    <tbody>
-        {% for user in users %}
-        <tr>
-            <td>{{ user.user_id }}</td>
-            {% if user.name %}
-            <td><b>{{ user.name }}</b></td>
-            {% else %}
-            <td>Unknown</td>
-            {% endif %}
-            <td>
-                {% if user.run_groups %}
-                {% for run_group in user.run_groups %}
-                <a class="separated-links" href="{{ url_for('admin_run_group_page', run_group_id=run_group.run_group_id) }}">
-                    {{run_group.name}} ({{ run_group.run_group_id }})
-                </a>
-                {% endfor %}
-                {% else %}
-                No run groups found.
-                {% endif %}
-            </td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="4" class="text-center">No procedures available.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
+    <tbody id="user-table-body"></tbody>
 </table>
+</div>
+</div>
 {% endif %}
 <style>
+    html,
+    body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .container {
+        overflow: hidden;
+        height: 100%;
+    }
+    .scroll-parent {
+        overflow: hidden;
+        height: 100%;
+    }
+    .make-scroll {
+        flex: 1;
+        overflow: auto;
+    }
+
+    .form-margin {
+        margin: auto 0.2em 0.5em 0.2em;
+    }
+
     .separated-links {
         margin-right: 0.7em;
     }
+
+    .search {
+        width: 100%;
+        margin-top: 10px;
+        margin-bottom: 5px;
+    }
+
+    .hidden {
+        display: none !important;
+    }
 </style>
-<script></script>
+<script>
+    const users = JSON.parse(atob("{{ users_b64 }}"));
+    const runGroupBaseUrl = "{{ url_for('admin_run_group_page', run_group_id=0) }}".slice(0, -1);  // remove trailing 0 run group id
+
+    function updateUserTable(usersForTable) {
+        const table = document.getElementById("user-table-body");
+        for (const user of usersForTable) {
+            const newRow = table.insertRow();
+
+            const userIdCell = newRow.insertCell(0);
+            const nameCell = newRow.insertCell(1);
+            const runGroupCell = newRow.insertCell(2);
+
+            userIdCell.innerHTML = user.userId;
+            nameCell.innerHTML = user.name ? `<b>${user.name}<b>` : '-';
+            
+            if (user.runGroups.length == 0) {
+                runGroupCell.innerHTML = "No run groups found.";
+            } else {
+                let innerHTML = "";
+                for (runGroup of user.runGroups) {
+                    innerHTML += `<a class="separated-links" href="${runGroupBaseUrl}${runGroup.run_group_id}">${runGroup.name} (${ runGroup.run_group_id })<\a>`;
+                }
+                runGroupCell.innerHTML = innerHTML;
+            }
+        }
+    }
+
+    function clearUserTable() {
+        const myNode = document.getElementById("user-table-body");
+        while (myNode.firstChild) {
+            myNode.removeChild(myNode.lastChild);
+        }
+    }
+
+    function displayNoUsers() {
+        const table = document.getElementById("user-table-body");
+        const newRow = table.insertRow();
+        newRow.innerHTML = '<td colspan="3" class="text-center">No users found.</td>'
+    }
+
+    function fetchFilteredUsers(filterText) {
+        if (filterText.length == 0) {
+            let allUsers = [];
+            for (const rawUser of users) {
+                const user = JSON.parse(rawUser)
+                allUsers.push(user);
+            }
+            return allUsers;
+        } else {
+            // Perform filtering client-side
+            let filteredUsers = [];
+            for (const rawUser of users) {
+                const user = JSON.parse(rawUser)
+                if (user.matchableDescription.match(filterText)) {
+                    filteredUsers.push(user);
+                }
+            }
+            return filteredUsers;
+        }
+    }
+
+    function filterUsers(filterText) {  
+        const filteredUsers = fetchFilteredUsers(filterText);
+        clearUserTable();
+        if (filteredUsers.length > 0) {
+            updateUserTable(filteredUsers);
+        } else {
+            displayNoUsers();
+        }
+        
+    }
+
+    function filterUsersHandler(event) {
+        filterUsers(event.target.value);
+    }
+
+
+    addEventListener("load", (event) => {
+        // Apply filter correctly of page (re)load
+        filterUsers(document.getElementById("filter-users-input").value);
+    });
+</script>
 
 {% endblock %}
 
