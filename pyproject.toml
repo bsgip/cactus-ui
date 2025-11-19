@@ -7,7 +7,7 @@ name = "cactus-ui"
 dynamic = ["version", "readme"]
 requires-python = ">= 3.12"
 description = "A web user interface for the CSIP Aus test harness"
-dependencies = ["flask", "python-dotenv", "authlib", "requests", "pyjwt"]
+dependencies = ["flask", "python-dotenv", "authlib", "requests", "pyjwt", "dataclass-wizard"]
 
 
 [project.optional-dependencies]
