@@ -41,7 +41,7 @@
             <div style="display: flex;justify-content: right; margin-top: 16px; margin-bottom: 16px;" >
                 <form id='download-form' method="POST" action="{{ url_for('admin_run_group_page', run_group_id=run_group_id) }}">
                     <input type="hidden" name="action" value="compliance">
-                    <button type="submit" class="btn btn-primary">Download Compliance Report</button>
+                    <button type="submit" class="btn btn-primary">Generate Compliance Report</button>
                 </form>
             </div>
         {% endif %}
