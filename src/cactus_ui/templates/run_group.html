@@ -74,11 +74,11 @@
                     {% elif c['status'] == "runless" %}
                     <span class="badge text-bg-secondary breathing-room">{{c['procedure'].test_procedure_id}}</span>
                     {% elif c['status'] == "active" %}
-                    <span class="badge text-bg-primary breathing-room bigger-badge"><a class="text-bg-primary" href="{{url_for('admin_run_status_page', run_id=c['procedure'].latest_run_id)}}">{{c['procedure'].test_procedure_id}} ({{c['procedure'].latest_run_id}})</a></span>
+                    <span class="badge text-bg-primary breathing-room bigger-badge"><a class="text-bg-primary" href="{{ url_for('admin_run_status_page', run_id=c['procedure'].latest_run_id) if is_admin_view else url_for('run_status_page', run_id=c['procedure'].latest_run_id) }}">{{c['procedure'].test_procedure_id}} ({{c['procedure'].latest_run_id}})</a></span>
                     {% elif c['status'] == "failed" %}
-                    <span class="badge text-bg-danger breathing-room bigger-badge"><a class="text-bg-danger" href="{{url_for('admin_run_status_page', run_id=c['procedure'].latest_run_id)}}">{{c['procedure'].test_procedure_id}} ({{c['procedure'].latest_run_id}})</a></span>
+                    <span class="badge text-bg-danger breathing-room bigger-badge"><a class="text-bg-danger" href="{{ url_for('admin_run_status_page', run_id=c['procedure'].latest_run_id) if is_admin_view else url_for('run_status_page', run_id=c['procedure'].latest_run_id) }}">{{c['procedure'].test_procedure_id}} ({{c['procedure'].latest_run_id}})</a></span>
                     {% elif c['status'] == "success" %}
-                    <span class="badge text-bg-success breathing-room bigger-badge"><a class="text-bg-success" href="{{url_for('admin_run_status_page', run_id=c['procedure'].latest_run_id)}}">{{c['procedure'].test_procedure_id}} ({{c['procedure'].latest_run_id}})</a></span>
+                    <span class="badge text-bg-success breathing-room bigger-badge"><a class="text-bg-success" href="{{ url_for('admin_run_status_page', run_id=c['procedure'].latest_run_id) if is_admin_view else url_for('run_status_page', run_id=c['procedure'].latest_run_id) }}">{{c['procedure'].test_procedure_id}} ({{c['procedure'].latest_run_id}})</a></span>
                     {% endif %}
                     {% endfor %}
                     </td>
