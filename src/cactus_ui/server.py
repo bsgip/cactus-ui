@@ -504,22 +504,23 @@ def admin_run_status_json(access_token: str, run_id: str) -> Response:
 @app.route("/procedures", methods=["GET"])
 @login_required
 def procedures_page(access_token: str) -> str:
-    page = request.args.get("page", 1, type=int)  # Default to page 1
+    """Get all test procedures, handling pagination."""
+    all_procedures = []
+    page = 1
 
-    # Request the paginated list of procedures from upstream
-    procedure_pages = orchestrator.fetch_procedures(access_token, page)
-    if procedure_pages is None:
-        return render_template("procedures.html", error="Failed to retrieve procedures.")
+    while True:
+        procedure_pages = orchestrator.fetch_procedures(access_token, page)
+        if procedure_pages is None:
+            return render_template("procedures.html", error="Failed to retrieve procedures.")
 
-    return render_template(
-        "procedures.html",
-        procedures=procedure_pages.items,
-        next_page=procedure_pages.next_page,
-        prev_page=procedure_pages.prev_page,
-        total_items=procedure_pages.total_items,
-        page_size=procedure_pages.page_size,
-        current_page=procedure_pages.current_page,
-    )
+        all_procedures.extend(procedure_pages.items)
+
+        if procedure_pages.next_page is None:
+            break
+
+        page = procedure_pages.next_page
+
+    return render_template("procedures.html", procedures=all_procedures)
 
 
 @app.route("/procedure/<test_procedure_id>", methods=["GET"])
