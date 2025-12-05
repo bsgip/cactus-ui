@@ -705,15 +705,24 @@
                 const startX = parseOffsetSeconds(point.offset);
                 const endX = startX + 20;
                 
-                // Add start and end points
+                // Add start point
                 expandedData.push({ x: startX, y: point.watts });
-                expandedData.push({ x: endX, y: point.watts });
                 
-                // If not at the end, add the connecting point at the start of next segment
+                // If not at the end, check if there's a gap to the next segment
                 if (index < sortedData.length - 1) {
                     const nextStartX = parseOffsetSeconds(sortedData[index + 1].offset);
-                    const nextWatts = sortedData[index + 1].watts;
-                    expandedData.push({ x: nextStartX, y: nextWatts });
+                    
+                    // Only add the end point if there's a gap, or if it's the last segment
+                    if (nextStartX > endX) {
+                        // There's a gap - add end point of current segment
+                        expandedData.push({ x: endX, y: point.watts });
+                    } else {
+                        // No gap - the segments are contiguous, just continue
+                        expandedData.push({ x: nextStartX, y: point.watts });
+                    }
+                } else {
+                    // Last segment - add the end point
+                    expandedData.push({ x: endX, y: point.watts });
                 }
             });
             
@@ -892,7 +901,23 @@
         }
     }
 
+    let lastChartDataSignature = null;
+
     function updateChart(timeline, stepStatus, requestHistory, timelineStart) {
+        // Check if ANY chart-relevant data changed
+        const dataSignature = JSON.stringify({
+            timelineLength: timeline?.data_streams?.[0]?.data.length || 0,
+            requestCount: (requestHistory || []).length,
+            completedSteps: Object.values(stepStatus || {})
+                .filter(s => s.completed_at)
+                .length
+        });
+        
+        // Skip entire chart update if nothing changed
+        if (dataSignature === lastChartDataSignature) {
+            return;
+        }
+        lastChartDataSignature = dataSignature;
         document.getElementById('timelineInfo').style.display = 'none';
         document.getElementById('timelineChart').style = '';
         document.getElementById('timelineActivityChart').style.display = 'block';
@@ -984,6 +1009,27 @@
                             position: 'bottom',
                             labels: {
                                 filter: item => item.text !== ''
+                            },
+                            onClick: function(e, legendItem, legend) {
+                                const index = legendItem.datasetIndex;
+                                const chart = legend.chart;
+                                const meta = chart.getDatasetMeta(index);
+                                
+                                // Toggle visibility
+                                meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+                                
+                                // Also hide/show all related datasets with empty labels that have the same color
+                                const clickedColor = chart.data.datasets[index].borderColor;
+                                chart.data.datasets.forEach((dataset, i) => {
+                                    if (i !== index && 
+                                        dataset.label === '' && 
+                                        dataset.borderColor === clickedColor) {
+                                        const datasetMeta = chart.getDatasetMeta(i);
+                                        datasetMeta.hidden = meta.hidden;
+                                    }
+                                });
+                                
+                                chart.update();
                             }
                         },
                         tooltip: { enabled: false }
