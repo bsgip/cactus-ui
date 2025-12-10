@@ -5,9 +5,9 @@ from enum import IntEnum, auto
 from http import HTTPStatus
 from os import environ as env
 from typing import Any, Callable, Generic, TypeVar
-from dataclass_wizard import JSONWizard
 
 import requests
+from dataclass_wizard import JSONWizard
 from dotenv import find_dotenv, load_dotenv
 
 logger = logging.getLogger(__name__)
@@ -753,6 +753,16 @@ def admin_fetch_group_procedure_run_summaries(
 def admin_fetch_run_artifact(access_token: str, run_id: str) -> bytes | None:
     """Given an already started run - finalise it and return the resulting ZIP file bytes"""
     uri = generate_uri(f"/admin/run/{run_id}/artifact")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return response.content
+
+
+def admin_fetch_run_group_artifact(access_token: str, run_group_id: int) -> bytes | None:
+    """Generates a compliance report for the specified run_group_id. Returns the resulting ZIP file bytes"""
+    uri = generate_uri(f"/admin/run_group/{run_group_id}/artifact")
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
         return None
