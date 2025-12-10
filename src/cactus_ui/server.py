@@ -7,6 +7,7 @@ import logging.config
 import os
 import zipfile
 from base64 import b64encode
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import lru_cache, wraps
@@ -15,7 +16,6 @@ from os import environ as env
 from pathlib import Path
 from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
-from collections import defaultdict
 
 import jwt
 from authlib.integrations.flask_client import OAuth
@@ -36,7 +36,7 @@ from werkzeug.wrappers.response import Response
 
 import cactus_ui.orchestrator as orchestrator
 from cactus_ui.common import find_first
-from cactus_ui.compliance_class import fetch_compliance_classes, fetch_compliance_class
+from cactus_ui.compliance_class import fetch_compliance_class, fetch_compliance_classes
 
 # Setup logs
 logconf_fp = "./logconf.json"
@@ -251,9 +251,9 @@ def admin_run_group_page(access_token: str, run_group_id: int) -> str | Response
     if request.method == "POST":
         # Handle dl artifact
         if request.form.get("action") == "compliance":
-            compliance_report = None
+            compliance_report = orchestrator.admin_fetch_run_group_artifact(access_token, run_group_id)
             if compliance_report is None:
-                error = "Generation of compliance report not implemented."
+                error = "There was an error generating the compliance report."
             else:
                 return send_file(
                     io.BytesIO(compliance_report),
