@@ -1,4 +1,5 @@
 import logging
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum, auto
@@ -20,6 +21,13 @@ if ENV_FILE:
 CACTUS_ORCHESTRATOR_BASEURL = env["CACTUS_ORCHESTRATOR_BASEURL"]
 CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT = int(env.get("CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT", "30"))
 CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN = int(env.get("CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN", "120"))
+
+
+HEADER_USER_NAME = "CACTUS-User-Name"
+HEADER_TEST_ID = "CACTUS-Test-Id"
+HEADER_RUN_ID = "CACTUS-Run-Id"
+HEADER_GROUP_ID = "CACTUS-Group-Id"
+HEADER_GROUP_NAME = "CACTUS-Group-Name"
 
 
 @dataclass
@@ -189,6 +197,18 @@ def generate_uri(path: str) -> str:
         return CACTUS_ORCHESTRATOR_BASEURL.rstrip("/") + path
     else:
         return CACTUS_ORCHESTRATOR_BASEURL.rstrip("/") + "/" + path
+
+
+def file_name_safe(v: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_\-]", "_", v)
+
+
+def generate_run_artifact_file_name(response: requests.Response, run_id: str) -> str:
+    raw_run_id = response.headers.get(HEADER_RUN_ID, run_id)
+    user = response.headers.get(HEADER_USER_NAME, "")
+    test_id = response.headers.get(HEADER_TEST_ID, "")
+    group_name = response.headers.get(HEADER_GROUP_NAME, "")
+    return file_name_safe(f"{raw_run_id}_{test_id}_{user}_{group_name}_artifacts") + ".zip"
 
 
 def fetch_procedures(access_token: str, page: int) -> Pagination[ProcedureResponse] | None:
@@ -391,14 +411,14 @@ def finalise_run(access_token: str, run_id: str) -> bytes | None:
     return response.content
 
 
-def fetch_run_artifact(access_token: str, run_id: str) -> bytes | None:
-    """Given an already started run - finalise it and return the resulting ZIP file bytes"""
+def fetch_run_artifact(access_token: str, run_id: str) -> tuple[bytes | None, str]:
+    """Given an already started run - finalise it and return the resulting ZIP file bytes / file name"""
     uri = generate_uri(f"/run/{run_id}/artifact")
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
-        return None
+        return (None, "")
 
-    return response.content
+    return (response.content, generate_run_artifact_file_name(response, run_id))
 
 
 def fetch_runs_for_group(
@@ -750,14 +770,14 @@ def admin_fetch_group_procedure_run_summaries(
     ]
 
 
-def admin_fetch_run_artifact(access_token: str, run_id: str) -> bytes | None:
-    """Given an already started run - finalise it and return the resulting ZIP file bytes"""
+def admin_fetch_run_artifact(access_token: str, run_id: str) -> tuple[bytes | None, str]:
+    """Given an already started run - finalise it and return the resulting ZIP file bytes and ZIP file name"""
     uri = generate_uri(f"/admin/run/{run_id}/artifact")
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
-        return None
+        return (None, "")
 
-    return response.content
+    return (response.content, generate_run_artifact_file_name(response, run_id))
 
 
 def admin_fetch_run_group_artifact(access_token: str, run_group_id: int) -> bytes | None:
