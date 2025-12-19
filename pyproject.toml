@@ -27,7 +27,7 @@ dev = [
     "types-requests",
     "types-Authlib",
 ]
-test = ["pytest"]
+test = ["pytest", "pytest-env"]
 
 [tool.setuptools]
 package-dir = { "" = "src" }
