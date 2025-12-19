@@ -27,7 +27,7 @@ dev = [
     "types-requests",
     "types-Authlib",
 ]
-test = ["pytest"]
+test = ["pytest", "pytest-env"]
 
 [tool.setuptools]
 package-dir = { "" = "src" }
@@ -55,6 +55,7 @@ line-length = 120
 [tool.pytest.ini_options]
 pythonpath = ["src/"]
 testpaths = "tests"
+env = ["D:CACTUS_ORCHESTRATOR_BASEURL=http://localhost/"]
 
 [tool.isort]
 profile = "black"

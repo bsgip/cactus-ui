@@ -328,14 +328,14 @@ def admin_group_runs_page(access_token: str, run_group_id: int) -> str | Respons
             if not run_id:
                 error = "No run ID specified."
             else:
-                artifact_data = orchestrator.admin_fetch_run_artifact(access_token, run_id)
+                artifact_data, download_name = orchestrator.admin_fetch_run_artifact(access_token, run_id)
                 if artifact_data is None:
                     error = "Failed to retrieve artifacts."
                 else:
                     return send_file(
                         io.BytesIO(artifact_data),
                         as_attachment=True,
-                        download_name=f"{run_id}_artifacts.zip",
+                        download_name=download_name,
                         mimetype="application/zip",
                     )
 
@@ -439,14 +439,14 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
     if request.method == "POST":
         # Handle downloading a prior run's artifacts
         if request.form.get("action") == "artifact":
-            artifact_data = orchestrator.admin_fetch_run_artifact(access_token, run_id)
+            artifact_data, download_name = orchestrator.admin_fetch_run_artifact(access_token, run_id)
             if artifact_data is None:
                 error = "Failed to retrieve artifacts."
             else:
                 return send_file(
                     io.BytesIO(artifact_data),
                     as_attachment=True,
-                    download_name=f"{run_id}_artifacts.zip",
+                    download_name=download_name,
                     mimetype="application/zip",
                 )
 
@@ -814,14 +814,14 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
             if not run_id:
                 error = "No run ID specified."
             else:
-                artifact_data = orchestrator.fetch_run_artifact(access_token, run_id)
+                artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
                 if artifact_data is None:
                     error = "Failed to retrieve artifacts."
                 else:
                     return send_file(
                         io.BytesIO(artifact_data),
                         as_attachment=True,
-                        download_name=f"{run_id}_artifacts.zip",
+                        download_name=download_name,
                         mimetype="application/zip",
                     )
         # Handle deleting a prior run
@@ -919,14 +919,14 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
 
         # Handle downloading a prior run's artifacts
         elif request.form.get("action") == "artifact":
-            artifact_data = orchestrator.fetch_run_artifact(access_token, run_id)
+            artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
             if artifact_data is None:
                 error = "Failed to retrieve artifacts."
             else:
                 return send_file(
                     io.BytesIO(artifact_data),
                     as_attachment=True,
-                    download_name=f"{run_id}_artifacts.zip",
+                    download_name=download_name,
                     mimetype="application/zip",
                 )
 
