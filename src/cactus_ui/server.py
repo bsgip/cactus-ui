@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
 
+import cactus_schema.orchestrator as schema
 import jwt
 from authlib.integrations.flask_client import OAuth
 from dotenv import find_dotenv, load_dotenv
@@ -84,7 +85,7 @@ F = TypeVar("F", bound=Callable[..., object])
 class GroupedProcedure:
     slug: str
     category: str
-    summaries: list[orchestrator.ProcedureRunSummaryResponse]
+    summaries: list[schema.TestProcedureRunSummaryResponse]
 
 
 def get_access_token() -> str | None:
@@ -192,7 +193,7 @@ def parse_bool(v: str | None) -> bool:
     return True
 
 
-def run_summary_to_compliance_status(test_procedure: orchestrator.ProcedureRunSummaryResponse) -> str:
+def run_summary_to_compliance_status(test_procedure: schema.TestProcedureRunSummaryResponse) -> str:
     ACTIVE_RUN_STATUSES = [1, 2, 6]  # initialized, started, provisioning
     FINALIZED_RUN_STATUSES = [3, 4]  # finalized by user, finalized by timeout
 
@@ -229,7 +230,7 @@ def admin_page(access_token: str) -> str:
 
     def custom_serializer(obj: Any) -> str:
         # Use JSONWizard for serialization of UserResponse or RunGroupResponse
-        if isinstance(obj, orchestrator.UserResponse) or isinstance(obj, orchestrator.RunGroupResponse):
+        if isinstance(obj, schema.UserConfigurationResponse) or isinstance(obj, schema.RunGroupResponse):
             return obj.to_json()
         # other rely on standard serialization
         return json.dumps(obj)
@@ -294,7 +295,7 @@ def admin_run_group_page(access_token: str, run_group_id: int) -> str | Response
 
     # Fetch the run groups (for the breadcrumbs selector)
     run_groups = orchestrator.admin_fetch_run_groups(access_token=access_token, run_group_id=run_group_id, page=1)
-    active_run_group: orchestrator.RunGroupResponse | None = None
+    active_run_group: schema.RunGroupResponse | None = None
     if not run_groups or not run_groups.items:
         error = "Unable to fetch run groups."
     else:
@@ -377,7 +378,7 @@ def admin_group_runs_page(access_token: str, run_group_id: int) -> str | Respons
 
     # Fetch the run groups (for the breadcrumbs selector)
     run_groups = orchestrator.admin_fetch_run_groups(access_token=access_token, run_group_id=run_group_id, page=1)
-    active_run_group: orchestrator.RunGroupResponse | None = None
+    active_run_group: schema.RunGroupResponse | None = None
     if not run_groups or not run_groups.items:
         error = "Unable to fetch run groups."
     else:
@@ -733,7 +734,7 @@ def run_group_page(access_token: str, run_group_id: int) -> str:
 
     # Fetch the run groups (for the breadcrumbs selector)
     run_groups = orchestrator.fetch_run_groups(access_token=access_token, page=1)
-    active_run_group: orchestrator.RunGroupResponse | None = None
+    active_run_group: schema.RunGroupResponse | None = None
     if not run_groups or not run_groups.items:
         error = "Unable to fetch run groups."
     else:
@@ -867,7 +868,7 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
 
     # Fetch the run groups (for the breadcrumbs selector)
     run_groups = orchestrator.fetch_run_groups(access_token, 1)
-    active_run_group: orchestrator.RunGroupResponse | None = None
+    active_run_group: schema.RunGroupResponse | None = None
     if not run_groups or not run_groups.items:
         error = "Unable to fetch run groups."
     else:
