@@ -27,12 +27,13 @@
             {% elif run_status == 'started' %}
             <p class="card-text">The test is now underway - the server will have loaded any initial preconditions
                 (eg: DERControls) and its now time for your client to respond appropriately.</p>
-                <p>When you're ready to end the test, press the Finalise button. An artefact will be downloaded including
-                    a PDF report, request logs, and server logs to help with debugging.
-                </p>
+            <p>When you're ready to end the test, press the Finalise button. An artefact will be downloaded including
+                a PDF report, request logs, and server logs to help with debugging.
+            </p>
             <form id='finalise-form' method="POST">
                 <input type="hidden" name="action" value="finalise">
-                <button {{user_buttons_state}} type="submit" class="btn btn-warning" onclick="handleButtonClick(event)">Finalise</button>
+                <button {{user_buttons_state}} type="submit" class="btn btn-warning"
+                    onclick="handleButtonClick(event)">Finalise</button>
             </form>
             {% endif %}
 
@@ -171,33 +172,60 @@
         max-height: 600px;
         overflow-y: auto;
     }
+
     #update-xsd-table th {
         width: 120px;
         white-space: nowrap;
     }
+
     #requestModal .modal-backdrop {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.5); z-index: 9999;
-        display: flex; align-items: center; justify-content: center;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         overflow: hidden;
     }
+
     #requestModal .modal-content {
-        background: white; width: 90%; max-width: 1200px; max-height: 90vh;
-        padding: 20px; overflow-y: auto; overflow-x: hidden;
+        background: white;
+        width: 90%;
+        max-width: 1200px;
+        max-height: 90vh;
+        padding: 20px;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
+
     #requestModal .modal-header {
-        display: flex; justify-content: space-between; align-items: center;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 15px;
     }
+
     #requestModal .modal-header button {
-        border: none; background: none; font-size: 24px; cursor: pointer;
+        border: none;
+        background: none;
+        font-size: 24px;
+        cursor: pointer;
     }
+
     #requestModal pre {
-        background: #f8f9fa; padding: 10px; overflow-x: auto;
+        background: #f8f9fa;
+        padding: 10px;
+        overflow-x: auto;
     }
+
     body.modal-open {
         overflow: hidden;
     }
+
     .timeline-container {
         max-height: 900px;
     }
@@ -214,7 +242,7 @@
     const userRunStatusUri = "{{ url_for('run_status_page', run_id=run_id) }}";
     const adminRunStatusUri = "{{ url_for('admin_run_status_page', run_id=run_id) }}";
     const runStatusUri = isAdminView ? adminRunStatusUri : userRunStatusUri;
-    const formAction = runStatusUri 
+    const formAction = runStatusUri
 
     const CHART_CONFIG = {
         RIGHT_BUFFER_SECONDS: 90,        // How much empty space on the right
@@ -229,7 +257,7 @@
         lastUpdateSignature: null,
         updateScheduled: false
     };
-        
+
     if (isAdminView) {
         // Update actions for forms defined in template
         const downloadForm = document.getElementById('download-form');
@@ -262,7 +290,7 @@
     function parseOffsetSeconds(offsetStr) {
         const match = offsetStr.match(/(\d+)m(\d+)s|(\d+)s/);
         if (!match) return 0;
-        
+
         if (match[1] && match[2]) {
             return parseInt(match[1]) * 60 + parseInt(match[2]);
         }
@@ -278,8 +306,8 @@
     function showCommsError(message) {
         const errorEl = document.getElementById('error-div');
         if (!errorEl) return;
-        
-        errorEl.innerHTML = message 
+
+        errorEl.innerHTML = message
             ? `<div class="alert alert-danger" role="alert">${message}</div>`
             : '';
     }
@@ -332,10 +360,10 @@
 
     function metadataTableBody(endDeviceMetadata) {
         fragments = [];
-        
+
         // Helper function to display value or "Not set"
         const displayValue = (value) => value !== null && value !== undefined ? value : "Not set";
-        
+
         // Always display all rows
         fragments.push(`
             <tr>
@@ -355,7 +383,7 @@
                 <td>${displayValue(endDeviceMetadata?.set_max_w)}</td>
             </tr>`
         );
-        
+
         return fragments;
     }
 
@@ -409,7 +437,14 @@
                     status = 0; // PENDING
                 }
             }
-            
+
+            event_status = ""
+            if (stepInfo.event_status) {
+                event_status = stepInfo.event_status
+            } else if (stepInfo.eventStatus) {
+                event_status = stepInfo.eventStatus
+            }
+
             let color = ""
             let icon = ""
             switch (status) {
@@ -428,11 +463,12 @@
                     color = "success"
                     icon = "check"
                     break;
-                    
+
             }
             fragments.push(`
                 <tr>
                     <th scope="row">${step}</th>
+                    <td><span class="text-secondary">${event_status}</span></td>
                     <td><span class="text-${color}"><i class="fas fa-${icon}"></i></span></td>
                 </tr>`);
         }
@@ -487,9 +523,9 @@
                 sourceLength: requests.length
             };
         }
-        
+
         const requestsWithErrors = cachedXsdRequests.list;
-        
+
         // Update the title based on count
         const titleElement = document.querySelector('#xsd-section-title');
         if (titleElement) {
@@ -497,7 +533,7 @@
             const totalErrorCount = requests
                 .filter(r => r.body_xml_errors && r.body_xml_errors.length > 0)
                 .length;
-            
+
             if (requestsWithErrors.length === 0 || requestsWithErrors.length === 1) {
                 titleElement.textContent = 'Latest XSD Validation Error';
             } else if (totalErrorCount > 10) {
@@ -506,22 +542,22 @@
                 titleElement.textContent = 'Latest XSD Validation Errors';
             }
         }
-        
+
         if (requestsWithErrors.length === 0) {
             // Rmeove navigation
             document.getElementById('xsd-navigation').innerHTML = '';
-            
+
             return [`
                 <tr>
                     <td colspan="2" class="text-center text-muted">No XSD validation errors detected</td>
                 </tr>`
             ];
         }
-        
+
         const currentIndex = parseInt(document.getElementById('xsdErrorIndex')?.value || '0', 10);
         const currentRequest = requestsWithErrors[currentIndex];
         const errorTimestamp = new Date(Date.parse(currentRequest.timestamp));
-        
+
         // Update navigation buttons
         const navContainer = document.getElementById('xsd-navigation');
         if (requestsWithErrors.length > 1) {
@@ -548,44 +584,44 @@
                 <input type="hidden" id="xsdErrorCount" value="1">
             `;
         }
-        
+
         const fragments = [];
-        
+
         fragments.push(`
             <tr>
                 <th scope="row">Timestamp</th>
                 <td>${formatDate(errorTimestamp)} (${formatRelativeDate(errorTimestamp)})</td>
             </tr>
         `);
-        
+
         fragments.push(`
             <tr>
                 <th scope="row">Request</th>
                 <td>${currentRequest.method} ${currentRequest.path}</td>
             </tr>
         `);
-        
+
         fragments.push(`
             <tr>
                 <th scope="row">URL</th>
                 <td><code style="word-break: break-all;">${currentRequest.url}</code></td>
             </tr>
         `);
-        
+
         fragments.push(`
             <tr>
                 <th scope="row">Status Code</th>
                 <td><span class="badge text-bg-${currentRequest.status < 200 || currentRequest.status > 299 ? 'danger' : 'success'}">${currentRequest.status}</span></td>
             </tr>
         `);
-        
+
         fragments.push(`
             <tr>
                 <th scope="row">Step</th>
                 <td>${currentRequest.step_name === "Unmatched" ? "<em>Unmatched</em>" : currentRequest.step_name}</td>
             </tr>
         `);
-        
+
         const MAX_ERROR_LENGTH = 500;
         const truncateError = (error) => {
             if (error.length <= MAX_ERROR_LENGTH) {
@@ -593,7 +629,7 @@
             }
             return error.substring(0, MAX_ERROR_LENGTH) + '... <em>(truncated)</em>';
         };
-        
+
         fragments.push(`
             <tr>
                 <th scope="row">XSD Errors</th>
@@ -615,23 +651,23 @@
                 </td>
             </tr>
         `);
-        
+
         return fragments;
     }
 
     function cycleXsdError(direction) {
         const indexInput = document.getElementById('xsdErrorIndex');      // Current position
         const countInput = document.getElementById('xsdErrorCount');      // Total number of errors
-        
+
         if (!indexInput || !countInput) return;  // Safety check
-        
+
         // Get the current values
         const currentIndex = parseInt(indexInput.value, 10);  // e.g., error #2 (index 1)
         const maxCount = parseInt(countInput.value, 10);      // e.g., 5 total errors
-        
+
         const newIndex = Math.max(0, Math.min(maxCount - 1, currentIndex + direction)); // Calculate the new index       
         indexInput.value = newIndex; // Update the stored index
-        
+
         // Re-render the table
         const xsdTable = document.getElementById('update-xsd-table');
         xsdTable.innerHTML = xsdTableBody(window.currentStatus.request_history ?? []).join("");
@@ -707,7 +743,7 @@
 
         // Current max time (either existing or initial)
         const currentMax = chartState.currentMaxTime || Math.max(maxDataTime, nowSeconds) + CHART_CONFIG.RIGHT_BUFFER_SECONDS;
-        
+
         // Calculate where 'now' is relative to the visible range
         const visibleStart = 0;
         const visibleEnd = currentMax;
@@ -732,7 +768,7 @@
     function convertDataStreamsToChartJs(dataStreams) {
         return dataStreams.map(ds => {
             // Sort data by offset time
-            const sortedData = [...ds.data].sort((a, b) => 
+            const sortedData = [...ds.data].sort((a, b) =>
                 parseOffsetSeconds(a.offset) - parseOffsetSeconds(b.offset)
             );
             // Each point is stored as a 20s interval
@@ -740,14 +776,14 @@
             sortedData.forEach((point, index) => {
                 const startX = parseOffsetSeconds(point.offset);
                 const endX = startX + 20;
-                
+
                 // Add start point
                 expandedData.push({ x: startX, y: point.watts });
-                
+
                 // If not at the end, check if there's a gap to the next segment
                 if (index < sortedData.length - 1) {
                     const nextStartX = parseOffsetSeconds(sortedData[index + 1].offset);
-                    
+
                     // Only add the end point if there's a gap, or if it's the last segment
                     if (nextStartX > endX) {
                         // There's a gap - add end point of current segment
@@ -761,7 +797,7 @@
                     expandedData.push({ x: endX, y: point.watts });
                 }
             });
-            
+
             return {
                 label: ds.label,
                 data: expandedData,
@@ -776,7 +812,7 @@
             const start = new Date(timelineStart);
             nowSeconds = (new Date() - start) / 1000;
         }
-        
+
         const annotations = [{
             type: 'line',
             borderColor: 'black',
@@ -791,7 +827,7 @@
             scaleID: 'x',
             value: nowSeconds
         }];
-        
+
         if (timeline?.set_max_w != null) {
             const maxW = timeline.set_max_w;
             [maxW, -maxW].forEach((value, idx) => {
@@ -810,13 +846,13 @@
                 });
             });
         }
-        
+
         return annotations;
     }
 
     function extractActivityData(stepStatus, requestHistory, timelineStart) {
         if (!timelineStart) return { stepCompletions: [], allRequests: [] };
-        
+
         const start = new Date(timelineStart);
         const stepCompletions = [];
         const allRequests = [];
@@ -848,14 +884,14 @@
 
     function createActivityDatasets(stepCompletions, allRequests) {
         const datasets = [];
-        
+
         // Add step completions FIRST (for legend order, but will be drawn last)
         const stepLegendAdded = new Set();
         const completionLines = [];
-        
+
         stepCompletions.forEach(completion => {
             const showInLegend = !stepLegendAdded.has(completion.stepName);
-            
+
             if (showInLegend) {
                 stepLegendAdded.add(completion.stepName);
                 datasets.push({
@@ -932,7 +968,7 @@
                     top: 5,
                     bottom: 5
                 };
-                
+
                 timelineActivityChart.options.layout.padding = activityPadding;
                 timelineActivityChart.update('none');
             });
@@ -957,17 +993,17 @@
             streamCount: timeline?.data_streams?.length || 0,
             dataPoints: timeline?.data_streams?.reduce((sum, ds) => sum + ds.data.length, 0) || 0,
             setMaxW: timeline?.set_max_w,
-            
+
             // Request activity
             requestCount: (requestHistory || []).length,
-            
+
             // Step completions
             completedSteps: Object.entries(stepStatus || {})
                 .filter(([_, info]) => info.completed_at)
                 .map(([name, info]) => `${name}:${info.completed_at}`)
                 .sort()
                 .join(','),
-            
+
             // Time progression
             nowBucket: Math.floor((new Date() - new Date(timelineStart)) / 10000) // Bucket by 10s
         };
@@ -977,7 +1013,7 @@
 
         // Determine update type
         let updateType = 'none';
-        
+
         if (!lastSignature) {
             updateType = 'full'; // Initial render
         } else if (currentSignature === lastSignature) {
@@ -987,9 +1023,9 @@
             const hasNewData = dataSignature.dataPoints !== lastData.dataPoints;
             const hasNewRequests = dataSignature.requestCount !== lastData.requestCount;
             const hasNewCompletions = dataSignature.completedSteps !== lastData.completedSteps;
-            const hasStructuralChange = dataSignature.streamCount !== lastData.streamCount || 
-                                        dataSignature.setMaxW !== lastData.setMaxW;
-            
+            const hasStructuralChange = dataSignature.streamCount !== lastData.streamCount ||
+                dataSignature.setMaxW !== lastData.setMaxW;
+
             if (hasStructuralChange) {
                 updateType = 'full'; // Need complete rebuild
             } else if (hasNewData || hasNewRequests || hasNewCompletions) {
@@ -1020,13 +1056,13 @@
             if (nowAnnotation) {
                 nowAnnotation.value = nowSeconds;
             }
-            
+
             // Only update axis if it changed
             if (timelineChart.options.scales.x.max !== maxTime) {
                 timelineChart.options.scales.x.max = maxTime;
                 timelineActivityChart.options.scales.x.max = maxTime;
             }
-            
+
             timelineChart.update('none');
             timelineActivityChart.update('none');
             return;
@@ -1038,30 +1074,30 @@
         if (updateType === 'incremental' && timelineChart && timelineActivityChart) {
             const dataStreams = timeline?.data_streams || [];
             const datasets = dataStreams.length > 0 ? convertDataStreamsToChartJs(dataStreams) : [];
-            
+
             const { stepCompletions, allRequests } = extractActivityData(stepStatus, requestHistory, timelineStart);
             const activityDatasets = createActivityDatasets(stepCompletions, allRequests);
-            
+
             const annotations = createChartAnnotations(timeline, timelineStart, nowSeconds);
 
             // Update main timeline chart
             timelineChart.data.datasets = datasets;
             timelineChart.options.plugins.annotation.annotations = annotations;
             timelineChart.options.plugins.legend.display = datasets.length > 0;
-            
+
             if (timelineChart.options.scales.x.max !== maxTime) {
                 timelineChart.options.scales.x.max = maxTime;
             }
-            
+
             timelineChart.update('none');
 
             // Update activity chart
             timelineActivityChart.data.datasets = activityDatasets;
-            
+
             if (timelineActivityChart.options.scales.x.max !== maxTime) {
                 timelineActivityChart.options.scales.x.max = maxTime;
             }
-            
+
             timelineActivityChart.update('none');
             return;
         }
@@ -1162,24 +1198,24 @@
                             labels: {
                                 filter: item => item.text !== ''
                             },
-                            onClick: function(e, legendItem, legend) {
+                            onClick: function (e, legendItem, legend) {
                                 const index = legendItem.datasetIndex;
                                 const chart = legend.chart;
                                 const meta = chart.getDatasetMeta(index);
-                                
+
                                 // Toggle visibility
                                 meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
-                                
+
                                 const clickedColor = chart.data.datasets[index].borderColor;
                                 chart.data.datasets.forEach((dataset, i) => {
-                                    if (i !== index && 
-                                        dataset.label === '' && 
+                                    if (i !== index &&
+                                        dataset.label === '' &&
                                         dataset.borderColor === clickedColor) {
                                         const datasetMeta = chart.getDatasetMeta(i);
                                         datasetMeta.hidden = meta.hidden;
                                     }
                                 });
-                                
+
                                 chart.update('none');
                             }
                         },
@@ -1200,7 +1236,7 @@
                     }
                 }
             });
-            
+
             // Sync alignment after both charts are created
             syncChartAlignment();
         } else {
@@ -1208,7 +1244,7 @@
             timelineActivityChart.options.scales.x.max = maxTime;
             timelineActivityChart.update('none');
         }
-        
+
         // Re-sync alignment on updates (in case window was resized)
         if (timelineChart && timelineActivityChart) {
             syncChartAlignment();
@@ -1216,7 +1252,7 @@
     }
 
     // STATUS UPDATES
-    
+
     function handleNewStatus(status) {
         // Store status globally for cycleXsdError
         window.currentStatus = status;
@@ -1225,7 +1261,7 @@
             showCommsError("Failed to retrieve current status.");
             return;
         }
-        
+
         showCommsError(null);
 
         // update test initialisation text
@@ -1287,8 +1323,8 @@
 
         // update timeline charts
         updateChart(
-            status.timeline, 
-            status.step_status, 
+            status.timeline,
+            status.step_status,
             status.request_history,
             status.timestamp_start
         );
@@ -1308,7 +1344,7 @@
 
     function parseStatus(rawJsonString) {
         if (!rawJsonString) return null;
-        
+
         try {
             return JSON.parse(rawJsonString);
         } catch (error) {
@@ -1347,14 +1383,14 @@
     function showRequestDetails(requestId) {
         xhrRequest(`/run/${runId}/requests/${requestId}`, (content) => {
             const data = JSON.parse(content);
-            const escape = (s) => s ? s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) : '';
-            
+            const escape = (s) => s ? s.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])) : '';
+
             // Extract first line of request (e.g., "GET /edev HTTP/1.1")
             const requestFirstLine = data.request ? data.request.split('\n')[0].trim() : 'Request';
-            
+
             // Prevent body scroll
             document.body.classList.add('modal-open');
-            
+
             const modal = document.createElement('div');
             modal.id = 'requestModal';
             modal.innerHTML = `
