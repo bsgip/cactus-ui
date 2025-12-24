@@ -20,6 +20,7 @@ from urllib.parse import quote_plus, urlencode
 import cactus_schema.orchestrator as schema
 import jwt
 from authlib.integrations.flask_client import OAuth
+from dataclass_wizard import JSONWizard
 from dotenv import find_dotenv, load_dotenv
 from flask import (
     Flask,
@@ -228,10 +229,13 @@ def admin_page(access_token: str) -> str:
     if users is None:
         return render_template("admin.html", error="Failed to retrieve users.")
 
-    def custom_serializer(obj: Any) -> str:
-        # Use JSONWizard for serialization of UserResponse or RunGroupResponse
-        if isinstance(obj, schema.UserConfigurationResponse) or isinstance(obj, schema.RunGroupResponse):
-            return obj.to_json()
+    def custom_serializer(obj: Any) -> str | dict:
+        if isinstance(obj, JSONWizard):
+            # This is pretty crufty - but we're forcing in our own custom property
+            # Josh - I wrote this on xmas eve (sue me) - probably better done with a subclass
+            raw_data = obj.to_dict()
+            raw_data["matchable_description"] = orchestrator.get_matchable_description(raw_data)
+            return raw_data
         # other rely on standard serialization
         return json.dumps(obj)
 

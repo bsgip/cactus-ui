@@ -11,21 +11,23 @@
 <div class="max-page-height scroll-parent" style="padding-top:10px; display: flex; flex-direction: column;">
     <h2>Admin</h2>
 
-<form class="form-inline form-margin">
-    <input id="filter-users-input" class="form-control mr-sm-2 search" type="search" placeholder="Search by user name, run group name or by user/run groups IDs" aria-label="Search" oninput="filterUsersHandler(event)">
-</form>
-<div class="make-scroll">
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>User ID</th>
-            <th>User Name</th>
-            <th>Run Groups</th>
-        </tr>
-    </thead>
-    <tbody id="user-table-body"></tbody>
-</table>
-</div>
+    <form class="form-inline form-margin">
+        <input id="filter-users-input" class="form-control mr-sm-2 search" type="search"
+            placeholder="Search by user name, run group name or by user/run groups IDs" aria-label="Search"
+            oninput="filterUsersHandler(event)">
+    </form>
+    <div class="make-scroll">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>User ID</th>
+                    <th>User Name</th>
+                    <th>Run Groups</th>
+                </tr>
+            </thead>
+            <tbody id="user-table-body"></tbody>
+        </table>
+    </div>
 </div>
 {% endif %}
 <style>
@@ -37,15 +39,17 @@
         display: flex;
         flex-direction: column;
     }
-    
+
     .container {
         overflow: hidden;
         height: 100%;
     }
+
     .scroll-parent {
         overflow: hidden;
         height: 100%;
     }
+
     .make-scroll {
         flex: 1;
         overflow: auto;
@@ -82,15 +86,15 @@
             const nameCell = newRow.insertCell(1);
             const runGroupCell = newRow.insertCell(2);
 
-            userIdCell.innerHTML = user.userId;
+            userIdCell.innerHTML = user.user_id;
             nameCell.innerHTML = user.name ? `<b>${user.name}<b>` : '-';
-            
-            if (user.runGroups.length == 0) {
+
+            if (user.run_groups.length == 0) {
                 runGroupCell.innerHTML = "No run groups found.";
             } else {
                 let innerHTML = "";
-                for (runGroup of user.runGroups) {
-                    innerHTML += `<a class="separated-links" href="${runGroupBaseUrl}${runGroup.run_group_id}">${runGroup.name} (${ runGroup.run_group_id })<\a>`;
+                for (runGroup of user.run_groups) {
+                    innerHTML += `<a class="separated-links" href="${runGroupBaseUrl}${runGroup.run_group_id}">${runGroup.name} (${runGroup.run_group_id})<\a>`;
                 }
                 runGroupCell.innerHTML = innerHTML;
             }
@@ -112,18 +116,12 @@
 
     function fetchFilteredUsers(filterText) {
         if (filterText.length == 0) {
-            let allUsers = [];
-            for (const rawUser of users) {
-                const user = JSON.parse(rawUser)
-                allUsers.push(user);
-            }
-            return allUsers;
+            return users;
         } else {
             // Perform filtering client-side
             let filteredUsers = [];
-            for (const rawUser of users) {
-                const user = JSON.parse(rawUser)
-                if (user.matchableDescription.match(filterText)) {
+            for (const user of users) {
+                if (user.matchable_description.match(filterText)) {
                     filteredUsers.push(user);
                 }
             }
@@ -131,7 +129,7 @@
         }
     }
 
-    function filterUsers(filterText) {  
+    function filterUsers(filterText) {
         const filteredUsers = fetchFilteredUsers(filterText);
         clearUserTable();
         if (filteredUsers.length > 0) {
@@ -139,7 +137,7 @@
         } else {
             displayNoUsers();
         }
-        
+
     }
 
     function filterUsersHandler(event) {
@@ -154,4 +152,3 @@
 </script>
 
 {% endblock %}
-
