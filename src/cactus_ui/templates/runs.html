@@ -292,7 +292,10 @@
         filterProcedures(getSelectedFilters());
     }
 
-    function statusToBtn(run_id, run_status, isAdminView) {
+    function statusToBtn(run_id, run_status, has_artifacts, isAdminView) {
+        // For runs without artifacts, don't render a Download button
+        if (!has_artifacts) return "";
+
         if (isAdminView) {
             switch (run_status) {
                 case "initialised":
@@ -371,7 +374,7 @@
                     <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})<small></td>
                     <td>${r.status}</td>
                     <td>${icon}</td>
-                    <td>${statusToBtn(r.run_id, r.status, isAdminView)}</td>
+                    <td>${statusToBtn(r.run_id, r.status, r.has_artifacts, isAdminView)}</td>
                     <td>
                         <form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
                             <input type="hidden" name="run_id" value="${r.run_id}">

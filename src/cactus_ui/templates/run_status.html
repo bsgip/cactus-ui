@@ -149,14 +149,24 @@
 
 <div class="row">
     <h2>Run {{ run_id }} [Finalised]</h2>
+    {% if run_has_artifacts %}
     <div class="alert alert-primary" role="alert">
         <p>This run has been finalised and is no longer active.</p>
+
         <p>Click the button below to download the run's artifacts.</p>
         <form id='download-form' method="POST" action="{{ url_for('run_status_page', run_id=run_id) }}">
             <input type="hidden" name="action" value="artifact">
             <button type="submit" class="btn btn-primary">Download Artifacts</button>
         </form>
     </div>
+    {% else %}
+    <div class="alert alert-warning" role="alert">
+        <p>This run has been finalised and is no longer active.</p>
+        <p>There are <b>no artifacts</b> recorded for this run due to an unexpected error during finalisation.</p>
+        <p>Please try re-running the test. If the problem persists contact support: <a href="mailto:{{ cactus_platform_support_email }}">{{ cactus_platform_support_email }}</a></p>
+    </div>
+    {% endif %}
+
 
 
 </div>

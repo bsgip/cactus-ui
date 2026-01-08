@@ -461,12 +461,14 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
     run_status = None
     run_test_uri = None
     run_procedure_id = None
+    run_has_artifacts = None
 
     run_response = orchestrator.admin_fetch_individual_run(access_token, run_id)
     if run_response:
         run_status = run_response.status
         run_test_uri = run_response.test_url
         run_procedure_id = run_response.test_procedure_id
+        run_has_artifacts = run_response.has_artifacts
 
     # Take the big JSON response string and encode it using base64 so we can embed it in the template and re-hydrate
     # it easily enough
@@ -478,6 +480,7 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
     return render_template(
         "run_status.html",
         run_is_live=run_is_live,
+        run_has_artifacts=run_has_artifacts,
         run_id=run_id,
         initial_status_b64=initial_status_b64,
         run_status=run_status,
@@ -486,6 +489,7 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
         error=error,
         is_admin_view=True,
         user_buttons_state="disabled",
+        cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
     )
 
 
@@ -941,12 +945,14 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
     run_status = None
     run_test_uri = None
     run_procedure_id = None
+    run_has_artifacts = None
 
     run_response = orchestrator.fetch_individual_run(access_token, run_id)
     if run_response:
         run_status = run_response.status
         run_test_uri = run_response.test_url
         run_procedure_id = run_response.test_procedure_id
+        run_has_artifacts = run_response.has_artifacts
 
     # Take the big JSON response string and encode it using base64 so we can embed it in the template and re-hydrate
     # it easily enough
@@ -958,12 +964,14 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
     return render_template(
         "run_status.html",
         run_is_live=run_is_live,
+        run_has_artifacts=run_has_artifacts,
         run_id=run_id,
         initial_status_b64=initial_status_b64,
         run_status=run_status,
         run_test_uri=run_test_uri,
         run_procedure_id=run_procedure_id,
         error=error,
+        cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
     )
 
 
