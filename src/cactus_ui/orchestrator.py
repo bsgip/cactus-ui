@@ -69,6 +69,20 @@ class InitialiseRunResult:
     failure_type: InitialiseRunFailureType
 
 
+@dataclass
+class PlaylistRunInfo:
+    run_id: int
+    test_procedure_id: str
+
+
+@dataclass
+class InitialisePlaylistResult:
+    first_run_id: int | None  # The first run_id in the playlist (or None for failure)
+    playlist_execution_id: str | None
+    playlist_runs: list[PlaylistRunInfo] | None
+    failure_type: InitialiseRunFailureType
+
+
 def generate_headers(access_token: str) -> dict[str, Any]:
     return {"Authorization": "Bearer " + access_token}
 
@@ -247,6 +261,52 @@ def init_run(access_token: str, run_group_id: int, test_procedure_id: str) -> In
         run_id = int(response.json()["run_id"])
 
     return InitialiseRunResult(run_id=run_id, failure_type=failure_type)
+
+
+def init_playlist(
+    access_token: str, run_group_id: int, test_procedure_ids: list[str], start_index: int = 0
+) -> InitialisePlaylistResult:
+    """Creates a playlist of test runs underneath run_group_id, optionally starting from a specific index"""
+    uri = generate_uri(orchestrator.uri.RunGroupRunList.format(run_group_id=run_group_id))
+    request_body: dict = {"test_procedure_ids": test_procedure_ids}
+    if start_index > 0:
+        request_body["start_index"] = start_index
+    response = safe_request(
+        "POST",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN,
+        json=request_body,
+    )
+
+    failure_type = InitialiseRunFailureType.NO_FAILURE
+    first_run_id: int | None = None
+    playlist_execution_id: str | None = None
+    playlist_runs: list[PlaylistRunInfo] | None = None
+
+    if response is None or not is_success_response(response):
+        failure_type = InitialiseRunFailureType.UNKNOWN_FAILURE
+        if response is not None:
+            if response.status_code == HTTPStatus.EXPECTATION_FAILED:
+                failure_type = InitialiseRunFailureType.EXPIRED_CERT
+            elif response.status_code == HTTPStatus.CONFLICT:
+                failure_type = InitialiseRunFailureType.EXISTING_STATIC_INSTANCE
+    else:
+        data = response.json()
+        first_run_id = int(data["run_id"])
+        playlist_execution_id = data.get("playlist_execution_id")
+        if data.get("playlist_runs"):
+            playlist_runs = [
+                PlaylistRunInfo(run_id=r["run_id"], test_procedure_id=r["test_procedure_id"])
+                for r in data["playlist_runs"]
+            ]
+
+    return InitialisePlaylistResult(
+        first_run_id=first_run_id,
+        playlist_execution_id=playlist_execution_id,
+        playlist_runs=playlist_runs,
+        failure_type=failure_type,
+    )
 
 
 def start_run(access_token: str, run_id: str) -> StartResult:
