@@ -222,6 +222,23 @@ def generate_client_cert(access_token: str, run_group_id: int, is_device_cert: b
     return (response.content, try_read_file_name(response, "client.pem"))
 
 
+def generate_shared_client_cert(access_token: str) -> tuple[bytes | None, str | None]:
+    """Generates a new aggregator client certificates and sets for all run groups.
+    Returns a ZIP stream with all the data and an appropriate file name"""
+
+    uri = generate_uri(orchestrator.uri.CertificateRunGroups)
+    response = safe_request(
+        "PUT",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+    )
+    if response is None or not is_success_response(response):
+        return (None, None)
+
+    return (response.content, try_read_file_name(response, "client.pem"))
+
+
 def init_run(access_token: str, run_group_id: int, test_procedure_id: str) -> InitialiseRunResult:
     """Creates a new test run underneath run_group_id, initialised with the specified test_procedure_id"""
     uri = generate_uri(orchestrator.uri.RunGroupRunList.format(run_group_id=run_group_id))

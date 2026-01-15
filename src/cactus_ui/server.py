@@ -601,6 +601,13 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
                     download_name=download_file_name,
                     mimetype=mimetype,
                 )
+        elif action == "generatesharedcertificateallrungroups":
+            download_bytes, download_file_name = orchestrator.generate_shared_client_cert(access_token)
+            if not download_bytes or not download_file_name:
+                error = "Failed to generate a shared aggregator certificate for all run groups."
+            else:
+                return send_file(io.BytesIO(download_bytes), "application/zip", True, download_name=download_file_name)
+
         elif action == "generatedevice" or action == "generateagg":
             run_group_id = int(request.form.get("run_group_id", ""))
             download_bytes, download_file_name = orchestrator.generate_client_cert(
