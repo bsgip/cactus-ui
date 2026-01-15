@@ -1096,16 +1096,34 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
 
         # Handle finalising a run
         elif request.form.get("action") == "finalise":
+            # Get current run info before finalizing (for playlist navigation)
+            current_run = orchestrator.fetch_individual_run(access_token, run_id)
+
             archive_data = orchestrator.finalise_run(access_token, run_id)
             if archive_data is None:
                 error = "Failed to finalise the run or retrieve artifacts."
             else:
-                return send_file(
+                # Check if this is part of a playlist and find next run
+                next_run_id = None
+                if current_run and current_run.playlist_execution_id and current_run.playlist_order is not None:
+                    active_playlist = session.get("active_playlist")
+                    if active_playlist and active_playlist.get("runs"):
+                        runs_list = active_playlist["runs"]
+                        next_order = current_run.playlist_order + 1
+                        if next_order < len(runs_list):
+                            next_run_id = runs_list[next_order]["run_id"]
+
+                # Create response with ZIP download
+                response = send_file(
                     io.BytesIO(archive_data),
                     as_attachment=True,
                     download_name=f"{run_id}_artifacts.zip",
                     mimetype="application/zip",
                 )
+                # Add header with next run ID for client-side redirect
+                if next_run_id:
+                    response.headers["X-Next-Run-Id"] = str(next_run_id)
+                return response
 
         # Handle downloading a prior run's artifacts
         elif request.form.get("action") == "artifact":
@@ -1150,6 +1168,14 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
             playlist_info = {
                 "name": active_playlist.get("name", "Playlist"),
                 "runs": active_playlist.get("runs", []),
+                "current_order": run_response.playlist_order,
+                "total": run_response.playlist_total,
+            }
+        else:
+            # Session data missing/mismatched - show basic playlist info without run badges
+            playlist_info = {
+                "name": "Playlist",
+                "runs": [],  # Empty runs means no badges shown
                 "current_order": run_response.playlist_order,
                 "total": run_response.playlist_total,
             }

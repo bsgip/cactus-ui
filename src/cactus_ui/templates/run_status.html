@@ -77,7 +77,7 @@
             <form id='finalise-form' method="POST">
                 <input type="hidden" name="action" value="finalise">
                 <button {{user_buttons_state}} type="submit" class="btn btn-warning"
-                    onclick="handleButtonClick(event)">Finalise</button>
+                    onclick="handleFinaliseClick(event)">Finalise</button>
             </form>
             {% endif %}
 
@@ -329,6 +329,62 @@
         e.target.innerHTML = `<div class="spinner-border spinner-border-sm" role="status"></div>`;
         e.target.disabled = true;
         e.target.closest('form').submit();
+    }
+
+    async function handleFinaliseClick(e) {
+        e.preventDefault();
+        const btn = e.target;
+        btn.innerHTML = `<div class="spinner-border spinner-border-sm" role="status"></div>`;
+        btn.disabled = true;
+
+        try {
+            const formData = new FormData(btn.closest('form'));
+            const response = await fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                // Download the ZIP file
+                const blob = await response.blob();
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = 'artifacts.zip';
+                if (contentDisposition) {
+                    const match = contentDisposition.match(/filename="?([^";\n]+)"?/);
+                    if (match) filename = match[1];
+                }
+
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+
+                // Check for next run in playlist
+                const nextRunId = response.headers.get('X-Next-Run-Id');
+                if (nextRunId) {
+                    // Redirect to next run after short delay to ensure download starts
+                    setTimeout(() => {
+                        window.location.href = `/run/${nextRunId}`;
+                    }, 500);
+                } else {
+                    // No next run - reload to show completed state
+                    window.location.reload();
+                }
+            } else {
+                alert('Failed to finalise the run. Please try again.');
+                btn.innerHTML = 'Finalise';
+                btn.disabled = false;
+            }
+        } catch (error) {
+            console.error('Finalise error:', error);
+            alert('An error occurred while finalising. Please try again.');
+            btn.innerHTML = 'Finalise';
+            btn.disabled = false;
+        }
     }
 
     function getStepColor(stepName, index) {
