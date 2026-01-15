@@ -915,6 +915,17 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
     )
 
 
+@app.route("/playlists", methods=["GET"])
+@login_required
+def playlists_page(access_token: str) -> str | Response:
+    """Redirects to the first RunGroup's playlists page"""
+    run_groups = orchestrator.fetch_run_groups(access_token, 1)
+    if not run_groups or not run_groups.items:
+        return redirect(url_for("config_page"))
+
+    return redirect(url_for("group_playlists_page", run_group_id=run_groups.items[0].run_group_id))
+
+
 @app.route("/group/<int:run_group_id>/playlists", methods=["GET", "POST"])
 @login_required
 def group_playlists_page(access_token: str, run_group_id: int) -> str | Response:
