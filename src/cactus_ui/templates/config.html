@@ -43,11 +43,20 @@
                         </button>
                     </div>
                 {% if run_groups|length > 1 %}
-                <button type="button"
-                    class="btn btn-primary"
-                    data-bs-toggle="modal" data-bs-target="#certmodal">
-                    Generate Shared Aggregator Certificate
-                </button>
+                <div class="dropdown" style="display:inline-block">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Advanced Options
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <button type="button"
+                                    class="dropdown-item"
+                                    data-bs-toggle="modal" data-bs-target="#certmodal">
+                                    Generate Shared Aggregator Certificate
+                            </button>
+                        </li>
+                    </ul>
+                </div>
                 {% endif %}
                 </form>
 
