@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block title %}Playlists - CACTUS{% endblock %}
+
+{% block content %}
+{% include 'banner.html' %}
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div class="max-page-height" style="padding-top:10px; display: flex; flex-direction: column;">
+    <div style="display: flex;">
+        {% if run_groups|length < 2 %}
+            {% if active_run_group %}
+                <h2>Playlists for {{ active_run_group.name }}</h2>
+            {% endif %}
+        {% else %}
+            <h2>Playlists for </h2>
+            <div class="dropdown" style="margin-left: 10px;">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                    {{ active_run_group.name }}
+                </button>
+                <ul class="dropdown-menu">
+                    {% for rg in run_groups %}
+                    {% if rg.run_group_id != run_group_id %}
+                    <li><a class="dropdown-item"
+                            href="{{ url_for('group_playlists_page', run_group_id=rg.run_group_id) }}">{{rg.name}}</a></li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        <a style="align-content:center;" class="push-right" href="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">Back to Runs</a>
+    </div>
+
+    <hr>
+
+    <div class="row" style="flex: 1; overflow: hidden;">
+        <div class="col playlist-col">
+            <h5>Playlists</h5>
+
+            <div class="playlist-container">
+                {% if playlists %}
+                {% for playlist in playlists %}
+                <div class="card" style="border-radius: 0; border-bottom: none;">
+                    <div class="list-group list-group-flush">
+                        <a href="#" id="playlist-{{ playlist.id }}"
+                            data-playlist-id="{{ playlist.id }}"
+                            data-playlist-name="{{ playlist.name }}"
+                            data-procedures="{{ playlist.procedures | join(',') }}"
+                            class="playlist-btn list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            {{ playlist.name }}
+                            <span class="badge text-bg-info">{{ playlist.procedures | length }}</span>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="alert alert-info">
+                    No playlists configured. Set the <code>CACTUS_PLAYLISTS</code> environment variable to define playlists.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col">
+            <div style="display:flex; padding-top: 5px; padding-bottom: 5px; align-items: center;">
+                <h5 id="playlist-title" style="flex: 1;">Select a Playlist</h5>
+                <div id="playlist-actions" style="margin-left: 10px;"></div>
+            </div>
+            <div class="playlist-table-container">
+                <div id="playlist-content">
+                    <p class="text-muted">Select a playlist from the left to view its tests and run history.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    html,
+    body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .main-footer {
+        margin-top: 0 !important;
+    }
+
+    .main-content {
+        flex: 1;
+        overflow: hidden;
+        padding: 0 !important;
+    }
+
+    .max-page-height {
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .col {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .playlist-col {
+        max-width: 350px;
+        min-width: 200px;
+        overflow: auto;
+    }
+
+    .playlist-container {
+        flex: 1;
+    }
+
+    .playlist-table-container {
+        margin-top: 5px;
+        flex: 1;
+        overflow: auto;
+    }
+
+    .push-right {
+        margin: 0 0 0 auto;
+    }
+
+    .status-dot {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        margin: 0 2px;
+    }
+
+    .status-dot.success { background-color: #198754; }
+    .status-dot.failed { background-color: #dc3545; }
+    .status-dot.pending { background-color: #6c757d; }
+    .status-dot.active { background-color: #0d6efd; }
+</style>
+
+<script>
+    const runGroupId = {{ run_group_id }};
+
+    function handlePlaylistButtonClick(e) {
+        const playlist_id = this.getAttribute("data-playlist-id");
+        const playlist_name = this.getAttribute("data-playlist-name");
+        const procedures = this.getAttribute("data-procedures").split(",");
+
+        // Update active class
+        document.querySelectorAll(".playlist-btn").forEach(el => el.classList.remove('active'));
+        this.classList.add('active');
+
+        // Update title
+        document.getElementById("playlist-title").innerHTML = playlist_name;
+
+        // Build procedure list with index for dropdown
+        const procedureOptions = procedures.map((p, idx) =>
+            `<option value="${idx}">${idx === 0 ? 'Start from beginning' : 'Start from ' + p}</option>`
+        ).join('');
+
+        // Show playlist info and start form with dropdown
+        document.getElementById("playlist-actions").innerHTML = `
+            <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}">
+                <input type="hidden" name="playlist_id" value="${playlist_id}">
+                <input type="hidden" name="action" value="initialise_playlist">
+                <div class="d-flex align-items-center gap-2">
+                    <select name="start_index" class="form-select form-select-sm" style="width: auto;">
+                        ${procedureOptions}
+                    </select>
+                    <button type="submit" class="btn btn-info btn-sm" onclick="handleButtonClick(event)">
+                        Start Playlist
+                    </button>
+                </div>
+                <small class="text-muted d-block mt-1">May take up to 30s per test</small>
+            </form>`;
+
+        // Build procedure list for display
+        const procedureListHtml = procedures.map((p, idx) =>
+            `<li><code>${p}</code></li>`
+        ).join('');
+
+        // Show content: procedure list and run history
+        document.getElementById("playlist-content").innerHTML = `
+            <h6>Tests in this playlist:</h6>
+            <ol>${procedureListHtml}</ol>
+            <hr>
+            <h6>Previous Playlist Runs:</h6>
+            <div id="playlist-runs-loading">
+                <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                Loading run history...
+            </div>
+            <div id="playlist-runs-table" style="display: none;"></div>
+        `;
+
+        // Fetch run history for this playlist
+        loadPlaylistRuns(playlist_id, procedures);
+    }
+
+    function loadPlaylistRuns(playlist_id, procedures) {
+        const url = `/group/${runGroupId}/playlist_runs/${playlist_id}`;
+
+        xhrRequest(url, (content) => {
+            const runs = JSON.parse(content);
+            document.getElementById("playlist-runs-loading").style.display = "none";
+            const table = document.getElementById("playlist-runs-table");
+            table.style.display = "block";
+
+            if (runs.length === 0) {
+                table.innerHTML = `<p class="text-muted">No previous runs for this playlist.</p>`;
+                return;
+            }
+
+            // Build table with status dots
+            let html = `<table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Run</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            for (const run of runs) {
+                const created = new Date(Date.parse(run.created_at));
+
+                // Build status dots
+                let dots = '';
+                for (const testStatus of run.test_statuses) {
+                    let dotClass = 'pending';
+                    let title = testStatus.test_procedure_id + ': Pending';
+                    if (testStatus.all_criteria_met === true) {
+                        dotClass = 'success';
+                        title = testStatus.test_procedure_id + ': Passed';
+                    } else if (testStatus.all_criteria_met === false) {
+                        dotClass = 'failed';
+                        title = testStatus.test_procedure_id + ': Failed';
+                    } else if (testStatus.status === 'started' || testStatus.status === 'initialised') {
+                        dotClass = 'active';
+                        title = testStatus.test_procedure_id + ': In Progress';
+                    }
+                    dots += `<span class="status-dot ${dotClass}" title="${title}"></span>`;
+                }
+
+                html += `
+                    <tr>
+                        <td><a href="/run/${run.first_run_id}">#${run.first_run_id}</a></td>
+                        <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})</small></td>
+                        <td>${dots}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="display: inline;">
+                                <input type="hidden" name="run_id" value="${run.first_run_id}">
+                                <input type="hidden" name="action" value="artifact">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary" ${run.has_artifacts ? '' : 'disabled'}>
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>`;
+            }
+
+            html += `</tbody></table>`;
+            table.innerHTML = html;
+        }, (status, error) => {
+            document.getElementById("playlist-runs-loading").style.display = "none";
+            document.getElementById("playlist-runs-table").style.display = "block";
+            document.getElementById("playlist-runs-table").innerHTML = `<p class="text-danger">Failed to load run history.</p>`;
+        });
+    }
+
+    function handleButtonClick(e) {
+        e.target.innerHTML = `<div class="spinner-border spinner-border-sm" role="status"></div>`;
+        e.target.disabled = true;
+        e.target.closest('form').submit();
+    }
+
+    addEventListener("load", (event) => {
+        // Install onclick handlers for playlist btns
+        document.querySelectorAll(".playlist-btn").forEach(el => el.onclick = handlePlaylistButtonClick);
+
+        // Auto-select first playlist if available
+        const firstPlaylist = document.querySelector(".playlist-btn");
+        if (firstPlaylist) {
+            handlePlaylistButtonClick.call(firstPlaylist);
+        }
+    });
+</script>
+
+{% endblock %}
