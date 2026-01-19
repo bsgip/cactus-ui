@@ -1051,23 +1051,27 @@ def playlist_runs_json(access_token: str, run_group_id: int, playlist_id: str) -
         # Build test status list
         test_statuses = []
         for run in runs_sorted:
-            test_statuses.append({
-                "test_procedure_id": run.test_procedure_id,
-                "run_id": run.run_id,
-                "status": run.status.value if hasattr(run.status, "value") else str(run.status),
-                "all_criteria_met": run.all_criteria_met,
-            })
+            test_statuses.append(
+                {
+                    "test_procedure_id": run.test_procedure_id,
+                    "run_id": run.run_id,
+                    "status": run.status.value if hasattr(run.status, "value") else str(run.status),
+                    "all_criteria_met": run.all_criteria_met,
+                }
+            )
 
         # Check if any run has artifacts
         has_artifacts = any(r.has_artifacts for r in runs_sorted)
 
-        result.append({
-            "playlist_execution_id": exec_id,
-            "first_run_id": first_run.run_id,
-            "created_at": first_run.created_at.isoformat(),
-            "test_statuses": test_statuses,
-            "has_artifacts": has_artifacts,
-        })
+        result.append(
+            {
+                "playlist_execution_id": exec_id,
+                "first_run_id": first_run.run_id,
+                "created_at": first_run.created_at.isoformat(),
+                "test_statuses": test_statuses,
+                "has_artifacts": has_artifacts,
+            }
+        )
 
     # Sort by created_at descending (most recent first)
     result.sort(key=lambda x: x["created_at"], reverse=True)
@@ -1096,34 +1100,16 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
 
         # Handle finalising a run
         elif request.form.get("action") == "finalise":
-            # Get current run info before finalizing (for playlist navigation)
-            current_run = orchestrator.fetch_individual_run(access_token, run_id)
-
             archive_data = orchestrator.finalise_run(access_token, run_id)
             if archive_data is None:
                 error = "Failed to finalise the run or retrieve artifacts."
             else:
-                # Check if this is part of a playlist and find next run
-                next_run_id = None
-                if current_run and current_run.playlist_execution_id and current_run.playlist_order is not None:
-                    active_playlist = session.get("active_playlist")
-                    if active_playlist and active_playlist.get("runs"):
-                        runs_list = active_playlist["runs"]
-                        next_order = current_run.playlist_order + 1
-                        if next_order < len(runs_list):
-                            next_run_id = runs_list[next_order]["run_id"]
-
-                # Create response with ZIP download
-                response = send_file(
+                return send_file(
                     io.BytesIO(archive_data),
                     as_attachment=True,
                     download_name=f"{run_id}_artifacts.zip",
                     mimetype="application/zip",
                 )
-                # Add header with next run ID for client-side redirect
-                if next_run_id:
-                    response.headers["X-Next-Run-Id"] = str(next_run_id)
-                return response
 
         # Handle downloading a prior run's artifacts
         elif request.form.get("action") == "artifact":
@@ -1162,23 +1148,39 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
 
     # Get playlist info for this run if it's part of a playlist
     playlist_info = None
-    if run_response and run_response.playlist_execution_id:
-        active_playlist = session.get("active_playlist")
-        if active_playlist and active_playlist.get("execution_id") == run_response.playlist_execution_id:
-            playlist_info = {
-                "name": active_playlist.get("name", "Playlist"),
-                "runs": active_playlist.get("runs", []),
-                "current_order": run_response.playlist_order,
-                "total": run_response.playlist_total,
-            }
-        else:
-            # Session data missing/mismatched - show basic playlist info without run badges
-            playlist_info = {
-                "name": "Playlist",
-                "runs": [],  # Empty runs means no badges shown
-                "current_order": run_response.playlist_order,
-                "total": run_response.playlist_total,
-            }
+    next_playlist_run_id = None
+    if run_response and run_response.playlist_runs:
+        # Use data directly from RunResponse
+        current_order = run_response.playlist_order
+        playlist_info = {
+            "name": session.get("active_playlist", {}).get("name", "Playlist"),  # Fallback name from session
+            "runs": [
+                {
+                    "run_id": r.run_id,
+                    "test_procedure_id": r.test_procedure_id,
+                    "status": r.status,
+                }
+                for r in run_response.playlist_runs
+            ],
+            "current_order": current_order,
+            "total": len(run_response.playlist_runs),
+        }
+        # Calculate next run ID for redirect after finalize
+        if current_order is not None and current_order + 1 < len(run_response.playlist_runs):
+            next_playlist_run_id = run_response.playlist_runs[current_order + 1].run_id
+
+    # Check if viewing a non-current playlist run and find the current active run
+    current_active_run = None
+    if run_response and run_response.playlist_runs and run_status in ["initialised"]:
+        # This run is not active yet, find the currently active/started run
+        for r in run_response.playlist_runs:
+            if r.status in ["started", "provisioning"]:
+                current_active_run = {
+                    "run_id": r.run_id,
+                    "test_procedure_id": r.test_procedure_id,
+                    "order": run_response.playlist_runs.index(r),
+                }
+                break
 
     return render_template(
         "run_status.html",
@@ -1191,6 +1193,8 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
         run_procedure_id=run_procedure_id,
         error=error,
         playlist_info=playlist_info,
+        next_playlist_run_id=next_playlist_run_id,
+        current_active_run=current_active_run,
         cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
     )
 
