@@ -989,7 +989,7 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
             if not run_id:
                 error = "No run ID specified."
             else:
-                archive_data = orchestrator.skip_remaining_playlist(access_token, run_id)
+                archive_data = orchestrator.finalise_playlist(access_token, run_id)
                 if archive_data is None:
                     error = "Failed to end playlist."
                 else:
@@ -1143,7 +1143,7 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
 
         # Handle skipping remaining playlist tests
         elif request.form.get("action") == "skip_playlist":
-            archive_data = orchestrator.skip_remaining_playlist(access_token, run_id)
+            archive_data = orchestrator.finalise_playlist(access_token, run_id)
             if archive_data is None:
                 error = "Failed to skip remaining playlist tests."
             else:

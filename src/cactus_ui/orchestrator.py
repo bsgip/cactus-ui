@@ -346,9 +346,9 @@ def finalise_run(access_token: str, run_id: str) -> bytes | None:
     return response.content
 
 
-def skip_remaining_playlist(access_token: str, run_id: str) -> bytes | None:
-    """Skip all remaining tests in a playlist. Finalizes current test and marks remaining as skipped."""
-    uri = generate_uri(orchestrator.uri.RunPlaylistSkip.format(run_id=run_id))
+def finalise_playlist(access_token: str, run_id: str) -> bytes | None:
+    """Finalise a playlist early. Finalizes current test and marks remaining as skipped."""
+    uri = generate_uri(orchestrator.uri.RunPlaylistFinalise.format(run_id=run_id))
     response = safe_request("POST", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
         return None
