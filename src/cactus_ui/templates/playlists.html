@@ -232,8 +232,10 @@
             for (const run of runs) {
                 const created = new Date(Date.parse(run.created_at));
 
-                // Build status dots
+                // Build status dots and check if playlist is active
                 let dots = '';
+                let isActive = false;
+                let activeRunId = null;
                 for (const testStatus of run.test_statuses) {
                     let dotClass = 'pending';
                     let title = testStatus.test_procedure_id + ': Pending';
@@ -246,8 +248,33 @@
                     } else if (testStatus.status === 'started' || testStatus.status === 'initialised') {
                         dotClass = 'active';
                         title = testStatus.test_procedure_id + ': In Progress';
+                        isActive = true;
+                        if (!activeRunId) activeRunId = testStatus.run_id;
                     }
                     dots += `<span class="status-dot ${dotClass}" title="${title}"></span>`;
+                }
+
+                // Build action buttons
+                let actionButtons = '';
+                if (isActive && activeRunId) {
+                    actionButtons = `
+                        <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="display: inline;"
+                            onsubmit="return confirm('Are you sure you want to end this playlist? This will finalize the current test and skip all remaining tests.')">
+                            <input type="hidden" name="run_id" value="${activeRunId}">
+                            <input type="hidden" name="action" value="skip_playlist">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="End playlist">
+                                <i class="fas fa-stop"></i> End
+                            </button>
+                        </form>`;
+                } else {
+                    actionButtons = `
+                        <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="display: inline;">
+                            <input type="hidden" name="run_id" value="${run.first_run_id}">
+                            <input type="hidden" name="action" value="artifact">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary" ${run.has_artifacts ? '' : 'disabled'}>
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </form>`;
                 }
 
                 html += `
@@ -255,15 +282,7 @@
                         <td><a href="/run/${run.first_run_id}">#${run.first_run_id}</a></td>
                         <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})</small></td>
                         <td>${dots}</td>
-                        <td>
-                            <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="display: inline;">
-                                <input type="hidden" name="run_id" value="${run.first_run_id}">
-                                <input type="hidden" name="action" value="artifact">
-                                <button type="submit" class="btn btn-sm btn-outline-secondary" ${run.has_artifacts ? '' : 'disabled'}>
-                                    <i class="fas fa-download"></i>
-                                </button>
-                            </form>
-                        </td>
+                        <td>${actionButtons}</td>
                     </tr>`;
             }
 

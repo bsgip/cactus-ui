@@ -346,6 +346,19 @@ def finalise_run(access_token: str, run_id: str) -> bytes | None:
     return response.content
 
 
+def skip_remaining_playlist(access_token: str, run_id: str) -> bytes | None:
+    """Skip all remaining tests in a playlist. Finalizes current test and marks remaining as skipped."""
+    uri = generate_uri(orchestrator.uri.RunPlaylistSkip.format(run_id=run_id))
+    response = safe_request("POST", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    if response.status_code == HTTPStatus.NO_CONTENT:
+        return None
+
+    return response.content
+
+
 def fetch_run_artifact(access_token: str, run_id: str) -> tuple[bytes | None, str]:
     """Given an already started run - finalise it and return the resulting ZIP file bytes / file name"""
     uri = generate_uri(orchestrator.uri.RunArtifact.format(run_id=run_id))

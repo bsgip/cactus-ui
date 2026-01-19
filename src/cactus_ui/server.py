@@ -983,6 +983,23 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
                         mimetype="application/zip",
                     )
 
+        # Handle skipping remaining playlist tests (end playlist early)
+        elif request.form.get("action") == "skip_playlist":
+            run_id = request.form.get("run_id")
+            if not run_id:
+                error = "No run ID specified."
+            else:
+                archive_data = orchestrator.skip_remaining_playlist(access_token, run_id)
+                if archive_data is None:
+                    error = "Failed to end playlist."
+                else:
+                    return send_file(
+                        io.BytesIO(archive_data),
+                        as_attachment=True,
+                        download_name=f"{run_id}_artifacts.zip",
+                        mimetype="application/zip",
+                    )
+
     # Fetch the run groups (for the breadcrumbs selector)
     run_groups = orchestrator.fetch_run_groups(access_token, 1)
     active_run_group: schema.RunGroupResponse | None = None
@@ -1121,6 +1138,19 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
                     io.BytesIO(artifact_data),
                     as_attachment=True,
                     download_name=download_name,
+                    mimetype="application/zip",
+                )
+
+        # Handle skipping remaining playlist tests
+        elif request.form.get("action") == "skip_playlist":
+            archive_data = orchestrator.skip_remaining_playlist(access_token, run_id)
+            if archive_data is None:
+                error = "Failed to skip remaining playlist tests."
+            else:
+                return send_file(
+                    io.BytesIO(archive_data),
+                    as_attachment=True,
+                    download_name=f"{run_id}_artifacts.zip",
                     mimetype="application/zip",
                 )
 

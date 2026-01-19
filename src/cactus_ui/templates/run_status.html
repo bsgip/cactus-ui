@@ -10,57 +10,67 @@
 {% endif %}
 
 {% if playlist_info %}
-<div class="alert alert-info mb-4" role="alert">
-    <h5 class="alert-heading">
-        <i class="fas fa-list-ol"></i> {{ playlist_info.name }}
-        <span class="badge bg-primary ms-2">{{ playlist_info.current_order + 1 }} / {{ playlist_info.total }}</span>
-    </h5>
-    <hr>
-    <div class="d-flex flex-wrap gap-2">
-        {% for playlist_run in playlist_info.runs %}
-        {% set run_status = playlist_run.status %}
-        <div class="d-flex align-items-center">
-            {% if run_status == 'finalised' %}
-            <a href="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="badge bg-success text-decoration-none">
-                <i class="fas fa-check"></i> {{ playlist_run.test_procedure_id }}
-            </a>
-            <form method="POST" action="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="ms-1">
-                <input type="hidden" name="action" value="artifact">
-                <button type="submit" class="btn btn-sm btn-outline-success" title="Download artifacts">
-                    <i class="fas fa-download"></i>
+<div class="row justify-content-center">
+    <div class="alert alert-info mb-4 status-container" role="alert">
+        <h5 class="alert-heading">
+            <i class="fas fa-list-ol"></i> {{ playlist_info.name }}
+            <span class="badge bg-primary ms-2">{{ playlist_info.current_order + 1 }} / {{ playlist_info.total }}</span>
+        </h5>
+        <hr>
+        <div class="d-flex flex-wrap gap-2">
+            {% for playlist_run in playlist_info.runs %}
+            {% set item_status = playlist_run.status %}
+            {% set is_current = loop.index0 == playlist_info.current_order %}
+            {% set is_completed = item_status in ['finalised', 'skipped'] %}
+            <div class="d-flex align-items-center">
+                {% if item_status == 'finalised' %}
+                <a href="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="badge bg-success text-decoration-none">
+                    <i class="fas fa-check"></i> {{ playlist_run.test_procedure_id }}
+                </a>
+                <form method="POST" action="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="ms-1">
+                    <input type="hidden" name="action" value="artifact">
+                    <button type="submit" class="btn btn-sm btn-outline-success" title="Download artifacts">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </form>
+                {% elif item_status == 'started' or item_status == 'provisioning' %}
+                <a href="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="badge bg-primary text-decoration-none">
+                    <i class="fas fa-play"></i> {{ playlist_run.test_procedure_id }}
+                </a>
+                {% elif item_status == 'skipped' %}
+                <span class="badge bg-warning">
+                    <i class="fas fa-forward"></i> {{ playlist_run.test_procedure_id }}
+                </span>
+                {% elif item_status == 'initialised' %}
+                {# Queued tests - not clickable, just show status #}
+                <span class="badge bg-secondary" title="Queued - waiting for previous tests to complete">
+                    <i class="fas fa-clock"></i> {{ playlist_run.test_procedure_id }}
+                </span>
+                {% else %}
+                <span class="badge bg-secondary">
+                    {{ playlist_run.test_procedure_id }}
+                </span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% if playlist_info.current_order < playlist_info.total - 1 %}
+        <hr>
+        <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">Complete this test to proceed to the next one in the playlist.</small>
+            <form method="POST" class="ms-3">
+                <input type="hidden" name="action" value="skip_playlist">
+                <button type="submit" class="btn btn-sm btn-outline-danger"
+                    onclick="return confirm('Are you sure you want to skip all remaining tests? This will finalize the current test and mark all remaining tests as skipped.')">
+                    <i class="fas fa-forward"></i> End Playlist
                 </button>
             </form>
-            {% elif run_status == 'started' %}
-            <a href="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="badge bg-primary text-decoration-none">
-                <i class="fas fa-play"></i> {{ playlist_run.test_procedure_id }}
-            </a>
-            {% elif run_status == 'initialised' %}
-            <a href="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="badge bg-secondary text-decoration-none">
-                <i class="fas fa-clock"></i> {{ playlist_run.test_procedure_id }}
-            </a>
-            {% elif run_status == 'skipped' %}
-            <a href="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="badge bg-warning text-decoration-none">
-                <i class="fas fa-forward"></i> {{ playlist_run.test_procedure_id }}
-            </a>
-            {% elif run_status == 'provisioning' %}
-            <a href="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="badge bg-info text-decoration-none">
-                <i class="fas fa-cog"></i> {{ playlist_run.test_procedure_id }}
-            </a>
-            {% else %}
-            <a href="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="badge bg-secondary text-decoration-none">
-                {{ playlist_run.test_procedure_id }}
-            </a>
-            {% endif %}
         </div>
-        {% endfor %}
+        {% else %}
+        <hr>
+        <small class="text-muted">This is the final test in the playlist.</small>
+        {% endif %}
     </div>
-    {% if playlist_info.current_order < playlist_info.total - 1 %}
-    <hr>
-    <small class="text-muted">Complete this test to proceed to the next one in the playlist.</small>
-    {% else %}
-    <hr>
-    <small class="text-muted">This is the final test in the playlist.</small>
-    {% endif %}
 </div>
 {% endif %}
 
