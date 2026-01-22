@@ -149,9 +149,9 @@
 
     .status-dot.success { background-color: #198754; }
     .status-dot.failed { background-color: #dc3545; }
-    .status-dot.pending { background-color: #6c757d; }
+    .status-dot.pending { background-color: #adb5bd; }
     .status-dot.active { background-color: #0d6efd; }
-    .status-dot.skipped { background-color: #ffc107; }
+    .status-dot.skipped { background-color: #6c757d; }
 </style>
 
 <script>
@@ -164,7 +164,7 @@
 
         for (const testStatus of testStatuses) {
             let dotClass = 'pending';
-            let title = testStatus.test_procedure_id + ': Pending';
+            let title = testStatus.test_procedure_id + ': Queued';
             if (testStatus.all_criteria_met === true) {
                 dotClass = 'success';
                 title = testStatus.test_procedure_id + ': Passed';
@@ -174,9 +174,13 @@
             } else if (testStatus.status === 'skipped') {
                 dotClass = 'skipped';
                 title = testStatus.test_procedure_id + ': Skipped';
-            } else if (testStatus.status === 'started' || testStatus.status === 'initialised') {
+            } else if (testStatus.status === 'started') {
                 dotClass = 'active';
-                title = testStatus.test_procedure_id + ': In Progress';
+                title = testStatus.test_procedure_id + ': Running';
+                isActive = true;
+                if (!activeRunId) activeRunId = testStatus.run_id;
+            } else if (testStatus.status === 'initialised') {
+                // Initialised but not started = queued
                 isActive = true;
                 if (!activeRunId) activeRunId = testStatus.run_id;
             }
