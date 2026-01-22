@@ -1101,6 +1101,86 @@ def playlist_runs_json(access_token: str, run_group_id: int, playlist_id: str) -
     )
 
 
+@app.route("/group/<int:run_group_id>/active_playlists", methods=["GET"])
+@login_required
+def active_playlists_json(access_token: str, run_group_id: int) -> Response:
+    """Fetch all active playlist executions (those with at least one active run)"""
+    # Fetch all runs for this run group
+    runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, False)
+    if runs_page is None:
+        return Response(
+            response=json.dumps([]),
+            status=HTTPStatus.OK,
+            mimetype="application/json",
+        )
+
+    # Group runs by playlist_execution_id
+    playlist_executions: dict[str, list[schema.RunResponse]] = {}
+    for run in runs_page.items:
+        if run.playlist_execution_id:
+            if run.playlist_execution_id not in playlist_executions:
+                playlist_executions[run.playlist_execution_id] = []
+            playlist_executions[run.playlist_execution_id].append(run)
+
+    # Build response: only include playlist executions that have active runs
+    result = []
+    for exec_id, runs in playlist_executions.items():
+        runs_sorted = sorted(runs, key=lambda r: r.playlist_order or 0)
+        if not runs_sorted:
+            continue
+
+        # Check if this execution has any active runs
+        has_active = any(
+            r.status.value in ["started", "initialised"] if hasattr(r.status, "value") else str(r.status) in ["started", "initialised"]
+            for r in runs_sorted
+        )
+        if not has_active:
+            continue
+
+        first_run = runs_sorted[0]
+
+        # Find the playlist config to get the name
+        playlist = next(
+            (p for p in CACTUS_PLAYLISTS if first_run.test_procedure_id in p.procedures),
+            None,
+        )
+        playlist_name = playlist.name if playlist else "Unknown Playlist"
+        playlist_id = playlist.id if playlist else None
+
+        # Build test status list
+        test_statuses = []
+        for run in runs_sorted:
+            test_statuses.append(
+                {
+                    "test_procedure_id": run.test_procedure_id,
+                    "run_id": run.run_id,
+                    "status": run.status.value if hasattr(run.status, "value") else str(run.status),
+                    "all_criteria_met": run.all_criteria_met,
+                    "has_artifacts": run.has_artifacts,
+                }
+            )
+
+        result.append(
+            {
+                "playlist_execution_id": exec_id,
+                "playlist_id": playlist_id,
+                "playlist_name": playlist_name,
+                "first_run_id": first_run.run_id,
+                "created_at": first_run.created_at.isoformat(),
+                "test_statuses": test_statuses,
+            }
+        )
+
+    # Sort by created_at descending (most recent first)
+    result.sort(key=lambda x: x["created_at"], reverse=True)
+
+    return Response(
+        response=json.dumps(result),
+        status=HTTPStatus.OK,
+        mimetype="application/json",
+    )
+
+
 @app.route("/run/<int:run_id>", methods=["GET", "POST"])
 @login_required
 def run_status_page(access_token: str, run_id: str) -> str | Response:
