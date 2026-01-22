@@ -267,14 +267,39 @@
                             </button>
                         </form>`;
                 } else {
-                    actionButtons = `
-                        <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="display: inline;">
-                            <input type="hidden" name="run_id" value="${run.first_run_id}">
-                            <input type="hidden" name="action" value="artifact">
-                            <button type="submit" class="btn btn-sm btn-outline-secondary" ${run.has_artifacts ? '' : 'disabled'}>
+                    // Build dropdown with all runs that have artifacts
+                    let dropdownItems = '';
+                    for (const testStatus of run.test_statuses) {
+                        if (testStatus.has_artifacts) {
+                            dropdownItems += `
+                                <li>
+                                    <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="margin: 0;">
+                                        <input type="hidden" name="run_id" value="${testStatus.run_id}">
+                                        <input type="hidden" name="action" value="artifact">
+                                        <button type="submit" class="dropdown-item">
+                                            #${testStatus.run_id} - ${testStatus.test_procedure_id}
+                                        </button>
+                                    </form>
+                                </li>`;
+                        }
+                    }
+
+                    if (dropdownItems) {
+                        actionButtons = `
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    ${dropdownItems}
+                                </ul>
+                            </div>`;
+                    } else {
+                        actionButtons = `
+                            <button class="btn btn-sm btn-outline-secondary" disabled>
                                 <i class="fas fa-download"></i>
-                            </button>
-                        </form>`;
+                            </button>`;
+                    }
                 }
 
                 html += `

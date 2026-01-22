@@ -1074,6 +1074,7 @@ def playlist_runs_json(access_token: str, run_group_id: int, playlist_id: str) -
                     "run_id": run.run_id,
                     "status": run.status.value if hasattr(run.status, "value") else str(run.status),
                     "all_criteria_met": run.all_criteria_met,
+                    "has_artifacts": run.has_artifacts,
                 }
             )
 
