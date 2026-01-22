@@ -87,6 +87,18 @@ def generate_headers(access_token: str) -> dict[str, Any]:
     return {"Authorization": "Bearer " + access_token}
 
 
+def _determine_run_failure_type(response: requests.Response | None) -> InitialiseRunFailureType:
+    """Determine the failure type from a response when initializing a run or playlist."""
+    if response is None or not is_success_response(response):
+        if response is not None:
+            if response.status_code == HTTPStatus.EXPECTATION_FAILED:
+                return InitialiseRunFailureType.EXPIRED_CERT
+            elif response.status_code == HTTPStatus.CONFLICT:
+                return InitialiseRunFailureType.EXISTING_STATIC_INSTANCE
+        return InitialiseRunFailureType.UNKNOWN_FAILURE
+    return InitialiseRunFailureType.NO_FAILURE
+
+
 def safe_request(
     method: str, url: str, headers: dict, timeout: int, json: Any | None = None
 ) -> requests.Response | None:
@@ -247,17 +259,9 @@ def init_run(access_token: str, run_group_id: int, test_procedure_id: str) -> In
         json={"test_procedure_id": test_procedure_id},
     )
 
-    # Figure out what sort of failure has occurred (if any)
-    failure_type = InitialiseRunFailureType.NO_FAILURE
+    failure_type = _determine_run_failure_type(response)
     run_id: int | None = None
-    if response is None or not is_success_response(response):
-        failure_type = InitialiseRunFailureType.UNKNOWN_FAILURE
-        if response is not None:
-            if response.status_code == HTTPStatus.EXPECTATION_FAILED:
-                failure_type = InitialiseRunFailureType.EXPIRED_CERT
-            elif response.status_code == HTTPStatus.CONFLICT:
-                failure_type = InitialiseRunFailureType.EXISTING_STATIC_INSTANCE
-    else:
+    if failure_type == InitialiseRunFailureType.NO_FAILURE and response is not None:
         run_id = int(response.json()["run_id"])
 
     return InitialiseRunResult(run_id=run_id, failure_type=failure_type)
@@ -279,19 +283,12 @@ def init_playlist(
         json=request_body,
     )
 
-    failure_type = InitialiseRunFailureType.NO_FAILURE
+    failure_type = _determine_run_failure_type(response)
     first_run_id: int | None = None
     playlist_execution_id: str | None = None
     playlist_runs: list[PlaylistRunInfo] | None = None
 
-    if response is None or not is_success_response(response):
-        failure_type = InitialiseRunFailureType.UNKNOWN_FAILURE
-        if response is not None:
-            if response.status_code == HTTPStatus.EXPECTATION_FAILED:
-                failure_type = InitialiseRunFailureType.EXPIRED_CERT
-            elif response.status_code == HTTPStatus.CONFLICT:
-                failure_type = InitialiseRunFailureType.EXISTING_STATIC_INSTANCE
-    else:
+    if failure_type == InitialiseRunFailureType.NO_FAILURE and response is not None:
         data = response.json()
         first_run_id = int(data["run_id"])
         playlist_execution_id = data.get("playlist_execution_id")

@@ -156,6 +156,9 @@
 
 <script>
     const runGroupId = {{ run_group_id }};
+    const playlistRunsUrlBase = "{{ url_for('playlist_runs_json', run_group_id=run_group_id, playlist_id='PLAYLIST_ID') }}".replace('PLAYLIST_ID', '');
+    const activePlaylistsUrl = "{{ url_for('active_playlists_json', run_group_id=run_group_id) }}";
+    const runStatusUrlBase = "{{ url_for('run_status_page', run_id=0) }}".replace('0', '');
 
     function buildStatusDots(testStatuses) {
         let dots = '';
@@ -256,7 +259,7 @@
     }
 
     function loadPlaylistRuns(playlist_id, procedures) {
-        const url = `/group/${runGroupId}/playlist_runs/${playlist_id}`;
+        const url = playlistRunsUrlBase + playlist_id;
 
         xhrRequest(url, (content) => {
             const runs = JSON.parse(content);
@@ -337,7 +340,7 @@
 
                 html += `
                     <tr>
-                        <td><a href="/run/${run.first_run_id}">#${run.first_run_id}</a></td>
+                        <td><a href="${runStatusUrlBase}${run.first_run_id}">#${run.first_run_id}</a></td>
                         <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})</small></td>
                         <td>${dots}</td>
                         <td>${actionButtons}</td>
@@ -365,7 +368,7 @@
             <div id="playlist-runs-table" style="display: none;"></div>
         `;
 
-        const url = `/group/${runGroupId}/active_playlists`;
+        const url = activePlaylistsUrl;
 
         xhrRequest(url, (content) => {
             const runs = JSON.parse(content);
@@ -414,7 +417,7 @@
                 html += `
                     <tr class="table-info">
                         <td>${run.playlist_name}</td>
-                        <td><a href="/run/${run.first_run_id}">#${run.first_run_id}</a></td>
+                        <td><a href="${runStatusUrlBase}${run.first_run_id}">#${run.first_run_id}</a></td>
                         <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})</small></td>
                         <td>${dots}</td>
                         <td>${actionButtons}</td>

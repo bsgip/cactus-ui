@@ -227,6 +227,17 @@ def run_summary_to_compliance_status(test_procedure: schema.TestProcedureRunSumm
         return "unknown"
 
 
+def build_test_status_dict(run: schema.RunResponse) -> dict:
+    """Build a test status dictionary from a RunResponse for playlist display."""
+    return {
+        "test_procedure_id": run.test_procedure_id,
+        "run_id": run.run_id,
+        "status": run.status.value if hasattr(run.status, "value") else str(run.status),
+        "all_criteria_met": run.all_criteria_met,
+        "has_artifacts": run.has_artifacts,
+    }
+
+
 # Controllers API
 @app.route("/")
 def login_or_home_page() -> str:
@@ -1066,17 +1077,7 @@ def playlist_runs_json(access_token: str, run_group_id: int, playlist_id: str) -
             continue
 
         # Build test status list
-        test_statuses = []
-        for run in runs_sorted:
-            test_statuses.append(
-                {
-                    "test_procedure_id": run.test_procedure_id,
-                    "run_id": run.run_id,
-                    "status": run.status.value if hasattr(run.status, "value") else str(run.status),
-                    "all_criteria_met": run.all_criteria_met,
-                    "has_artifacts": run.has_artifacts,
-                }
-            )
+        test_statuses = [build_test_status_dict(run) for run in runs_sorted]
 
         # Check if any run has artifacts
         has_artifacts = any(r.has_artifacts for r in runs_sorted)
@@ -1162,17 +1163,7 @@ def active_playlists_json(access_token: str, run_group_id: int) -> Response:
         playlist_id = playlist.id if playlist else None
 
         # Build test status list
-        test_statuses = []
-        for run in runs_sorted:
-            test_statuses.append(
-                {
-                    "test_procedure_id": run.test_procedure_id,
-                    "run_id": run.run_id,
-                    "status": run.status.value if hasattr(run.status, "value") else str(run.status),
-                    "all_criteria_met": run.all_criteria_met,
-                    "has_artifacts": run.has_artifacts,
-                }
-            )
+        test_statuses = [build_test_status_dict(run) for run in runs_sorted]
 
         result.append(
             {
