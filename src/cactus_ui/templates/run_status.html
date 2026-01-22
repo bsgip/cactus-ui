@@ -13,9 +13,10 @@
 <div class="row justify-content-center">
     <div class="alert alert-info mb-4 status-container" role="alert">
         <h5 class="alert-heading">
-            <i class="fas fa-list-ol"></i> {{ playlist_info.name }}
-            <span class="badge bg-primary ms-2">{{ playlist_info.current_order + 1 }} / {{ playlist_info.total }}</span>
+            <i class="fas fa-list-ol"></i> Playlist Run {{ playlist_info.current_order + 1 }}/{{ playlist_info.total }}: {{ run_procedure_id }}
+            <span class="text-muted" style="font-weight: normal; font-size: 0.85em;">({{ run_id }})</span>
         </h5>
+        <small class="text-muted d-block mb-2">{{ playlist_info.name }}</small>
         <hr>
         <div class="d-flex flex-wrap gap-2">
             {% for playlist_run in playlist_info.runs %}

@@ -151,10 +151,40 @@
     .status-dot.failed { background-color: #dc3545; }
     .status-dot.pending { background-color: #6c757d; }
     .status-dot.active { background-color: #0d6efd; }
+    .status-dot.skipped { background-color: #ffc107; }
 </style>
 
 <script>
     const runGroupId = {{ run_group_id }};
+
+    function buildStatusDots(testStatuses) {
+        let dots = '';
+        let isActive = false;
+        let activeRunId = null;
+
+        for (const testStatus of testStatuses) {
+            let dotClass = 'pending';
+            let title = testStatus.test_procedure_id + ': Pending';
+            if (testStatus.all_criteria_met === true) {
+                dotClass = 'success';
+                title = testStatus.test_procedure_id + ': Passed';
+            } else if (testStatus.all_criteria_met === false) {
+                dotClass = 'failed';
+                title = testStatus.test_procedure_id + ': Failed';
+            } else if (testStatus.status === 'skipped') {
+                dotClass = 'skipped';
+                title = testStatus.test_procedure_id + ': Skipped';
+            } else if (testStatus.status === 'started' || testStatus.status === 'initialised') {
+                dotClass = 'active';
+                title = testStatus.test_procedure_id + ': In Progress';
+                isActive = true;
+                if (!activeRunId) activeRunId = testStatus.run_id;
+            }
+            dots += `<span class="status-dot ${dotClass}" title="${title}"></span>`;
+        }
+
+        return { dots, isActive, activeRunId };
+    }
 
     function handlePlaylistButtonClick(e) {
         // Update active class
@@ -251,26 +281,7 @@
                 const created = new Date(Date.parse(run.created_at));
 
                 // Build status dots and check if playlist is active
-                let dots = '';
-                let isActive = false;
-                let activeRunId = null;
-                for (const testStatus of run.test_statuses) {
-                    let dotClass = 'pending';
-                    let title = testStatus.test_procedure_id + ': Pending';
-                    if (testStatus.all_criteria_met === true) {
-                        dotClass = 'success';
-                        title = testStatus.test_procedure_id + ': Passed';
-                    } else if (testStatus.all_criteria_met === false) {
-                        dotClass = 'failed';
-                        title = testStatus.test_procedure_id + ': Failed';
-                    } else if (testStatus.status === 'started' || testStatus.status === 'initialised') {
-                        dotClass = 'active';
-                        title = testStatus.test_procedure_id + ': In Progress';
-                        isActive = true;
-                        if (!activeRunId) activeRunId = testStatus.run_id;
-                    }
-                    dots += `<span class="status-dot ${dotClass}" title="${title}"></span>`;
-                }
+                const { dots, isActive, activeRunId } = buildStatusDots(run.test_statuses);
 
                 // Build action buttons
                 let actionButtons = '';
@@ -380,24 +391,7 @@
                 const created = new Date(Date.parse(run.created_at));
 
                 // Build status dots
-                let dots = '';
-                let activeRunId = null;
-                for (const testStatus of run.test_statuses) {
-                    let dotClass = 'pending';
-                    let title = testStatus.test_procedure_id + ': Pending';
-                    if (testStatus.all_criteria_met === true) {
-                        dotClass = 'success';
-                        title = testStatus.test_procedure_id + ': Passed';
-                    } else if (testStatus.all_criteria_met === false) {
-                        dotClass = 'failed';
-                        title = testStatus.test_procedure_id + ': Failed';
-                    } else if (testStatus.status === 'started' || testStatus.status === 'initialised') {
-                        dotClass = 'active';
-                        title = testStatus.test_procedure_id + ': In Progress';
-                        if (!activeRunId) activeRunId = testStatus.run_id;
-                    }
-                    dots += `<span class="status-dot ${dotClass}" title="${title}"></span>`;
-                }
+                const { dots, activeRunId } = buildStatusDots(run.test_statuses);
 
                 // Build action buttons (End button for active playlists)
                 let actionButtons = '';

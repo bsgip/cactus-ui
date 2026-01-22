@@ -1105,36 +1105,50 @@ def playlist_runs_json(access_token: str, run_group_id: int, playlist_id: str) -
 @login_required
 def active_playlists_json(access_token: str, run_group_id: int) -> Response:
     """Fetch all active playlist executions (those with at least one active run)"""
-    # Fetch all runs for this run group
-    runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, False)
-    if runs_page is None:
+    # First fetch active runs to identify which playlist_execution_ids are active
+    active_runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, False)
+    if active_runs_page is None:
         return Response(
             response=json.dumps([]),
             status=HTTPStatus.OK,
             mimetype="application/json",
         )
 
-    # Group runs by playlist_execution_id
-    playlist_executions: dict[str, list[schema.RunResponse]] = {}
-    for run in runs_page.items:
+    # Find playlist_execution_ids that have active runs
+    active_playlist_ids: set[str] = set()
+    for run in active_runs_page.items:
         if run.playlist_execution_id:
+            active_playlist_ids.add(run.playlist_execution_id)
+
+    if not active_playlist_ids:
+        return Response(
+            response=json.dumps([]),
+            status=HTTPStatus.OK,
+            mimetype="application/json",
+        )
+
+    # Now fetch ALL runs to get complete playlist data
+    all_runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, None)
+    if all_runs_page is None:
+        return Response(
+            response=json.dumps([]),
+            status=HTTPStatus.OK,
+            mimetype="application/json",
+        )
+
+    # Group all runs by playlist_execution_id, but only for active playlists
+    playlist_executions: dict[str, list[schema.RunResponse]] = {}
+    for run in all_runs_page.items:
+        if run.playlist_execution_id and run.playlist_execution_id in active_playlist_ids:
             if run.playlist_execution_id not in playlist_executions:
                 playlist_executions[run.playlist_execution_id] = []
             playlist_executions[run.playlist_execution_id].append(run)
 
-    # Build response: only include playlist executions that have active runs
+    # Build response
     result = []
     for exec_id, runs in playlist_executions.items():
         runs_sorted = sorted(runs, key=lambda r: r.playlist_order or 0)
         if not runs_sorted:
-            continue
-
-        # Check if this execution has any active runs
-        has_active = any(
-            r.status.value in ["started", "initialised"] if hasattr(r.status, "value") else str(r.status) in ["started", "initialised"]
-            for r in runs_sorted
-        )
-        if not has_active:
             continue
 
         first_run = runs_sorted[0]
