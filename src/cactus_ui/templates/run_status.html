@@ -1448,9 +1448,19 @@
         const stepsTable = document.getElementById('update-steps-table');
         stepsTable.innerHTML = stepStatusTableBody(status.step_status ?? {}).join("");
 
-        // update criteria table
+        // update criteria table (append synthetic XSD validity criteria)
+        const criteria = status.criteria ?? [];
+        const requests = status.request_history ?? [];
+        if (requests.length > 0) {
+            const xsdErrors = requests.filter(r => r.body_xml_errors && r.body_xml_errors.length > 0);
+            const xsdSuccess = xsdErrors.length === 0;
+            const xsdDetails = xsdSuccess
+                ? `All ${requests.length} request(s) passed XSD validation`
+                : `${xsdErrors.length} of ${requests.length} request(s) have XSD validation errors`;
+            criteria.push({ type: "all-xsd-valid", success: xsdSuccess, details: xsdDetails });
+        }
         const criteriaTable = document.getElementById('update-criteria-table');
-        criteriaTable.innerHTML = criteriaTableBody(status.criteria ?? []).join("");
+        criteriaTable.innerHTML = criteriaTableBody(criteria).join("");
 
         // update generate table
         const generalTable = document.getElementById('update-general-table');
