@@ -42,8 +42,55 @@
                             <i class="fas fa-download"></i> Download SERCA Certificate
                         </button>
                     </div>
+                {% if run_groups|length > 1 %}
+                <div class="dropdown" style="display:inline-block">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Advanced Options
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <button type="button"
+                                    class="dropdown-item"
+                                    data-bs-toggle="modal" data-bs-target="#certmodal">
+                                    Generate Shared Aggregator Certificate
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                {% endif %}
                 </form>
                 </p>
+
+                <!-- Modal for 'Apply shared aggregator certifcate' button -->
+                <div class="modal fade" id="certmodal" tabindex="-1" aria-labelledby="certmodal-label" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5" id="certmodal-label">
+                                    Generate Shared Aggregator Certificate</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                A new aggregator certificate will be generated and set as the certificate for {{run_groups|length}} run groups.
+                                <br>
+                                <br>
+                                <strong>Note:</strong> Generating a new aggregator certificate will replace <i>all</i> existing certificates for <i>all</i> run groups.
+                            </div>
+                            <div class="modal-footer">
+                                <form method="POST" action="{{ url_for('config_page') }}" id="download" class="cert-download-form" target="hiddenFrame">
+                                    <div class="btn-group" role="group">
+                                        <button type="submit" name="action" value="generatesharedcertificateallrungroups"
+                                            class="btn btn-outline-danger">
+                                            <i class="fas fa-recycle"></i> Apply
+                                        </button>
+                                    </div>
+                                </form>
+                                <iframe name="hiddenFrame" style="display:none;"></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
 
                 {% if not run_groups %}
                 <p class="card-text"><strong>There doesn't seem to be anything here...</strong></p>
