@@ -70,7 +70,7 @@
                     {% endif %}
                 </div>
                 {% if item_status == 'finalised' %}
-                <form method="POST" action="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="ms-1">
+                <form method="POST" action="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="ms-1 mb-0 align-self-start">
                     <input type="hidden" name="action" value="artifact">
                     <button type="submit" class="btn btn-outline-success p-1" style="font-size: 0.7rem; line-height: 1;" title="Download artifacts">
                         <i class="fas fa-download"></i>
@@ -245,36 +245,37 @@
 
 {% else %}
 
-<div class="row">
-    <h2>Run {{ run_id }} [Finalised]</h2>
-    {% if run_has_artifacts %}
-    <div class="alert alert-primary" role="alert">
-        <p>This run has been finalised and is no longer active.</p>
+<div class="row justify-content-center">
+    <div class="status-container">
+        <h2>Run {{ run_id }} [Finalised]</h2>
+        {% if run_has_artifacts %}
+        <div class="alert alert-primary" role="alert">
+            <p>This run has been finalised and is no longer active.</p>
 
-        <p>Click the button below to download the run's artifacts.</p>
-        <form id='download-form' method="POST" action="{{ url_for('run_status_page', run_id=run_id) }}">
-            <input type="hidden" name="action" value="artifact">
-            <button type="submit" class="btn btn-primary">Download Artifacts</button>
-        </form>
-    </div>
-    {% else %}
-    <div class="alert alert-warning" role="alert">
-        <p>This run has been finalised and is no longer active.</p>
-        <p>There are <b>no artifacts</b> recorded for this run due to an unexpected error during finalisation.</p>
-        <p>Please try re-running the test. If the problem persists contact support: <a href="mailto:{{ cactus_platform_support_email }}">{{ cactus_platform_support_email }}</a></p>
-    </div>
-    {% endif %}
+            <p>Click the button below to download the run's artifacts.</p>
+            <form id='download-form' method="POST" action="{{ url_for('run_status_page', run_id=run_id) }}">
+                <input type="hidden" name="action" value="artifact">
+                <button type="submit" class="btn btn-primary">Download Artifacts</button>
+            </form>
+        </div>
+        {% else %}
+        <div class="alert alert-warning" role="alert">
+            <p>This run has been finalised and is no longer active.</p>
+            <p>There are <b>no artifacts</b> recorded for this run due to an unexpected error during finalisation.</p>
+            <p>Please try re-running the test. If the problem persists contact support: <a href="mailto:{{ cactus_platform_support_email }}">{{ cactus_platform_support_email }}</a></p>
+        </div>
+        {% endif %}
 
-    {% if next_playlist_run_id %}
-    <div class="alert alert-success mt-3" role="alert">
-        <h5 class="alert-heading"><i class="fas fa-check-circle"></i> Test Complete!</h5>
-        <p>This test has been completed. Click below to proceed to the next test in the playlist.</p>
-        <a href="{{ url_for('run_status_page', run_id=next_playlist_run_id) }}" class="btn btn-success">
-            <i class="fas fa-arrow-right"></i> Go to Next Test
-        </a>
+        {% if next_playlist_run_id %}
+        <div class="alert alert-success mt-3" role="alert">
+            <h5 class="alert-heading"><i class="fas fa-check-circle"></i> Test Complete!</h5>
+            <p>This test has been completed. Click below to proceed to the next test in the playlist.</p>
+            <a href="{{ url_for('run_status_page', run_id=next_playlist_run_id) }}" class="btn btn-success">
+                <i class="fas fa-arrow-right"></i> Go to Next Test
+            </a>
+        </div>
+        {% endif %}
     </div>
-    {% endif %}
-
 </div>
 
 
