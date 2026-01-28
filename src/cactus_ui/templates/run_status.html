@@ -42,12 +42,18 @@
             {% set item_status = playlist_run.status %}
             {% set is_current = loop.index0 == playlist_info.current_order %}
             {% set is_completed = item_status in ['finalised', 'skipped'] %}
-            <div class="d-flex align-items-start">
-                <div class="d-flex flex-column">
+            <div class="d-flex flex-column">
+                <div class="d-flex align-items-center">
                     {% if item_status == 'finalised' %}
                     <a href="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="badge bg-success text-decoration-none">
                         <i class="fas fa-check"></i> {{ playlist_run.test_procedure_id }}
                     </a>
+                    <form method="POST" action="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="ms-1 mb-0">
+                        <input type="hidden" name="action" value="artifact">
+                        <button type="submit" class="btn btn-outline-success p-1" style="font-size: 0.7rem; line-height: 1;" title="Download artifacts">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </form>
                     {% elif item_status == 'started' or item_status == 'provisioning' %}
                     <a href="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="badge bg-primary text-decoration-none">
                         <i class="fas fa-play"></i> {{ playlist_run.test_procedure_id }}
@@ -65,17 +71,9 @@
                         {{ playlist_run.test_procedure_id }}
                     </span>
                     {% endif %}
-                    {% if is_current %}
-                    <div class="bg-primary mt-1" style="height: 3px; width: 100%; border-radius: 2px;"></div>
-                    {% endif %}
                 </div>
-                {% if item_status == 'finalised' %}
-                <form method="POST" action="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="ms-1 mb-0 align-self-start">
-                    <input type="hidden" name="action" value="artifact">
-                    <button type="submit" class="btn btn-outline-success p-1" style="font-size: 0.7rem; line-height: 1;" title="Download artifacts">
-                        <i class="fas fa-download"></i>
-                    </button>
-                </form>
+                {% if is_current %}
+                <div class="bg-primary mt-1" style="height: 3px; width: 100%; border-radius: 2px;"></div>
                 {% endif %}
             </div>
             {% endfor %}
@@ -285,6 +283,7 @@
 
 <style>
     .status-container {
+        width: 100%;
         max-width: 1000px;
         max-height: 600px;
         overflow-y: auto;
