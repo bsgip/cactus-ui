@@ -383,6 +383,17 @@ def fetch_run_artifact(access_token: str, run_id: str) -> tuple[bytes | None, st
     return (response.content, generate_run_artifact_file_name(response, run_id))
 
 
+def fetch_multiple_run_artifacts(access_token: str, run_ids: list[int]) -> bytes | None:
+    """Fetch artifacts for multiple runs as a single ZIP file"""
+    uri = generate_uri("/run/artifact/multiple")
+    response = safe_request(
+        "POST", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT, json={"run_ids": run_ids}
+    )
+    if response is None or not is_success_response(response):
+        return None
+    return response.content
+
+
 def fetch_runs_for_group(
     access_token: str, run_group_id: int, page: int, finalised: bool | None
 ) -> orchestrator.Pagination[orchestrator.RunResponse] | None:

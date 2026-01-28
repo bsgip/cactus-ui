@@ -1001,6 +1001,29 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
                         mimetype="application/zip",
                     )
 
+        # Handle downloading all artifacts for a playlist execution
+        elif request.form.get("action") == "artifact_all":
+            run_ids_raw = request.form.get("run_ids", "")
+            if not run_ids_raw:
+                error = "No run IDs specified."
+            else:
+                try:
+                    run_ids = [int(rid) for rid in run_ids_raw.split(",")]
+                except ValueError:
+                    error = "Invalid run IDs."
+                    run_ids = []
+                if run_ids:
+                    artifact_data = orchestrator.fetch_multiple_run_artifacts(access_token, run_ids)
+                    if artifact_data is None:
+                        error = "Failed to retrieve artifacts."
+                    else:
+                        return send_file(
+                            io.BytesIO(artifact_data),
+                            as_attachment=True,
+                            download_name="playlist_artifacts.zip",
+                            mimetype="application/zip",
+                        )
+
         # Handle skipping remaining playlist tests (end playlist early)
         elif request.form.get("action") == "skip_playlist":
             run_id = request.form.get("run_id")

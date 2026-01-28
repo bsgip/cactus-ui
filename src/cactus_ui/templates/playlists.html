@@ -321,6 +321,26 @@
                     }
 
                     if (dropdownItems) {
+                        // Collect all run IDs that have artifacts for "Download All"
+                        const artifactRunIds = run.test_statuses
+                            .filter(ts => ts.has_artifacts)
+                            .map(ts => ts.run_id);
+
+                        let downloadAllItem = '';
+                        if (artifactRunIds.length > 1) {
+                            downloadAllItem = `
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="margin: 0;">
+                                        <input type="hidden" name="run_ids" value="${artifactRunIds.join(',')}">
+                                        <input type="hidden" name="action" value="artifact_all">
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fas fa-download"></i> Download All
+                                        </button>
+                                    </form>
+                                </li>`;
+                        }
+
                         actionButtons = `
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -328,6 +348,7 @@
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     ${dropdownItems}
+                                    ${downloadAllItem}
                                 </ul>
                             </div>`;
                     } else {
