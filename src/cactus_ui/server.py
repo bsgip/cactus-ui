@@ -971,6 +971,7 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
                             session["active_playlist"] = {
                                 "execution_id": init_result.playlist_execution_id,
                                 "name": playlist.name,
+                                "started_at": datetime.now(timezone.utc).isoformat(),
                                 "runs": [
                                     {"run_id": r.run_id, "test_procedure_id": r.test_procedure_id}
                                     for r in init_result.playlist_runs
@@ -1295,11 +1296,23 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
     # Get playlist info for this run if it's part of a playlist
     playlist_info = None
     next_playlist_run_id = None
+    current_active_run = None
     if run_response and run_response.playlist_runs:
         # Use data directly from RunResponse
         current_order = run_response.playlist_order
+        active_playlist_session = session.get("active_playlist", {})
+
+        # Get the first run's ID to fetch its start time
+        first_run_id = run_response.playlist_runs[0].run_id
+        first_run_started_at = None
+        if first_run_id:
+            first_run_response = orchestrator.fetch_individual_run(access_token, str(first_run_id))
+            if first_run_response:
+                first_run_started_at = first_run_response.created_at.isoformat() if first_run_response.created_at else None
+
         playlist_info = {
-            "name": session.get("active_playlist", {}).get("name", "Playlist"),  # Fallback name from session
+            "name": active_playlist_session.get("name", "Playlist"),  # Fallback name from session
+            "started_at": first_run_started_at,  # ISO timestamp from first run's created_at
             "runs": [
                 {
                     "run_id": r.run_id,
@@ -1315,10 +1328,7 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
         if current_order is not None and current_order + 1 < len(run_response.playlist_runs):
             next_playlist_run_id = run_response.playlist_runs[current_order + 1].run_id
 
-    # Check if viewing a non-current playlist run and find the current active run
-    current_active_run = None
-    if run_response and run_response.playlist_runs and run_status in ["initialised"]:
-        # This run is not active yet, find the currently active/started run
+        # Find the currently active/started run in the playlist
         for r in run_response.playlist_runs:
             if r.status in ["started", "provisioning"]:
                 current_active_run = {
