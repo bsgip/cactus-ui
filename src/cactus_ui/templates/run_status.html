@@ -10,24 +10,21 @@
 {% endif %}
 
 {% if playlist_info %}
+{% set playlist_is_complete = playlist_info.runs | selectattr('status', 'in', ['finalised', 'skipped']) | list | length == playlist_info.total %}
 <div class="row justify-content-center">
     <div class="alert alert-info mb-4 status-container" role="alert">
         <div class="d-flex justify-content-between align-items-center mb-2">
-            <strong>Playlist: {{ playlist_info.name }}</strong>
+            <strong>Playlist: {{ playlist_info.name }}{% if playlist_is_complete %} (Finalised){% endif %}</strong>
             <div class="d-flex align-items-center gap-2">
                 {% if current_active_run and current_active_run.run_id != run_id %}
                 <a href="{{ url_for('run_status_page', run_id=current_active_run.run_id) }}" class="btn btn-sm btn-primary">
                     <i class="fas fa-play"></i> Go to active run ({{ current_active_run.test_procedure_id }})
                 </a>
                 {% endif %}
-                {% if playlist_info.current_order < playlist_info.total - 1 %}
-                <form method="POST" class="mb-0">
-                    <input type="hidden" name="action" value="skip_playlist">
-                    <button type="submit" class="btn btn-sm btn-danger"
-                        onclick="return confirm('Are you sure you want to skip all remaining tests? This will finalize the current test and mark all remaining tests as skipped.')">
-                        <i class="fas fa-stop"></i> End Playlist
-                    </button>
-                </form>
+                {% if not playlist_is_complete %}
+                <button type="button" class="btn btn-sm btn-danger" onclick="handleEndPlaylist()">
+                    <i class="fas fa-stop"></i> End Playlist
+                </button>
                 {% endif %}
             </div>
         </div>
@@ -60,7 +57,7 @@
                     </a>
                     {% elif item_status == 'skipped' %}
                     <span class="badge bg-secondary">
-                        <i class="fas fa-forward"></i> {{ playlist_run.test_procedure_id }}
+                        <i class="fas fa-ban"></i> {{ playlist_run.test_procedure_id }}
                     </span>
                     {% elif item_status == 'initialised' %}
                     <span class="badge bg-light text-dark" title="Queued - waiting for previous tests to complete">
@@ -1599,6 +1596,49 @@
             const diffMs = now - startTime;
             const diffMins = Math.floor(diffMs / 60000);
             el.textContent = `${formatDate(startTime)} (${diffMins} minute${diffMins !== 1 ? 's' : ''} ago)`;
+        }
+    }
+
+    async function handleEndPlaylist() {
+        if (!confirm('Are you sure you want to end the playlist? This will finalize the current test and mark all remaining tests as skipped.')) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('action', 'skip_playlist');
+
+        try {
+            const response = await fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = 'playlist_artifacts.zip';
+                if (contentDisposition) {
+                    const match = contentDisposition.match(/filename="?([^";\n]+)"?/);
+                    if (match) filename = match[1];
+                }
+
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+
+                // Redirect to playlists page
+                window.location.href = '{{ url_for("playlists_page") }}';
+            } else {
+                alert('Failed to end playlist. Please try again.');
+            }
+        } catch (error) {
+            console.error('End playlist error:', error);
+            alert('An error occurred while ending the playlist. Please try again.');
         }
     }
 

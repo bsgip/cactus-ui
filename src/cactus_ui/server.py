@@ -210,6 +210,26 @@ def parse_bool(v: str | None) -> bool:
     return True
 
 
+def download_playlist_artifacts(access_token: str, run_ids: list[int], download_name: str) -> Response | None:
+    """Download artifacts for multiple runs as a single ZIP file.
+
+    Returns a Flask send_file response if successful, None otherwise.
+    """
+    if not run_ids:
+        return None
+
+    artifact_data = orchestrator.fetch_multiple_run_artifacts(access_token, run_ids)
+    if artifact_data is None:
+        return None
+
+    return send_file(
+        io.BytesIO(artifact_data),
+        as_attachment=True,
+        download_name=download_name,
+        mimetype="application/zip",
+    )
+
+
 def run_summary_to_compliance_status(test_procedure: schema.TestProcedureRunSummaryResponse) -> str:
     ACTIVE_RUN_STATUSES = [1, 2, 6]  # initialized, started, provisioning
     FINALIZED_RUN_STATUSES = [3, 4]  # finalized by user, finalized by timeout
@@ -1014,16 +1034,10 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
                     error = "Invalid run IDs."
                     run_ids = []
                 if run_ids:
-                    artifact_data = orchestrator.fetch_multiple_run_artifacts(access_token, run_ids)
-                    if artifact_data is None:
-                        error = "Failed to retrieve artifacts."
-                    else:
-                        return send_file(
-                            io.BytesIO(artifact_data),
-                            as_attachment=True,
-                            download_name="playlist_artifacts.zip",
-                            mimetype="application/zip",
-                        )
+                    response = download_playlist_artifacts(access_token, run_ids, "playlist_artifacts.zip")
+                    if response:
+                        return response
+                    error = "Failed to retrieve artifacts."
 
         # Handle skipping remaining playlist tests (end playlist early)
         elif request.form.get("action") == "skip_playlist":
@@ -1260,16 +1274,18 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
 
         # Handle skipping remaining playlist tests
         elif request.form.get("action") == "skip_playlist":
-            archive_data = orchestrator.finalise_playlist(access_token, run_id)
-            if archive_data is None:
-                error = "Failed to skip remaining playlist tests."
-            else:
-                return send_file(
-                    io.BytesIO(archive_data),
-                    as_attachment=True,
-                    download_name=f"{run_id}_artifacts.zip",
-                    mimetype="application/zip",
-                )
+            # Finalise the playlist (marks remaining tests as skipped)
+            orchestrator.finalise_playlist(access_token, run_id)
+
+            # Get all run IDs from the playlist and download all artifacts
+            run_response = orchestrator.fetch_individual_run(access_token, run_id)
+            if run_response and run_response.playlist_runs:
+                run_ids = [r.run_id for r in run_response.playlist_runs]
+                playlist_name = session.get("active_playlist", {}).get("name", "playlist")
+                response = download_playlist_artifacts(access_token, run_ids, f"{playlist_name}_artifacts.zip")
+                if response:
+                    return response
+            error = "Failed to download playlist artifacts."
 
     status = orchestrator.fetch_run_status(access_token=access_token, run_id=run_id)
     run_is_live = status is not None
