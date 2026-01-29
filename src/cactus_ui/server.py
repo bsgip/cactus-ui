@@ -1115,15 +1115,17 @@ def playlist_runs_json(access_token: str, run_group_id: int, playlist_id: str) -
     # Build response: list of playlist runs with test statuses
     result = []
     for exec_id, runs in playlist_executions.items():
-        # Check if this execution matches our playlist (by checking first procedure)
         runs_sorted = sorted(runs, key=lambda r: r.playlist_order or 0)
         if not runs_sorted:
             continue
 
-        # Check if the first test matches our playlist
-        first_run = runs_sorted[0]
-        if first_run.test_procedure_id not in playlist.procedures:
+        # Check if this execution matches our playlist exactly
+        # by comparing the procedure IDs in order
+        execution_procedures = [r.test_procedure_id for r in runs_sorted]
+        if execution_procedures != playlist.procedures:
             continue
+
+        first_run = runs_sorted[0]
 
         # Build test status list
         test_statuses = [build_test_status_dict(run) for run in runs_sorted]
