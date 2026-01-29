@@ -85,6 +85,7 @@ class PlaylistConfig:
     id: str
     name: str
     procedures: list[str]
+    description: str = ""
 
 
 # Parse playlists from environment variable

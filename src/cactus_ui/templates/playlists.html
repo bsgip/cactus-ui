@@ -58,6 +58,7 @@
                         <a href="#" id="playlist-{{ playlist.id }}"
                             data-playlist-id="{{ playlist.id }}"
                             data-playlist-name="{{ playlist.name }}"
+                            data-playlist-description="{{ playlist.description }}"
                             data-procedures="{{ playlist.procedures | join(',') }}"
                             class="playlist-btn list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             {{ playlist.name }}
@@ -215,6 +216,7 @@
 
         const playlist_id = this.getAttribute("data-playlist-id");
         const playlist_name = this.getAttribute("data-playlist-name");
+        const playlist_description = this.getAttribute("data-playlist-description");
         const procedures = this.getAttribute("data-procedures").split(",");
 
         // Update title
@@ -246,8 +248,10 @@
             `<li><code>${p}</code></li>`
         ).join('');
 
-        // Show content: procedure list and run history
+        // Show content: description, procedure list and run history
+        const descriptionHtml = playlist_description ? `<p class="text-muted">${playlist_description}</p>` : '';
         document.getElementById("playlist-content").innerHTML = `
+            ${descriptionHtml}
             <h6>Tests in this playlist:</h6>
             <ol>${procedureListHtml}</ol>
             <hr>
