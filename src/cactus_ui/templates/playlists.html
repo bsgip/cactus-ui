@@ -8,6 +8,11 @@
 <div class="alert alert-danger">{{ error }}</div>
 {% endif %}
 
+<div class="alert alert-warning" role="alert">
+    <i class="fas fa-info-circle"></i>
+    <strong>Please note:</strong> The playlists feature is in testing phase. No runs from a playlist will be valid for certification until testing is complete. All feedback is welcome at <a href="mailto:support@bsgip.com">support@bsgip.com. Playlists will be statically generated for now. If you would like a specific playlist added, let us know!</a>.
+</div>
+
 <div class="max-page-height" style="padding-top:10px; display: flex; flex-direction: column;">
     <div style="display: flex;">
         {% if run_groups|length < 2 %}
@@ -62,7 +67,7 @@
                             data-procedures="{{ playlist.procedures | join(',') }}"
                             class="playlist-btn list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             {{ playlist.name }}
-                            <span class="badge text-bg-info">{{ playlist.procedures | length }}</span>
+                            <span class="badge text-bg-info" title="Times run">{{ playlist_run_counts[playlist.id] }}</span>
                         </a>
                     </div>
                 </div>

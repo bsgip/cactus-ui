@@ -1071,10 +1071,32 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
                 active_run_group = rg
                 break
 
+    # Count playlist executions for each playlist
+    playlist_run_counts: dict[str, int] = {p.id: 0 for p in CACTUS_PLAYLISTS}
+    runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, None)
+    if runs_page:
+        # Group runs by playlist_execution_id
+        playlist_executions: dict[str, list[schema.RunResponse]] = {}
+        for run in runs_page.items:
+            if run.playlist_execution_id:
+                if run.playlist_execution_id not in playlist_executions:
+                    playlist_executions[run.playlist_execution_id] = []
+                playlist_executions[run.playlist_execution_id].append(run)
+
+        # Match each execution to a playlist config
+        for exec_id, runs in playlist_executions.items():
+            runs_sorted = sorted(runs, key=lambda r: r.playlist_order or 0)
+            execution_procedures = [r.test_procedure_id for r in runs_sorted]
+            for playlist in CACTUS_PLAYLISTS:
+                if execution_procedures == playlist.procedures:
+                    playlist_run_counts[playlist.id] += 1
+                    break
+
     return render_template(
         "playlists.html",
         error=error,
         playlists=CACTUS_PLAYLISTS,
+        playlist_run_counts=playlist_run_counts,
         run_groups=[] if run_groups is None else run_groups.items,
         run_group_id=run_group_id,
         active_run_group=active_run_group,
