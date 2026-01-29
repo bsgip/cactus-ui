@@ -36,7 +36,6 @@
                 </ul>
             </div>
         {% endif %}
-        <a style="align-content:center;" class="push-right" href="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">Back to Runs</a>
     </div>
 
     <hr>
@@ -381,7 +380,7 @@
                         <td><a href="${runStatusUrlBase}${run.first_run_id}">#${run.first_run_id}</a></td>
                         <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})</small></td>
                         <td>${dots}</td>
-                        <td>${actionButtons}</td>
+                        <td class="text-end">${actionButtons}</td>
                     </tr>`;
             }
 
@@ -464,7 +463,7 @@
                         <td>#${run.first_run_id}</td>
                         <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})</small></td>
                         <td>${dots}</td>
-                        <td>${actionButtons}</td>
+                        <td class="text-end">${actionButtons}</td>
                     </tr>`;
             }
 
