@@ -242,6 +242,13 @@
 
 <div class="row justify-content-center">
     <div class="status-container">
+        {% if run_status == 'skipped' %}
+        <h2>Run {{ run_id }} [Skipped]</h2>
+        <div class="alert alert-secondary" role="alert">
+            <p>This run was skipped as part of a playlist and was never executed.</p>
+            <p>No artifacts are available for skipped runs.</p>
+        </div>
+        {% else %}
         <h2>Run {{ run_id }} [Finalised]</h2>
         {% if run_has_artifacts %}
         <div class="alert alert-primary" role="alert">
@@ -259,6 +266,7 @@
             <p>There are <b>no artifacts</b> recorded for this run due to an unexpected error during finalisation.</p>
             <p>Please try re-running the test. If the problem persists contact support: <a href="mailto:{{ cactus_platform_support_email }}">{{ cactus_platform_support_email }}</a></p>
         </div>
+        {% endif %}
         {% endif %}
 
         {% if next_playlist_run_id %}

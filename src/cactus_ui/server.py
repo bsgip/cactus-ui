@@ -1025,6 +1025,7 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
         # Handle downloading all artifacts for a playlist execution
         elif request.form.get("action") == "artifact_all":
             run_ids_raw = request.form.get("run_ids", "")
+            playlist_name = request.form.get("playlist_name", "playlist")
             if not run_ids_raw:
                 error = "No run IDs specified."
             else:
@@ -1034,7 +1035,9 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
                     error = "Invalid run IDs."
                     run_ids = []
                 if run_ids:
-                    response = download_playlist_artifacts(access_token, run_ids, "playlist_artifacts.zip")
+                    first_run_id = run_ids[0]
+                    download_name = f"{playlist_name}_{first_run_id}_artifacts.zip"
+                    response = download_playlist_artifacts(access_token, run_ids, download_name)
                     if response:
                         return response
                     error = "Failed to retrieve artifacts."
@@ -1150,32 +1153,27 @@ def playlist_runs_json(access_token: str, run_group_id: int, playlist_id: str) -
 @app.route("/group/<int:run_group_id>/active_playlists", methods=["GET"])
 @login_required
 def active_playlists_json(access_token: str, run_group_id: int) -> Response:
-    """Fetch all active playlist executions (those with at least one active run)"""
-    # First fetch active runs to identify which playlist_execution_ids are active
-    active_runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, False)
-    if active_runs_page is None:
+    """Fetch all active playlist executions (those with at least one non-finalized run)"""
+    # Fetch all runs to find playlists with non-finalized runs (including initialised)
+    all_runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, None)
+    if all_runs_page is None:
         return Response(
             response=json.dumps([]),
             status=HTTPStatus.OK,
             mimetype="application/json",
         )
 
-    # Find playlist_execution_ids that have active runs
+    # Statuses that indicate a playlist is still active (not completed)
+    active_statuses = {"initialised", "started", "provisioning"}
+
+    # Find playlist_execution_ids that have at least one active run
     active_playlist_ids: set[str] = set()
-    for run in active_runs_page.items:
-        if run.playlist_execution_id:
+    for run in all_runs_page.items:
+        status_str = run.status.value if hasattr(run.status, "value") else str(run.status)
+        if run.playlist_execution_id and status_str in active_statuses:
             active_playlist_ids.add(run.playlist_execution_id)
 
     if not active_playlist_ids:
-        return Response(
-            response=json.dumps([]),
-            status=HTTPStatus.OK,
-            mimetype="application/json",
-        )
-
-    # Now fetch ALL runs to get complete playlist data
-    all_runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, None)
-    if all_runs_page is None:
         return Response(
             response=json.dumps([]),
             status=HTTPStatus.OK,
@@ -1281,8 +1279,10 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
             run_response = orchestrator.fetch_individual_run(access_token, run_id)
             if run_response and run_response.playlist_runs:
                 run_ids = [r.run_id for r in run_response.playlist_runs]
+                first_run_id = run_ids[0]
                 playlist_name = session.get("active_playlist", {}).get("name", "playlist")
-                response = download_playlist_artifacts(access_token, run_ids, f"{playlist_name}_artifacts.zip")
+                download_name = f"{playlist_name}_{first_run_id}_artifacts.zip"
+                response = download_playlist_artifacts(access_token, run_ids, download_name)
                 if response:
                     return response
             error = "Failed to download playlist artifacts."

@@ -255,10 +255,10 @@
         `;
 
         // Fetch run history for this playlist
-        loadPlaylistRuns(playlist_id, procedures);
+        loadPlaylistRuns(playlist_id, playlist_name, procedures);
     }
 
-    function loadPlaylistRuns(playlist_id, procedures) {
+    function loadPlaylistRuns(playlist_id, playlist_name, procedures) {
         const url = playlistRunsUrlBase + playlist_id;
 
         xhrRequest(url, (content) => {
@@ -333,6 +333,7 @@
                                 <li>
                                     <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="margin: 0;">
                                         <input type="hidden" name="run_ids" value="${artifactRunIds.join(',')}">
+                                        <input type="hidden" name="playlist_name" value="${playlist_name}">
                                         <input type="hidden" name="action" value="artifact_all">
                                         <button type="submit" class="dropdown-item">
                                             <i class="fas fa-download"></i> Download All
