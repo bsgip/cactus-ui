@@ -164,6 +164,7 @@
         let dots = '';
         let isActive = false;
         let activeRunId = null;
+        let activeTestProcedureId = null;
 
         for (const testStatus of testStatuses) {
             let dotClass = 'pending';
@@ -177,20 +178,26 @@
             } else if (testStatus.status === 'skipped') {
                 dotClass = 'skipped';
                 title = testStatus.test_procedure_id + ': Skipped';
-            } else if (testStatus.status === 'started') {
+            } else if (testStatus.status === 'started' || testStatus.status === 'provisioning') {
                 dotClass = 'active';
                 title = testStatus.test_procedure_id + ': Running';
                 isActive = true;
-                if (!activeRunId) activeRunId = testStatus.run_id;
+                if (!activeRunId) {
+                    activeRunId = testStatus.run_id;
+                    activeTestProcedureId = testStatus.test_procedure_id;
+                }
             } else if (testStatus.status === 'initialised') {
-                // Initialised but not started = queued
+                // Initialised but not started = queued, but still active for navigation
                 isActive = true;
-                if (!activeRunId) activeRunId = testStatus.run_id;
+                if (!activeRunId) {
+                    activeRunId = testStatus.run_id;
+                    activeTestProcedureId = testStatus.test_procedure_id;
+                }
             }
             dots += `<span class="status-dot ${dotClass}" title="${title}"></span>`;
         }
 
-        return { dots, isActive, activeRunId };
+        return { dots, isActive, activeRunId, activeTestProcedureId };
     }
 
     function handlePlaylistButtonClick(e) {
@@ -419,18 +426,24 @@
             for (const run of runs) {
                 const created = new Date(Date.parse(run.created_at));
 
-                // Build status dots
-                const { dots, activeRunId } = buildStatusDots(run.test_statuses);
+                // Build status dots and get active run info
+                const { dots, activeRunId, activeTestProcedureId } = buildStatusDots(run.test_statuses);
 
-                // Build action buttons (End button for active playlists)
+                // Build action buttons
                 let actionButtons = '';
                 if (activeRunId) {
-                    actionButtons = `
+                    // Go to active run button
+                    actionButtons += `
+                        <a href="${runStatusUrlBase}${activeRunId}" class="btn btn-sm btn-primary me-1" title="Go to active run">
+                            <i class="fas fa-play"></i> Go to active (${activeTestProcedureId})
+                        </a>`;
+                    // End playlist button
+                    actionButtons += `
                         <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="display: inline;"
                             onsubmit="return confirm('Are you sure you want to end this playlist? This will finalize the current test and skip all remaining tests.')">
                             <input type="hidden" name="run_id" value="${activeRunId}">
                             <input type="hidden" name="action" value="skip_playlist">
-                            <button type="submit" class="btn btn-sm btn-outline-danger" title="End playlist">
+                            <button type="submit" class="btn btn-sm btn-danger" title="End playlist">
                                 <i class="fas fa-stop"></i> End
                             </button>
                         </form>`;
@@ -439,7 +452,7 @@
                 html += `
                     <tr class="table-info">
                         <td>${run.playlist_name}</td>
-                        <td><a href="${runStatusUrlBase}${run.first_run_id}">#${run.first_run_id}</a></td>
+                        <td>#${run.first_run_id}</td>
                         <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})</small></td>
                         <td>${dots}</td>
                         <td>${actionButtons}</td>
