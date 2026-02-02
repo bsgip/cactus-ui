@@ -42,12 +42,13 @@
             <div class="d-flex flex-column">
                 <div class="d-flex align-items-center">
                     {% if item_status == 'finalised' %}
-                    <a href="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="badge bg-success text-decoration-none">
-                        <i class="fas fa-check"></i> {{ playlist_run.test_procedure_id }}
+                    {% set test_passed = playlist_run.all_criteria_met %}
+                    <a href="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="badge {{ 'bg-success' if test_passed else 'bg-danger' }} text-decoration-none">
+                        <i class="fas {{ 'fa-check' if test_passed else 'fa-times' }}"></i> {{ playlist_run.test_procedure_id }}
                     </a>
                     <form method="POST" action="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="ms-1 m-0 d-flex">
                         <input type="hidden" name="action" value="artifact">
-                        <button type="submit" class="btn btn-outline-success p-0 d-flex align-items-center justify-content-center" style="width: 1.25rem; height: 1.25rem; font-size: 0.6rem;" title="Download artifacts">
+                        <button type="submit" class="btn {{ 'btn-outline-success' if test_passed else 'btn-outline-danger' }} p-0 d-flex align-items-center justify-content-center" style="width: 1.25rem; height: 1.25rem; font-size: 0.6rem;" title="Download artifacts">
                             <i class="fas fa-download"></i>
                         </button>
                     </form>

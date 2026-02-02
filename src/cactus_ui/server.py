@@ -1049,16 +1049,19 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
             if not run_id:
                 error = "No run ID specified."
             else:
-                archive_data = orchestrator.finalise_playlist(access_token, run_id)
-                if archive_data is None:
-                    error = "Failed to end playlist."
-                else:
-                    return send_file(
-                        io.BytesIO(archive_data),
-                        as_attachment=True,
-                        download_name=f"{run_id}_artifacts.zip",
-                        mimetype="application/zip",
-                    )
+                # Finalise the playlist (marks remaining tests as skipped)
+                orchestrator.finalise_playlist(access_token, run_id)
+
+                # Get all run IDs from the playlist and download all artifacts
+                run_response = orchestrator.fetch_individual_run(access_token, run_id)
+                if run_response and run_response.playlist_runs:
+                    run_ids = [r.run_id for r in run_response.playlist_runs]
+                    first_run_id = run_ids[0]
+                    download_name = f"playlist_{first_run_id}_artifacts.zip"
+                    response = download_playlist_artifacts(access_token, run_ids, download_name)
+                    if response:
+                        return response
+                error = "Failed to download playlist artifacts."
 
     # Fetch the run groups (for the breadcrumbs selector)
     run_groups = orchestrator.fetch_run_groups(access_token, 1)
@@ -1359,6 +1362,7 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
                     "run_id": r.run_id,
                     "test_procedure_id": r.test_procedure_id,
                     "status": r.status,
+                    "all_criteria_met": r.all_criteria_met,
                 }
                 for r in run_response.playlist_runs
             ],
