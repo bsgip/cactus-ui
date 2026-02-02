@@ -486,6 +486,8 @@
         return fragments
     }
 
+    const MAX_VISIBLE_REQUESTS = 50;
+
     function requestsTableBody(requests) {
         if (requests.length == 0) {
             return [`
@@ -498,8 +500,20 @@
             </tr>`];
         }
 
+        // Only render the most recent requests to avoid performance issues on long-running tests
+        const recentRequests = requests.slice(-MAX_VISIBLE_REQUESTS);
+
         fragments = []
-        for (const r of requests) {
+        if (requests.length > MAX_VISIBLE_REQUESTS) {
+            fragments.push(`
+            <tr>
+                <td colspan="5" class="text-muted text-center">
+                    Showing last ${MAX_VISIBLE_REQUESTS} of ${requests.length} requests
+                </td>
+            </tr>`);
+        }
+
+        for (const r of recentRequests) {
             d = new Date(Date.parse(r.timestamp))
             statusColor = r.status < 200 || r.status > 299 ? "danger" : "success"
             schemaColor = r.body_xml_errors.length ? "danger" : "success"
