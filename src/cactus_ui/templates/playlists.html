@@ -66,7 +66,7 @@
                             data-procedures="{{ playlist.procedures | join(',') }}"
                             class="playlist-btn list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             {{ playlist.name }}
-                            <span class="badge text-bg-info" title="Times run">{{ playlist_run_counts[playlist.id] }}</span>
+                            <span class="badge text-bg-info" data-bs-toggle="tooltip" data-bs-title="Times run">{{ playlist_run_counts[playlist.id] }}</span>
                         </a>
                     </div>
                 </div>
@@ -110,10 +110,13 @@
         flex: 1;
         overflow: hidden;
         padding: 0 !important;
+        display: flex;
+        flex-direction: column;
     }
 
     .max-page-height {
-        height: 100%;
+        flex: 1;
+        min-height: 0;
         overflow: hidden;
     }
 
@@ -165,6 +168,12 @@
     const activePlaylistsUrl = "{{ url_for('active_playlists_json', run_group_id=run_group_id) }}";
     const runStatusUrlBase = "{{ url_for('run_status_page', run_id=0) }}".replace('0', '');
 
+    function initTooltips() {
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+            bootstrap.Tooltip.getOrCreateInstance(el, { delay: { show: 0, hide: 0 } });
+        });
+    }
+
     function buildStatusDots(testStatuses) {
         let dots = '';
         let isActive = false;
@@ -199,7 +208,7 @@
                     activeTestProcedureId = testStatus.test_procedure_id;
                 }
             }
-            dots += `<span class="status-dot ${dotClass}" title="${title}"></span>`;
+            dots += `<span class="status-dot ${dotClass}" data-bs-toggle="tooltip" data-bs-title="${title}"></span>`;
         }
 
         return { dots, isActive, activeRunId, activeTestProcedureId };
@@ -386,6 +395,7 @@
 
             html += `</tbody></table>`;
             table.innerHTML = html;
+            initTooltips();
         }, (status, error) => {
             document.getElementById("playlist-runs-loading").style.display = "none";
             document.getElementById("playlist-runs-table").style.display = "block";
@@ -469,6 +479,7 @@
 
             html += `</tbody></table>`;
             table.innerHTML = html;
+            initTooltips();
         }, (status, error) => {
             document.getElementById("playlist-runs-loading").style.display = "none";
             document.getElementById("playlist-runs-table").style.display = "block";
@@ -483,6 +494,9 @@
     }
 
     addEventListener("load", (event) => {
+        // Initialize Bootstrap tooltips with zero delay
+        initTooltips();
+
         // Install onclick handlers for playlist btns
         document.querySelectorAll(".playlist-btn").forEach(el => el.onclick = handlePlaylistButtonClick);
 

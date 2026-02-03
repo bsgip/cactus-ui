@@ -1346,26 +1346,31 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
         current_order = run_response.playlist_order
         active_playlist_session = session.get("active_playlist", {})
 
-        # Get the first run's ID to fetch its start time
-        first_run_id = run_response.playlist_runs[0].run_id
+        # Fetch full run data for each playlist run to get all_criteria_met
+        playlist_runs_full: list[dict] = []
         first_run_started_at = None
-        if first_run_id:
-            first_run_response = orchestrator.fetch_individual_run(access_token, str(first_run_id))
-            if first_run_response:
-                first_run_started_at = first_run_response.created_at.isoformat() if first_run_response.created_at else None
+        for i, r in enumerate(run_response.playlist_runs):
+            full_run = orchestrator.fetch_individual_run(access_token, str(r.run_id))
+            if full_run:
+                if i == 0:
+                    first_run_started_at = full_run.created_at.isoformat() if full_run.created_at else None
+                playlist_runs_full.append(build_test_status_dict(full_run))
+            else:
+                # Fallback if fetch fails
+                playlist_runs_full.append(
+                    {
+                        "run_id": r.run_id,
+                        "test_procedure_id": r.test_procedure_id,
+                        "status": r.status.value if hasattr(r.status, "value") else str(r.status),
+                        "all_criteria_met": None,
+                        "has_artifacts": False,
+                    }
+                )
 
         playlist_info = {
             "name": active_playlist_session.get("name", "Playlist"),  # Fallback name from session
             "started_at": first_run_started_at,  # ISO timestamp from first run's created_at
-            "runs": [
-                {
-                    "run_id": r.run_id,
-                    "test_procedure_id": r.test_procedure_id,
-                    "status": r.status,
-                    "all_criteria_met": r.all_criteria_met,
-                }
-                for r in run_response.playlist_runs
-            ],
+            "runs": playlist_runs_full,
             "current_order": current_order,
             "total": len(run_response.playlist_runs),
         }

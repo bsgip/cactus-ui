@@ -43,29 +43,29 @@
                 <div class="d-flex align-items-center">
                     {% if item_status == 'finalised' %}
                     {% set test_passed = playlist_run.all_criteria_met %}
-                    <a href="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="badge {{ 'bg-success' if test_passed else 'bg-danger' }} text-decoration-none">
+                    <a href="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="badge {{ 'bg-success' if test_passed else 'bg-danger' }} text-decoration-none" data-bs-toggle="tooltip" data-bs-title="{{ 'Passed' if test_passed else 'Failed' }}">
                         <i class="fas {{ 'fa-check' if test_passed else 'fa-times' }}"></i> {{ playlist_run.test_procedure_id }}
                     </a>
                     <form method="POST" action="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="ms-1 m-0 d-flex">
                         <input type="hidden" name="action" value="artifact">
-                        <button type="submit" class="btn {{ 'btn-outline-success' if test_passed else 'btn-outline-danger' }} p-0 d-flex align-items-center justify-content-center" style="width: 1.25rem; height: 1.25rem; font-size: 0.6rem;" title="Download artifacts">
+                        <button type="submit" class="btn {{ 'btn-outline-success' if test_passed else 'btn-outline-danger' }} p-0 d-flex align-items-center justify-content-center" style="width: 1.25rem; height: 1.25rem; font-size: 0.6rem;" data-bs-toggle="tooltip" data-bs-title="Download artifacts">
                             <i class="fas fa-download"></i>
                         </button>
                     </form>
                     {% elif item_status == 'started' or item_status == 'provisioning' %}
-                    <a href="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="badge bg-primary text-decoration-none">
+                    <a href="{{ url_for('run_status_page', run_id=playlist_run.run_id) }}" class="badge bg-primary text-decoration-none" data-bs-toggle="tooltip" data-bs-title="Running">
                         <i class="fas fa-play"></i> {{ playlist_run.test_procedure_id }}
                     </a>
                     {% elif item_status == 'skipped' %}
-                    <span class="badge bg-secondary">
+                    <span class="badge bg-secondary" data-bs-toggle="tooltip" data-bs-title="Skipped">
                         <i class="fas fa-ban"></i> {{ playlist_run.test_procedure_id }}
                     </span>
                     {% elif item_status == 'initialised' %}
-                    <span class="badge bg-light text-dark" title="Queued - waiting for previous tests to complete">
+                    <span class="badge bg-light text-dark" data-bs-toggle="tooltip" data-bs-title="Queued - waiting for previous tests to complete">
                         <i class="fas fa-clock"></i> {{ playlist_run.test_procedure_id }}
                     </span>
                     {% else %}
-                    <span class="badge bg-light text-dark">
+                    <span class="badge bg-light text-dark" data-bs-toggle="tooltip" data-bs-title="Pending">
                         {{ playlist_run.test_procedure_id }}
                     </span>
                     {% endif %}
@@ -1652,6 +1652,11 @@
     }
 
     addEventListener("load", (event) => {
+        // Initialize Bootstrap tooltips with zero delay
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+            bootstrap.Tooltip.getOrCreateInstance(el, { delay: { show: 0, hide: 0 } });
+        });
+
         // Format playlist started at time
         updatePlaylistStartedAt();
         // Update the "minutes ago" periodically
