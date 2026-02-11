@@ -429,8 +429,9 @@
         return fragments
     }
 
-    function stepStatusTableBody(stepStatus) {
+    function stepStatusTableBody(stepStatus, timestampStart) {
         fragments = []
+        const testStart = timestampStart ? new Date(timestampStart) : null;
         for (const [step, stepInfo] of Object.entries(stepStatus)) {
             // Handle both old format (number) and new format (object)
             let status;
@@ -475,10 +476,20 @@
                     break;
 
             }
+
+            let completedTimeCell = "";
+            if (status === 2 && stepInfo.completed_at && testStart) {
+                const completedAt = new Date(stepInfo.completed_at);
+                const elapsedSeconds = Math.floor((completedAt - testStart) / 1000);
+                const utcTime = completedAt.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
+                completedTimeCell = `<span title="${utcTime}">${formatTimeLabel(elapsedSeconds)}</span>`;
+            }
+
             fragments.push(`
                 <tr>
                     <th scope="row">${step}</th>
                     <td><span class="text-secondary">${event_status}</span></td>
+                    <td>${completedTimeCell}</td>
                     <td><span class="text-${color}"><i class="fas fa-${icon}"></i></span></td>
                 </tr>`);
         }
@@ -1317,7 +1328,7 @@
 
         // update steps table
         const stepsTable = document.getElementById('update-steps-table');
-        stepsTable.innerHTML = stepStatusTableBody(status.step_status ?? {}).join("");
+        stepsTable.innerHTML = stepStatusTableBody(status.step_status ?? {}, status.timestamp_start).join("");
 
         // update criteria table (append synthetic XSD validity criteria)
         const criteria = status.criteria ?? [];
