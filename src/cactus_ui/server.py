@@ -965,6 +965,124 @@ def playlists_page(access_token: str) -> str | Response:
     return redirect(url_for("group_playlists_page", run_group_id=run_groups.items[0].run_group_id))
 
 
+def _handle_initialise_playlist(
+    access_token: str, run_group_id: int
+) -> str | Response | None:
+    """Handle starting a playlist. Returns a redirect on success, an error string, or None."""
+    playlist_id = request.form.get("playlist_id")
+    start_index = int(request.form.get("start_index", "0"))
+    if not playlist_id:
+        return "No playlist selected."
+
+    playlist = next((p for p in CACTUS_PLAYLISTS if p.id == playlist_id), None)
+    if not playlist:
+        return "Invalid playlist selected."
+
+    init_result = orchestrator.init_playlist(access_token, run_group_id, playlist.procedures, start_index)
+    if init_result.first_run_id is not None:
+        if init_result.playlist_execution_id and init_result.playlist_runs:
+            session["active_playlist"] = {
+                "execution_id": init_result.playlist_execution_id,
+                "name": playlist.name,
+                "started_at": datetime.now(timezone.utc).isoformat(),
+                "runs": [
+                    {"run_id": r.run_id, "test_procedure_id": r.test_procedure_id}
+                    for r in init_result.playlist_runs
+                ],
+            }
+        return redirect(url_for("run_status_page", run_id=init_result.first_run_id))
+    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
+        return "Your certificate has expired. Please generate and download a new certificate."
+    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
+        return "You cannot start a second test run while your DeviceCapability URI is set to static."
+    else:
+        return "Failed to trigger playlist due to an unknown error."
+
+
+def _handle_artifact_download(access_token: str) -> str | Response | None:
+    """Handle downloading artifacts for a single run. Returns a file response, error string, or None."""
+    run_id = request.form.get("run_id")
+    if not run_id:
+        return "No run ID specified."
+
+    artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
+    if artifact_data is None:
+        return "Failed to retrieve artifacts."
+
+    return send_file(
+        io.BytesIO(artifact_data),
+        as_attachment=True,
+        download_name=download_name,
+        mimetype="application/zip",
+    )
+
+
+def _handle_artifact_all_download(access_token: str) -> str | Response | None:
+    """Handle downloading all artifacts for a playlist execution."""
+    run_ids_raw = request.form.get("run_ids", "")
+    playlist_name = request.form.get("playlist_name", "playlist")
+    if not run_ids_raw:
+        return "No run IDs specified."
+
+    try:
+        run_ids = [int(rid) for rid in run_ids_raw.split(",")]
+    except ValueError:
+        return "Invalid run IDs."
+
+    first_run_id = run_ids[0]
+    download_name = f"{playlist_name}_{first_run_id}_artifacts.zip"
+    response = download_playlist_artifacts(access_token, run_ids, download_name)
+    if response:
+        return response
+    return "Failed to retrieve artifacts."
+
+
+def _handle_skip_playlist(access_token: str) -> str | Response | None:
+    """Handle skipping remaining playlist tests and downloading artifacts."""
+    run_id = request.form.get("run_id")
+    if not run_id:
+        return "No run ID specified."
+
+    orchestrator.finalise_playlist(access_token, run_id)
+
+    run_response = orchestrator.fetch_individual_run(access_token, run_id)
+    if run_response and run_response.playlist_runs:
+        run_ids = [r.run_id for r in run_response.playlist_runs]
+        first_run_id = run_ids[0]
+        download_name = f"playlist_{first_run_id}_artifacts.zip"
+        response = download_playlist_artifacts(access_token, run_ids, download_name)
+        if response:
+            return response
+    return "Failed to download playlist artifacts."
+
+
+def _count_playlist_executions(
+    access_token: str, run_group_id: int
+) -> dict[str, int]:
+    """Count how many times each playlist has been executed in a run group."""
+    playlist_run_counts: dict[str, int] = {p.id: 0 for p in CACTUS_PLAYLISTS}
+    runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, None)
+    if not runs_page:
+        return playlist_run_counts
+
+    playlist_executions: dict[str, list[schema.RunResponse]] = {}
+    for run in runs_page.items:
+        if run.playlist_execution_id:
+            if run.playlist_execution_id not in playlist_executions:
+                playlist_executions[run.playlist_execution_id] = []
+            playlist_executions[run.playlist_execution_id].append(run)
+
+    for exec_id, runs in playlist_executions.items():
+        runs_sorted = sorted(runs, key=lambda r: r.playlist_order or 0)
+        execution_procedures = [r.test_procedure_id for r in runs_sorted]
+        for playlist in CACTUS_PLAYLISTS:
+            if execution_procedures == playlist.procedures:
+                playlist_run_counts[playlist.id] += 1
+                break
+
+    return playlist_run_counts
+
+
 @app.route("/group/<int:run_group_id>/playlists", methods=["GET", "POST"])
 @login_required
 def group_playlists_page(access_token: str, run_group_id: int) -> str | Response:
@@ -972,96 +1090,22 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
     error: str | None = None
 
     if request.method == "POST":
-        # Handle starting a playlist
-        if request.form.get("action") == "initialise_playlist":
-            playlist_id = request.form.get("playlist_id")
-            start_index = int(request.form.get("start_index", "0"))
-            if not playlist_id:
-                error = "No playlist selected."
-            else:
-                playlist = next((p for p in CACTUS_PLAYLISTS if p.id == playlist_id), None)
-                if not playlist:
-                    error = "Invalid playlist selected."
-                else:
-                    init_result = orchestrator.init_playlist(
-                        access_token, run_group_id, playlist.procedures, start_index
-                    )
-                    if init_result.first_run_id is not None:
-                        # Store playlist info in session for progress tracking
-                        if init_result.playlist_execution_id and init_result.playlist_runs:
-                            session["active_playlist"] = {
-                                "execution_id": init_result.playlist_execution_id,
-                                "name": playlist.name,
-                                "started_at": datetime.now(timezone.utc).isoformat(),
-                                "runs": [
-                                    {"run_id": r.run_id, "test_procedure_id": r.test_procedure_id}
-                                    for r in init_result.playlist_runs
-                                ],
-                            }
-                        return redirect(url_for("run_status_page", run_id=init_result.first_run_id))
-                    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
-                        error = "Your certificate has expired. Please generate and download a new certificate."
-                    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
-                        error = "You cannot start a second test run while your DeviceCapability URI is set to static."
-                    else:
-                        error = "Failed to trigger playlist due to an unknown error."
+        action = request.form.get("action")
+        if action == "initialise_playlist":
+            result = _handle_initialise_playlist(access_token, run_group_id)
+        elif action == "artifact":
+            result = _handle_artifact_download(access_token)
+        elif action == "artifact_all":
+            result = _handle_artifact_all_download(access_token)
+        elif action == "skip_playlist":
+            result = _handle_skip_playlist(access_token)
+        else:
+            result = None
 
-        # Handle downloading artifacts
-        elif request.form.get("action") == "artifact":
-            run_id = request.form.get("run_id")
-            if not run_id:
-                error = "No run ID specified."
-            else:
-                artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
-                if artifact_data is None:
-                    error = "Failed to retrieve artifacts."
-                else:
-                    return send_file(
-                        io.BytesIO(artifact_data),
-                        as_attachment=True,
-                        download_name=download_name,
-                        mimetype="application/zip",
-                    )
-
-        # Handle downloading all artifacts for a playlist execution
-        elif request.form.get("action") == "artifact_all":
-            run_ids_raw = request.form.get("run_ids", "")
-            playlist_name = request.form.get("playlist_name", "playlist")
-            if not run_ids_raw:
-                error = "No run IDs specified."
-            else:
-                try:
-                    run_ids = [int(rid) for rid in run_ids_raw.split(",")]
-                except ValueError:
-                    error = "Invalid run IDs."
-                    run_ids = []
-                if run_ids:
-                    first_run_id = run_ids[0]
-                    download_name = f"{playlist_name}_{first_run_id}_artifacts.zip"
-                    response = download_playlist_artifacts(access_token, run_ids, download_name)
-                    if response:
-                        return response
-                    error = "Failed to retrieve artifacts."
-
-        # Handle skipping remaining playlist tests (end playlist early)
-        elif request.form.get("action") == "skip_playlist":
-            run_id = request.form.get("run_id")
-            if not run_id:
-                error = "No run ID specified."
-            else:
-                # Finalise the playlist (marks remaining tests as skipped)
-                orchestrator.finalise_playlist(access_token, run_id)
-
-                # Get all run IDs from the playlist and download all artifacts
-                run_response = orchestrator.fetch_individual_run(access_token, run_id)
-                if run_response and run_response.playlist_runs:
-                    run_ids = [r.run_id for r in run_response.playlist_runs]
-                    first_run_id = run_ids[0]
-                    download_name = f"playlist_{first_run_id}_artifacts.zip"
-                    response = download_playlist_artifacts(access_token, run_ids, download_name)
-                    if response:
-                        return response
-                error = "Failed to download playlist artifacts."
+        if isinstance(result, Response):
+            return result
+        if isinstance(result, str):
+            error = result
 
     # Fetch the run groups (for the breadcrumbs selector)
     run_groups = orchestrator.fetch_run_groups(access_token, 1)
@@ -1074,32 +1118,11 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
                 active_run_group = rg
                 break
 
-    # Count playlist executions for each playlist
-    playlist_run_counts: dict[str, int] = {p.id: 0 for p in CACTUS_PLAYLISTS}
-    runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, None)
-    if runs_page:
-        # Group runs by playlist_execution_id
-        playlist_executions: dict[str, list[schema.RunResponse]] = {}
-        for run in runs_page.items:
-            if run.playlist_execution_id:
-                if run.playlist_execution_id not in playlist_executions:
-                    playlist_executions[run.playlist_execution_id] = []
-                playlist_executions[run.playlist_execution_id].append(run)
-
-        # Match each execution to a playlist config
-        for exec_id, runs in playlist_executions.items():
-            runs_sorted = sorted(runs, key=lambda r: r.playlist_order or 0)
-            execution_procedures = [r.test_procedure_id for r in runs_sorted]
-            for playlist in CACTUS_PLAYLISTS:
-                if execution_procedures == playlist.procedures:
-                    playlist_run_counts[playlist.id] += 1
-                    break
-
     return render_template(
         "playlists.html",
         error=error,
         playlists=CACTUS_PLAYLISTS,
-        playlist_run_counts=playlist_run_counts,
+        playlist_run_counts=_count_playlist_executions(access_token, run_group_id),
         run_groups=[] if run_groups is None else run_groups.items,
         run_group_id=run_group_id,
         active_run_group=active_run_group,
@@ -1169,7 +1192,7 @@ def playlist_runs_json(access_token: str, run_group_id: int, playlist_id: str) -
         )
 
     # Sort by created_at descending (most recent first)
-    result.sort(key=lambda x: x["created_at"], reverse=True)
+    result.sort(key=lambda x: str(x["created_at"]), reverse=True)
 
     return Response(
         response=json.dumps(result),
@@ -1248,13 +1271,70 @@ def active_playlists_json(access_token: str, run_group_id: int) -> Response:
         )
 
     # Sort by created_at descending (most recent first)
-    result.sort(key=lambda x: x["created_at"], reverse=True)
+    result.sort(key=lambda x: str(x["created_at"]), reverse=True)
 
     return Response(
         response=json.dumps(result),
         status=HTTPStatus.OK,
         mimetype="application/json",
     )
+
+
+def _build_playlist_info(
+    access_token: str, run_response: schema.RunResponse
+) -> tuple[dict | None, int | None, dict | None]:
+    """Build playlist template context from a run that belongs to a playlist.
+
+    Returns (playlist_info, next_playlist_run_id, current_active_run).
+    """
+    if not run_response.playlist_runs:
+        return None, None, None
+
+    current_order = run_response.playlist_order
+    active_playlist_session = session.get("active_playlist", {})
+
+    playlist_runs_full: list[dict] = []
+    first_run_started_at = None
+    for i, r in enumerate(run_response.playlist_runs):
+        full_run = orchestrator.fetch_individual_run(access_token, str(r.run_id))
+        if full_run:
+            if i == 0:
+                first_run_started_at = full_run.created_at.isoformat() if full_run.created_at else None
+            playlist_runs_full.append(build_test_status_dict(full_run))
+        else:
+            playlist_runs_full.append(
+                {
+                    "run_id": r.run_id,
+                    "test_procedure_id": r.test_procedure_id,
+                    "status": r.status.value if hasattr(r.status, "value") else str(r.status),
+                    "all_criteria_met": None,
+                    "has_artifacts": False,
+                }
+            )
+
+    playlist_info = {
+        "name": active_playlist_session.get("name", "Playlist"),
+        "started_at": first_run_started_at,
+        "runs": playlist_runs_full,
+        "current_order": current_order,
+        "total": len(run_response.playlist_runs),
+    }
+
+    next_playlist_run_id = None
+    if current_order is not None and current_order + 1 < len(run_response.playlist_runs):
+        next_playlist_run_id = run_response.playlist_runs[current_order + 1].run_id
+
+    current_active_run = None
+    for r in run_response.playlist_runs:
+        if r.status in ["started", "provisioning"]:
+            current_active_run = {
+                "run_id": r.run_id,
+                "test_procedure_id": r.test_procedure_id,
+                "order": run_response.playlist_runs.index(r),
+            }
+            break
+
+    return playlist_info, next_playlist_run_id, current_active_run
 
 
 @app.route("/run/<int:run_id>", methods=["GET", "POST"])
@@ -1272,7 +1352,6 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
                     else start_result.error_message
                 )
 
-        # Handle finalising a run
         elif request.form.get("action") == "finalise":
             archive_data = orchestrator.finalise_run(access_token, run_id)
             if archive_data is None:
@@ -1285,7 +1364,6 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
                     mimetype="application/zip",
                 )
 
-        # Handle downloading a prior run's artifacts
         elif request.form.get("action") == "artifact":
             artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
             if artifact_data is None:
@@ -1298,12 +1376,8 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
                     mimetype="application/zip",
                 )
 
-        # Handle skipping remaining playlist tests
         elif request.form.get("action") == "skip_playlist":
-            # Finalise the playlist (marks remaining tests as skipped)
             orchestrator.finalise_playlist(access_token, run_id)
-
-            # Get all run IDs from the playlist and download all artifacts
             run_response = orchestrator.fetch_individual_run(access_token, run_id)
             if run_response and run_response.playlist_runs:
                 run_ids = [r.run_id for r in run_response.playlist_runs]
@@ -1330,63 +1404,11 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
         run_procedure_id = run_response.test_procedure_id
         run_has_artifacts = run_response.has_artifacts
 
-    # Take the big JSON response string and encode it using base64 so we can embed it in the template and re-hydrate
-    # it easily enough
-    if status is not None:
-        initial_status_b64 = b64encode(status.encode()).decode()
-    else:
-        initial_status_b64 = ""
+    initial_status_b64 = b64encode(status.encode()).decode() if status is not None else ""
 
-    # Get playlist info for this run if it's part of a playlist
-    playlist_info = None
-    next_playlist_run_id = None
-    current_active_run = None
-    if run_response and run_response.playlist_runs:
-        # Use data directly from RunResponse
-        current_order = run_response.playlist_order
-        active_playlist_session = session.get("active_playlist", {})
-
-        # Fetch full run data for each playlist run to get all_criteria_met
-        playlist_runs_full: list[dict] = []
-        first_run_started_at = None
-        for i, r in enumerate(run_response.playlist_runs):
-            full_run = orchestrator.fetch_individual_run(access_token, str(r.run_id))
-            if full_run:
-                if i == 0:
-                    first_run_started_at = full_run.created_at.isoformat() if full_run.created_at else None
-                playlist_runs_full.append(build_test_status_dict(full_run))
-            else:
-                # Fallback if fetch fails
-                playlist_runs_full.append(
-                    {
-                        "run_id": r.run_id,
-                        "test_procedure_id": r.test_procedure_id,
-                        "status": r.status.value if hasattr(r.status, "value") else str(r.status),
-                        "all_criteria_met": None,
-                        "has_artifacts": False,
-                    }
-                )
-
-        playlist_info = {
-            "name": active_playlist_session.get("name", "Playlist"),  # Fallback name from session
-            "started_at": first_run_started_at,  # ISO timestamp from first run's created_at
-            "runs": playlist_runs_full,
-            "current_order": current_order,
-            "total": len(run_response.playlist_runs),
-        }
-        # Calculate next run ID for redirect after finalize
-        if current_order is not None and current_order + 1 < len(run_response.playlist_runs):
-            next_playlist_run_id = run_response.playlist_runs[current_order + 1].run_id
-
-        # Find the currently active/started run in the playlist
-        for r in run_response.playlist_runs:
-            if r.status in ["started", "provisioning"]:
-                current_active_run = {
-                    "run_id": r.run_id,
-                    "test_procedure_id": r.test_procedure_id,
-                    "order": run_response.playlist_runs.index(r),
-                }
-                break
+    playlist_info, next_playlist_run_id, current_active_run = (
+        _build_playlist_info(access_token, run_response) if run_response else (None, None, None)
+    )
 
     return render_template(
         "run_status.html",
