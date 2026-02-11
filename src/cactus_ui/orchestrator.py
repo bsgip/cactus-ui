@@ -387,7 +387,11 @@ def fetch_multiple_run_artifacts(access_token: str, run_ids: list[int]) -> bytes
     """Fetch artifacts for multiple runs as a single ZIP file"""
     uri = generate_uri("/run/artifact/multiple")
     response = safe_request(
-        "POST", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT, json={"run_ids": run_ids}
+        "POST",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+        json={"run_ids": run_ids},
     )
     if response is None or not is_success_response(response):
         return None
