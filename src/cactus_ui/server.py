@@ -1083,6 +1083,20 @@ def _count_playlist_executions(
     return playlist_run_counts
 
 
+def _handle_playlists_post(access_token: str, run_group_id: int) -> str | Response | None:
+    """Dispatch POST actions for the playlists page."""
+    action = request.form.get("action")
+    if action == "initialise_playlist":
+        return _handle_initialise_playlist(access_token, run_group_id)
+    elif action == "artifact":
+        return _handle_artifact_download(access_token)
+    elif action == "artifact_all":
+        return _handle_artifact_all_download(access_token)
+    elif action == "skip_playlist":
+        return _handle_skip_playlist(access_token)
+    return None
+
+
 @app.route("/group/<int:run_group_id>/playlists", methods=["GET", "POST"])
 @login_required
 def group_playlists_page(access_token: str, run_group_id: int) -> str | Response:
@@ -1090,18 +1104,7 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
     error: str | None = None
 
     if request.method == "POST":
-        action = request.form.get("action")
-        if action == "initialise_playlist":
-            result = _handle_initialise_playlist(access_token, run_group_id)
-        elif action == "artifact":
-            result = _handle_artifact_download(access_token)
-        elif action == "artifact_all":
-            result = _handle_artifact_all_download(access_token)
-        elif action == "skip_playlist":
-            result = _handle_skip_playlist(access_token)
-        else:
-            result = None
-
+        result = _handle_playlists_post(access_token, run_group_id)
         if isinstance(result, Response):
             return result
         if isinstance(result, str):
@@ -1337,57 +1340,64 @@ def _build_playlist_info(
     return playlist_info, next_playlist_run_id, current_active_run
 
 
+def _handle_run_status_post(access_token: str, run_id: str) -> str | Response | None:
+    """Dispatch POST actions for the run status page."""
+    action = request.form.get("action")
+    if action == "start":
+        start_result = orchestrator.start_run(access_token, run_id)
+        if not start_result or not start_result.success:
+            return (
+                "Failed to start the test run."
+                if start_result is None or start_result.error_message is None
+                else start_result.error_message
+            )
+        return None
+    elif action == "finalise":
+        archive_data = orchestrator.finalise_run(access_token, run_id)
+        if archive_data is None:
+            return "Failed to finalise the run or retrieve artifacts."
+        return send_file(
+            io.BytesIO(archive_data),
+            as_attachment=True,
+            download_name=f"{run_id}_artifacts.zip",
+            mimetype="application/zip",
+        )
+    elif action == "artifact":
+        artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
+        if artifact_data is None:
+            return "Failed to retrieve artifacts."
+        return send_file(
+            io.BytesIO(artifact_data),
+            as_attachment=True,
+            download_name=download_name,
+            mimetype="application/zip",
+        )
+    elif action == "skip_playlist":
+        orchestrator.finalise_playlist(access_token, run_id)
+        run_response = orchestrator.fetch_individual_run(access_token, run_id)
+        if run_response and run_response.playlist_runs:
+            run_ids = [r.run_id for r in run_response.playlist_runs]
+            first_run_id = run_ids[0]
+            playlist_name = session.get("active_playlist", {}).get("name", "playlist")
+            download_name = f"{playlist_name}_{first_run_id}_artifacts.zip"
+            response = download_playlist_artifacts(access_token, run_ids, download_name)
+            if response:
+                return response
+        return "Failed to download playlist artifacts."
+    return None
+
+
 @app.route("/run/<int:run_id>", methods=["GET", "POST"])
 @login_required
 def run_status_page(access_token: str, run_id: str) -> str | Response:
     error: str | None = None
 
     if request.method == "POST":
-        if request.form.get("action") == "start":
-            start_result = orchestrator.start_run(access_token, run_id)
-            if not start_result or not start_result.success:
-                error = (
-                    "Failed to start the test run."
-                    if start_result is None or start_result.error_message is None
-                    else start_result.error_message
-                )
-
-        elif request.form.get("action") == "finalise":
-            archive_data = orchestrator.finalise_run(access_token, run_id)
-            if archive_data is None:
-                error = "Failed to finalise the run or retrieve artifacts."
-            else:
-                return send_file(
-                    io.BytesIO(archive_data),
-                    as_attachment=True,
-                    download_name=f"{run_id}_artifacts.zip",
-                    mimetype="application/zip",
-                )
-
-        elif request.form.get("action") == "artifact":
-            artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
-            if artifact_data is None:
-                error = "Failed to retrieve artifacts."
-            else:
-                return send_file(
-                    io.BytesIO(artifact_data),
-                    as_attachment=True,
-                    download_name=download_name,
-                    mimetype="application/zip",
-                )
-
-        elif request.form.get("action") == "skip_playlist":
-            orchestrator.finalise_playlist(access_token, run_id)
-            run_response = orchestrator.fetch_individual_run(access_token, run_id)
-            if run_response and run_response.playlist_runs:
-                run_ids = [r.run_id for r in run_response.playlist_runs]
-                first_run_id = run_ids[0]
-                playlist_name = session.get("active_playlist", {}).get("name", "playlist")
-                download_name = f"{playlist_name}_{first_run_id}_artifacts.zip"
-                response = download_playlist_artifacts(access_token, run_ids, download_name)
-                if response:
-                    return response
-            error = "Failed to download playlist artifacts."
+        result = _handle_run_status_post(access_token, run_id)
+        if isinstance(result, Response):
+            return result
+        if isinstance(result, str):
+            error = result
 
     status = orchestrator.fetch_run_status(access_token=access_token, run_id=run_id)
     run_is_live = status is not None
