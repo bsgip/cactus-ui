@@ -1,6 +1,6 @@
 import logging
 import sys
 
-__version__ = "1.4.2"
+__version__ = "1.4.4"
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)

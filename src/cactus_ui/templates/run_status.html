@@ -595,8 +595,9 @@
         return fragments
     }
 
-    function stepStatusTableBody(stepStatus) {
+    function stepStatusTableBody(stepStatus, timestampStart) {
         fragments = []
+        const testStart = timestampStart ? new Date(timestampStart) : null;
         for (const [step, stepInfo] of Object.entries(stepStatus)) {
             // Handle both old format (number) and new format (object)
             let status;
@@ -641,16 +642,28 @@
                     break;
 
             }
+
+            let completedTimeCell = "";
+            if (status === 2 && stepInfo.completed_at && testStart) {
+                const completedAt = new Date(stepInfo.completed_at);
+                const elapsedSeconds = Math.floor((completedAt - testStart) / 1000);
+                const utcTime = completedAt.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
+                completedTimeCell = `<span title="${utcTime}">${formatTimeLabel(elapsedSeconds)}</span>`;
+            }
+
             fragments.push(`
                 <tr>
                     <th scope="row">${step}</th>
                     <td><span class="text-secondary">${event_status}</span></td>
+                    <td>${completedTimeCell}</td>
                     <td><span class="text-${color}"><i class="fas fa-${icon}"></i></span></td>
                 </tr>`);
         }
 
         return fragments
     }
+
+    const MAX_VISIBLE_REQUESTS = 50;
 
     function requestsTableBody(requests) {
         if (requests.length == 0) {
@@ -664,8 +677,20 @@
             </tr>`];
         }
 
+        // Only render the most recent requests to avoid performance issues on long-running tests
+        const recentRequests = requests.slice(-MAX_VISIBLE_REQUESTS);
+
         fragments = []
-        for (const r of requests) {
+        if (requests.length > MAX_VISIBLE_REQUESTS) {
+            fragments.push(`
+            <tr>
+                <td colspan="5" class="text-muted text-center">
+                    Showing last ${MAX_VISIBLE_REQUESTS} of ${requests.length} requests
+                </td>
+            </tr>`);
+        }
+
+        for (const r of recentRequests) {
             d = new Date(Date.parse(r.timestamp))
             statusColor = r.status < 200 || r.status > 299 ? "danger" : "success"
             schemaColor = r.body_xml_errors.length ? "danger" : "success"
@@ -1469,11 +1494,21 @@
 
         // update steps table
         const stepsTable = document.getElementById('update-steps-table');
-        stepsTable.innerHTML = stepStatusTableBody(status.step_status ?? {}).join("");
+        stepsTable.innerHTML = stepStatusTableBody(status.step_status ?? {}, status.timestamp_start).join("");
 
-        // update criteria table
+        // update criteria table (append synthetic XSD validity criteria)
+        const criteria = status.criteria ?? [];
+        const requests = status.request_history ?? [];
+        if (requests.length > 0) {
+            const xsdErrors = requests.filter(r => r.body_xml_errors && r.body_xml_errors.length > 0);
+            const xsdSuccess = xsdErrors.length === 0;
+            const xsdDetails = xsdSuccess
+                ? `All ${requests.length} request(s) passed XSD validation`
+                : `${xsdErrors.length} of ${requests.length} request(s) have XSD validation errors`;
+            criteria.push({ type: "all-xsd-valid", success: xsdSuccess, details: xsdDetails });
+        }
         const criteriaTable = document.getElementById('update-criteria-table');
-        criteriaTable.innerHTML = criteriaTableBody(status.criteria ?? []).join("");
+        criteriaTable.innerHTML = criteriaTableBody(criteria).join("");
 
         // update generate table
         const generalTable = document.getElementById('update-general-table');
