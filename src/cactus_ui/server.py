@@ -965,9 +965,7 @@ def playlists_page(access_token: str) -> str | Response:
     return redirect(url_for("group_playlists_page", run_group_id=run_groups.items[0].run_group_id))
 
 
-def _handle_initialise_playlist(
-    access_token: str, run_group_id: int
-) -> str | Response | None:
+def _handle_initialise_playlist(access_token: str, run_group_id: int) -> str | Response | None:
     """Handle starting a playlist. Returns a redirect on success, an error string, or None."""
     playlist_id = request.form.get("playlist_id")
     start_index = int(request.form.get("start_index", "0"))
@@ -986,8 +984,7 @@ def _handle_initialise_playlist(
                 "name": playlist.name,
                 "started_at": datetime.now(timezone.utc).isoformat(),
                 "runs": [
-                    {"run_id": r.run_id, "test_procedure_id": r.test_procedure_id}
-                    for r in init_result.playlist_runs
+                    {"run_id": r.run_id, "test_procedure_id": r.test_procedure_id} for r in init_result.playlist_runs
                 ],
             }
         return redirect(url_for("run_status_page", run_id=init_result.first_run_id))
@@ -1056,9 +1053,7 @@ def _handle_skip_playlist(access_token: str) -> str | Response | None:
     return "Failed to download playlist artifacts."
 
 
-def _count_playlist_executions(
-    access_token: str, run_group_id: int
-) -> dict[str, int]:
+def _count_playlist_executions(access_token: str, run_group_id: int) -> dict[str, int]:
     """Count how many times each playlist has been executed in a run group."""
     playlist_run_counts: dict[str, int] = {p.id: 0 for p in CACTUS_PLAYLISTS}
     runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, None)
