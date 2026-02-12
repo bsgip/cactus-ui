@@ -831,8 +831,8 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
                 error = "No test procedure selected."
             else:
                 init_result = orchestrator.init_run(access_token, run_group_id, test_procedure_id)
-                if init_result.run_id is not None:
-                    return redirect(url_for("run_status_page", run_id=init_result.run_id))
+                if init_result.response is not None:
+                    return redirect(url_for("run_status_page", run_id=init_result.response.run_id))
                 elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
                     error = "Your certificate has expired. Please generate and download a new certificate."
                 elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
@@ -977,17 +977,18 @@ def _handle_initialise_playlist(access_token: str, run_group_id: int) -> str | R
         return "Invalid playlist selected."
 
     init_result = orchestrator.init_playlist(access_token, run_group_id, playlist.procedures, start_index)
-    if init_result.first_run_id is not None:
-        if init_result.playlist_execution_id and init_result.playlist_runs:
+    if init_result.response is not None:
+        if init_result.response.playlist_execution_id and init_result.response.playlist_runs:
             session["active_playlist"] = {
-                "execution_id": init_result.playlist_execution_id,
+                "execution_id": init_result.response.playlist_execution_id,
                 "name": playlist.name,
                 "started_at": datetime.now(timezone.utc).isoformat(),
                 "runs": [
-                    {"run_id": r.run_id, "test_procedure_id": r.test_procedure_id} for r in init_result.playlist_runs
+                    {"run_id": r.run_id, "test_procedure_id": r.test_procedure_id}
+                    for r in init_result.response.playlist_runs
                 ],
             }
-        return redirect(url_for("run_status_page", run_id=init_result.first_run_id))
+        return redirect(url_for("run_status_page", run_id=init_result.response.run_id))
     elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
         return "Your certificate has expired. Please generate and download a new certificate."
     elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:

@@ -64,22 +64,8 @@ class InitialiseRunFailureType(IntEnum):
 
 
 @dataclass
-class InitialiseRunResult:
-    run_id: int | None  # The run_id that was initialised (or None for failure)
-    failure_type: InitialiseRunFailureType
-
-
-@dataclass
-class PlaylistRunInfo:
-    run_id: int
-    test_procedure_id: str
-
-
-@dataclass
-class InitialisePlaylistResult:
-    first_run_id: int | None  # The first run_id in the playlist (or None for failure)
-    playlist_execution_id: str | None
-    playlist_runs: list[PlaylistRunInfo] | None
+class InitRunResult:
+    response: orchestrator.InitRunResponse | None  # The parsed response (or None for failure)
     failure_type: InitialiseRunFailureType
 
 
@@ -265,7 +251,7 @@ def generate_shared_client_cert(access_token: str) -> tuple[bytes | None, str | 
     return (response.content, try_read_file_name(response, "client.pem"))
 
 
-def init_run(access_token: str, run_group_id: int, test_procedure_id: str) -> InitialiseRunResult:
+def init_run(access_token: str, run_group_id: int, test_procedure_id: str) -> InitRunResult:
     """Creates a new test run underneath run_group_id, initialised with the specified test_procedure_id"""
     uri = generate_uri(orchestrator.uri.RunGroupRunList.format(run_group_id=run_group_id))
     response = safe_request(
@@ -277,16 +263,16 @@ def init_run(access_token: str, run_group_id: int, test_procedure_id: str) -> In
     )
 
     failure_type = _determine_run_failure_type(response)
-    run_id: int | None = None
+    parsed: orchestrator.InitRunResponse | None = None
     if failure_type == InitialiseRunFailureType.NO_FAILURE and response is not None:
-        run_id = int(response.json()["run_id"])
+        parsed = orchestrator.InitRunResponse.from_dict(response.json())
 
-    return InitialiseRunResult(run_id=run_id, failure_type=failure_type)
+    return InitRunResult(response=parsed, failure_type=failure_type)
 
 
 def init_playlist(
     access_token: str, run_group_id: int, test_procedure_ids: list[str], start_index: int = 0
-) -> InitialisePlaylistResult:
+) -> InitRunResult:
     """Creates a playlist of test runs underneath run_group_id, optionally starting from a specific index"""
     uri = generate_uri(orchestrator.uri.RunGroupRunList.format(run_group_id=run_group_id))
     request_body: dict = {"test_procedure_ids": test_procedure_ids}
@@ -301,26 +287,11 @@ def init_playlist(
     )
 
     failure_type = _determine_run_failure_type(response)
-    first_run_id: int | None = None
-    playlist_execution_id: str | None = None
-    playlist_runs: list[PlaylistRunInfo] | None = None
-
+    parsed: orchestrator.InitRunResponse | None = None
     if failure_type == InitialiseRunFailureType.NO_FAILURE and response is not None:
-        data = response.json()
-        first_run_id = int(data["run_id"])
-        playlist_execution_id = data.get("playlist_execution_id")
-        if data.get("playlist_runs"):
-            playlist_runs = [
-                PlaylistRunInfo(run_id=r["run_id"], test_procedure_id=r["test_procedure_id"])
-                for r in data["playlist_runs"]
-            ]
+        parsed = orchestrator.InitRunResponse.from_dict(response.json())
 
-    return InitialisePlaylistResult(
-        first_run_id=first_run_id,
-        playlist_execution_id=playlist_execution_id,
-        playlist_runs=playlist_runs,
-        failure_type=failure_type,
-    )
+    return InitRunResult(response=parsed, failure_type=failure_type)
 
 
 def start_run(access_token: str, run_id: str) -> StartResult:
