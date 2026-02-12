@@ -1,0 +1,508 @@
+{% extends "base.html" %}
+
+{% block title %}Playlists - CACTUS{% endblock %}
+
+{% block content %}
+{% include 'banner.html' %}
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div class="alert alert-warning" role="alert">
+    <i class="fas fa-info-circle"></i>
+    <strong>Please note:</strong> The playlists feature is in testing phase. No runs from a playlist will be valid for certification until testing is complete. All feedback is welcome at <a href="mailto:support@bsgip.com">support@bsgip.com</a>. Playlists will be statically generated for now. If you would like a specific playlist added, let us know!
+</div>
+
+<div class="max-page-height" style="padding-top:10px; display: flex; flex-direction: column;">
+    <div style="display: flex;">
+        {% if run_groups|length < 2 %}
+            {% if active_run_group %}
+                <h2>Playlists for {{ active_run_group.name }}</h2>
+            {% endif %}
+        {% else %}
+            <h2>Playlists for </h2>
+            <div class="dropdown" style="margin-left: 10px;">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                    {{ active_run_group.name }}
+                </button>
+                <ul class="dropdown-menu">
+                    {% for rg in run_groups %}
+                    {% if rg.run_group_id != run_group_id %}
+                    <li><a class="dropdown-item"
+                            href="{{ url_for('group_playlists_page', run_group_id=rg.run_group_id) }}">{{rg.name}}</a></li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    </div>
+
+    <hr>
+
+    <div class="row" style="flex: 1; overflow: hidden;">
+        <div class="col playlist-col">
+            <h5>Playlists</h5>
+
+            <div class="playlist-container">
+                <div class="card" style="border-radius: 0; border-bottom: none;">
+                    <div class="list-group list-group-flush">
+                        <a id="active-playlists-button" href="#"
+                            class="playlist-btn list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                            style="border-radius: 0; width:100%">
+                            Active Playlists
+                        </a>
+                    </div>
+                </div>
+
+                {% if playlists %}
+                {% for playlist in playlists %}
+                <div class="card" style="border-radius: 0; border-bottom: none;">
+                    <div class="list-group list-group-flush">
+                        <a href="#" id="playlist-{{ playlist.id }}"
+                            data-playlist-id="{{ playlist.id }}"
+                            data-playlist-name="{{ playlist.name }}"
+                            data-playlist-description="{{ playlist.description }}"
+                            data-procedures="{{ playlist.procedures | join(',') }}"
+                            class="playlist-btn list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            {{ playlist.name }}
+                            <span class="badge text-bg-info" data-bs-toggle="tooltip" data-bs-title="Times run">{{ playlist_run_counts[playlist.id] }}</span>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="alert alert-info">
+                    No playlists configured. Set the <code>CACTUS_PLAYLISTS</code> environment variable to define playlists.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col">
+            <div style="display:flex; padding-top: 5px; padding-bottom: 5px; align-items: center;">
+                <h5 id="playlist-title" style="flex: 1;">Select a Playlist</h5>
+                <div id="playlist-actions" style="margin-left: 10px;"></div>
+            </div>
+            <div class="playlist-table-container">
+                <div id="playlist-content">
+                    <p class="text-muted">Select a playlist from the left to view its tests and run history.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    html,
+    body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .main-footer {
+        margin-top: 0 !important;
+    }
+
+    .main-content {
+        flex: 1;
+        overflow: hidden;
+        padding: 0 !important;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .max-page-height {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .col {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .playlist-col {
+        max-width: 350px;
+        min-width: 200px;
+        overflow: auto;
+    }
+
+    .playlist-container {
+        flex: 1;
+    }
+
+    .playlist-table-container {
+        margin-top: 5px;
+        flex: 1;
+        overflow: auto;
+    }
+
+    .push-right {
+        margin: 0 0 0 auto;
+    }
+
+    .status-dot {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        margin: 0 2px;
+    }
+
+    .status-dot.success { background-color: #198754; }
+    .status-dot.failed { background-color: #dc3545; }
+    .status-dot.pending { background-color: #adb5bd; }
+    .status-dot.active { background-color: #0d6efd; }
+    .status-dot.skipped { background-color: #6c757d; }
+</style>
+
+<script>
+    const runGroupId = {{ run_group_id }};
+    const playlistRunsUrlBase = "{{ url_for('playlist_runs_json', run_group_id=run_group_id, playlist_id='PLAYLIST_ID') }}".replace('PLAYLIST_ID', '');
+    const activePlaylistsUrl = "{{ url_for('active_playlists_json', run_group_id=run_group_id) }}";
+    const runStatusUrlBase = "{{ url_for('run_status_page', run_id=0) }}".replace('0', '');
+
+    function initTooltips() {
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+            bootstrap.Tooltip.getOrCreateInstance(el, { delay: { show: 0, hide: 0 } });
+        });
+    }
+
+    function buildStatusDots(testStatuses) {
+        let dots = '';
+        let isActive = false;
+        let activeRunId = null;
+        let activeTestProcedureId = null;
+
+        for (const testStatus of testStatuses) {
+            let dotClass = 'pending';
+            let title = testStatus.test_procedure_id + ': Queued';
+            if (testStatus.all_criteria_met === true) {
+                dotClass = 'success';
+                title = testStatus.test_procedure_id + ': Passed';
+            } else if (testStatus.all_criteria_met === false) {
+                dotClass = 'failed';
+                title = testStatus.test_procedure_id + ': Failed';
+            } else if (testStatus.status === 'skipped') {
+                dotClass = 'skipped';
+                title = testStatus.test_procedure_id + ': Skipped';
+            } else if (testStatus.status === 'started' || testStatus.status === 'provisioning') {
+                dotClass = 'active';
+                title = testStatus.test_procedure_id + ': Running';
+                isActive = true;
+                if (!activeRunId) {
+                    activeRunId = testStatus.run_id;
+                    activeTestProcedureId = testStatus.test_procedure_id;
+                }
+            } else if (testStatus.status === 'initialised') {
+                // Initialised but not started = queued, but still active for navigation
+                isActive = true;
+                if (!activeRunId) {
+                    activeRunId = testStatus.run_id;
+                    activeTestProcedureId = testStatus.test_procedure_id;
+                }
+            }
+            dots += `<span class="status-dot ${dotClass}" data-bs-toggle="tooltip" data-bs-title="${title}"></span>`;
+        }
+
+        return { dots, isActive, activeRunId, activeTestProcedureId };
+    }
+
+    function handlePlaylistButtonClick(e) {
+        // Update active class
+        document.querySelectorAll(".playlist-btn").forEach(el => el.classList.remove('active'));
+        this.classList.add('active');
+
+        // Check if this is the active playlists button
+        if (this.id === "active-playlists-button") {
+            document.getElementById("playlist-title").innerHTML = "Active Playlists";
+            document.getElementById("playlist-actions").innerHTML = "";
+            loadActivePlaylists();
+            return;
+        }
+
+        const playlist_id = this.getAttribute("data-playlist-id");
+        const playlist_name = this.getAttribute("data-playlist-name");
+        const playlist_description = this.getAttribute("data-playlist-description");
+        const procedures = this.getAttribute("data-procedures").split(",");
+
+        // Update title
+        document.getElementById("playlist-title").innerHTML = playlist_name;
+
+        // Build procedure list with index for dropdown
+        const procedureOptions = procedures.map((p, idx) =>
+            `<option value="${idx}">${idx === 0 ? 'Start from beginning' : 'Start from ' + p}</option>`
+        ).join('');
+
+        // Show playlist info and start form with dropdown
+        document.getElementById("playlist-actions").innerHTML = `
+            <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}">
+                <input type="hidden" name="playlist_id" value="${playlist_id}">
+                <input type="hidden" name="action" value="initialise_playlist">
+                <div class="d-flex align-items-center gap-2">
+                    <select name="start_index" class="form-select form-select-sm" style="width: auto;">
+                        ${procedureOptions}
+                    </select>
+                    <button type="submit" class="btn btn-info btn-sm" onclick="handleButtonClick(event)">
+                        Start Playlist
+                    </button>
+                </div>
+                <small class="text-muted d-block mt-1">May take up to 30s per test</small>
+            </form>`;
+
+        // Build procedure list for display
+        const procedureListHtml = procedures.map((p, idx) =>
+            `<li><code>${p}</code></li>`
+        ).join('');
+
+        // Show content: description, procedure list and run history
+        const descriptionHtml = playlist_description ? `<p class="text-muted">${playlist_description}</p>` : '';
+        document.getElementById("playlist-content").innerHTML = `
+            ${descriptionHtml}
+            <h6>Tests in this playlist:</h6>
+            <ol>${procedureListHtml}</ol>
+            <hr>
+            <h6>Previous Playlist Runs:</h6>
+            <div id="playlist-runs-loading">
+                <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                Loading run history...
+            </div>
+            <div id="playlist-runs-table" style="display: none;"></div>
+        `;
+
+        // Fetch run history for this playlist
+        loadPlaylistRuns(playlist_id, playlist_name, procedures);
+    }
+
+    function loadPlaylistRuns(playlist_id, playlist_name, procedures) {
+        const url = playlistRunsUrlBase + playlist_id;
+
+        xhrRequest(url, (content) => {
+            const runs = JSON.parse(content);
+            document.getElementById("playlist-runs-loading").style.display = "none";
+            const table = document.getElementById("playlist-runs-table");
+            table.style.display = "block";
+
+            if (runs.length === 0) {
+                table.innerHTML = `<p class="text-muted">No previous runs for this playlist.</p>`;
+                return;
+            }
+
+            // Build table with status dots
+            let html = `<table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Run</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            for (const run of runs) {
+                const created = new Date(Date.parse(run.created_at));
+
+                // Build status dots and check if playlist is active
+                const { dots, isActive, activeRunId } = buildStatusDots(run.test_statuses);
+
+                // Build action buttons
+                let actionButtons = '';
+                if (isActive && activeRunId) {
+                    actionButtons = `
+                        <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="display: inline;"
+                            onsubmit="return confirm('Are you sure you want to end this playlist? This will finalize the current test and skip all remaining tests.')">
+                            <input type="hidden" name="run_id" value="${activeRunId}">
+                            <input type="hidden" name="action" value="skip_playlist">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="End playlist">
+                                <i class="fas fa-stop"></i> End
+                            </button>
+                        </form>`;
+                } else {
+                    // Build dropdown with all runs that have artifacts
+                    let dropdownItems = '';
+                    for (const testStatus of run.test_statuses) {
+                        if (testStatus.has_artifacts) {
+                            dropdownItems += `
+                                <li>
+                                    <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="margin: 0;">
+                                        <input type="hidden" name="run_id" value="${testStatus.run_id}">
+                                        <input type="hidden" name="action" value="artifact">
+                                        <button type="submit" class="dropdown-item">
+                                            #${testStatus.run_id} - ${testStatus.test_procedure_id}
+                                        </button>
+                                    </form>
+                                </li>`;
+                        }
+                    }
+
+                    if (dropdownItems) {
+                        // Collect all run IDs that have artifacts for "Download All"
+                        const artifactRunIds = run.test_statuses
+                            .filter(ts => ts.has_artifacts)
+                            .map(ts => ts.run_id);
+
+                        let downloadAllItem = '';
+                        if (artifactRunIds.length > 1) {
+                            downloadAllItem = `
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="margin: 0;">
+                                        <input type="hidden" name="run_ids" value="${artifactRunIds.join(',')}">
+                                        <input type="hidden" name="playlist_name" value="${playlist_name}">
+                                        <input type="hidden" name="action" value="artifact_all">
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fas fa-download"></i> Download All
+                                        </button>
+                                    </form>
+                                </li>`;
+                        }
+
+                        actionButtons = `
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    ${dropdownItems}
+                                    ${downloadAllItem}
+                                </ul>
+                            </div>`;
+                    } else {
+                        actionButtons = `
+                            <button class="btn btn-sm btn-outline-secondary" disabled>
+                                <i class="fas fa-download"></i>
+                            </button>`;
+                    }
+                }
+
+                html += `
+                    <tr>
+                        <td><a href="${runStatusUrlBase}${run.first_run_id}">#${run.first_run_id}</a></td>
+                        <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})</small></td>
+                        <td>${dots}</td>
+                        <td class="text-end">${actionButtons}</td>
+                    </tr>`;
+            }
+
+            html += `</tbody></table>`;
+            table.innerHTML = html;
+            initTooltips();
+        }, (status, error) => {
+            document.getElementById("playlist-runs-loading").style.display = "none";
+            document.getElementById("playlist-runs-table").style.display = "block";
+            document.getElementById("playlist-runs-table").innerHTML = `<p class="text-danger">Failed to load run history.</p>`;
+        });
+    }
+
+    function loadActivePlaylists() {
+        // Show loading state
+        document.getElementById("playlist-content").innerHTML = `
+            <div id="playlist-runs-loading">
+                <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                Loading active playlists...
+            </div>
+            <div id="playlist-runs-table" style="display: none;"></div>
+        `;
+
+        const url = activePlaylistsUrl;
+
+        xhrRequest(url, (content) => {
+            const runs = JSON.parse(content);
+            document.getElementById("playlist-runs-loading").style.display = "none";
+            const table = document.getElementById("playlist-runs-table");
+            table.style.display = "block";
+
+            if (runs.length === 0) {
+                table.innerHTML = `<p class="text-muted">No active playlists.</p>`;
+                return;
+            }
+
+            // Build table with status dots
+            let html = `<table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Playlist</th>
+                        <th>Run</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            for (const run of runs) {
+                const created = new Date(Date.parse(run.created_at));
+
+                // Build status dots and get active run info
+                const { dots, activeRunId, activeTestProcedureId } = buildStatusDots(run.test_statuses);
+
+                // Build action buttons
+                let actionButtons = '';
+                if (activeRunId) {
+                    // Go to active run button
+                    actionButtons += `
+                        <a href="${runStatusUrlBase}${activeRunId}" class="btn btn-sm btn-primary me-1" title="Go to active run">
+                            <i class="fas fa-play"></i> Go to active (${activeTestProcedureId})
+                        </a>`;
+                    // End playlist button
+                    actionButtons += `
+                        <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="display: inline;"
+                            onsubmit="return confirm('Are you sure you want to end this playlist? This will finalize the current test and skip all remaining tests.')">
+                            <input type="hidden" name="run_id" value="${activeRunId}">
+                            <input type="hidden" name="action" value="skip_playlist">
+                            <button type="submit" class="btn btn-sm btn-danger" title="End playlist">
+                                <i class="fas fa-stop"></i> End
+                            </button>
+                        </form>`;
+                }
+
+                html += `
+                    <tr class="table-info">
+                        <td>${run.playlist_name}</td>
+                        <td>#${run.first_run_id}</td>
+                        <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})</small></td>
+                        <td>${dots}</td>
+                        <td class="text-end">${actionButtons}</td>
+                    </tr>`;
+            }
+
+            html += `</tbody></table>`;
+            table.innerHTML = html;
+            initTooltips();
+        }, (status, error) => {
+            document.getElementById("playlist-runs-loading").style.display = "none";
+            document.getElementById("playlist-runs-table").style.display = "block";
+            document.getElementById("playlist-runs-table").innerHTML = `<p class="text-danger">Failed to load active playlists.</p>`;
+        });
+    }
+
+    function handleButtonClick(e) {
+        e.target.innerHTML = `<div class="spinner-border spinner-border-sm" role="status"></div>`;
+        e.target.disabled = true;
+        e.target.closest('form').submit();
+    }
+
+    addEventListener("load", (event) => {
+        // Initialize Bootstrap tooltips with zero delay
+        initTooltips();
+
+        // Install onclick handlers for playlist btns
+        document.querySelectorAll(".playlist-btn").forEach(el => el.onclick = handlePlaylistButtonClick);
+
+        // Start with active playlists selected
+        handlePlaylistButtonClick.call(document.getElementById("active-playlists-button"));
+    });
+</script>
+
+{% endblock %}
