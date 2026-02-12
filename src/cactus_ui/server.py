@@ -16,6 +16,7 @@ from os import environ as env
 from pathlib import Path
 from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
+from cactus_schema.orchestrator.compliance import fetch_compliance_classes
 
 import cactus_schema.orchestrator as schema
 import jwt
@@ -38,7 +39,7 @@ from werkzeug.wrappers.response import Response
 
 import cactus_ui.orchestrator as orchestrator
 from cactus_ui.common import find_first
-from cactus_ui.compliance_class import fetch_compliance_class, fetch_compliance_classes
+from cactus_ui.compliance_class import fetch_compliance_class
 
 # Setup logs
 logconf_fp = "./logconf.json"
