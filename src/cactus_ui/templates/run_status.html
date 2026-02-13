@@ -251,6 +251,7 @@
     const runIsLive = "{{ run_is_live }}" === 'True';
     const userRunStatusUri = "{{ url_for('run_status_page', run_id=run_id) }}";
     const adminRunStatusUri = "{{ url_for('admin_run_status_page', run_id=run_id) }}";
+    const proceedUri = "{{ url_for('send_proceed', run_id=run_id) }}";
     const runStatusUri = isAdminView ? adminRunStatusUri : userRunStatusUri;
     const formAction = runStatusUri
 
@@ -716,7 +717,24 @@
         fragments.push(`
             </ul>
         </p>`);
+        fragments.push(`
+        <div id='step-proceed'>
+        </div>
+        `);
         return fragments.join("");
+    }
+
+    function isProceedStepActive(step_status) {
+        // This should match the event status assigned the proceed event by the cactus runner
+        const PROCEED_EVENT_STATUS = "Waiting on signal to proceed";
+
+        for (const [key, value] of Object.entries(step_status)) {
+            // Is this an active step waiting on a proceed event?
+            if (value.event_status === PROCEED_EVENT_STATUS && value.start_at !== null && value.completed_at === null) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function initialisedCardBody(instructions) {
@@ -1275,6 +1293,22 @@
         }
     }
 
+    function createProceedButton(uri, buttonLabel) {
+        const proceedButton = document.createElement("button");
+        proceedButton.type = 'button';
+        proceedButton.classList.add("btn","btn-primary");
+        proceedButton.innerText = buttonLabel;
+        proceedButton.addEventListener("click", () => {
+            console.log("Proceed button clicked.");
+            xhrRequest(uri, (content) => {
+                console.log("Proceed worked", content)
+            }, (status, content) => {
+                console.error("Proceed failed", status, content)
+            });
+        });
+        return proceedButton;
+    }
+
     // STATUS UPDATES
 
     function handleNewStatus(status) {
@@ -1353,6 +1387,14 @@
             } else {
                 stepInstructionsEl.innerHTML = ""
             }
+        }
+
+        // update step proceed section
+        const showProceedButton = isProceedStepActive(status.step_status);
+        if ("{{run_status}}" === "started" && showProceedButton) {
+            stepProceedElement = document.getElementById('step-proceed');
+            stepProceedElement.innerHTML = '';
+            stepProceedElement.appendChild(createProceedButton(proceedUri, 'Proceed to next step'));
         }
 
         // update timeline charts

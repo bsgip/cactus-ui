@@ -1015,6 +1015,25 @@ def run_request_details(access_token: str, request_id: int, run_id: str) -> Resp
     return Response(response=request_data, status=HTTPStatus.OK, mimetype="application/json")
 
 
+@app.route("/run/<int:run_id>/proceed", methods=["GET"])
+@login_required
+def send_proceed(access_token: str, run_id: str) -> Response:
+
+    proceed_response = orchestrator.send_proceed(access_token=access_token, run_id=run_id)
+
+    if proceed_response is None:
+        return Response(
+            response="Failed to proceed to next step",
+            status=HTTPStatus.INTERNAL_SERVER_ERROR
+         )
+
+    return Response(
+        response=proceed_response.to_json(),
+        status=HTTPStatus.OK,
+        mimetype="application/json"
+    )
+
+
 @app.route("/callback", methods=["GET", "POST"])
 def callback() -> Response:
     token = oauth.auth0.authorize_access_token()
