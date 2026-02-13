@@ -64,13 +64,25 @@ class InitialiseRunFailureType(IntEnum):
 
 
 @dataclass
-class InitialiseRunResult:
-    run_id: int | None  # The run_id that was initialised (or None for failure)
+class InitRunResult:
+    response: orchestrator.InitRunResponse | None  # The parsed response (or None for failure)
     failure_type: InitialiseRunFailureType
 
 
 def generate_headers(access_token: str) -> dict[str, Any]:
     return {"Authorization": "Bearer " + access_token}
+
+
+def _determine_run_failure_type(response: requests.Response | None) -> InitialiseRunFailureType:
+    """Determine the failure type from a response when initializing a run or playlist."""
+    if response is None or not is_success_response(response):
+        if response is not None:
+            if response.status_code == HTTPStatus.EXPECTATION_FAILED:
+                return InitialiseRunFailureType.EXPIRED_CERT
+            elif response.status_code == HTTPStatus.CONFLICT:
+                return InitialiseRunFailureType.EXISTING_STATIC_INSTANCE
+        return InitialiseRunFailureType.UNKNOWN_FAILURE
+    return InitialiseRunFailureType.NO_FAILURE
 
 
 def safe_request(
@@ -239,7 +251,7 @@ def generate_shared_client_cert(access_token: str) -> tuple[bytes | None, str | 
     return (response.content, try_read_file_name(response, "client.pem"))
 
 
-def init_run(access_token: str, run_group_id: int, test_procedure_id: str) -> InitialiseRunResult:
+def init_run(access_token: str, run_group_id: int, test_procedure_id: str) -> InitRunResult:
     """Creates a new test run underneath run_group_id, initialised with the specified test_procedure_id"""
     uri = generate_uri(orchestrator.uri.RunGroupRunList.format(run_group_id=run_group_id))
     response = safe_request(
@@ -250,20 +262,36 @@ def init_run(access_token: str, run_group_id: int, test_procedure_id: str) -> In
         json={"test_procedure_id": test_procedure_id},
     )
 
-    # Figure out what sort of failure has occurred (if any)
-    failure_type = InitialiseRunFailureType.NO_FAILURE
-    run_id: int | None = None
-    if response is None or not is_success_response(response):
-        failure_type = InitialiseRunFailureType.UNKNOWN_FAILURE
-        if response is not None:
-            if response.status_code == HTTPStatus.EXPECTATION_FAILED:
-                failure_type = InitialiseRunFailureType.EXPIRED_CERT
-            elif response.status_code == HTTPStatus.CONFLICT:
-                failure_type = InitialiseRunFailureType.EXISTING_STATIC_INSTANCE
-    else:
-        run_id = int(response.json()["run_id"])
+    failure_type = _determine_run_failure_type(response)
+    parsed: orchestrator.InitRunResponse | None = None
+    if failure_type == InitialiseRunFailureType.NO_FAILURE and response is not None:
+        parsed = orchestrator.InitRunResponse.from_dict(response.json())
 
-    return InitialiseRunResult(run_id=run_id, failure_type=failure_type)
+    return InitRunResult(response=parsed, failure_type=failure_type)
+
+
+def init_playlist(
+    access_token: str, run_group_id: int, test_procedure_ids: list[str], start_index: int = 0
+) -> InitRunResult:
+    """Creates a playlist of test runs underneath run_group_id, optionally starting from a specific index"""
+    uri = generate_uri(orchestrator.uri.RunGroupRunList.format(run_group_id=run_group_id))
+    request_body: dict = {"test_procedure_ids": test_procedure_ids}
+    if start_index > 0:
+        request_body["start_index"] = start_index
+    response = safe_request(
+        "POST",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN,
+        json=request_body,
+    )
+
+    failure_type = _determine_run_failure_type(response)
+    parsed: orchestrator.InitRunResponse | None = None
+    if failure_type == InitialiseRunFailureType.NO_FAILURE and response is not None:
+        parsed = orchestrator.InitRunResponse.from_dict(response.json())
+
+    return InitRunResult(response=parsed, failure_type=failure_type)
 
 
 def start_run(access_token: str, run_id: str) -> StartResult:
@@ -303,6 +331,19 @@ def finalise_run(access_token: str, run_id: str) -> bytes | None:
     return response.content
 
 
+def finalise_playlist(access_token: str, run_id: str) -> bytes | None:
+    """Finalise a playlist early. Finalizes current test and marks remaining as skipped."""
+    uri = generate_uri(orchestrator.uri.RunPlaylistFinalise.format(run_id=run_id))
+    response = safe_request("POST", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    if response.status_code == HTTPStatus.NO_CONTENT:
+        return None
+
+    return response.content
+
+
 def fetch_run_artifact(access_token: str, run_id: str) -> tuple[bytes | None, str]:
     """Given an already started run - finalise it and return the resulting ZIP file bytes / file name"""
     uri = generate_uri(orchestrator.uri.RunArtifact.format(run_id=run_id))
@@ -311,6 +352,21 @@ def fetch_run_artifact(access_token: str, run_id: str) -> tuple[bytes | None, st
         return (None, "")
 
     return (response.content, generate_run_artifact_file_name(response, run_id))
+
+
+def fetch_multiple_run_artifacts(access_token: str, run_ids: list[int]) -> bytes | None:
+    """Fetch artifacts for multiple runs as a single ZIP file"""
+    uri = generate_uri("/run/artifact/multiple")
+    response = safe_request(
+        "POST",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+        json={"run_ids": run_ids},
+    )
+    if response is None or not is_success_response(response):
+        return None
+    return response.content
 
 
 def fetch_runs_for_group(
