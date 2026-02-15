@@ -58,16 +58,16 @@
     <div class="row mb-4">
         <!-- CSIP-AUS Versions -->
         <div class="col-md-4 mb-3">
-            <div class="card shadow-sm h-100 d-flex flex-column">
+            <div class="card shadow-sm h-100">
                 <div class="card-header fw-bold"><i class="fas fa-code-branch me-2"></i>CSIP-AUS Versions</div>
-                <div class="card-body d-flex flex-column justify-content-center flex-grow-1">
+                <ul class="list-group list-group-flush">
                     {% for version, count in version_counts.items() | sort %}
-                    <div class="d-flex justify-content-between align-items-center{% if not loop.last %} mb-3 pb-3 border-bottom{% endif %}">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
                         <code>{{ version }}</code>
                         <span class="badge bg-success rounded-pill">{{ count }} run group{{ 's' if count != 1 }}</span>
-                    </div>
+                    </li>
                     {% endfor %}
-                </div>
+                </ul>
             </div>
         </div>
 
@@ -100,45 +100,6 @@
                     {% endif %}
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Runs Per User (bar chart) -->
-    {% set max_user_runs = user_leaderboard[0].run_count if user_leaderboard and user_leaderboard[0].run_count > 0 else 1 %}
-    <div class="card shadow-sm mb-4">
-        <div class="card-header fw-bold"><i class="fas fa-trophy me-2"></i>Runs Per User</div>
-        <div class="card-body py-2">
-            {% for u in user_leaderboard[:20] %}
-            <div class="d-flex align-items-center mb-1" style="height: 28px;">
-                <span class="text-muted me-2" style="min-width: 24px; text-align: right; font-size: 0.85rem;">{{ loop.index }}</span>
-                <span class="me-2 text-truncate" style="min-width: 140px; max-width: 200px; font-size: 0.9rem;">{{ u.name if u.name else 'User ' ~ u.user_id }}</span>
-                <div class="flex-grow-1 me-2">
-                    <div class="progress" style="height: 16px;">
-                        <div class="progress-bar bg-success" style="width: {{ (u.run_count / max_user_runs * 100) | round(1) }}%;"></div>
-                    </div>
-                </div>
-                <span class="fw-bold" style="min-width: 36px; text-align: right; font-size: 0.9rem;">{{ u.run_count }}</span>
-            </div>
-            {% endfor %}
-            {% if user_leaderboard | length > 20 %}
-            <div id="extra-users" class="d-none">
-                {% for u in user_leaderboard[20:] %}
-                <div class="d-flex align-items-center mb-1" style="height: 28px;">
-                    <span class="text-muted me-2" style="min-width: 24px; text-align: right; font-size: 0.85rem;">{{ loop.index + 20 }}</span>
-                    <span class="me-2 text-truncate" style="min-width: 140px; max-width: 200px; font-size: 0.9rem;">{{ u.name if u.name else 'User ' ~ u.user_id }}</span>
-                    <div class="flex-grow-1 me-2">
-                        <div class="progress" style="height: 16px;">
-                            <div class="progress-bar bg-success" style="width: {{ (u.run_count / max_user_runs * 100) | round(1) }}%;"></div>
-                        </div>
-                    </div>
-                    <span class="fw-bold" style="min-width: 36px; text-align: right; font-size: 0.9rem;">{{ u.run_count }}</span>
-                </div>
-                {% endfor %}
-            </div>
-            <button class="btn btn-outline-secondary btn-sm mt-2" onclick="document.getElementById('extra-users').classList.remove('d-none'); this.style.display='none';">
-                Show all {{ user_leaderboard | length }} users
-            </button>
-            {% endif %}
         </div>
     </div>
 
@@ -179,6 +140,45 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- Runs Per User (bar chart) -->
+    {% set max_user_runs = user_leaderboard[0].run_count if user_leaderboard and user_leaderboard[0].run_count > 0 else 1 %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header fw-bold"><i class="fas fa-trophy me-2"></i>Runs Per User</div>
+        <div class="card-body py-2">
+            {% for u in user_leaderboard[:20] %}
+            <div class="d-flex align-items-center mb-1" style="height: 28px;">
+                <span class="text-muted me-2" style="min-width: 24px; text-align: right; font-size: 0.85rem;">{{ loop.index }}</span>
+                <span class="me-2 text-truncate" style="min-width: 140px; max-width: 200px; font-size: 0.9rem;">{{ u.name if u.name else 'User ' ~ u.user_id }}</span>
+                <div class="flex-grow-1 me-2">
+                    <div class="progress" style="height: 16px;">
+                        <div class="progress-bar bg-success" style="width: {{ (u.run_count / max_user_runs * 100) | round(1) }}%;"></div>
+                    </div>
+                </div>
+                <span class="fw-bold" style="min-width: 36px; text-align: right; font-size: 0.9rem;">{{ u.run_count }}</span>
+            </div>
+            {% endfor %}
+            {% if user_leaderboard | length > 20 %}
+            <div id="extra-users" class="d-none">
+                {% for u in user_leaderboard[20:] %}
+                <div class="d-flex align-items-center mb-1" style="height: 28px;">
+                    <span class="text-muted me-2" style="min-width: 24px; text-align: right; font-size: 0.85rem;">{{ loop.index + 20 }}</span>
+                    <span class="me-2 text-truncate" style="min-width: 140px; max-width: 200px; font-size: 0.9rem;">{{ u.name if u.name else 'User ' ~ u.user_id }}</span>
+                    <div class="flex-grow-1 me-2">
+                        <div class="progress" style="height: 16px;">
+                            <div class="progress-bar bg-success" style="width: {{ (u.run_count / max_user_runs * 100) | round(1) }}%;"></div>
+                        </div>
+                    </div>
+                    <span class="fw-bold" style="min-width: 36px; text-align: right; font-size: 0.9rem;">{{ u.run_count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            <button class="btn btn-outline-secondary btn-sm mt-2" onclick="document.getElementById('extra-users').classList.remove('d-none'); this.style.display='none';">
+                Show all {{ user_leaderboard | length }} users
+            </button>
+            {% endif %}
+        </div>
+    </div>
 </div>
 {% endif %}
 
