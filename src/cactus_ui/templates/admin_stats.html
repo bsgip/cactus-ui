@@ -7,7 +7,6 @@
 {% if error %}
 <div class="alert alert-danger">{{ error }}</div>
 {% else %}
-{% set max_user_runs = user_stats[0].run_count if user_stats else 1 %}
 <div style="padding-top:10px;">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Platform Stats</h2>
@@ -19,20 +18,20 @@
     <!-- Summary Cards -->
     <div class="row mb-4">
         <div class="col-md-3 mb-3">
-            <div class="card shadow-sm border-start border-4 border-primary">
-                <div class="card-body text-center py-3">
-                    <i class="fas fa-users text-primary mb-2" style="font-size: 1.4rem;"></i>
-                    <div class="fs-2 fw-bold">{{ total_users }}</div>
-                    <div class="text-muted small">Total Users</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
             <div class="card shadow-sm border-start border-4 border-success">
                 <div class="card-body text-center py-3">
                     <i class="fas fa-play text-success mb-2" style="font-size: 1.4rem;"></i>
                     <div class="fs-2 fw-bold">{{ total_runs }}</div>
                     <div class="text-muted small">Total Runs</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm border-start border-4 border-primary">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-users text-primary mb-2" style="font-size: 1.4rem;"></i>
+                    <div class="fs-2 fw-bold">{{ total_users }}</div>
+                    <div class="text-muted small">Total Users</div>
                 </div>
             </div>
         </div>
@@ -48,191 +47,143 @@
         <div class="col-md-3 mb-3">
             <div class="card shadow-sm border-start border-4 border-warning">
                 <div class="card-body text-center py-3">
-                    <i class="fas fa-chart-line text-warning mb-2" style="font-size: 1.4rem;"></i>
-                    <div class="fs-2 fw-bold">{{ avg_runs_per_user }}</div>
-                    <div class="text-muted small">Avg Runs / User</div>
+                    <i class="fas fa-shield-alt text-warning mb-2" style="font-size: 1.4rem;"></i>
+                    <div class="fs-2 fw-bold">{{ compliance_classes_tested }}</div>
+                    <div class="text-muted small">Compliance Classes Covered</div>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="row mb-4">
-        <!-- Quick Facts -->
+        <!-- CSIP-AUS Versions -->
         <div class="col-md-4 mb-3">
             <div class="card shadow-sm h-100">
-                <div class="card-header fw-bold"><i class="fas fa-info-circle me-2"></i>Quick Facts</div>
+                <div class="card-header fw-bold"><i class="fas fa-code-branch me-2"></i>CSIP-AUS Versions</div>
                 <ul class="list-group list-group-flush">
+                    {% for version, count in version_counts.items() | sort %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>Users with no runs</span>
-                        <span class="badge bg-secondary rounded-pill">{{ users_with_no_runs }}</span>
+                        <code>{{ version }}</code>
+                        <span class="badge bg-success rounded-pill">{{ count }} run group{{ 's' if count != 1 }}</span>
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>Run groups with certs</span>
-                        <span class="badge bg-success rounded-pill">{{ run_groups_with_certs }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>Run groups without certs</span>
-                        <span class="badge bg-warning text-dark rounded-pill">{{ total_run_groups - run_groups_with_certs }}</span>
-                    </li>
+                    {% endfor %}
                 </ul>
             </div>
         </div>
 
-        <!-- CSIP-AUS Version Breakdown -->
+        <!-- Pass / Fail -->
         <div class="col-md-8 mb-3">
             <div class="card shadow-sm h-100">
-                <div class="card-header fw-bold"><i class="fas fa-code-branch me-2"></i>CSIP-AUS Versions</div>
+                <div class="card-header fw-bold"><i class="fas fa-chart-bar me-2"></i>Pass / Fail (latest run per procedure per group)</div>
                 <div class="card-body">
-                    {% for version, count in version_counts.items() | sort %}
-                    <div class="d-flex align-items-center mb-2">
-                        <code class="me-3" style="min-width: 60px;">{{ version }}</code>
-                        <div class="progress flex-grow-1" style="height: 22px;">
-                            <div class="progress-bar bg-success" style="width: {{ (count / total_run_groups * 100) | round(1) }}%; min-width: 2em;">
-                                {{ count }} run group{{ 's' if count != 1 }}
-                            </div>
+                    <div class="row text-center mb-3">
+                        <div class="col-4">
+                            <div class="fs-3 fw-bold text-success">{{ total_passed }}</div>
+                            <div class="text-muted small">Passed</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="fs-3 fw-bold text-danger">{{ total_failed }}</div>
+                            <div class="text-muted small">Failed</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="fs-3 fw-bold text-secondary">{{ total_untested }}</div>
+                            <div class="text-muted small">Untested</div>
                         </div>
                     </div>
-                    {% endfor %}
+                    {% set total_assessed = total_passed + total_failed %}
+                    {% if total_assessed > 0 %}
+                    {% set pass_rate = (total_passed / total_assessed * 100) | round(1) %}
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span>Pass rate</span>
+                        <strong>{{ pass_rate }}%</strong>
+                    </div>
+                    <div class="progress" style="height: 24px;">
+                        <div class="progress-bar bg-success" style="width: {{ pass_rate }}%;">{{ total_passed }} passed</div>
+                        <div class="progress-bar bg-danger" style="width: {{ 100 - pass_rate }}%;">{{ total_failed }} failed</div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Runs Per User -->
+    <!-- Runs Per User (bar chart) -->
+    {% set max_user_runs = user_leaderboard[0].run_count if user_leaderboard and user_leaderboard[0].run_count > 0 else 1 %}
     <div class="card shadow-sm mb-4">
         <div class="card-header fw-bold"><i class="fas fa-trophy me-2"></i>Runs Per User</div>
+        <div class="card-body py-2">
+            {% for u in user_leaderboard[:20] %}
+            <div class="d-flex align-items-center mb-1" style="height: 28px;">
+                <span class="text-muted me-2" style="min-width: 24px; text-align: right; font-size: 0.85rem;">{{ loop.index }}</span>
+                <span class="me-2 text-truncate" style="min-width: 140px; max-width: 200px; font-size: 0.9rem;">{{ u.name if u.name else 'User ' ~ u.user_id }}</span>
+                <div class="flex-grow-1 me-2">
+                    <div class="progress" style="height: 16px;">
+                        <div class="progress-bar bg-success" style="width: {{ (u.run_count / max_user_runs * 100) | round(1) }}%;"></div>
+                    </div>
+                </div>
+                <span class="fw-bold" style="min-width: 36px; text-align: right; font-size: 0.9rem;">{{ u.run_count }}</span>
+            </div>
+            {% endfor %}
+            {% if user_leaderboard | length > 20 %}
+            <div id="extra-users" class="d-none">
+                {% for u in user_leaderboard[20:] %}
+                <div class="d-flex align-items-center mb-1" style="height: 28px;">
+                    <span class="text-muted me-2" style="min-width: 24px; text-align: right; font-size: 0.85rem;">{{ loop.index + 20 }}</span>
+                    <span class="me-2 text-truncate" style="min-width: 140px; max-width: 200px; font-size: 0.9rem;">{{ u.name if u.name else 'User ' ~ u.user_id }}</span>
+                    <div class="flex-grow-1 me-2">
+                        <div class="progress" style="height: 16px;">
+                            <div class="progress-bar bg-success" style="width: {{ (u.run_count / max_user_runs * 100) | round(1) }}%;"></div>
+                        </div>
+                    </div>
+                    <span class="fw-bold" style="min-width: 36px; text-align: right; font-size: 0.9rem;">{{ u.run_count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            <button class="btn btn-outline-secondary btn-sm mt-2" onclick="document.getElementById('extra-users').classList.remove('d-none'); this.style.display='none';">
+                Show all {{ user_leaderboard | length }} users
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Most Tested Procedures -->
+    {% if procedures %}
+    {% set max_proc_runs = procedures[0].total_run_count if procedures[0].total_run_count > 0 else 1 %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header fw-bold"><i class="fas fa-microscope me-2"></i>Most Tested Procedures</div>
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-sm table-hover mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 50px;">#</th>
-                        <th>User</th>
-                        <th style="width: 100px;">Run Groups</th>
-                        <th style="width: 100px;">Runs</th>
+                        <th>Procedure</th>
+                        <th>Category</th>
+                        <th>Runs</th>
                         <th></th>
+                        <th>Passed</th>
+                        <th>Failed</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for u in user_stats %}
+                    {% for p in procedures %}
                     <tr>
-                        <td class="text-muted">{{ loop.index }}</td>
-                        <td>{{ u.name if u.name else 'User ' ~ u.user_id }}</td>
-                        <td>{{ u.run_group_count }}</td>
-                        <td class="fw-bold">{{ u.run_count }}</td>
-                        <td style="width: 40%;">
-                            {% if max_user_runs > 0 %}
+                        <td><small><code>{{ p.test_procedure_id }}</code></small></td>
+                        <td><small>{{ p.category }}</small></td>
+                        <td class="fw-bold">{{ p.total_run_count }}</td>
+                        <td style="width: 25%;">
                             <div class="progress" style="height: 8px;">
-                                <div class="progress-bar bg-success" style="width: {{ (u.run_count / max_user_runs * 100) | round(1) }}%;"></div>
+                                <div class="progress-bar bg-success" style="width: {{ (p.total_run_count / max_proc_runs * 100) | round(1) }}%;"></div>
                             </div>
-                            {% endif %}
                         </td>
+                        <td class="text-success">{{ p.groups_passed }}</td>
+                        <td class="text-danger">{{ p.groups_failed }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
-
-    <!-- Tier 2: Detailed Stats -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span class="fw-bold"><i class="fas fa-microscope me-2"></i>Detailed Procedure Stats</span>
-            <button id="load-detailed-btn" class="btn btn-success btn-sm" onclick="loadDetailedStats()">
-                <i class="fas fa-download me-1"></i>Load Detailed Stats
-            </button>
-        </div>
-        <div id="detailed-stats-body" class="card-body">
-            <p class="text-muted mb-0">
-                Fetches compliance and procedure data across all run groups. This may take a moment.
-            </p>
-        </div>
-    </div>
+    {% endif %}
 </div>
 {% endif %}
-
-<script>
-function loadDetailedStats() {
-    const btn = document.getElementById("load-detailed-btn");
-    const body = document.getElementById("detailed-stats-body");
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Loading...';
-    body.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x text-success"></i><p class="text-muted mt-2">Fetching data across all run groups...</p></div>';
-
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", "{{ url_for('admin_stats_detailed_json') }}");
-    xhr.onload = function () {
-        if (xhr.status === 200) {
-            const data = JSON.parse(xhr.responseText);
-            if (data.error) {
-                body.innerHTML = '<div class="alert alert-danger">' + data.error + '</div>';
-                btn.innerHTML = '<i class="fas fa-redo me-1"></i>Retry';
-                btn.disabled = false;
-                return;
-            }
-            renderDetailedStats(data);
-            btn.style.display = "none";
-        } else {
-            body.innerHTML = '<div class="alert alert-danger">Failed to fetch detailed stats.</div>';
-            btn.innerHTML = '<i class="fas fa-redo me-1"></i>Retry';
-            btn.disabled = false;
-        }
-    };
-    xhr.onerror = function () {
-        body.innerHTML = '<div class="alert alert-danger">Network error.</div>';
-        btn.innerHTML = '<i class="fas fa-redo me-1"></i>Retry';
-        btn.disabled = false;
-    };
-    xhr.send();
-}
-
-function renderDetailedStats(data) {
-    const body = document.getElementById("detailed-stats-body");
-    const totalAssessed = data.total_passed + data.total_failed;
-
-    let html = '';
-
-    // Summary row
-    html += '<div class="row mb-3 text-center">';
-    html += '<div class="col-md-3 mb-2"><div class="fs-4 fw-bold text-success">' + data.total_passed + '</div><div class="text-muted small">Passed (latest)</div></div>';
-    html += '<div class="col-md-3 mb-2"><div class="fs-4 fw-bold text-danger">' + data.total_failed + '</div><div class="text-muted small">Failed (latest)</div></div>';
-    html += '<div class="col-md-3 mb-2"><div class="fs-4 fw-bold text-secondary">' + data.total_untested + '</div><div class="text-muted small">Untested</div></div>';
-    html += '<div class="col-md-3 mb-2"><div class="fs-4 fw-bold text-info">' + data.compliance_classes_tested + '</div><div class="text-muted small">Compliance Classes Covered</div></div>';
-    html += '</div>';
-
-    // Pass rate bar
-    if (totalAssessed > 0) {
-        const passRate = ((data.total_passed / totalAssessed) * 100).toFixed(1);
-        html += '<div class="mb-4">';
-        html += '<div class="d-flex justify-content-between small mb-1"><span>Overall pass rate (latest run per procedure per group)</span><strong>' + passRate + '%</strong></div>';
-        html += '<div class="progress" style="height: 24px;">';
-        html += '<div class="progress-bar bg-success" style="width:' + passRate + '%">' + data.total_passed + ' passed</div>';
-        html += '<div class="progress-bar bg-danger" style="width:' + (100 - passRate) + '%">' + data.total_failed + ' failed</div>';
-        html += '</div></div>';
-    }
-
-    // Top procedures table
-    if (data.procedures.length > 0) {
-        const maxRuns = data.procedures[0].total_run_count || 1;
-        html += '<h6 class="mt-3 mb-2">Most Tested Procedures</h6>';
-        html += '<div class="table-responsive"><table class="table table-sm table-hover">';
-        html += '<thead class="table-light"><tr><th>Procedure</th><th>Category</th><th>Total Runs</th><th></th><th>Passed</th><th>Failed</th></tr></thead>';
-        html += '<tbody>';
-        for (const p of data.procedures) {
-            const barWidth = ((p.total_run_count / maxRuns) * 100).toFixed(1);
-            html += '<tr>';
-            html += '<td><small><code>' + p.test_procedure_id + '</code></small></td>';
-            html += '<td><small>' + p.category + '</small></td>';
-            html += '<td class="fw-bold">' + p.total_run_count + '</td>';
-            html += '<td style="width:25%"><div class="progress" style="height:8px"><div class="progress-bar bg-success" style="width:' + barWidth + '%"></div></div></td>';
-            html += '<td class="text-success">' + p.groups_passed + '</td>';
-            html += '<td class="text-danger">' + p.groups_failed + '</td>';
-            html += '</tr>';
-        }
-        html += '</tbody></table></div>';
-    }
-
-    body.innerHTML = html;
-}
-</script>
 
 {% endblock %}

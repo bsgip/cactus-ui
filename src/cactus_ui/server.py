@@ -304,55 +304,18 @@ def admin_stats_page(access_token: str) -> str:
         return render_template("admin_stats.html", error="Failed to retrieve users.")
 
     total_run_groups = 0
-    total_runs = 0
-    user_stats: list[dict] = []
     version_counts: dict[str, int] = {}
-    run_groups_with_certs = 0
+    user_run_counts: dict[int, dict] = {}
 
     for user in users:
-        user_total_runs = 0
+        total_run_groups += len(user.run_groups)
+        user_run_counts[user.user_id] = {"user_id": user.user_id, "name": user.name, "run_count": 0}
         for rg in user.run_groups:
-            total_run_groups += 1
-            total_runs += rg.total_runs
-            user_total_runs += rg.total_runs
             version_counts[rg.csip_aus_version] = version_counts.get(rg.csip_aus_version, 0) + 1
-            if rg.certificate_id is not None:
-                run_groups_with_certs += 1
-        user_stats.append({
-            "user_id": user.user_id,
-            "name": user.name,
-            "run_count": user_total_runs,
-            "run_group_count": len(user.run_groups),
-        })
 
-    total_users = len(users)
-    avg_runs_per_user = round(total_runs / total_users, 1) if total_users > 0 else 0
-    user_stats.sort(key=lambda x: x["run_count"], reverse=True)
-    users_with_no_runs = sum(1 for u in user_stats if u["run_count"] == 0)
-
-    return render_template(
-        "admin_stats.html",
-        total_users=total_users,
-        total_run_groups=total_run_groups,
-        total_runs=total_runs,
-        avg_runs_per_user=avg_runs_per_user,
-        user_stats=user_stats,
-        version_counts=version_counts,
-        users_with_no_runs=users_with_no_runs,
-        run_groups_with_certs=run_groups_with_certs,
-    )
-
-
-@app.route("/admin/stats/detailed", methods=["GET"])
-@login_required
-@admin_role_required
-def admin_stats_detailed_json(access_token: str) -> Response:
-    """Fetch detailed procedure/compliance stats across all run groups (slower)."""
-    users = orchestrator.admin_fetch_users(access_token)
-    if users is None:
-        return jsonify({"error": "Failed to retrieve users."})
-
+    # Fetch procedure summaries for every run group to get accurate run counts
     all_procedures: dict[str, dict] = {}
+    total_runs = 0
     total_passed = 0
     total_failed = 0
     total_untested = 0
@@ -378,6 +341,8 @@ def admin_stats_detailed_json(access_token: str) -> Response:
 
                 entry = all_procedures[p.test_procedure_id]
                 entry["total_run_count"] += p.run_count
+                total_runs += p.run_count
+                user_run_counts[user.user_id]["run_count"] += p.run_count
 
                 if p.run_count == 0:
                     entry["groups_untested"] += 1
@@ -392,16 +357,23 @@ def admin_stats_detailed_json(access_token: str) -> Response:
                 if p.classes:
                     compliance_classes_tested.update(p.classes)
 
+    total_users = len(users)
     procedures_list = sorted(all_procedures.values(), key=lambda x: x["total_run_count"], reverse=True)
+    user_leaderboard = sorted(user_run_counts.values(), key=lambda x: x["run_count"], reverse=True)
 
-    return jsonify({
-        "total_passed": total_passed,
-        "total_failed": total_failed,
-        "total_untested": total_untested,
-        "compliance_classes_tested": len(compliance_classes_tested),
-        "total_procedures": len(all_procedures),
-        "procedures": procedures_list[:20],
-    })
+    return render_template(
+        "admin_stats.html",
+        total_users=total_users,
+        total_run_groups=total_run_groups,
+        total_runs=total_runs,
+        total_passed=total_passed,
+        total_failed=total_failed,
+        total_untested=total_untested,
+        compliance_classes_tested=len(compliance_classes_tested),
+        version_counts=version_counts,
+        user_leaderboard=user_leaderboard,
+        procedures=procedures_list[:20],
+    )
 
 
 @app.route("/admin/group/<int:run_group_id>", methods=["GET", "POST"])
