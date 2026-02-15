@@ -295,6 +295,115 @@ def admin_page(access_token: str) -> str:
     )
 
 
+@app.route("/admin/stats")
+@login_required
+@admin_role_required
+def admin_stats_page(access_token: str) -> str:
+    users = orchestrator.admin_fetch_users(access_token)
+    if users is None:
+        return render_template("admin_stats.html", error="Failed to retrieve users.")
+
+    total_run_groups = 0
+    total_runs = 0
+    user_stats: list[dict] = []
+    version_counts: dict[str, int] = {}
+    run_groups_with_certs = 0
+
+    for user in users:
+        user_total_runs = 0
+        for rg in user.run_groups:
+            total_run_groups += 1
+            total_runs += rg.total_runs
+            user_total_runs += rg.total_runs
+            version_counts[rg.csip_aus_version] = version_counts.get(rg.csip_aus_version, 0) + 1
+            if rg.certificate_id is not None:
+                run_groups_with_certs += 1
+        user_stats.append({
+            "user_id": user.user_id,
+            "name": user.name,
+            "run_count": user_total_runs,
+            "run_group_count": len(user.run_groups),
+        })
+
+    total_users = len(users)
+    avg_runs_per_user = round(total_runs / total_users, 1) if total_users > 0 else 0
+    user_stats.sort(key=lambda x: x["run_count"], reverse=True)
+    users_with_no_runs = sum(1 for u in user_stats if u["run_count"] == 0)
+
+    return render_template(
+        "admin_stats.html",
+        total_users=total_users,
+        total_run_groups=total_run_groups,
+        total_runs=total_runs,
+        avg_runs_per_user=avg_runs_per_user,
+        user_stats=user_stats,
+        version_counts=version_counts,
+        users_with_no_runs=users_with_no_runs,
+        run_groups_with_certs=run_groups_with_certs,
+    )
+
+
+@app.route("/admin/stats/detailed", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_stats_detailed_json(access_token: str) -> Response:
+    """Fetch detailed procedure/compliance stats across all run groups (slower)."""
+    users = orchestrator.admin_fetch_users(access_token)
+    if users is None:
+        return jsonify({"error": "Failed to retrieve users."})
+
+    all_procedures: dict[str, dict] = {}
+    total_passed = 0
+    total_failed = 0
+    total_untested = 0
+    compliance_classes_tested: set[str] = set()
+
+    for user in users:
+        for rg in user.run_groups:
+            procedures = orchestrator.admin_fetch_group_procedure_run_summaries(access_token, rg.run_group_id)
+            if procedures is None:
+                continue
+
+            for p in procedures:
+                if p.test_procedure_id not in all_procedures:
+                    all_procedures[p.test_procedure_id] = {
+                        "test_procedure_id": p.test_procedure_id,
+                        "description": p.description,
+                        "category": p.category,
+                        "total_run_count": 0,
+                        "groups_passed": 0,
+                        "groups_failed": 0,
+                        "groups_untested": 0,
+                    }
+
+                entry = all_procedures[p.test_procedure_id]
+                entry["total_run_count"] += p.run_count
+
+                if p.run_count == 0:
+                    entry["groups_untested"] += 1
+                    total_untested += 1
+                elif p.latest_all_criteria_met:
+                    entry["groups_passed"] += 1
+                    total_passed += 1
+                else:
+                    entry["groups_failed"] += 1
+                    total_failed += 1
+
+                if p.classes:
+                    compliance_classes_tested.update(p.classes)
+
+    procedures_list = sorted(all_procedures.values(), key=lambda x: x["total_run_count"], reverse=True)
+
+    return jsonify({
+        "total_passed": total_passed,
+        "total_failed": total_failed,
+        "total_untested": total_untested,
+        "compliance_classes_tested": len(compliance_classes_tested),
+        "total_procedures": len(all_procedures),
+        "procedures": procedures_list[:20],
+    })
+
+
 @app.route("/admin/group/<int:run_group_id>", methods=["GET", "POST"])
 @login_required
 @admin_role_required
