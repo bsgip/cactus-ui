@@ -60,9 +60,9 @@
         <div class="col-md-4 mb-3">
             <div class="card shadow-sm h-100">
                 <div class="card-header fw-bold"><i class="fas fa-code-branch me-2"></i>CSIP-AUS Versions</div>
-                <ul class="list-group list-group-flush">
+                <ul class="list-group list-group-flush flex-grow-1 justify-content-evenly">
                     {% for version, count in version_counts.items() | sort %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
                         <code>{{ version }}</code>
                         <span class="badge bg-success rounded-pill">{{ count }} run group{{ 's' if count != 1 }}</span>
                     </li>
@@ -77,17 +77,13 @@
                 <div class="card-header fw-bold"><i class="fas fa-chart-bar me-2"></i>Pass / Fail (latest run per procedure per group)</div>
                 <div class="card-body">
                     <div class="row text-center mb-3">
-                        <div class="col-4">
+                        <div class="col-6">
                             <div class="fs-3 fw-bold text-success">{{ total_passed }}</div>
                             <div class="text-muted small">Passed</div>
                         </div>
-                        <div class="col-4">
+                        <div class="col-6">
                             <div class="fs-3 fw-bold text-danger">{{ total_failed }}</div>
                             <div class="text-muted small">Failed</div>
-                        </div>
-                        <div class="col-4">
-                            <div class="fs-3 fw-bold text-secondary">{{ total_untested }}</div>
-                            <div class="text-muted small">Untested</div>
                         </div>
                     </div>
                     {% set total_assessed = total_passed + total_failed %}

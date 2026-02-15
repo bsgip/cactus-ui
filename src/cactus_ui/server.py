@@ -318,7 +318,6 @@ def admin_stats_page(access_token: str) -> str:
     total_runs = 0
     total_passed = 0
     total_failed = 0
-    total_untested = 0
     compliance_classes_tested: set[str] = set()
 
     for user in users:
@@ -336,7 +335,6 @@ def admin_stats_page(access_token: str) -> str:
                         "total_run_count": 0,
                         "groups_passed": 0,
                         "groups_failed": 0,
-                        "groups_untested": 0,
                     }
 
                 entry = all_procedures[p.test_procedure_id]
@@ -344,13 +342,10 @@ def admin_stats_page(access_token: str) -> str:
                 total_runs += p.run_count
                 user_run_counts[user.user_id]["run_count"] += p.run_count
 
-                if p.run_count == 0:
-                    entry["groups_untested"] += 1
-                    total_untested += 1
-                elif p.latest_all_criteria_met:
+                if p.run_count > 0 and p.latest_all_criteria_met:
                     entry["groups_passed"] += 1
                     total_passed += 1
-                else:
+                elif p.run_count > 0:
                     entry["groups_failed"] += 1
                     total_failed += 1
 
@@ -368,7 +363,6 @@ def admin_stats_page(access_token: str) -> str:
         total_runs=total_runs,
         total_passed=total_passed,
         total_failed=total_failed,
-        total_untested=total_untested,
         compliance_classes_tested=len(compliance_classes_tested),
         version_counts=version_counts,
         user_leaderboard=user_leaderboard,
