@@ -315,6 +315,7 @@ def admin_stats_page(access_token: str) -> str:
 
     # Fetch procedure summaries for every run group to get accurate run counts
     all_procedures: dict[str, dict] = {}
+    max_run_number = 0
     total_runs = 0
     total_passed = 0
     total_failed = 0
@@ -352,6 +353,9 @@ def admin_stats_page(access_token: str) -> str:
                 if p.classes:
                     compliance_classes_tested.update(p.classes)
 
+                if p.latest_run_id and p.latest_run_id > max_run_number:
+                    max_run_number = p.latest_run_id
+
     total_users = len(users)
     procedures_list = sorted(all_procedures.values(), key=lambda x: x["total_run_count"], reverse=True)
     user_leaderboard = sorted(user_run_counts.values(), key=lambda x: x["run_count"], reverse=True)
@@ -367,6 +371,7 @@ def admin_stats_page(access_token: str) -> str:
         version_counts=version_counts,
         user_leaderboard=user_leaderboard,
         procedures=procedures_list[:20],
+        max_run_number=max_run_number,
     )
 
 
