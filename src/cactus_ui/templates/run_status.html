@@ -174,7 +174,13 @@
     <div class="card status-container ">
         <div class="card-body">
             <h5 class="card-title">Steps</h5>
-            <div id="step-instructions"></div>
+            <div id="step-instructions-container" style="display: none;">
+                <div class="alert alert-primary" role="alert">
+                    <div id="step-instructions"></div>
+                    <div id="step-proceed"></div>
+                    <div id="step-proceed-alert"></div>
+                </div>
+            </div>
             <table class="table">
                 <tbody id="update-steps-table"></tbody>
             </table>
@@ -357,6 +363,7 @@
     var timelineChart = null;
     var timelineActivityChart = null;
     var cachedXsdRequests = null;
+    var proceedState = null;
     const runId = parseInt("{{ run_id }}");
     const isAdminView = "{{ is_admin_view }}" === 'True';
     const userButtonsState = "{{ user_buttons_state }}";
@@ -882,6 +889,13 @@
         </div>`;
     }
 
+    function errorBanner(message) {
+        return `
+        <div class="alert alert-danger" role="alert" style="margin-top: 20px;">
+            ${message}
+        </div>`;
+    }
+
     function getStepInstructions(instructions) {
         fragments = []
         fragments.push(`
@@ -894,10 +908,6 @@
         fragments.push(`
             </ul>
         </p>`);
-        fragments.push(`
-        <div id='step-proceed'>
-        </div>
-        `);
         return fragments.join("");
     }
 
@@ -1471,19 +1481,38 @@
     }
 
     function createProceedButton(uri, buttonLabel) {
+        const stepAlertElement = document.getElementById('step-proceed-alert');
+
         const proceedButton = document.createElement("button");
         proceedButton.type = 'button';
         proceedButton.classList.add("btn","btn-primary");
         proceedButton.innerText = buttonLabel;
         proceedButton.addEventListener("click", () => {
-            console.log("Proceed button clicked.");
+            proceedState = "sending";
+            stepAlertElement.innerHTML = ''; // remove any error message
+            proceedButton.innerHTML = spinner();
             xhrRequest(uri, (content) => {
-                console.log("Proceed worked", content)
+                // Success. The next status update will handle removing the proceed button
+                proceedState == null;
             }, (status, content) => {
+                // Something went wrong
+                proceedState = "errored";
                 console.error("Proceed failed", status, content)
+                // reset button text (removing spinner) so user know's they can try again
+                proceedButton.innerText = buttonLabel;
+                const stepAlertElement = document.getElementById('step-proceed-alert');
+                stepAlertElement.innerHTML = errorBanner("There was an error proceeding to the next step. Please try again.");
             });
         });
         return proceedButton;
+    }
+
+    function spinner() {
+        const spinner = `
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <span class="sr-only">Loading...</span>
+        `;
+        return spinner;
     }
 
     // STATUS UPDATES
@@ -1556,23 +1585,33 @@
         const xsdTable = document.getElementById('update-xsd-table');
         xsdTable.innerHTML = xsdTableBody(status.request_history ?? []).join("");
 
-        // update step instructions
+        // update step instructions and proceed button (if present)
         if ("{{run_status}}" === "started") {
-            stepInstructionsEl = document.getElementById('step-instructions')
+            stepInstructionsElement = document.getElementById('step-instructions');
+            stepProceedElement = document.getElementById('step-proceed');
+            stepInstructionsContainer = document.getElementById('step-instructions-container');
             if (instructions.length > 0) {
-                stepInstructionsEl.innerHTML = alertBanner(getStepInstructions(instructions));
+                // Add the instructions
+                stepInstructionsElement.innerHTML = getStepInstructions(instructions);
+
+                // Update step proceed section
+                if (isProceedStepActive(status.step_status) && proceedState == null) {
+                    proceedState = "active";
+                    const proceedButtonLabel =  'Proceed to next step →';
+                    stepProceedElement.appendChild(createProceedButton(proceedUri, proceedButtonLabel));
+                }
+
+                // Make instructions container visible
+                stepInstructionsContainer.style.display = "block";
             } else {
-                stepInstructionsEl.innerHTML = ""
+                // We don't have any instructions so hide the container and flush out any superfluous elements.
+                stepInstructionsContainer.style.display = "none";
+                stepInstructionsElement.innerHTML = "";
+                stepProceedElement.innerHTML = "";
             }
         }
 
-        // update step proceed section
-        const showProceedButton = isProceedStepActive(status.step_status);
-        if ("{{run_status}}" === "started" && showProceedButton) {
-            stepProceedElement = document.getElementById('step-proceed');
-            stepProceedElement.innerHTML = '';
-            stepProceedElement.appendChild(createProceedButton(proceedUri, 'Proceed to next step'));
-        }
+
 
         // update timeline charts
         updateChart(
