@@ -560,7 +560,7 @@ def delete_run_group(access_token: str, run_group_id: int) -> bool:
 
 
 def send_proceed(access_token: str, run_id: int) -> orchestrator.ProceedResponse:
-    uri = generate_uri(orchestrator.uri.Proceed.format(run_id=run_id))
+    uri = generate_uri(orchestrator.uri.RunProceed.format(run_id=run_id))
     response = safe_request(
         "GET",
         uri,
