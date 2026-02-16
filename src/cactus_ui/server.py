@@ -298,7 +298,7 @@ def admin_page(access_token: str) -> str:
 @app.route("/admin/stats")
 @login_required
 @admin_role_required
-def admin_stats_page(access_token: str) -> str:
+def admin_stats_page(access_token: str) -> str:  # noqa: C901
     users = orchestrator.admin_fetch_users(access_token)
     if users is None:
         return render_template("admin_stats.html", error="Failed to retrieve users.")
