@@ -9,7 +9,10 @@
 <div class="alert alert-danger">{{ error }}</div>
 {% else %}
 <div class="max-page-height scroll-parent" style="padding-top:10px; display: flex; flex-direction: column;">
-    <h2>Admin</h2>
+    <div class="d-flex justify-content-between align-items-center">
+        <h2>Admin</h2>
+        <a href="{{ url_for('admin_stats_page') }}" class="btn btn-outline-success btn-sm" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin me-1\'></i>Loading...';">Platform Stats</a>
+    </div>
 
     <form class="form-inline form-margin">
         <input id="filter-users-input" class="form-control mr-sm-2 search" type="search"

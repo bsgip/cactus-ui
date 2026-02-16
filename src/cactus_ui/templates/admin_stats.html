@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Platform Stats - CACTUS{% endblock %}
+
+{% block content %}
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% else %}
+<div style="padding-top:10px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Platform Stats</h2>
+        <a href="{{ url_for('admin_page') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i>Back to Admin
+        </a>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm border-start border-4 border-success">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-play text-success mb-2" style="font-size: 1.4rem;"></i>
+                    <div class="fs-2 fw-bold">{{ max_run_number }}</div>
+                    <div class="text-muted small">Total Runs</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm border-start border-4 border-primary">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-users text-primary mb-2" style="font-size: 1.4rem;"></i>
+                    <div class="fs-2 fw-bold">{{ total_users }}</div>
+                    <div class="text-muted small">Total Users</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm border-start border-4 border-info">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-layer-group text-info mb-2" style="font-size: 1.4rem;"></i>
+                    <div class="fs-2 fw-bold">{{ total_run_groups }}</div>
+                    <div class="text-muted small">Run Groups</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm border-start border-4 border-warning">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-shield-alt text-warning mb-2" style="font-size: 1.4rem;"></i>
+                    <div class="fs-2 fw-bold">{{ compliance_classes_tested }}</div>
+                    <div class="text-muted small">Compliance Classes Covered</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <!-- CSIP-AUS Versions -->
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold"><i class="fas fa-code-branch me-2"></i>CSIP-AUS Versions</div>
+                <ul class="list-group list-group-flush">
+                    {% for version, count in version_counts.items() | sort %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <code>{{ version }}</code>
+                        <span class="badge bg-success rounded-pill">{{ count }} run group{{ 's' if count != 1 }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Pass / Fail -->
+        <div class="col-md-8 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold"><i class="fas fa-chart-bar me-2"></i>Pass / Fail (latest run per procedure per group)</div>
+                <div class="card-body">
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <div class="fs-3 fw-bold text-success">{{ total_passed }}</div>
+                            <div class="text-muted small">Passed</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="fs-3 fw-bold text-danger">{{ total_failed }}</div>
+                            <div class="text-muted small">Failed</div>
+                        </div>
+                    </div>
+                    {% set total_assessed = total_passed + total_failed %}
+                    {% if total_assessed > 0 %}
+                    {% set pass_rate = (total_passed / total_assessed * 100) | round(1) %}
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span>Pass rate</span>
+                        <strong>{{ pass_rate }}%</strong>
+                    </div>
+                    <div class="progress" style="height: 24px;">
+                        <div class="progress-bar bg-success" style="width: {{ pass_rate }}%;">{{ total_passed }} passed</div>
+                        <div class="progress-bar bg-danger" style="width: {{ 100 - pass_rate }}%;">{{ total_failed }} failed</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Most Tested Procedures -->
+    {% if procedures %}
+    {% set max_proc_runs = procedures[0].total_run_count if procedures[0].total_run_count > 0 else 1 %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header fw-bold"><i class="fas fa-microscope me-2"></i>Most Tested Procedures</div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Procedure</th>
+                        <th>Category</th>
+                        <th>Runs</th>
+                        <th></th>
+                        <th>Passed</th>
+                        <th>Failed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in procedures %}
+                    <tr>
+                        <td><small><code>{{ p.test_procedure_id }}</code></small></td>
+                        <td><small>{{ p.category }}</small></td>
+                        <td class="fw-bold">{{ p.total_run_count }}</td>
+                        <td style="width: 25%;">
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-success" style="width: {{ (p.total_run_count / max_proc_runs * 100) | round(1) }}%;"></div>
+                            </div>
+                        </td>
+                        <td class="text-success">{{ p.groups_passed }}</td>
+                        <td class="text-danger">{{ p.groups_failed }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Runs Per User (bar chart) -->
+    {% set max_user_runs = user_leaderboard[0].run_count if user_leaderboard and user_leaderboard[0].run_count > 0 else 1 %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header fw-bold"><i class="fas fa-trophy me-2"></i>Runs Per User</div>
+        <div class="card-body py-2">
+            {% for u in user_leaderboard[:20] %}
+            <div class="d-flex align-items-center mb-1" style="height: 28px;">
+                <span class="text-muted me-2" style="min-width: 24px; text-align: right; font-size: 0.85rem;">{{ loop.index }}</span>
+                <span class="me-2 text-truncate" style="min-width: 140px; max-width: 200px; font-size: 0.9rem;">{{ u.name if u.name else 'User ' ~ u.user_id }}</span>
+                <div class="flex-grow-1 me-2">
+                    <div class="progress" style="height: 16px;">
+                        <div class="progress-bar bg-success" style="width: {{ (u.run_count / max_user_runs * 100) | round(1) }}%;"></div>
+                    </div>
+                </div>
+                <span class="fw-bold" style="min-width: 36px; text-align: right; font-size: 0.9rem;">{{ u.run_count }}</span>
+            </div>
+            {% endfor %}
+            {% if user_leaderboard | length > 20 %}
+            <div id="extra-users" class="d-none">
+                {% for u in user_leaderboard[20:] %}
+                <div class="d-flex align-items-center mb-1" style="height: 28px;">
+                    <span class="text-muted me-2" style="min-width: 24px; text-align: right; font-size: 0.85rem;">{{ loop.index + 20 }}</span>
+                    <span class="me-2 text-truncate" style="min-width: 140px; max-width: 200px; font-size: 0.9rem;">{{ u.name if u.name else 'User ' ~ u.user_id }}</span>
+                    <div class="flex-grow-1 me-2">
+                        <div class="progress" style="height: 16px;">
+                            <div class="progress-bar bg-success" style="width: {{ (u.run_count / max_user_runs * 100) | round(1) }}%;"></div>
+                        </div>
+                    </div>
+                    <span class="fw-bold" style="min-width: 36px; text-align: right; font-size: 0.9rem;">{{ u.run_count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            <button class="btn btn-outline-secondary btn-sm mt-2" onclick="document.getElementById('extra-users').classList.remove('d-none'); this.style.display='none';">
+                Show all {{ user_leaderboard | length }} users
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -33,6 +33,8 @@
                 {% if permissions and "admin:all" in permissions %}
                 <a class="text-white me-3" href="{{ url_for('admin_page') }}">Admin</a>
                 <span class="text-white">|</span>
+                <a class="text-white mx-3" href="{{ url_for('admin_stats_page') }}" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i>';">Stats</a>
+                <span class="text-white">|</span>
                 {% endif %}
                 <a class="text-white mx-3" href="{{ url_for('procedures_page') }}">Procedures</a>
                 <span class="text-white">|</span>
