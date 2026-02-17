@@ -559,6 +559,24 @@ def delete_run_group(access_token: str, run_group_id: int) -> bool:
     return True
 
 
+def send_proceed(access_token: str, run_id: str) -> orchestrator.ProceedResponse | None:
+    uri = generate_uri(orchestrator.uri.RunProceed.format(run_id=run_id))
+    response = safe_request(
+        "GET",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+    )
+    if response is None or not is_success_response(response):
+        return None
+
+    body_data = orchestrator.ProceedResponse.from_json(response.text)
+    if isinstance(body_data, list):
+        return body_data[0]
+    else:
+        return body_data
+
+
 # ----------------------------------------------------------------------------------
 #
 #  Admin only functions
