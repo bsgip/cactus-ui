@@ -310,8 +310,16 @@ def admin_stats_page(access_token: str) -> str:
         reverse=True,
     )
 
-    # Sort runs_per_week by week key for chronological display
-    runs_per_week = dict(sorted(stats.runs_per_week.items()))
+    # Sort runs_per_week by week key and convert week key to label
+    def _week_label(week_str: str) -> str:
+        try:
+            year_s, week_s = week_str.split("-W")
+            dt = datetime.strptime(f"{year_s}-W{int(week_s):02d}-1", "%G-W%V-%u")
+            return dt.strftime("%-d %b")
+        except (ValueError, AttributeError):
+            return week_str
+
+    runs_per_week = {_week_label(k): v for k, v in sorted(stats.runs_per_week.items())}
 
     # Sort procedures by total_runs descending (all procedures are returned, not just top 20)
     procedures = sorted(stats.procedures, key=lambda p: p.get("total_runs", 0), reverse=True)

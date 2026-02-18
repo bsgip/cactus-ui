@@ -21,9 +21,9 @@
             <div class="card shadow-sm border-start border-4 border-success">
                 <div class="card-body text-center py-3">
                     <i class="fas fa-play text-success mb-2" style="font-size: 1.4rem;"></i>
-                    <div class="fs-2 fw-bold">{{ total_runs }}</div>
+                    <div class="fs-2 fw-bold">{{ max_run_number }}</div>
                     <div class="text-muted small">Total Runs</div>
-                    <div class="text-muted" style="font-size: 0.7rem;">~{{ max_run_number }} incl. deleted</div>
+                    <div class="text-muted" style="font-size: 0.7rem;">incl. {{ max_run_number - total_runs }} deleted</div>
                 </div>
             </div>
         </div>
@@ -33,6 +33,7 @@
                     <i class="fas fa-users text-primary mb-2" style="font-size: 1.4rem;"></i>
                     <div class="fs-2 fw-bold">{{ total_users }}</div>
                     <div class="text-muted small">Total Users</div>
+                    <div style="font-size: 0.7rem;">&nbsp;</div>
                 </div>
             </div>
         </div>
@@ -42,6 +43,7 @@
                     <i class="fas fa-layer-group text-info mb-2" style="font-size: 1.4rem;"></i>
                     <div class="fs-2 fw-bold">{{ total_run_groups }}</div>
                     <div class="text-muted small">Run Groups</div>
+                    <div style="font-size: 0.7rem;">&nbsp;</div>
                 </div>
             </div>
         </div>
@@ -111,18 +113,20 @@
     <div class="card shadow-sm mb-4">
         <div class="card-header fw-bold"><i class="fas fa-calendar-week me-2"></i>Tests Per Week</div>
         <div class="card-body py-2">
-            <div class="d-flex align-items-end" style="height: 120px; gap: 2px;">
+            <div class="d-flex align-items-end" style="gap: 2px; height: 110px;">
                 {% for week, count in runs_per_week.items() %}
+                {% set bar_h = (count / max_week_runs * 80) | int %}
+                {% if bar_h < 2 %}{% set bar_h = 2 %}{% endif %}
                 <div class="d-flex flex-column align-items-center flex-fill" style="min-width: 0;">
-                    <small class="text-muted mb-1" style="font-size: 0.65rem;">{{ count }}</small>
-                    <div class="w-100 bg-success rounded-top" style="height: {{ (count / max_week_runs * 100) | round(1) }}%; min-height: 2px;" title="{{ week }}: {{ count }} runs"></div>
+                    <small class="text-muted" style="font-size: 0.6rem; line-height: 1.2;">{{ count }}</small>
+                    <div class="w-100 bg-success rounded-top" style="height: {{ bar_h }}px;" title="{{ week }}: {{ count }} runs"></div>
                 </div>
                 {% endfor %}
             </div>
-            <div class="d-flex" style="gap: 2px; margin-top: 4px;">
+            <div class="d-flex" style="gap: 2px; margin-top: 3px; border-top: 1px solid #dee2e6;">
                 {% for week, count in runs_per_week.items() %}
                 <div class="text-center flex-fill" style="min-width: 0;">
-                    <small class="text-muted text-truncate d-block" style="font-size: 0.6rem;">{{ week[-3:] }}</small>
+                    <small class="text-muted text-truncate d-block" style="font-size: 0.6rem;">{{ week }}</small>
                 </div>
                 {% endfor %}
             </div>
@@ -232,7 +236,7 @@
             {% for u in user_leaderboard[:20] %}
             <div class="d-flex align-items-center mb-1" style="height: 28px;">
                 <span class="text-muted me-2" style="min-width: 24px; text-align: right; font-size: 0.85rem;">{{ loop.index }}</span>
-                <span class="me-2 text-truncate" style="min-width: 140px; max-width: 200px; font-size: 0.9rem;">{{ u.name }}</span>
+                <span class="me-2" style="width: 180px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem;">{{ u.name }}</span>
                 <div class="flex-grow-1 me-2">
                     <div class="progress" style="height: 16px;">
                         <div class="progress-bar bg-success" style="width: {{ (u.run_count / max_user_runs * 100) | round(1) }}%;"></div>
@@ -246,7 +250,7 @@
                 {% for u in user_leaderboard[20:] %}
                 <div class="d-flex align-items-center mb-1" style="height: 28px;">
                     <span class="text-muted me-2" style="min-width: 24px; text-align: right; font-size: 0.85rem;">{{ loop.index + 20 }}</span>
-                    <span class="me-2 text-truncate" style="min-width: 140px; max-width: 200px; font-size: 0.9rem;">{{ u.name }}</span>
+                    <span class="me-2" style="width: 180px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem;">{{ u.name }}</span>
                     <div class="flex-grow-1 me-2">
                         <div class="progress" style="height: 16px;">
                             <div class="progress-bar bg-success" style="width: {{ (u.run_count / max_user_runs * 100) | round(1) }}%;"></div>
