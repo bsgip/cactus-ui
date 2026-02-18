@@ -298,80 +298,33 @@ def admin_page(access_token: str) -> str:
 @app.route("/admin/stats")
 @login_required
 @admin_role_required
-def admin_stats_page(access_token: str) -> str:  # noqa: C901
-    users = orchestrator.admin_fetch_users(access_token)
-    if users is None:
-        return render_template("admin_stats.html", error="Failed to retrieve users.")
+def admin_stats_page(access_token: str) -> str:
+    stats = orchestrator.admin_fetch_stats(access_token)
+    if stats is None:
+        return render_template("admin_stats.html", error="Failed to retrieve stats.")
 
-    total_run_groups = 0
-    version_counts: dict[str, int] = {}
-    user_run_counts: dict[int, dict] = {}
+    # Convert runs_per_user dict to sorted leaderboard list for the template
+    user_leaderboard = sorted(
+        [{"name": name, "run_count": count} for name, count in stats.runs_per_user.items()],
+        key=lambda x: x["run_count"],
+        reverse=True,
+    )
 
-    for user in users:
-        total_run_groups += len(user.run_groups)
-        user_run_counts[user.user_id] = {"user_id": user.user_id, "name": user.name, "run_count": 0}
-        for rg in user.run_groups:
-            version_counts[rg.csip_aus_version] = version_counts.get(rg.csip_aus_version, 0) + 1
-
-    # Fetch procedure summaries for every run group to get accurate run counts
-    all_procedures: dict[str, dict] = {}
-    max_run_number = 0
-    total_runs = 0
-    total_passed = 0
-    total_failed = 0
-    compliance_classes_tested: set[str] = set()
-
-    for user in users:
-        for rg in user.run_groups:
-            procedures = orchestrator.admin_fetch_group_procedure_run_summaries(access_token, rg.run_group_id)
-            if procedures is None:
-                continue
-
-            for p in procedures:
-                if p.test_procedure_id not in all_procedures:
-                    all_procedures[p.test_procedure_id] = {
-                        "test_procedure_id": p.test_procedure_id,
-                        "description": p.description,
-                        "category": p.category,
-                        "total_run_count": 0,
-                        "groups_passed": 0,
-                        "groups_failed": 0,
-                    }
-
-                entry = all_procedures[p.test_procedure_id]
-                entry["total_run_count"] += p.run_count
-                total_runs += p.run_count
-                user_run_counts[user.user_id]["run_count"] += p.run_count
-
-                if p.run_count > 0 and p.latest_all_criteria_met:
-                    entry["groups_passed"] += 1
-                    total_passed += 1
-                elif p.run_count > 0:
-                    entry["groups_failed"] += 1
-                    total_failed += 1
-
-                if p.classes:
-                    compliance_classes_tested.update(p.classes)
-
-                if p.latest_run_id and p.latest_run_id > max_run_number:
-                    max_run_number = p.latest_run_id
-
-    total_users = len(users)
-    procedures_list = sorted(all_procedures.values(), key=lambda x: x["total_run_count"], reverse=True)
-    user_leaderboard = sorted(user_run_counts.values(), key=lambda x: x["run_count"], reverse=True)
+    # Sort runs_per_week by week key for chronological display
+    runs_per_week = dict(sorted(stats.runs_per_week.items()))
 
     return render_template(
         "admin_stats.html",
-        total_users=total_users,
-        total_run_groups=total_run_groups,
-        total_runs=total_runs,
-        total_passed=total_passed,
-        total_failed=total_failed,
-        compliance_classes_tested=len(compliance_classes_tested),
-        version_counts=version_counts,
+        total_users=stats.total_users,
+        total_run_groups=stats.total_run_groups,
+        total_runs=stats.total_runs,
+        total_passed=stats.total_passed,
+        total_failed=stats.total_failed,
+        version_counts=stats.version_counts,
         user_leaderboard=user_leaderboard,
-        procedures=procedures_list[:20],
-        max_run_number=max_run_number,
+        procedures=stats.procedures,
+        max_run_number=stats.max_run_id,
+        runs_per_week=runs_per_week,
     )
 
 
