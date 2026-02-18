@@ -50,7 +50,8 @@
                 <div class="card-body text-center py-3">
                     <i class="fas fa-check-circle text-warning mb-2" style="font-size: 1.4rem;"></i>
                     <div class="fs-2 fw-bold">{{ total_passed }}</div>
-                    <div class="text-muted small">Runs Passed</div>
+                    <div class="text-muted small">Currently Passing</div>
+                    <div class="text-muted" style="font-size: 0.7rem;">latest run per procedure per group</div>
                 </div>
             </div>
         </div>
@@ -75,16 +76,16 @@
         <!-- Pass / Fail -->
         <div class="col-md-8 mb-3">
             <div class="card shadow-sm h-100">
-                <div class="card-header fw-bold"><i class="fas fa-chart-bar me-2"></i>Pass / Fail (latest run per procedure per group)</div>
+                <div class="card-header fw-bold"><i class="fas fa-chart-bar me-2"></i>Current Compliance (latest run per procedure per group)</div>
                 <div class="card-body">
                     <div class="row text-center mb-3">
                         <div class="col-6">
                             <div class="fs-3 fw-bold text-success">{{ total_passed }}</div>
-                            <div class="text-muted small">Passed</div>
+                            <div class="text-muted small">Currently Passing</div>
                         </div>
                         <div class="col-6">
                             <div class="fs-3 fw-bold text-danger">{{ total_failed }}</div>
-                            <div class="text-muted small">Failed</div>
+                            <div class="text-muted small">Currently Failing</div>
                         </div>
                     </div>
                     {% set total_assessed = total_passed + total_failed %}
@@ -95,8 +96,8 @@
                         <strong>{{ pass_rate }}%</strong>
                     </div>
                     <div class="progress" style="height: 24px;">
-                        <div class="progress-bar bg-success" style="width: {{ pass_rate }}%;">{{ total_passed }} passed</div>
-                        <div class="progress-bar bg-danger" style="width: {{ 100 - pass_rate }}%;">{{ total_failed }} failed</div>
+                        <div class="progress-bar bg-success" style="width: {{ pass_rate }}%;">{{ total_passed }} passing</div>
+                        <div class="progress-bar bg-danger" style="width: {{ 100 - pass_rate }}%;">{{ total_failed }} failing</div>
                     </div>
                     {% endif %}
                 </div>
@@ -129,41 +130,97 @@
     </div>
     {% endif %}
 
-    <!-- Most Tested Procedures -->
+    <!-- Test Procedures -->
     {% if procedures %}
-    {% set max_proc_runs = procedures[0].total_run_count if procedures[0].total_run_count > 0 else 1 %}
     <div class="card shadow-sm mb-4">
-        <div class="card-header fw-bold"><i class="fas fa-microscope me-2"></i>Most Tested Procedures</div>
+        <div class="card-header fw-bold">
+            <i class="fas fa-microscope me-2"></i>Test Procedures
+            <span class="badge bg-secondary ms-1">{{ procedures | length }}</span>
+            <small class="text-muted fw-normal ms-2">sorted by total runs · pass rate = latest run per group</small>
+        </div>
         <div class="table-responsive">
             <table class="table table-sm table-hover mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>Procedure</th>
-                        <th>Category</th>
-                        <th>Runs</th>
-                        <th></th>
-                        <th>Passed</th>
-                        <th>Failed</th>
+                        <th>Classes</th>
+                        <th title="Total individual runs across all time">Total Runs</th>
+                        <th title="Current compliance state based on latest run per procedure per run group" style="min-width: 180px;">Pass Rate (current)</th>
+                        <th class="text-success" title="Run groups currently passing this procedure">Passing</th>
+                        <th class="text-danger" title="Run groups currently failing this procedure">Failing</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for p in procedures %}
+                    {% for p in procedures[:20] %}
+                    {% set latest_assessed = (p.latest_passed | default(0)) + (p.latest_failed | default(0)) %}
+                    {% set pass_pct = ((p.latest_passed | default(0)) / latest_assessed * 100) | round(1) if latest_assessed > 0 else none %}
                     <tr>
                         <td><small><code>{{ p.test_procedure_id }}</code></small></td>
-                        <td><small>{{ p.category }}</small></td>
-                        <td class="fw-bold">{{ p.total_run_count }}</td>
-                        <td style="width: 25%;">
-                            <div class="progress" style="height: 8px;">
-                                <div class="progress-bar bg-success" style="width: {{ (p.total_run_count / max_proc_runs * 100) | round(1) }}%;"></div>
-                            </div>
+                        <td>
+                            {% for cls in p.classes | default([]) %}
+                            <span class="badge bg-secondary me-1" style="font-size: 0.65rem;">{{ cls }}</span>
+                            {% endfor %}
                         </td>
-                        <td class="text-success">{{ p.groups_passed }}</td>
-                        <td class="text-danger">{{ p.groups_failed }}</td>
+                        <td class="fw-bold">{{ p.total_runs | default(0) }}</td>
+                        <td>
+                            {% if pass_pct is not none %}
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 10px;">
+                                    <div class="progress-bar bg-success" style="width: {{ pass_pct }}%;" title="{{ p.latest_passed | default(0) }} passing"></div>
+                                    <div class="progress-bar bg-danger" style="width: {{ 100 - pass_pct }}%;" title="{{ p.latest_failed | default(0) }} failing"></div>
+                                </div>
+                                <small class="text-muted" style="white-space: nowrap;">{{ pass_pct }}%</small>
+                            </div>
+                            {% else %}
+                            <small class="text-muted">—</small>
+                            {% endif %}
+                        </td>
+                        <td class="text-success fw-bold">{{ p.latest_passed | default(0) }}</td>
+                        <td class="text-danger fw-bold">{{ p.latest_failed | default(0) }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
+                {% if procedures | length > 20 %}
+                <tbody id="extra-procedures" class="d-none">
+                    {% for p in procedures[20:] %}
+                    {% set latest_assessed = (p.latest_passed | default(0)) + (p.latest_failed | default(0)) %}
+                    {% set pass_pct = ((p.latest_passed | default(0)) / latest_assessed * 100) | round(1) if latest_assessed > 0 else none %}
+                    <tr>
+                        <td><small><code>{{ p.test_procedure_id }}</code></small></td>
+                        <td>
+                            {% for cls in p.classes | default([]) %}
+                            <span class="badge bg-secondary me-1" style="font-size: 0.65rem;">{{ cls }}</span>
+                            {% endfor %}
+                        </td>
+                        <td class="fw-bold">{{ p.total_runs | default(0) }}</td>
+                        <td>
+                            {% if pass_pct is not none %}
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 10px;">
+                                    <div class="progress-bar bg-success" style="width: {{ pass_pct }}%;" title="{{ p.latest_passed | default(0) }} passing"></div>
+                                    <div class="progress-bar bg-danger" style="width: {{ 100 - pass_pct }}%;" title="{{ p.latest_failed | default(0) }} failing"></div>
+                                </div>
+                                <small class="text-muted" style="white-space: nowrap;">{{ pass_pct }}%</small>
+                            </div>
+                            {% else %}
+                            <small class="text-muted">—</small>
+                            {% endif %}
+                        </td>
+                        <td class="text-success fw-bold">{{ p.latest_passed | default(0) }}</td>
+                        <td class="text-danger fw-bold">{{ p.latest_failed | default(0) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% endif %}
             </table>
         </div>
+        {% if procedures | length > 20 %}
+        <div class="card-footer">
+            <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('extra-procedures').classList.remove('d-none'); this.style.display='none';">
+                Show all {{ procedures | length }} procedures
+            </button>
+        </div>
+        {% endif %}
     </div>
     {% endif %}
 

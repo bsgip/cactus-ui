@@ -313,6 +313,9 @@ def admin_stats_page(access_token: str) -> str:
     # Sort runs_per_week by week key for chronological display
     runs_per_week = dict(sorted(stats.runs_per_week.items()))
 
+    # Sort procedures by total_runs descending (all procedures are returned, not just top 20)
+    procedures = sorted(stats.procedures, key=lambda p: p.get("total_runs", 0), reverse=True)
+
     return render_template(
         "admin_stats.html",
         total_users=stats.total_users,
@@ -322,7 +325,7 @@ def admin_stats_page(access_token: str) -> str:
         total_failed=stats.total_failed,
         version_counts=stats.version_counts,
         user_leaderboard=user_leaderboard,
-        procedures=stats.procedures,
+        procedures=procedures,
         max_run_number=stats.max_run_id,
         runs_per_week=runs_per_week,
     )
