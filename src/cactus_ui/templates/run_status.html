@@ -204,7 +204,7 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h5 class="card-title mb-0">Active Device Metadata</h5>
-                <button id="der-details-btn" class="btn btn-sm btn-outline-secondary" style="display:none;"
+                <button id="der-details-btn" class="btn btn-sm btn-outline-secondary"
                     data-bs-toggle="modal" data-bs-target="#derDetailsModal">
                     Device Details
                 </button>
@@ -613,18 +613,9 @@
         const cap = endDeviceMetadata?.der_capability;
         const set = endDeviceMetadata?.der_settings;
         const sta = endDeviceMetadata?.der_status;
+        const notSet = '<span class="text-muted">Not set</span>';
 
-        if (!cap && !set && !sta) {
-            return '<p class="text-muted">No DER data available.</p>';
-        }
-
-        let html = '';
-
-        if (cap) {
-            html += `
-                <h6 class="fw-semibold border-bottom pb-1 mt-2">DER Capability</h6>
-                <table class="table table-sm">
-                    <tbody>
+        const capBody = cap ? `
                         <tr><th>DER Type</th><td>${renderDerValue(cap.der_type)}</td></tr>
                         <tr><th>Modes Supported</th><td>${renderBadges(cap.modes_supported)}</td></tr>
                         <tr><th>Max W</th><td>${renderDerUnit(cap.max_w, 'W')}</td></tr>
@@ -635,16 +626,10 @@
                         <tr><th>Max Charge Rate</th><td>${renderDerUnit(cap.max_charge_rate_w, 'W')}</td></tr>
                         <tr><th>Max Discharge Rate</th><td>${renderDerUnit(cap.max_discharge_rate_w, 'W')}</td></tr>
                         <tr><th>Max Wh</th><td>${renderDerUnit(cap.max_wh, 'Wh')}</td></tr>
-                        <tr><th>DOE Modes Supported</th><td>${renderBadges(cap.doe_modes_supported)}</td></tr>
-                    </tbody>
-                </table>`;
-        }
+                        <tr><th>DOE Modes Supported</th><td>${renderBadges(cap.doe_modes_supported)}</td></tr>`
+            : `<tr><td>${notSet}</td></tr>`;
 
-        if (set) {
-            html += `
-                <h6 class="fw-semibold border-bottom pb-1 mt-3">DER Settings</h6>
-                <table class="table table-sm">
-                    <tbody>
+        const setBody = set ? `
                         <tr><th>Modes Enabled</th><td>${renderBadges(set.modes_enabled)}</td></tr>
                         <tr><th>Max W</th><td>${renderDerUnit(set.max_w, 'W')}</td></tr>
                         <tr><th>Max VA</th><td>${renderDerUnit(set.max_va, 'VA')}</td></tr>
@@ -653,16 +638,10 @@
                         <tr><th>Max Charge Rate</th><td>${renderDerUnit(set.max_charge_rate_w, 'W')}</td></tr>
                         <tr><th>Max Discharge Rate</th><td>${renderDerUnit(set.max_discharge_rate_w, 'W')}</td></tr>
                         <tr><th>Grad W</th><td>${renderDerUnit(set.grad_w, 'W')}</td></tr>
-                        <tr><th>DOE Modes Enabled</th><td>${renderBadges(set.doe_modes_enabled)}</td></tr>
-                    </tbody>
-                </table>`;
-        }
+                        <tr><th>DOE Modes Enabled</th><td>${renderBadges(set.doe_modes_enabled)}</td></tr>`
+            : `<tr><td>${notSet}</td></tr>`;
 
-        if (sta) {
-            html += `
-                <h6 class="fw-semibold border-bottom pb-1 mt-3">DER Status</h6>
-                <table class="table table-sm">
-                    <tbody>
+        const staBody = sta ? `
                         <tr><th>Alarm Status</th><td>${renderBadges(sta.alarm_status)}</td></tr>
                         <tr><th>Generator Connect Status</th><td>${renderBadges(sta.generator_connect_status)}</td></tr>
                         <tr><th>Storage Connect Status</th><td>${renderBadges(sta.storage_connect_status)}</td></tr>
@@ -671,12 +650,16 @@
                         <tr><th>Storage Mode</th><td>${renderDerValue(sta.storage_mode_status)}</td></tr>
                         <tr><th>Local Control Mode</th><td>${renderDerValue(sta.local_control_mode_status)}</td></tr>
                         <tr><th>Manufacturer Status</th><td>${renderDerValue(sta.manufacturer_status)}</td></tr>
-                        <tr><th>State of Charge</th><td>${renderDerValue(sta.state_of_charge_status)}</td></tr>
-                    </tbody>
-                </table>`;
-        }
+                        <tr><th>State of Charge</th><td>${renderDerValue(sta.state_of_charge_status)}</td></tr>`
+            : `<tr><td>${notSet}</td></tr>`;
 
-        return html;
+        return `
+            <h6 class="fw-semibold border-bottom pb-1 mt-2">DER Capability</h6>
+            <table class="table table-sm"><tbody>${capBody}</tbody></table>
+            <h6 class="fw-semibold border-bottom pb-1 mt-3">DER Settings</h6>
+            <table class="table table-sm"><tbody>${setBody}</tbody></table>
+            <h6 class="fw-semibold border-bottom pb-1 mt-3">DER Status</h6>
+            <table class="table table-sm"><tbody>${staBody}</tbody></table>`;
     }
 
     function preconditionChecksTableBody(preconditionChecks) {
@@ -1689,11 +1672,8 @@
         const metadataTable = document.getElementById('update-metadata-table');
         metadataTable.innerHTML = metadataTableBody(status.end_device_metadata).join("");
 
-        // update DER details modal and show button if DER data is present
-        const emd = status.end_device_metadata;
-        const hasDerData = emd && (emd.der_capability || emd.der_settings || emd.der_status);
-        document.getElementById('der-details-btn').style.display = hasDerData ? '' : 'none';
-        document.getElementById('der-details-modal-body').innerHTML = derDetailsModalBody(emd);
+        // update DER details modal body
+        document.getElementById('der-details-modal-body').innerHTML = derDetailsModalBody(status.end_device_metadata);
 
         // update xsd validation errors
         const xsdTable = document.getElementById('update-xsd-table');
