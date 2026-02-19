@@ -304,11 +304,10 @@ def admin_stats_page(access_token: str) -> str:
         return render_template("admin_stats.html", error="Failed to retrieve stats.")
 
     # Convert runs_per_user dict to sorted leaderboard list for the template
-    user_leaderboard = sorted(
-        [{"name": name, "run_count": count} for name, count in stats.runs_per_user.items()],
-        key=lambda x: x["run_count"],
-        reverse=True,
-    )
+    user_leaderboard = [
+        {"name": name, "run_count": count}
+        for name, count in sorted(stats.runs_per_user.items(), key=lambda x: x[1], reverse=True)
+    ]
 
     # Sort runs_per_week by week key and convert week key to label
     def _week_label(week_str: str) -> str:
