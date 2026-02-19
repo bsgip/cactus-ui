@@ -202,10 +202,33 @@
 <div class="row justify-content-center">
     <div class="card status-container">
         <div class="card-body">
-            <h5 class="card-title">Active Device Metadata</h5>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="card-title mb-0">Active Device Metadata</h5>
+                <button id="der-details-btn" class="btn btn-sm btn-outline-secondary"
+                    data-bs-toggle="modal" data-bs-target="#derDetailsModal">
+                    Device Details
+                </button>
+            </div>
             <table class="table">
                 <tbody id="update-metadata-table"></tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="derDetailsModal" tabindex="-1" aria-labelledby="derDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="derDetailsModalLabel">DER Device Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="der-details-modal-body">
+                <p class="text-muted">No DER data available.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>
@@ -569,6 +592,86 @@
         );
 
         return fragments;
+    }
+
+    function renderBadges(items) {
+        if (!items || items.length === 0) return '<span class="text-muted">None</span>';
+        return items.map(i => `<span class="badge bg-secondary me-1">${i}</span>`).join('');
+    }
+
+    function renderDerUnit(value, unit) {
+        if (value === null || value === undefined) return '<span class="text-muted">Not set</span>';
+        return `${value} ${unit}`;
+    }
+
+    function renderDerValue(value) {
+        if (value === null || value === undefined) return '<span class="text-muted">Not set</span>';
+        return value;
+    }
+
+    function derDetailsModalBody(endDeviceMetadata) {
+        const cap = endDeviceMetadata?.der_capability;
+        const set = endDeviceMetadata?.der_settings;
+        const sta = endDeviceMetadata?.der_status;
+        const notSet = '<span class="text-muted">Not set</span>';
+
+        const capBody = cap ? `
+                        <tr><th>DER Type</th><td>${renderDerValue(cap.der_type)}</td></tr>
+                        <tr><th>Modes Supported</th><td>${renderBadges(cap.modes_supported)}</td></tr>
+                        <tr><th>Max W</th><td>${renderDerUnit(cap.max_w, 'W')}</td></tr>
+                        <tr><th>Max VA</th><td>${renderDerUnit(cap.max_va, 'VA')}</td></tr>
+                        <tr><th>Max VAR</th><td>${renderDerUnit(cap.max_var, 'VA')}</td></tr>
+                        <tr><th>Max VAR (neg)</th><td>${renderDerUnit(cap.max_var_neg, 'VA')}</td></tr>
+                        <tr><th>Max A</th><td>${renderDerUnit(cap.max_a, 'A')}</td></tr>
+                        <tr><th>Max Charge Rate</th><td>${renderDerUnit(cap.max_charge_rate_w, 'W')}</td></tr>
+                        <tr><th>Max Discharge Rate</th><td>${renderDerUnit(cap.max_discharge_rate_w, 'W')}</td></tr>
+                        <tr><th>Max Wh</th><td>${renderDerUnit(cap.max_wh, 'Wh')}</td></tr>
+                        <tr><th>DOE Modes Supported</th><td>${renderBadges(cap.doe_modes_supported)}</td></tr>`
+            : `<tr><td>${notSet}</td></tr>`;
+
+        const setBody = set ? `
+                        <tr><th>Modes Enabled</th><td>${renderBadges(set.modes_enabled)}</td></tr>
+                        <tr><th>Max W</th><td>${renderDerUnit(set.max_w, 'W')}</td></tr>
+                        <tr><th>Max VA</th><td>${renderDerUnit(set.max_va, 'VA')}</td></tr>
+                        <tr><th>Max VAR</th><td>${renderDerUnit(set.max_var, 'VA')}</td></tr>
+                        <tr><th>Max VAR (neg)</th><td>${renderDerUnit(set.max_var_neg, 'VA')}</td></tr>
+                        <tr><th>Max Charge Rate</th><td>${renderDerUnit(set.max_charge_rate_w, 'W')}</td></tr>
+                        <tr><th>Max Discharge Rate</th><td>${renderDerUnit(set.max_discharge_rate_w, 'W')}</td></tr>
+                        <tr><th>Grad W</th><td>${renderDerUnit(set.grad_w, 'W')}</td></tr>
+                        <tr><th>DOE Modes Enabled</th><td>${renderBadges(set.doe_modes_enabled)}</td></tr>`
+            : `<tr><td>${notSet}</td></tr>`;
+
+        const staBody = sta ? `
+                        <tr><th>Alarm Status</th><td>${renderBadges(sta.alarm_status)}</td></tr>
+                        <tr><th>Generator Connect Status</th><td>${renderBadges(sta.generator_connect_status)}</td></tr>
+                        <tr><th>Storage Connect Status</th><td>${renderBadges(sta.storage_connect_status)}</td></tr>
+                        <tr><th>Inverter Status</th><td>${renderDerValue(sta.inverter_status)}</td></tr>
+                        <tr><th>Operational Mode</th><td>${renderDerValue(sta.operational_mode_status)}</td></tr>
+                        <tr><th>Storage Mode</th><td>${renderDerValue(sta.storage_mode_status)}</td></tr>
+                        <tr><th>Local Control Mode</th><td>${renderDerValue(sta.local_control_mode_status)}</td></tr>
+                        <tr><th>Manufacturer Status</th><td>${renderDerValue(sta.manufacturer_status)}</td></tr>
+                        <tr><th>State of Charge</th><td>${renderDerValue(sta.state_of_charge_status)}</td></tr>`
+            : `<tr><td>${notSet}</td></tr>`;
+
+        return `
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">DER Capability</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0"><tbody>${capBody}</tbody></table>
+                </div>
+            </div>
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">DER Settings</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0"><tbody>${setBody}</tbody></table>
+                </div>
+            </div>
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">DER Status</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0"><tbody>${staBody}</tbody></table>
+                </div>
+            </div>`;
     }
 
     function preconditionChecksTableBody(preconditionChecks) {
@@ -1580,6 +1683,9 @@
         // update metadata table
         const metadataTable = document.getElementById('update-metadata-table');
         metadataTable.innerHTML = metadataTableBody(status.end_device_metadata).join("");
+
+        // update DER details modal body
+        document.getElementById('der-details-modal-body').innerHTML = derDetailsModalBody(status.end_device_metadata);
 
         // update xsd validation errors
         const xsdTable = document.getElementById('update-xsd-table');
