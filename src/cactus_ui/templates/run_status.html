@@ -654,12 +654,24 @@
             : `<tr><td>${notSet}</td></tr>`;
 
         return `
-            <h6 class="fw-semibold border-bottom pb-1 mt-2">DER Capability</h6>
-            <table class="table table-sm"><tbody>${capBody}</tbody></table>
-            <h6 class="fw-semibold border-bottom pb-1 mt-3">DER Settings</h6>
-            <table class="table table-sm"><tbody>${setBody}</tbody></table>
-            <h6 class="fw-semibold border-bottom pb-1 mt-3">DER Status</h6>
-            <table class="table table-sm"><tbody>${staBody}</tbody></table>`;
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">DER Capability</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0"><tbody>${capBody}</tbody></table>
+                </div>
+            </div>
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">DER Settings</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0"><tbody>${setBody}</tbody></table>
+                </div>
+            </div>
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">DER Status</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0"><tbody>${staBody}</tbody></table>
+                </div>
+            </div>`;
     }
 
     function preconditionChecksTableBody(preconditionChecks) {
