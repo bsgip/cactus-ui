@@ -597,6 +597,16 @@ def get_matchable_description(u: dict) -> str:
     return matchable_description
 
 
+def admin_fetch_stats(access_token: str) -> orchestrator.AdminStatsResponse | None:
+    """Fetch aggregated platform stats (admin only)"""
+    uri = generate_uri(orchestrator.uri.AdminStats)
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return orchestrator.AdminStatsResponse.from_dict(response.json())
+
+
 def admin_fetch_users(access_token: str) -> list[orchestrator.UserWithRunGroupsResponse] | None:
     """Fetch the list of all users (admin only)"""
     uri = generate_uri(orchestrator.uri.AdminUsersList)
