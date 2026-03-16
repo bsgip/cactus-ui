@@ -11,7 +11,6 @@
 <div class="max-page-height scroll-parent" style="padding-top:10px; display: flex; flex-direction: column;">
     <div class="d-flex justify-content-between align-items-center">
         <h2>Admin</h2>
-        <a href="{{ url_for('admin_stats_page') }}" class="btn btn-outline-success btn-sm" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin me-1\'></i>Loading...';">Platform Stats</a>
     </div>
 
     <form class="form-inline form-margin">
@@ -43,6 +42,7 @@
         flex-direction: column;
     }
 
+    /* These are required for scrolling the table - however they prevent the navbar dropdown from working correctly
     .container {
         overflow: hidden;
         height: 100%;
@@ -57,6 +57,7 @@
         flex: 1;
         overflow: auto;
     }
+    */
 
     .form-margin {
         margin: auto 0.2em 0.5em 0.2em;
