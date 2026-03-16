@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Compliance- Cactus{% endblock %}
+
+{% block content %}
+
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% else %}
+<div class="max-page-height scroll-parent" style="padding-top:10px; display: flex; flex-direction: column;">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2>Compliance</h2>
+    </div>
+
+    {% if is_admin_view %}
+    <form class="form-inline form-margin">
+        <input id="filter-requests-input" class="form-control mr-sm-2 search" type="search"
+            placeholder="Search by compliance request IDs" aria-label="Search"
+            oninput="filterRequestsHandler(event)">
+    </form>
+    {% else %}
+    <div class="d-grid gap-2 d-md-block my-3">
+    <button class="btn btn-primary btn-lg" onclick="">
+        New <b>+</b>
+    </button>
+    </div>
+    {% endif %}
+    <div class="make-scroll">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Request ID</th>
+                    <th>Created</th>
+                    {% if is_admin_view %}
+                    <th>Client</th>
+                    {% else %}
+                    <th>Details</th>
+                    {% endif %}
+                    <th>Status</th>
+                    <th>Action(s)</th>
+                </tr>
+            </thead>
+            <tbody id="requests-table-body"></tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+<style>
+    html,
+    body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    /* These are required for scrolling the table - however they prevent the navbar dropdown from working correctly
+    .container {
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .scroll-parent {
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .make-scroll {
+        flex: 1;
+        overflow: auto;
+    }
+    */
+    .form-margin {
+        margin: auto 0.2em 0.5em 0.2em;
+    }
+
+    .separated-links {
+        margin-right: 0.7em;
+    }
+
+    .search {
+        width: 100%;
+        margin-top: 10px;
+        margin-bottom: 5px;
+    }
+
+    .hidden {
+        display: none !important;
+}
+</style>
+<script>
+    const requests = JSON.parse(atob("{{ requests_b64 }}"));
+    const isAdminView = "{{ is_admin_view }}" === 'True';
+
+    function updateRequestsTable(requestsForTable) {
+        const table = document.getElementById("requests-table-body");
+        for (const request of requestsForTable) {
+            const newRow = table.insertRow();
+
+            const requestIdCell = newRow.insertCell(0);
+            const createdCell = newRow.insertCell(1);
+            const detailsCell = newRow.insertCell(2);
+            const statusCell = newRow.insertCell(3);
+            const actionsCell = newRow.insertCell(4);
+
+            // userIdCell.innerHTML = user.user_id;
+            // nameCell.innerHTML = user.name ? `<b>${user.name}<b>` : '-';
+
+            // if (user.run_groups.length == 0) {
+            //     runGroupCell.innerHTML = "No run groups found.";
+            // } else {
+            //     let innerHTML = "";
+            //     for (runGroup of user.run_groups) {
+            //         innerHTML += `<a class="separated-links" href="${runGroupBaseUrl}${runGroup.run_group_id}">${runGroup.name} (${runGroup.run_group_id})<\a>`;
+            //     }
+            //     runGroupCell.innerHTML = innerHTML;
+            // }
+        }
+    }
+
+    function clearRequestsTable() {
+        const myNode = document.getElementById("requests-table-body");
+        while (myNode.firstChild) {
+            myNode.removeChild(myNode.lastChild);
+        }
+    }
+
+    function displayNoRequests() {
+        const table = document.getElementById("requests-table-body");
+        const newRow = table.insertRow();
+        newRow.innerHTML = '<td colspan="5" class="text-center">No Compliance Requests found.</td>'
+    }
+
+    function fetchFilteredRequests(filterText) {
+        if (filterText.length == 0) {
+            return requests;
+        } else {
+            // Perform filtering client-side
+            let filteredRequests = [];
+            for (const request of requests) {
+                if (request.matchable_description.match(filterText)) {
+                    filteredRequests.push(request);
+                }
+            }
+            return filteredRequests;
+        }
+    }
+
+    function filterRequests(filterText) {
+        const filteredRequests = fetchFilteredRequests(filterText);
+        console.log(filteredRequests);
+        clearRequestsTable();
+        if (filteredRequests.length > 0) {
+            updateRequestsTable(filteredRequests);
+        } else {
+            displayNoRequests();
+        }
+
+    }
+
+    function filterRequestsHandler(event) {
+        filterRequests(event.target.value);
+    }
+
+
+    addEventListener("load", (event) => {
+        // Apply filter correctly of page (re)load
+        const filter = document.getElementById("filter-requests-input");
+        filterRequests(filter !== null ? filter.value : "");
+        
+    });
+</script>
+
+{% endblock %}

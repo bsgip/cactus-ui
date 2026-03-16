@@ -283,9 +283,9 @@ def admin_page(access_token: str) -> str:
             # This is pretty crufty - but we're forcing in our own custom property
             # Josh - I wrote this on xmas eve (sue me) - probably better done with a subclass
             raw_data = obj.to_dict()
-            raw_data["matchable_description"] = orchestrator.get_matchable_description(raw_data)
+            raw_data["matchable_description"] = orchestrator.get_matchable_description_for_user(raw_data)
             return raw_data
-        # other rely on standard serialization
+        # Otherwise rely on standard serialization
         return json.dumps(obj)
 
     return render_template(
@@ -1007,6 +1007,57 @@ def playlists_page(access_token: str) -> str | Response:
         return redirect(url_for("config_page"))
 
     return redirect(url_for("group_playlists_page", run_group_id=run_groups.items[0].run_group_id))
+
+
+@app.route("/compliance")
+@login_required
+def compliance_page(access_token: str) -> str:
+    PAGE = "compliance.html"
+    requests = orchestrator.fetch_compliance_requests(access_token)
+    if requests is None:
+        return render_template(PAGE, error="Failed to Compliance Requests.")
+
+    def custom_serializer(obj: Any) -> str | dict:
+        if isinstance(obj, JSONWizard):
+            # Abuse custom serializer to add 'matchable_description' property to requests
+            raw_data = obj.to_dict()
+            raw_data["matchable_description"] = orchestrator.get_matchable_description_for_compliance_requests(raw_data)
+            return raw_data
+        # Otherwise rely on standard serialization
+        return json.dumps(obj)
+
+    return render_template(
+        PAGE,
+        requests=requests,
+        requests_b64=b64encode(json.dumps(requests, default=custom_serializer).encode()).decode(),
+        is_admin_view=False,
+    )
+
+
+@app.route("/admin/compliance")
+@login_required
+@admin_role_required
+def admin_compliance_page(access_token: str) -> str:
+    PAGE = "compliance.html"
+    requests = orchestrator.fetch_compliance_requests(access_token)
+    if requests is None:
+        return render_template(PAGE, error="Failed to Compliance Requests.")
+
+    def custom_serializer(obj: Any) -> str | dict:
+        if isinstance(obj, JSONWizard):
+            # Abuse custom serializer to add 'matchable_description' property to requests
+            raw_data = obj.to_dict()
+            raw_data["matchable_description"] = orchestrator.get_matchable_description_for_compliance_requests(raw_data)
+            return raw_data
+        # Otherwise rely on standard serialization
+        return json.dumps(obj)
+
+    return render_template(
+        PAGE,
+        requests=requests,
+        requests_b64=b64encode(json.dumps(requests, default=custom_serializer).encode()).decode(),
+        is_admin_view=True,
+    )
 
 
 def _handle_initialise_playlist(access_token: str, run_group_id: int) -> str | Response | None:

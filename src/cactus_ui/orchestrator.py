@@ -577,6 +577,9 @@ def send_proceed(access_token: str, run_id: str) -> orchestrator.ProceedResponse
         return body_data
 
 
+def fetch_compliance_requests(access_token: str) -> list[Any] | None:
+    return []
+
 # ----------------------------------------------------------------------------------
 #
 #  Admin only functions
@@ -584,7 +587,7 @@ def send_proceed(access_token: str, run_id: str) -> orchestrator.ProceedResponse
 # ----------------------------------------------------------------------------------
 
 
-def get_matchable_description(u: dict) -> str:
+def get_matchable_description_for_user(u: dict) -> str:
     """Convert a user into a string that can be matched against a search term
 
     | characters are used to separate fields to prevent matching across fields.
@@ -594,6 +597,11 @@ def get_matchable_description(u: dict) -> str:
         matchable_description += f"|{u["name"]}"
     for rg in u["run_groups"]:
         matchable_description += f"|{rg["run_group_id"]}|{rg["name"]}"
+    return matchable_description
+
+
+def get_matchable_description_for_compliance_requests(u: dict) -> str:
+    matchable_description = f"{u["compliance_request_id"]}"
     return matchable_description
 
 
