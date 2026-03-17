@@ -20,7 +20,7 @@
 
 <body>
     <!-- Banner / Navigation -->
-    <nav class="navbar navbar-expand bg-success main-banner ">
+    <nav class="navbar navbar-expand navbar-dark bg-success main-banner ">
         <div class="container">
             <a class="navbar-brand text-white" href="{{ url_for('login_or_home_page') }}">🌵 Cactus</a>
 
@@ -56,7 +56,7 @@
             <ul class="navbar-nav">
                 {% if username %}
                 <li class="nav-item mt-1">
-                    <span class="navbar-text text-white ">{{ username }}</span>
+                    <span class="navbar-text">{{ username }}</span>
                 </li>
                 {% endif %}
                 <li class="nav-item">
