@@ -5,6 +5,7 @@ from enum import IntEnum, auto
 from http import HTTPStatus
 from os import environ as env
 from typing import Any, Callable
+from datetime import datetime, timezone, timedelta
 
 import cactus_schema.orchestrator as orchestrator
 import requests
@@ -577,8 +578,45 @@ def send_proceed(access_token: str, run_id: str) -> orchestrator.ProceedResponse
         return body_data
 
 
-def fetch_compliance_requests(access_token: str) -> list[Any] | None:
-    return []
+def fetch_compliance_requests(access_token: str) -> list[orchestrator.ComplianceRequestResponse] | None:
+    return [
+        orchestrator.ComplianceRequestResponse(
+            compliance_request_id=1,
+            created_at=datetime.now(timezone.utc) - timedelta(weeks=3),
+            user_details="user@example.com",
+            request_details="<-- request description -->",
+            status="finalised",
+        ),
+        orchestrator.ComplianceRequestResponse(
+            compliance_request_id=3,
+            created_at=datetime.now(timezone.utc) - timedelta(weeks=2),
+            user_details="user@example.com",
+            request_details="<-- request description -->",
+            status="finalised",
+        ),
+        orchestrator.ComplianceRequestResponse(
+            compliance_request_id=45,
+            created_at=datetime.now(timezone.utc) - timedelta(days=3),
+            user_details="user@example.com",
+            request_details="<-- request description -->",
+            status="pushed-back",
+        ),
+        orchestrator.ComplianceRequestResponse(
+            compliance_request_id=72,
+            created_at=datetime.now(timezone.utc) - timedelta(hours=2),
+            user_details="user@example.com",
+            request_details="<-- request description -->",
+            status="under-review",
+        ),
+        orchestrator.ComplianceRequestResponse(
+            compliance_request_id=73,
+            created_at=datetime.now(timezone.utc) - timedelta(hours=1),
+            user_details="user@example.com",
+            request_details="<-- request description -->",
+            status="submitted",
+        ),
+    ]
+
 
 # ----------------------------------------------------------------------------------
 #
