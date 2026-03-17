@@ -8,6 +8,35 @@
 {% if error %}
 <div class="alert alert-danger">{{ error }}</div>
 {% else %}
+<!-- Prefill New Compliance Report Modal -->
+<div class="modal fade" id="prefillModal" tabindex="-1" aria-labelledby="prefillModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="prefillModalLabel">New request for compliance</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Guided through process</p>
+        <p>To save time, new compliance requests can be pre-filled with the information from existing compliance requests. To use pre-filling...</p>
+        <form>
+          <div class="mb-3">
+            <label for="recipient-name" class="col-form-label">Existing Compliance Request:</label>
+            <select id="prefill-select" class="form-select" aria-label="Default select example">
+                <option selected>No Pre-fill</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button id="continue-button" type="button" class="btn btn-primary">Continue</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Page -->
 <div class="max-page-height scroll-parent" style="padding-top:10px; display: flex; flex-direction: column;">
     <div class="d-flex justify-content-between align-items-center">
         <h2>Compliance</h2>
@@ -21,11 +50,20 @@
     </form>
     {% else %}
     <div class="d-grid gap-2 d-md-block my-3">
-    <button class="btn btn-primary btn-lg" onclick="">
-        New <b>+</b>
-    </button>
+        {% if requests|length == 0 %}
+        <!-- Button shows pre-fill modal-->
+        <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#prefillModal">
+            New Request <b>+</b>
+        </button>
+        {% else %}
+        <!-- Button links to compliance request page -->
+        <a href="{{ url_for('compliance_request_page') }}" class="btn btn-primary btn-lg">
+            New Request <b>+</b>
+        </a>
+        {% endif %}
     </div>
     {% endif %}
+
     <div class="make-scroll">
         <table class="table table-striped">
             <thead>
@@ -47,6 +85,7 @@
 </div>
 {% endif %}
 <style>
+    /*
     html,
     body {
         height: 100%;
@@ -55,7 +94,7 @@
         display: flex;
         flex-direction: column;
     }
-    /* These are required for scrolling the table - however they prevent the navbar dropdown from working correctly
+     These are required for scrolling the table - however they prevent the navbar dropdown from working correctly
     .container {
         overflow: hidden;
         height: 100%;
@@ -70,7 +109,7 @@
         flex: 1;
         overflow: auto;
     }
-    */
+    
     .form-margin {
         margin: auto 0.2em 0.5em 0.2em;
     }
@@ -87,7 +126,8 @@
 
     .hidden {
         display: none !important;
-}
+    }
+    */
 </style>
 <script>
     const requests = JSON.parse(atob("{{ requests_b64 }}"));
@@ -163,12 +203,48 @@
         filterRequests(event.target.value);
     }
 
+    function getRandomInt(max) {
+    return Math.floor(Math.random() * max);
+    }
+
+    function setupPrefillModalSelect(requests) {
+        const modalSelect = document.getElementById("prefill-select");
+
+        // Add the existing requests are prefill options
+        // for (const request of requests) {
+        var i = 5
+        while (i > 0) {
+            const request_id = getRandomInt(100);
+            var opt = document.createElement('option');
+            opt.value = request_id;
+            opt.innerHTML = `Compliance Request #${request_id}`;
+            modalSelect.appendChild(opt);
+            i = i - 1;
+        }
+
+        // Add callback for updating the modal button text depending
+        // on whether prefilling chosen or not.
+        const modalButton = document.getElementById("continue-button");
+        modalSelect.onchange = (event) => {
+            switch(event.target.value) {
+                case "No Pre-fill":
+                    modalButton.innerHTML = "Continue";
+                    break;
+                default:
+                    modalButton.innerHTML = "Prefill request";
+            } 
+        }
+    }
 
     addEventListener("load", (event) => {
         // Apply filter correctly of page (re)load
         const filter = document.getElementById("filter-requests-input");
         filterRequests(filter !== null ? filter.value : "");
-        
+
+        // Update prefill modal 'select' to include the existing requests
+        setupPrefillModalSelect(requests);
+
+
     });
 </script>
 
