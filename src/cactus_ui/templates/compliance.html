@@ -85,7 +85,6 @@
 </div>
 {% endif %}
 <style>
-    /*
     html,
     body {
         height: 100%;
@@ -94,6 +93,20 @@
         display: flex;
         flex-direction: column;
     }
+
+    .main-footer {
+        margin-top: 0 !important;
+    }
+
+    .main-content {
+        flex: 1;
+        overflow: hidden;
+        padding: 0 !important;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /*
      These are required for scrolling the table - however they prevent the navbar dropdown from working correctly
     .container {
         overflow: hidden;
@@ -109,7 +122,7 @@
         flex: 1;
         overflow: auto;
     }
-    
+    */
     .form-margin {
         margin: auto 0.2em 0.5em 0.2em;
     }
@@ -127,7 +140,6 @@
     .hidden {
         display: none !important;
     }
-    */
 </style>
 <script>
     const requests = JSON.parse(atob("{{ requests_b64 }}"));
