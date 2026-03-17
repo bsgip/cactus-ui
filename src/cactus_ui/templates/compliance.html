@@ -50,7 +50,7 @@
     </form>
     {% else %}
     <div class="d-grid gap-2 d-md-block my-3">
-        {% if requests|length == 0 %}
+        {% if requests|length > 0 %}
         <!-- Button shows pre-fill modal-->
         <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#prefillModal">
             New Request <b>+</b>
@@ -76,7 +76,7 @@
                     <th>Details</th>
                     {% endif %}
                     <th>Status</th>
-                    <th>Action(s)</th>
+                    <th></th> <!-- Actions(s) column -->
                 </tr>
             </thead>
             <tbody id="requests-table-body"></tbody>
@@ -133,6 +133,38 @@
     const requests = JSON.parse(atob("{{ requests_b64 }}"));
     const isAdminView = "{{ is_admin_view }}" === 'True';
 
+    // Allows string format ala Python's str.format() method.
+    // Example:
+    // 'My name is {}!'.format("Sam");
+    // produces,
+    // 'My name is Sam!'
+    String.prototype.format = function () {
+        var i = 0, args = arguments;
+        return this.replace(/{}/g, function () {
+            return typeof args[i] != 'undefined' ? args[i++] : '';
+        });
+    };
+
+    function createActionButtons(actions, request) {
+        var actionToIconMapping = {
+            'edit': {"icon": `<i class="fas fa-pen"></i>`, "buttonColor": "btn-outline-primary", "tooltip": "Edit Compliance Request"},
+            'view': {"icon": `<i class="fas fa-eye"></i>`, "buttonColor": "btn-outline-secondary", "tooltip": "View Compliance Request"},
+            'download': {"icon": `<i class="fas fa-download"></i>`, "buttonColor": "btn-outline-secondary", "tooltip": "Download Compliance Request"},
+            'delete': {"icon": `<i class="fas fa-trash"></i>`, "buttonColor": "btn-outline-danger", "tooltip": "Delete Compliance Request [PERMANENT]"},
+        };
+
+        const buttonTemplate = `
+                <button class="btn btn-sm {} me-3" data-bs-toggle="tooltip" data-bs-title="{}" type="button" aria-expanded="false">
+                    {}
+                </button>
+        `;
+
+        // This relies on String.prototype being extended with the 'format' function (see above)
+        const actionButtons = actions.map((action) => buttonTemplate.format(actionToIconMapping[action]["buttonColor"], actionToIconMapping[action]["tooltip"], actionToIconMapping[action]["icon"]));
+
+        return actionButtons.join("");
+    }
+
     function updateRequestsTable(requestsForTable) {
         const table = document.getElementById("requests-table-body");
         for (const request of requestsForTable) {
@@ -144,18 +176,54 @@
             const statusCell = newRow.insertCell(3);
             const actionsCell = newRow.insertCell(4);
 
-            // userIdCell.innerHTML = user.user_id;
-            // nameCell.innerHTML = user.name ? `<b>${user.name}<b>` : '-';
+            requestIdCell.innerHTML = request.compliance_request_id;
+            createdCell.innerHTML = request.created_at;
+            if (isAdminView) {
+                detailsCell.innerHTML = request.user_details;
+            } else {
+                detailsCell.innerHTML = request.request_details;
+            }
 
-            // if (user.run_groups.length == 0) {
-            //     runGroupCell.innerHTML = "No run groups found.";
-            // } else {
-            //     let innerHTML = "";
-            //     for (runGroup of user.run_groups) {
-            //         innerHTML += `<a class="separated-links" href="${runGroupBaseUrl}${runGroup.run_group_id}">${runGroup.name} (${runGroup.run_group_id})<\a>`;
-            //     }
-            //     runGroupCell.innerHTML = innerHTML;
-            // }
+            // Determine status descriptions
+            var status;
+            switch(request.status) {
+                case "submitted":
+                    status = isAdminView ? "Awaiting Review" : "Submitted";
+                    break;
+                case "pushed-back":
+                    status = isAdminView ? "Waiting on User Amendments" : "Changes Requested";
+                    break;
+                case "under-review":
+                    status = "Under Review";
+                    break;
+                case "finalised":
+                    status = "Finalised";
+                    break;
+                default:
+                    status = `UNKNOWN STATUS: ${request.status}`
+            }
+            statusCell.innerHTML = status;
+
+            // Determine suitable actions depending on the request status and who is viewing
+            var actions = [];
+            switch(request.status) {
+                case "submitted":
+                    actions.push(...(isAdminView ? ["edit"] : ["edit", "delete"]));
+                    break;
+                case "pushed-back":
+                    actions.push(...(isAdminView ? ["view"] : ["edit", "delete"]));
+                    break;
+                case "under-review":
+                    actions.push(...(isAdminView ? ["edit"] : ["view"]));
+                    break;
+                case "finalised":
+                    actions.push(...(isAdminView ? ["download"] : ["view"]));
+                    break;
+                default:
+            }
+
+            // Add actions to UI
+            actionsCell.innerHTML = createActionButtons(actions, request);
         }
     }
 
@@ -189,7 +257,7 @@
 
     function filterRequests(filterText) {
         const filteredRequests = fetchFilteredRequests(filterText);
-        console.log(filteredRequests);
+
         clearRequestsTable();
         if (filteredRequests.length > 0) {
             updateRequestsTable(filteredRequests);
@@ -211,15 +279,11 @@
         const modalSelect = document.getElementById("prefill-select");
 
         // Add the existing requests are prefill options
-        // for (const request of requests) {
-        var i = 5
-        while (i > 0) {
-            const request_id = getRandomInt(100);
+        for (const request of requests) {
             var opt = document.createElement('option');
-            opt.value = request_id;
-            opt.innerHTML = `Compliance Request #${request_id}`;
+            opt.value = request.compliance_request_id;
+            opt.innerHTML = `Compliance Request #${request.compliance_request_id}`;
             modalSelect.appendChild(opt);
-            i = i - 1;
         }
 
         // Add callback for updating the modal button text depending
@@ -244,6 +308,10 @@
         // Update prefill modal 'select' to include the existing requests
         setupPrefillModalSelect(requests);
 
+        // Enable tooltips
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        console.log(tooltipTriggerList);
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 
     });
 </script>
