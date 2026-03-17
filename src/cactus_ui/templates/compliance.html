@@ -30,7 +30,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button id="continue-button" type="button" class="btn btn-primary">Continue</button>
+        <a id="continue-button" class="btn btn-primary" href="{{ url_for('compliance_request_page') }}" role="button">Continue</a> 
       </div>
     </div>
   </div>
@@ -144,6 +144,7 @@
 <script>
     const requests = JSON.parse(atob("{{ requests_b64 }}"));
     const isAdminView = "{{ is_admin_view }}" === 'True';
+    const complianceRequestPageURL = "{{ url_for('compliance_request_page') }}"
 
     // Allows string format ala Python's str.format() method.
     // Example:
@@ -305,9 +306,13 @@
             switch(event.target.value) {
                 case "No Pre-fill":
                     modalButton.innerHTML = "Continue";
+                    modalButton.href = complianceRequestPageURL;
                     break;
                 default:
+                    // prefill chosen
                     modalButton.innerHTML = "Prefill request";
+                    // Add compliance request id as prefill query parameter
+                    modalButton.href = `${complianceRequestPageURL}?prefill=${event.target.value}`; 
             } 
         }
     }
