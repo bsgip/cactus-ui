@@ -1060,6 +1060,16 @@ def admin_compliance_page(access_token: str) -> str:
     )
 
 
+@app.route("/compliance-request")
+@login_required
+def compliance_request_page(access_token: str) -> str:
+    PAGE = "compliance_request.html"
+
+    return render_template(
+        PAGE,
+    )
+
+
 def _handle_initialise_playlist(access_token: str, run_group_id: int) -> str | Response | None:
     """Handle starting a playlist. Returns a redirect on success, an error string, or None."""
     playlist_id = request.form.get("playlist_id")
