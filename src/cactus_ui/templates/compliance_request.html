@@ -8,13 +8,239 @@
 {% if error %}
 <div class="alert alert-danger">{{ error }}</div>
 {% else %}
-<div>
+<div class="container">
+
     <h2>Compliance Request</h2>
+    <form>
+        <div class="mb-3">
+            <label for="csipAusVersionSelect" class="form-label">Compliance for:</label>
+            <select id="csipAusVersionSelect" class="form-select" aria-label="Select CSIPAus Version">
+                {% for version in csipaus_versions %}
+                    <option value="{{ version }}">CSIP-AUS {{version}}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <h6>Include Classes</h6>
+            <button type="button" class="btn btn-primary" onclick="updateClassCheckboxState(true);">Select All</button>
+            <button type="button" class="btn btn-secondary" onclick="updateClassCheckboxState(false);">Deselect All</button>
+            <!-- Add all the classes upfront and show/hide them based on chosen CSIPAus version-->
+            {% for class in all_compliance_classes %}
+            <div id="class-checkbox-container-{{class}}" class="form-check">
+                <input id="class-checkbox-{{class}}" class="form-check-input" type="checkbox" value="{{ class }}" onchange="handleClassChange(event);">
+                <label class="form-check-label" for="class-checkbox-{{class}}">
+                    {{ class }}
+                </label>
+            </div>
+            {% endfor %}
+            <!-- Add all the runs upfront and show/hide them based on chosen Compliance Classes and CSIPAus version-->
+            <div class="row mb-3">
+                <h6>Select Runs</h6>
+                {% for p in test_procedures %}
+                <div id="test-container-{{p.test_procedure_id}}" class="row mb-3">
+                    <label for="run-select-{{p.test_procedure_id}}" class="col-auto col-form-label col-form-label"><a href="{{ url_for('procedure_yaml_page', test_procedure_id=p.test_procedure_id) }}">{{ p.test_procedure_id }} </a><span id="run-select-warning-{{p.test_procedure_id}}" class="ms-2 text-danger"><i class="fas fa-circle-exclamation"></i></span></label>
+                    <div class="col-auto">
+                        <select disabled id="run-select-{{p.test_procedure_id}}" onchange="handleRunChange(event);" class="form-select" aria-label="Default select example">
+                            <option id="run-select-placeholder-option-{{p.test_procedure_id}}" value="#">No Passing Runs Found</span></option>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <a style="display: none;" id="run-link-{{p.test_procedure_id}}" href="#" target="_blank" class="btn btn-md btn-primary">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </form>
 </div>
 {% endif %}
 <style>
+    html,
+    body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .main-footer {
+        margin-top: 0 !important;
+    }
+
+    .main-content {
+        flex: 1;
+        overflow: hidden;
+        padding: 0 !important;
+        display: flex;
+        flex-direction: column;
+    }
 </style>
 <script>
+    // Use this as the base URL to run status page by replacing the placeholder 0 page number
+    // with {} we can use the 'format' function defined below to create URLs to run-specific status pages
+    const runStatusURL = "{{ url_for('run_status_page', run_id=0)}}".replace("0", "{}");
+    const defaultCSIPAusVersion = "{{ default_csipaus_version }}";
+    const testsByCSIPAusVersionAndClass = JSON.parse(atob("{{ tests_by_csipaus_version_and_class_b64 }}"));
+    const allComplianceClasses = JSON.parse(atob("{{ all_compliance_classes_b64 }}"));
+    const testProcedures = JSON.parse(atob("{{ test_procedures_b64 }}"));
+    const runs = JSON.parse(atob("{{ runs_b64 }}"));
+
+    // Allows string format ala Python's str.format() method.
+    // Example:
+    // 'My name is {}!'.format("Sam");
+    // produces,
+    // 'My name is Sam!'
+    String.prototype.format = function () {
+        var i = 0, args = arguments;
+        return this.replace(/{}/g, function () {
+            return typeof args[i] != 'undefined' ? args[i++] : '';
+        });
+    };
+
+    function updateForRunChange(testProcedureId, runId) {
+        const runViewButton = document.getElementById(`run-link-${testProcedureId}`);
+        runViewButton.href = runStatusURL.format(runId);
+    }
+
+    function handleRunChange(event) {
+        const runId = event.target.value;
+        const testProcedureId = event.srcElement.id.split('run-select-')[1]
+        updateForRunChange(testProcedureId, runId);
+    }
+
+    function updateClassCheckboxState(state) {
+        var checkboxes = document.querySelectorAll('[id^="class-checkbox-"]');
+        for (const checkbox of checkboxes) {
+            checkbox.checked = state;
+        }
+        updateForClassChange();
+    }
+
+    function updateClassCheckboxes(csipausVersion) {
+        var visibleClassCheckboxes = [];
+
+        // Change visbility of class checkboxes
+        for (const c of allComplianceClasses) {
+            const visible = (typeof testsByCSIPAusVersionAndClass[csipausVersion][c] !== 'undefined');
+            const checkboxContainer = document.getElementById(`class-checkbox-container-${c}`);
+            checkboxContainer.style.display = visible ? "block" : "none";
+            if (visible) {
+                visibleClassCheckboxes.push(c);
+            }
+        }
+    }
+
+    function updateTestProcedureRows(activeClasses) {
+        // Change visibility of test rows
+        for (const p of testProcedures) {
+            const testProcedureClass = new Set(p.classes);
+            // Does this test procedure have a class in common with the chosen classes in 'activeClasses'?
+            // If yes make visible
+            const visible = testProcedureClass.intersection(activeClasses).size > 0;
+            const testContainer = document.getElementById(`test-container-${p.test_procedure_id}`);
+            testContainer.style.display = visible ? "" : "none";
+        }
+    }
+
+    function getActiveClasses() {
+        // Return a set of active classes.
+        // A compliance class is active if
+        //    - it is checked
+        //    - it is visible (only classes that part of the current csipaus version are visible)
+
+        var activeClasses = new Set();
+
+        // Is checkbox visible and checked?
+        for (const c of allComplianceClasses) {
+            const checkbox = document.getElementById(`class-checkbox-${c}`);
+            const checkboxContainer = document.getElementById(`class-checkbox-container-${c}`);
+            if (checkbox.checked && checkboxContainer.style.display !== "none") {
+                activeClasses.add(c);
+            }
+        }
+
+        return activeClasses;
+    }
+
+    function handleClassChange(event) {
+        updateForClassChange();
+    }
+
+    function updateForClassChange() {
+        // Use classes to determine required test procedures
+        const activeClasses = getActiveClasses();
+        updateTestProcedureRows(activeClasses);
+    }
+
+    function handleCSIPAusVersionChange(event) {
+        // Use event to determine version
+        const csipausVersion = event.target.value;
+        updateForCSIPAusVersionChange(csipausVersion);
+    }
+
+    function updateForCSIPAusVersionChange(csipausVersion) {
+        // Use version to update class checkboxes
+        const visibleClassCheckboxes = updateClassCheckboxes(csipausVersion);
+
+        updateForClassChange();
+    }
+
+    function insertRuns() {
+        proceduresHandled = new Set()
+        for (run of runs) {
+            const runSelect = document.getElementById(`run-select-${run.test_procedure_id}`);
+
+            // Remove disabled
+            runSelect.disabled = false;
+
+            // Remove "No passing runs option"
+            const placeholder = document.getElementById(`run-select-placeholder-option-${run.test_procedure_id}`);
+            if (placeholder) {
+                runSelect.removeChild(placeholder);
+            }
+
+            // Hide warning span
+            const warning = document.getElementById(`run-select-warning-${run.test_procedure_id}`);
+            warning.style.display = "none";
+
+            // Add run options
+            var opt = document.createElement('option');
+            opt.value = run.run_id;
+            opt.innerHTML = `#${run.run_id} (${"my-run-group"})`;
+            runSelect.appendChild(opt);
+
+            // Update view button
+            if (!proceduresHandled.has(run.test_procedure_id)) {
+                // Only update the runView for the first run for a given test procedure
+                const runView = document.getElementById(`run-link-${run.test_procedure_id}`);
+                runView.style.display = "inline-block";
+                updateForRunChange(run.test_procedure_id, run.run_id)
+            }
+
+            // Keep track of which test procedures we've already handled
+            proceduresHandled.add(run.test_procedure_id);
+        }
+    }
+
+    addEventListener("load", (event) => {
+        // Setup event listeners
+        const input = document.getElementById("csipAusVersionSelect");
+        input.addEventListener("change", handleCSIPAusVersionChange);
+
+        // Select the default (starting) CSIP-Aus Version
+        let csipausVersionSelect = document.getElementById("csipAusVersionSelect");
+        csipausVersionSelect.value = defaultCSIPAusVersion;
+
+        // Update the classes for the version of CSIPAus
+        updateForCSIPAusVersionChange(defaultCSIPAusVersion);
+
+        // Add runs
+        insertRuns();
+    });
+
 </script>
 
 {% endblock %}

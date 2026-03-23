@@ -603,17 +603,21 @@ def admin_run_status_json(access_token: str, run_id: str) -> Response:
     return Response(response=status, status=200, mimetype="application/json")
 
 
-@app.route("/procedures", methods=["GET"])
-@login_required
-def procedures_page(access_token: str) -> str:
-    """Get all test procedures, handling pagination."""
+def fetch_all_test_procedures(access_token: str) -> list[schema.TestProcedureResponse] | None:
+    """Requests all pages of test procedures
+
+    Returns:
+        list[schema.TestProcedureResponse] on success
+        None on failure
+    """
+
     all_procedures = []
     page = 1
 
     while True:
         procedure_pages = orchestrator.fetch_procedures(access_token, page)
         if procedure_pages is None:
-            return render_template("procedures.html", error="Failed to retrieve procedures.")
+            return None
 
         all_procedures.extend(procedure_pages.items)
 
@@ -621,6 +625,18 @@ def procedures_page(access_token: str) -> str:
             break
 
         page = procedure_pages.next_page
+
+    return all_procedures
+
+
+@app.route("/procedures", methods=["GET"])
+@login_required
+def procedures_page(access_token: str) -> str:
+    """Get all test procedures, handling pagination."""
+
+    all_procedures = fetch_all_test_procedures(access_token)
+    if all_procedures is None:
+        return render_template("procedures.html", error="Failed to retrieve procedures.")
 
     return render_template("procedures.html", procedures=all_procedures)
 
@@ -1015,7 +1031,7 @@ def compliance_page(access_token: str) -> str:
     PAGE = "compliance.html"
     requests = orchestrator.fetch_compliance_requests(access_token)
     if requests is None:
-        return render_template(PAGE, error="Failed to Compliance Requests.")
+        return render_template(PAGE, error="Failed to fetch compliance requests.")
 
     def custom_serializer(obj: Any) -> str | dict:
         if isinstance(obj, JSONWizard):
@@ -1041,7 +1057,7 @@ def admin_compliance_page(access_token: str) -> str:
     PAGE = "compliance.html"
     requests = orchestrator.fetch_compliance_requests(access_token)
     if requests is None:
-        return render_template(PAGE, error="Failed to Compliance Requests.")
+        return render_template(PAGE, error="Failed to fetch compliance requests.")
 
     def custom_serializer(obj: Any) -> str | dict:
         if isinstance(obj, JSONWizard):
@@ -1064,9 +1080,54 @@ def admin_compliance_page(access_token: str) -> str:
 @login_required
 def compliance_request_page(access_token: str) -> str:
     PAGE = "compliance_request.html"
+    prefill_compliance_request_id = request.args.get("prefill")
+
+    # Get test procedures
+    test_procedures = fetch_all_test_procedures(access_token=access_token)
+    if test_procedures is None:
+        return render_template(
+            PAGE, error="Failed to fetch test procedures. Unable to continue with Compliance Request."
+        )
+
+    # Map CSIPAus version to test procedure
+    tests_by_csipaus_version_and_class = defaultdict(lambda: defaultdict(list))
+    classes = set()
+    for p in test_procedures:
+        for v in p.target_versions:
+            for c in p.classes:
+                classes.add(c)
+                tests_by_csipaus_version_and_class[v][c].append(p.test_procedure_id)
+
+    all_compliance_classes = list(classes)
+    all_compliance_classes.sort()
+
+    csipaus_versions = list(tests_by_csipaus_version_and_class.keys())
+
+    # Get all successful runs for user
+    runs = orchestrator.fetch_ordered_successful_runs(access_token=access_token)
+
+    def custom_serializer(obj: Any) -> str | dict:
+        if isinstance(obj, JSONWizard):
+            # This is pretty crufty - but we're forcing in our own custom property
+            # Josh - I wrote this on xmas eve (sue me) - probably better done with a subclass
+            raw_data = obj.to_dict()
+            # raw_data["matchable_description"] = orchestrator.get_matchable_description_for_user(raw_data)
+            return raw_data
+        # Otherwise rely on standard serialization
+        return json.dumps(obj)
 
     return render_template(
         PAGE,
+        csipaus_versions=csipaus_versions,
+        default_csipaus_version=csipaus_versions[0],
+        all_compliance_classes=all_compliance_classes,
+        all_compliance_classes_b64=b64encode(json.dumps(all_compliance_classes).encode()).decode(),
+        tests_by_csipaus_version_and_class_b64=b64encode(
+            json.dumps(tests_by_csipaus_version_and_class).encode()
+        ).decode(),
+        test_procedures=test_procedures,
+        test_procedures_b64=b64encode(json.dumps(test_procedures, default=custom_serializer).encode()).decode(),
+        runs_b64=b64encode(json.dumps(runs, default=custom_serializer).encode()).decode(),
     )
 
 

@@ -385,6 +385,41 @@ def fetch_runs_for_group(
     return handle_pagination(response.json(), lambda r: orchestrator.RunResponse.from_dict(r))
 
 
+def fetch_ordered_successful_runs(access_token: str) -> list[orchestrator.RunResponse] | None:
+    """Returns all the successful runs for the user.
+
+    Successful = all_criteria_met AND finalised
+    Runs are sorted by `finalised_at` time.
+    """
+    # Generate some placeholder runs for G and M classes
+    tests_with_runs = ["GEN-01", "GEN-03", "MUL-01", "MUL-02", "MUL-03"]
+
+    runs = []
+    for t in tests_with_runs:
+        for _ in range(int(t[-2:])):
+            run_id = len(runs) + 1
+            base_time = datetime.now(timezone.utc) - timedelta(weeks=10)
+            created_delta = timedelta(days=run_id)
+            finalised_delta = timedelta(days=run_id + 1)
+            runs.append(
+                orchestrator.RunResponse(
+                    run_id=run_id,
+                    test_procedure_id=t,
+                    test_url="",
+                    status=orchestrator.RunStatusResponse.finalised,
+                    all_criteria_met=True,
+                    created_at=base_time + created_delta,
+                    finalised_at=base_time + finalised_delta,
+                    is_device_cert=True,
+                    has_artifacts=True,
+                    playlist_execution_id=None,
+                    playlist_order=None,
+                    playlist_runs=None,
+                )
+            )
+    return runs
+
+
 def fetch_individual_run(access_token: str, run_id: str) -> orchestrator.RunResponse | None:
     """Fetches runs for a page"""
     uri = generate_uri(orchestrator.uri.Run.format(run_id=run_id))
