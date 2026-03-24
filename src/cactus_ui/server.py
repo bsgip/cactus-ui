@@ -1076,9 +1076,41 @@ def admin_compliance_page(access_token: str) -> str:
     )
 
 
-@app.route("/compliance-request")
+@app.route("/compliance-request", methods=["GET", "POST"])
 @login_required
-def compliance_request_page(access_token: str) -> str:
+def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
+    error: str | None = None
+
+    if request.method == "POST":
+        # User compliance request (new)
+        if request.form.get("action") == "new-request":
+            witnesstesting_date = request.form.get("witnesstesting_date")
+            print(f"{witnesstesting_date=}")
+            # _ = orchestrator.create_compliance_request()
+            error = "Failed to create new compliance request"
+        # User compliance request (update)
+        elif request.form.get("action") == "update-request":
+            # return redirect(url_for("run_status_page", run_id=init_result.response.run_id))
+            pass
+        # Admin pushed form back to user
+        elif request.form.get("action") == "push-back":
+            pass
+        elif request.form.get("action") == "finalise":
+            # compliance_report, compliance_report_name = orchestrator.finalise_compliance(access_token, compliance_request_id)
+            compliance_report = b""
+            compliance_report_name = "compliance_report.pdf"
+            if compliance_report is None:
+                error = "Failed to finalise the compliance request or retrieve the compliance report."
+            else:
+                return send_file(
+                    io.BytesIO(compliance_report),
+                    as_attachment=True,
+                    download_name=compliance_report_name,
+                    mimetype="application/pdf",
+                )
+        else:
+            pass
+
     PAGE = "compliance_request.html"
     prefill_compliance_request_id = request.args.get("prefill")
 
@@ -1128,6 +1160,7 @@ def compliance_request_page(access_token: str) -> str:
         test_procedures=test_procedures,
         test_procedures_b64=b64encode(json.dumps(test_procedures, default=custom_serializer).encode()).decode(),
         runs_b64=b64encode(json.dumps(runs, default=custom_serializer).encode()).decode(),
+        error=error,
     )
 
 
