@@ -11,72 +11,195 @@
 <div class="container">
 
     <h2>Compliance Request</h2>
-    <form>
-        <div class="mb-3">
-            <label for="csipAusVersionSelect" class="form-label">Compliance for:</label>
-            <select id="csipAusVersionSelect" class="form-select" aria-label="Select CSIPAus Version">
-                {% for version in csipaus_versions %}
-                    <option value="{{ version }}">CSIP-AUS {{version}}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="mb-3">
-            <h6>Include Classes</h6>
-            <button type="button" class="btn btn-primary" onclick="updateClassCheckboxState(true);">Select All</button>
-            <button type="button" class="btn btn-secondary" onclick="updateClassCheckboxState(false);">Deselect All</button>
-            <!-- Add all the classes upfront and show/hide them based on chosen CSIPAus version-->
-            {% for class in all_compliance_classes %}
-            <div id="class-checkbox-container-{{class}}" class="form-check">
-                <input id="class-checkbox-{{class}}" class="form-check-input" type="checkbox" value="{{ class }}" onchange="handleClassChange(event);">
-                <label class="form-check-label" for="class-checkbox-{{class}}">
-                    {{ class }}
-                </label>
-            </div>
-            {% endfor %}
-            <!-- Add all the runs upfront and show/hide them based on chosen Compliance Classes and CSIPAus version-->
-            <div class="row mb-3">
-                <h6>Select Runs</h6>
-                {% for p in test_procedures %}
-                <div id="test-container-{{p.test_procedure_id}}" class="row mb-3">
-                    <label for="run-select-{{p.test_procedure_id}}" class="col-auto col-form-label col-form-label"><a href="{{ url_for('procedure_yaml_page', test_procedure_id=p.test_procedure_id) }}">{{ p.test_procedure_id }} </a><span id="run-select-warning-{{p.test_procedure_id}}" class="ms-2 text-danger"><i class="fas fa-circle-exclamation"></i></span></label>
-                    <div class="col-auto">
-                        <select disabled id="run-select-{{p.test_procedure_id}}" onchange="handleRunChange(event);" class="form-select" aria-label="Default select example">
-                            <option id="run-select-placeholder-option-{{p.test_procedure_id}}" value="#">No Passing Runs Found</span></option>
-                        </select>
-                    </div>
-                    <div class="col-auto">
-                        <a style="display: none;" id="run-link-{{p.test_procedure_id}}" href="#" target="_blank" class="btn btn-md btn-primary">
-                            <i class="fas fa-eye"></i>
-                        </a>
+    <div class="d-flex justify-content-center">
+        <ul class="nav nav-pills my-4" id="pills-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="pills-step1-tab" data-bs-toggle="pill" data-bs-target="#pills-step1"
+                    type="button" role="tab" aria-controls="pills-step1" aria-selected="true">Step 1</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pills-step2-tab" data-bs-toggle="pill" data-bs-target="#pills-step2"
+                    type="button" role="tab" aria-controls="pills-step2" aria-selected="false">Step 2</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pills-step3-tab" data-bs-toggle="pill" data-bs-target="#pills-step3"
+                    type="button" role="tab" aria-controls="pills-step3" aria-selected="false">Step 3</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pills-step4-tab" data-bs-toggle="pill" data-bs-target="#pills-step4"
+                    type="button" role="tab" aria-controls="pills-step4" aria-selected="false">Step 4</button>
+            </li>
+        </ul>
+    </div>
+    <!-- STEP 1 -->
+    <div class="tab-content" id="pills-tabContent">
+        <div class="tab-pane fade show active" id="pills-step1" role="tabpanel" aria-labelledby="pills-step1-tab"
+            tabindex="0">
+            <!-- Form uses self-submission technique -->
+            <form action="{{ url_for('compliance_request_page')}}" method="post">
+                <div class="mb-4">
+                    <h4>Compliance</h4>
+                    <div class="row mt-4">
+                        <label for="csipAusVersionSelect" class="col-auto col-form-label">Standard</label>
+                        <div class="col col-auto">
+                            <select id="csipAusVersionSelect" name="csipaus-version" class="form-select"
+                                aria-label="Select CSIPAus Version">
+                                {% for version in csipaus_versions %}
+                                <option value="{{ version }}">CSIP-AUS {{version}}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
                 </div>
-                {% endfor %}
+                <div class="mb-3">
+                    <h4>Classes</h4>
+                    <div class="d-flex justify-content-end mb-2">
+                        <button type="button" class="btn btn-primary" onclick="updateClassCheckboxState(true);">Select
+                            All</button>
+                        <button type="button" class="ms-2 btn btn-secondary"
+                            onclick="updateClassCheckboxState(false);">Deselect All</button>
+                    </div>
+                </div>
+                <div class="mb-5">
+                    <!-- Add all the classes upfront and show/hide them based on chosen CSIPAus version-->
+                    <div class="container prevent-select">
+                        {% set NUM_COLS = 9 %}
+                        {% set NUM_ROWS = (all_compliance_classes|length)//NUM_COLS + 1 %}
+                        {% for r in range(NUM_ROWS) %}
+                        <div class="row">
+                            {% for c in range(NUM_COLS) %}
+                            {% set index = r*NUM_COLS+c %}
+                            {% if index < all_compliance_classes|length %} {% set class=all_compliance_classes[index] if index < all_compliance_classes|length else "placeholder" %}
+                            <div class="col">
+                                <div id="class-checkbox-container-{{class}}" class="form-check">
+                                    <input id="class-checkbox-{{class}}" name="{{class}}" class="form-check-input" type="checkbox"
+                                        value="{{ class }}" onchange="handleClassChange(event);">
+                                    <label class="form-check-label" for="class-checkbox-{{class}}">
+                                        {{ class }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="col">
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <!-- Add all the runs upfront and show/hide them based on chosen Compliance Classes and CSIPAus version-->
+                    <div class="row mb-3">
+                        <h4 id="select-runs-header">Runs</h4>
+                        {% for p in test_procedures %}
+                        <div id="test-container-{{p.test_procedure_id}}" class="row my-2">
+                            <label for="run-select-{{p.test_procedure_id}}" class="col-auto col-form-label"><a
+                                    href="{{ url_for('procedure_yaml_page', test_procedure_id=p.test_procedure_id) }}">{{
+                                    p.test_procedure_id }} </a><span id="run-select-warning-{{p.test_procedure_id}}"
+                                    class="ms-2 text-danger"><i class="fas fa-circle-exclamation"></i></span></label>
+                            <div class="col-auto mx-2">
+                                <select disabled id="run-select-{{p.test_procedure_id}}" onchange="handleRunChange(event);"
+                                    class="form-select" aria-label="Default select example">
+                                    <option id="run-select-placeholder-option-{{p.test_procedure_id}}" value="#">No Passing Runs
+                                        Found</span></option>
+                                </select>
+                            </div>
+                            <div class="col-auto me-5">
+                                <a style="visibility: hidden;" id="run-link-{{p.test_procedure_id}}" href="#" target="_blank"
+                                    class="btn btn-md btn-outline-secondary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </form>
+        </div>
+        <!-- STEP 2 -->
+        <div class="tab-pane fade" id="pills-step2" role="tabpanel" aria-labelledby="pills-step2-tab" tabindex="0">
+            <h4>WITNESS TESTING</h4>
+            <div>
+                <label for="witnesstesting-date-input" class="form-label">Date</label>
+                <input id="witnesstesting-date-input" name="witnesstesting_date" class="form-control" type="date"
+                    aria-label="Witness Testing Date"></textarea>
+                <div id="witnesstesting-date-help" class="form-text">We'll never share your email with anyone else.</div>
             </div>
         </div>
-    </form>
+        <!-- STEP 3 -->
+        <div class="tab-pane fade" id="pills-step3" role="tabpanel" aria-labelledby="pills-step3-tab" tabindex="0">
+            <h4>DER</h4>
+            <div class="mb-3">
+                <label for="der-brand-input" class="form-label">Brand</label>
+                <input id="der-brand-input" name="der-brand" class="form-control" aria-label="DER Brand">
+                <div id="der-brand-help" class="form-text">We'll never share your email with anyone else.</div>
+            </div>
+            <div class="mb-3">
+                <label for="der-oem-input" class="form-label">OEM</label>
+                <input id="der-oem-input" name="der-oem" class="form-control" aria-label="DER OEM">
+                <div id="der-oem-help" class="form-text">We'll never share your email with anyone else.</div>
+            </div>
+            <div class="mb-3">
+                <label for="der-series-input" class="form-label">Series</label>
+                <input id="der-series-input" name="der-series" class="form-control" aria-label="DER Series">
+                <div id="der-series-help" class="form-text">We'll never share your email with anyone else.</div>
+            </div>
+            <div class="mb-3">
+                <label for="der-repmod-textarea" class="form-label">Representative Models</label>
+                <textarea id="der-repmod-textarea" name="der-representative-models" class="form-control" rows="3"
+                    aria-label="DER Representative Models"></textarea>
+                <div id="der-repmod-help" class="form-text">We'll never share your email with anyone else.</div>
+            </div>
+        </div>
+        <!-- STEP 4 -->
+        <div class="tab-pane fade" id="pills-step4" role="tabpanel" aria-labelledby="pills-step4-tab" tabindex="0">
+            <h4>SOFTWARE CLIENT</h4>
+            <div class="mb-3">
+                <label for="sc-type-select" class="form-label">Type</label>
+                <select id="sc-type-select" name="software-client-type" class="form-control" aria-label="Software Client Type ">
+                    <option value="direct">Direct</option>
+                    <option value="proxy">Proxy (Aggregator)</option>
+                </select>
+                <div id="sc-type-help" class="form-text">We'll never share your email with anyone else.</div>
+            </div>
+            <div class="mb-3">
+                <label for="sc-providers-input" class="form-label">Provider(s)</label>
+                <input id="sc-providers-input" name="software-client-providers" class="form-control"
+                    aria-label="Software Client Providers ">
+                <div id="sc-providers-help" class="form-text">We'll never share your email with anyone else.</div>
+            </div>
+            <div class="mb-3">
+                <label for="sc-versions-input" class="form-label">Version(s)</label>
+                <input id="sc-versions-input" name="software-client-versions" class="form-control"
+                    aria-label="Software Client Versions ">
+                <div id="sc-versions-help" class="form-text">We'll never share your email with anyone else.</div>
+            </div>
+            <div class="mb-3">
+                <label for="sc-details-textarea" class="form-label">Details</label>
+                <textarea id="sc-details-textarea" name="software-client-details" class="form-control" rows="3"
+                    aria-label="Software Client Details"></textarea>
+                <div id="sc-details-help" class="form-text">We'll never share your email with anyone else.</div>
+            </div>
+            <h4>ON-SITE HARDWARE</h4>
+            <div class="mb-3">
+                <label for="onsite-details-textarea" class="form-label">Details</label>
+                <textarea id="onsite-details-textarea" name="onsite-hardware-details" class="form-control" rows="3"
+                    aria-label="On-site Hardware Details"></textarea>
+                <div id="onside-details-help" class="form-text">We'll never share your email with anyone else.</div>
+            </div>
+            <input type="hidden" name="action" value="new-request">
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </div>
+    </div>
 </div>
 {% endif %}
 <style>
-    html,
-    body {
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .main-footer {
-        margin-top: 0 !important;
-    }
-
-    .main-content {
-        flex: 1;
-        overflow: hidden;
-        padding: 0 !important;
-        display: flex;
-        flex-direction: column;
-    }
+.prevent-select {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}
 </style>
 <script>
     // Use this as the base URL to run status page by replacing the placeholder 0 page number
@@ -172,7 +295,13 @@
     function updateForClassChange() {
         // Use classes to determine required test procedures
         const activeClasses = getActiveClasses();
+
+        // Hide run selection header if there are no classes selected
+        const selectRunsHeader = document.getElementById("select-runs-header");
+        selectRunsHeader.style.visibility = activeClasses.size > 0 ? "visible" : "hidden";
+
         updateTestProcedureRows(activeClasses);
+
     }
 
     function handleCSIPAusVersionChange(event) {
@@ -204,7 +333,7 @@
 
             // Hide warning span
             const warning = document.getElementById(`run-select-warning-${run.test_procedure_id}`);
-            warning.style.display = "none";
+            warning.style.visibility = "hidden";
 
             // Add run options
             var opt = document.createElement('option');
@@ -213,10 +342,11 @@
             runSelect.appendChild(opt);
 
             // Update view button
+            
             if (!proceduresHandled.has(run.test_procedure_id)) {
                 // Only update the runView for the first run for a given test procedure
                 const runView = document.getElementById(`run-link-${run.test_procedure_id}`);
-                runView.style.display = "inline-block";
+                runView.style.visibility = "visible";
                 updateForRunChange(run.test_procedure_id, run.run_id)
             }
 
