@@ -53,10 +53,10 @@
                 </div>
                 <div class="mb-3">
                     <h4>Classes</h4>
-                    <div class="d-flex justify-content-end mb-2">
-                        <button type="button" class="btn btn-primary" onclick="updateClassCheckboxState(true);">Select
+                    <div class="d-flex mb-2">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="updateClassCheckboxState(true);">Select
                             All</button>
-                        <button type="button" class="ms-2 btn btn-secondary"
+                        <button type="button" class="ms-2 btn btn-sm btn-secondary"
                             onclick="updateClassCheckboxState(false);">Deselect All</button>
                     </div>
                 </div>
@@ -89,24 +89,31 @@
                     </div>
                 </div>
                 <div class="mb-3">
+                    <div id="missing-runs-alert" class="alert alert-danger" role="alert">
+                        <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i> Runs Missing</h4>
+                        <p>Some of the chosen compliance classes do not have successful test runs:</p>
+                        <ul id="missing-runs-list">
+                        </ul>
+                        <p>There is a total of <b id="missing-runs-count"></b> missing runs.</p>
+                        <hr>
+                        <p class="mb-0">You must either completed the required tests or remove compliance classes that are incomplete
+                            before proceeding with the compliance request.</p>
+                    </div>
                     <!-- Add all the runs upfront and show/hide them based on chosen Compliance Classes and CSIPAus version-->
                     <div class="row mb-3">
                         <h4 id="select-runs-header">Runs</h4>
-                        {% for p in test_procedures %}
-                        <div id="test-container-{{p.test_procedure_id}}" class="row my-2">
-                            <label for="run-select-{{p.test_procedure_id}}" class="col-auto col-form-label"><a
-                                    href="{{ url_for('procedure_yaml_page', test_procedure_id=p.test_procedure_id) }}">{{
-                                    p.test_procedure_id }} </a><span id="run-select-warning-{{p.test_procedure_id}}"
-                                    class="ms-2 text-danger"><i class="fas fa-circle-exclamation"></i></span></label>
+                        {% for p in completed_test_procedures %}
+                        <div id="test-container-{{p}}" class="row my-2">
+                            <label for="run-select-{{p}}" class="col-auto col-form-label"><a
+                                    href="{{ url_for('procedure_yaml_page', test_procedure_id=p) }}">{{
+                                    p }} </a></label>
                             <div class="col-auto mx-2">
-                                <select disabled id="run-select-{{p.test_procedure_id}}" onchange="handleRunChange(event);"
-                                    class="form-select" aria-label="Default select example">
-                                    <option id="run-select-placeholder-option-{{p.test_procedure_id}}" value="#">No Passing Runs
-                                        Found</span></option>
+                                <select id="run-select-{{p}}" onchange="handleRunChange(event);"
+                                    class="form-select" aria-label="Run Select {{p}}">
                                 </select>
                             </div>
                             <div class="col-auto me-5">
-                                <a style="visibility: hidden;" id="run-link-{{p.test_procedure_id}}" href="#" target="_blank"
+                                <a id="run-link-{{p}}" href="#" target="_blank"
                                     class="btn btn-md btn-outline-secondary">
                                     <i class="fas fa-eye"></i>
                                 </a>
@@ -209,6 +216,7 @@
     const testsByCSIPAusVersionAndClass = JSON.parse(atob("{{ tests_by_csipaus_version_and_class_b64 }}"));
     const allComplianceClasses = JSON.parse(atob("{{ all_compliance_classes_b64 }}"));
     const testProcedures = JSON.parse(atob("{{ test_procedures_b64 }}"));
+    const completedTestProcedures = new Set(JSON.parse(atob("{{ completed_test_procedures_b64 }}")));
     const runs = JSON.parse(atob("{{ runs_b64 }}"));
 
     // Allows string format ala Python's str.format() method.
@@ -257,6 +265,7 @@
     }
 
     function updateTestProcedureRows(activeClasses) {
+        var visibleCount = 0;
         // Change visibility of test rows
         for (const p of testProcedures) {
             const testProcedureClass = new Set(p.classes);
@@ -264,8 +273,14 @@
             // If yes make visible
             const visible = testProcedureClass.intersection(activeClasses).size > 0;
             const testContainer = document.getElementById(`test-container-${p.test_procedure_id}`);
-            testContainer.style.display = visible ? "" : "none";
+            if (testContainer) {
+                testContainer.style.display = visible ? "" : "none";
+                if (visible) {
+                    visibleCount += 1;
+                }
+            }
         }
+        return visibleCount;
     }
 
     function getActiveClasses() {
@@ -292,16 +307,60 @@
         updateForClassChange();
     }
 
+    function getMissingTests(activeClasses, csipausVersion) {
+        var missingTestsByClass = {};
+        var allMissingTests = new Set();
+        for (const c of activeClasses) {
+            requiredTests = new Set(testsByCSIPAusVersionAndClass[csipausVersion][c]);
+            var missingTests = requiredTests.difference(completedTestProcedures)
+            missingTestsByClass[c] = missingTests;
+            allMissingTests = allMissingTests.union(missingTests);
+        }
+        return [missingTestsByClass, allMissingTests.size];
+    }
+
+    function getCsipausVersion() {
+        return document.getElementById("csipAusVersionSelect").value;
+    }
+
+    function updateMissingRunsAlert(activeClasses, missingTests, missingTestsCount) {
+        // Hide missing runs alert if there's no missing runs
+        const missingRunsAlert = document.getElementById("missing-runs-alert");
+        missingRunsAlert.style.display = missingTestsCount > 0 ? "block" : "none";
+
+        // Shows missing runs per class in a list
+        const missingRunsList = document.getElementById("missing-runs-list");
+        missingRunsList.innerHTML = '';
+        for (const [c, missing] of Object.entries(missingTests)) {
+            if (missing.size > 0) {
+                // Add run options
+                var listItem = document.createElement('li');
+                listItem.innerHTML = `<b>Class ${c}</b>: ${Array.from(missing).join(", ")}`;
+                missingRunsList.appendChild(listItem);
+            }
+        }
+
+        // Update the total missing runs
+        const missingRunsCount = document.getElementById("missing-runs-count");
+        missingRunsCount.textContent = `${missingTestsCount}`;
+
+    }
+
     function updateForClassChange() {
         // Use classes to determine required test procedures
         const activeClasses = getActiveClasses();
+        const csipausVersion = getCsipausVersion();
+        const [missingTests, missingTestsCount] = getMissingTests(activeClasses, csipausVersion);
 
-        // Hide run selection header if there are no classes selected
+        // Update missing runs alert
+        updateMissingRunsAlert(activeClasses, missingTests, missingTestsCount);
+
+        // Show/hide the run selectors
+        const visibleRowsCount = updateTestProcedureRows(activeClasses);
+
+        // Hide run selection header if there are no run selectors visible
         const selectRunsHeader = document.getElementById("select-runs-header");
-        selectRunsHeader.style.visibility = activeClasses.size > 0 ? "visible" : "hidden";
-
-        updateTestProcedureRows(activeClasses);
-
+        selectRunsHeader.style.visibility = visibleRowsCount > 0 ? "visible" : "hidden";
     }
 
     function handleCSIPAusVersionChange(event) {
@@ -321,19 +380,6 @@
         proceduresHandled = new Set()
         for (run of runs) {
             const runSelect = document.getElementById(`run-select-${run.test_procedure_id}`);
-
-            // Remove disabled
-            runSelect.disabled = false;
-
-            // Remove "No passing runs option"
-            const placeholder = document.getElementById(`run-select-placeholder-option-${run.test_procedure_id}`);
-            if (placeholder) {
-                runSelect.removeChild(placeholder);
-            }
-
-            // Hide warning span
-            const warning = document.getElementById(`run-select-warning-${run.test_procedure_id}`);
-            warning.style.visibility = "hidden";
 
             // Add run options
             var opt = document.createElement('option');

@@ -1138,6 +1138,9 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
     # Get all successful runs for user
     runs = orchestrator.fetch_ordered_successful_runs(access_token=access_token)
 
+    completed_test_procedures = list({r.test_procedure_id for r in runs}) if runs else []
+    completed_test_procedures.sort()
+
     def custom_serializer(obj: Any) -> str | dict:
         if isinstance(obj, JSONWizard):
             # This is pretty crufty - but we're forcing in our own custom property
@@ -1160,6 +1163,8 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
         test_procedures=test_procedures,
         test_procedures_b64=b64encode(json.dumps(test_procedures, default=custom_serializer).encode()).decode(),
         runs_b64=b64encode(json.dumps(runs, default=custom_serializer).encode()).decode(),
+        completed_test_procedures_b64=b64encode(json.dumps(completed_test_procedures).encode()).decode(),
+        completed_test_procedures=completed_test_procedures,
         error=error,
     )
 
