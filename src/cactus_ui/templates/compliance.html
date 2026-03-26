@@ -53,12 +53,12 @@
         {% if requests|length > 0 %}
         <!-- Button shows pre-fill modal-->
         <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#prefillModal">
-            New Request <b>+</b>
+            <b>+</b> New Request 
         </button>
         {% else %}
         <!-- Button links to compliance request page -->
         <a href="{{ url_for('compliance_request_page') }}" class="btn btn-primary btn-lg">
-            New Request <b>+</b>
+            <b>+</b> New Request 
         </a>
         {% endif %}
     </div>
