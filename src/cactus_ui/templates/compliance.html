@@ -17,8 +17,8 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <p>Guided through process</p>
-        <p>To save time, new compliance requests can be pre-filled with the information from existing compliance requests. To use pre-filling...</p>
+        <p>To save time, new compliance requests can be pre-filled with the information from existing compliance requests.</p>
+        <p>To use pre-filling, choose compliance request from the drop-down.</p>
         <form>
           <div class="mb-3">
             <label for="recipient-name" class="col-form-label">Existing Compliance Request:</label>
@@ -327,7 +327,6 @@
 
         // Enable tooltips
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-        console.log(tooltipTriggerList);
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 
     });
