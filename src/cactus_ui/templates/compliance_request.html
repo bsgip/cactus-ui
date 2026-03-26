@@ -74,12 +74,14 @@
         </ul>
     </div>
 
-    <!-- STEP 1 -->
+    <!-- STEP 1 - Compliance Standard and Witness Testing Date Tab -->
     <div class="tab-content" id="pills-tabContent">
         <div class="tab-pane fade show active" id="pills-step1" role="tabpanel" aria-labelledby="pills-step1-tab"
             tabindex="0">
             <!-- Form uses self-submission technique -->
             <form action="{{ url_for('compliance_request_page')}}" method="post">
+                <!-- Determines how the form submission is handled by the server -->
+                <input type="hidden" name="action" value="new-request">
                 <div class="mb-4">
                     <div class="alert alert-warning alert-dismissible fade show" role="alert">
                         <h4 class="alert-heading">Witness Testing Requirement</h4>
@@ -106,7 +108,7 @@
                 </div>
             </form>
         </div>
-        <!-- STEP 2 -->
+        <!-- STEP 2 - Compliance Class and Run Selection (Tab) -->
         <div class="tab-pane fade" id="pills-step2" role="tabpanel" aria-labelledby="pills-step2-tab" tabindex="0">
             <div class="mb-3">
                 <h4>Classes</h4>
@@ -166,7 +168,7 @@
                                 href="{{ url_for('procedure_yaml_page', test_procedure_id=p) }}">{{
                                 p }} </a></label>
                         <div class="col-auto mx-2">
-                            <select id="run-select-{{p}}" onchange="handleRunChange(event);"
+                            <select id="run-select-{{p}}" class="form-select" onchange="handleRunChange(event);"
                                 class="form-select" aria-label="Run Select {{p}}">
                             </select>
                         </div>
@@ -181,68 +183,61 @@
                 </div>
             </div>
         </div>
-        <!-- STEP 3 -->
+        <!-- STEP 3 - DER Tab -->
         <div class="tab-pane fade" id="pills-step3" role="tabpanel" aria-labelledby="pills-step3-tab" tabindex="0">
             <h4>DER</h4>
             <div class="mb-3">
                 <label for="der-brand-input" class="form-label">Brand</label>
                 <input id="der-brand-input" name="der-brand" class="form-control" aria-label="DER Brand">
-                <div id="der-brand-help" class="form-text">We'll never share your email with anyone else.</div>
             </div>
             <div class="mb-3">
                 <label for="der-oem-input" class="form-label">OEM</label>
                 <input id="der-oem-input" name="der-oem" class="form-control" aria-label="DER OEM">
-                <div id="der-oem-help" class="form-text">We'll never share your email with anyone else.</div>
             </div>
             <div class="mb-3">
                 <label for="der-series-input" class="form-label">Series</label>
                 <input id="der-series-input" name="der-series" class="form-control" aria-label="DER Series">
-                <div id="der-series-help" class="form-text">We'll never share your email with anyone else.</div>
+                <div id="der-series-help" class="form-text">The series or product line the DER belongs to.</div>
             </div>
             <div class="mb-3">
                 <label for="der-repmod-textarea" class="form-label">Representative Models</label>
                 <textarea id="der-repmod-textarea" name="der-representative-models" class="form-control" rows="3"
                     aria-label="DER Representative Models"></textarea>
-                <div id="der-repmod-help" class="form-text">We'll never share your email with anyone else.</div>
+                <div id="der-repmod-help" class="form-text">A list of models in the DER series. Models must use the same software (e.g. MODBUS registers) and hardware configuration. Models may differ however in their rated power or phases.</div>
             </div>
         </div>
-        <!-- STEP 4 -->
+        <!-- STEP 4 - Software Client Tab -->
         <div class="tab-pane fade" id="pills-step4" role="tabpanel" aria-labelledby="pills-step4-tab" tabindex="0">
-            <h4>SOFTWARE CLIENT</h4>
-            <div class="mb-3">
+            <h4>Software Client</h4>
+            <div class="mb-4">
                 <label for="sc-type-select" class="form-label">Type</label>
-                <select id="sc-type-select" name="software-client-type" class="form-control" aria-label="Software Client Type ">
+                <select id="sc-type-select" name="software-client-type" class="form-select" aria-label="Software Client Type ">
                     <option value="direct">Direct</option>
                     <option value="proxy">Proxy (Aggregator)</option>
                 </select>
-                <div id="sc-type-help" class="form-text">We'll never share your email with anyone else.</div>
+                <div class="form-text"><b>Direct</b> - DER connects to the server using its own software communications client. The connection represents a single site, and the DER communicates with the server directly without an intermediate aggregator.</div>
+                <div class="form-text"><b>Proxy (Aggregator)</b> - DER(s) connects to the server via a communications aggregator as a software communications client that may represent many sites.</div>
             </div>
             <div class="mb-3">
                 <label for="sc-providers-input" class="form-label">Provider(s)</label>
                 <input id="sc-providers-input" name="software-client-providers" class="form-control"
                     aria-label="Software Client Providers ">
-                <div id="sc-providers-help" class="form-text">We'll never share your email with anyone else.</div>
+                <div id="sc-providers-help" class="form-text">The software client may be provided by an OEM or third-party.</div>
             </div>
             <div class="mb-3">
                 <label for="sc-versions-input" class="form-label">Version(s)</label>
                 <input id="sc-versions-input" name="software-client-versions" class="form-control"
                     aria-label="Software Client Versions ">
-                <div id="sc-versions-help" class="form-text">We'll never share your email with anyone else.</div>
+                <div id="sc-versions-help" class="form-text">The full name and version(s) of all software client along with details of any intermediate cloud server(s) or platform(s).</div>
             </div>
-            <div class="mb-3">
-                <label for="sc-details-textarea" class="form-label">Details</label>
-                <textarea id="sc-details-textarea" name="software-client-details" class="form-control" rows="3"
-                    aria-label="Software Client Details"></textarea>
-                <div id="sc-details-help" class="form-text">We'll never share your email with anyone else.</div>
-            </div>
-            <h4>ON-SITE HARDWARE</h4>
+            <h4>On-site Hardware</h4>
             <div class="mb-3">
                 <label for="onsite-details-textarea" class="form-label">Details</label>
                 <textarea id="onsite-details-textarea" name="onsite-hardware-details" class="form-control" rows="3"
                     aria-label="On-site Hardware Details"></textarea>
-                <div id="onside-details-help" class="form-text">We'll never share your email with anyone else.</div>
+                <div id="onside-details-help" class="form-text">List of the makes and models of any on-site gateway device(s), control device(s), EMS device(s), external accessories etc. that are part of the software client implementation .</div>
             </div>
-            <input type="hidden" name="action" value="new-request">
+            
         </div>
     </div>
     <!-- wizard nav (back/next buttons etc.) -->
@@ -350,7 +345,7 @@
         // Return a set of active classes.
         // A compliance class is active if
         //    - it is checked
-        //    - it is visible (only classes that part of the current csipaus version are visible)
+        //    - it is visible (only classes that part of the currently selected csipaus version are visible)
 
         var activeClasses = new Set();
 
