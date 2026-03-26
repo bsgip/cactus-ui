@@ -11,7 +11,16 @@
 <div class="container">
 
     <h2>Compliance Request</h2>
-    <div class="d-flex justify-content-center">
+
+    <!--
+    This is the tab page navigation required by bootstrap for tabs
+    But we don't want user to navigate by jumping forward to any tab so we
+    - hide this nav with display:none
+    - use separate 'Back' 'Next' buttons to move through the tabs
+    - display a nav at the top of the page showing you what tab/step you are on
+    These give a more wizard step-by-step experience.
+    -->
+    <div class="d-flex justify-content-center" style="display: none !important;">
         <ul class="nav nav-pills my-4" id="pills-tab" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="pills-step1-tab" data-bs-toggle="pill" data-bs-target="#pills-step1"
@@ -31,6 +40,17 @@
             </li>
         </ul>
     </div>
+
+    <!-- wizard tab/step indicator (updated via js)-->
+    <div class="d-flex justify-content-center prevent-select">
+        <ul class="nav nav-pills my-4" role="wizardlist">
+            <li class="nav-item mx-2" role="presentation"><span id="indicator-step-0" class="nav-link active">1</span></li>
+            <li class="nav-item mx-2" role="presentation"><span id="indicator-step-1" class="nav-link inactive">2</span></li>
+            <li class="nav-item mx-2" role="presentation"><span id="indicator-step-2" class="nav-link inactive">3</span></li>
+            <li class="nav-item mx-2" role="presentation"><span id="indicator-step-3" class="nav-link inactive">4</span></li>
+        </ul>
+    </div>
+
     <!-- STEP 1 -->
     <div class="tab-content" id="pills-tabContent">
         <div class="tab-pane fade show active" id="pills-step1" role="tabpanel" aria-labelledby="pills-step1-tab"
@@ -89,7 +109,7 @@
                     </div>
                 </div>
                 <div class="mb-3">
-                    <div id="missing-runs-alert" class="alert alert-danger" role="alert">
+                    <div id="missing-runs-alert" class="alert alert-danger" role="alert" style="display: none;">
                         <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i> Runs Missing</h4>
                         <p>Some of the chosen compliance classes do not have successful test runs:</p>
                         <ul id="missing-runs-list">
@@ -103,7 +123,7 @@
                     <div class="row mb-3">
                         <h4 id="select-runs-header">Runs</h4>
                         {% for p in completed_test_procedures %}
-                        <div id="test-container-{{p}}" class="row my-2">
+                        <div id="test-container-{{p}}" class="row my-2" style="display: none;">
                             <label for="run-select-{{p}}" class="col-auto col-form-label"><a
                                     href="{{ url_for('procedure_yaml_page', test_procedure_id=p) }}">{{
                                     p }} </a></label>
@@ -196,9 +216,15 @@
                 <div id="onside-details-help" class="form-text">We'll never share your email with anyone else.</div>
             </div>
             <input type="hidden" name="action" value="new-request">
-            <button type="submit" class="btn btn-primary">Submit</button>
         </div>
     </div>
+    <!-- wizard nav (back/next buttons etc.) -->
+    <div class="d-flex justify-content-end">
+        <button id="wizard-nav-prev" type="button" class="btn btn-secondary mx-2" onclick="handlePrevButton()">Back</button>
+        <button id="wizard-nav-next" type="button" class="btn btn-primary mx-2" onclick="handleNextButton()">Next</button>
+        <button id="wizard-nav-submit" type="submit" class="btn btn-primary mx-2">Submit</button>
+    </div>
+
 </div>
 {% endif %}
 <style>
@@ -206,6 +232,12 @@
   -webkit-user-select: none; /* Safari */
   -ms-user-select: none; /* IE 10 and IE 11 */
   user-select: none; /* Standard syntax */
+}
+
+.nav-link.inactive {
+  color: var(--bs-white);
+  background-color: var(--bs-gray-500);
+
 }
 </style>
 <script>
@@ -218,6 +250,10 @@
     const testProcedures = JSON.parse(atob("{{ test_procedures_b64 }}"));
     const completedTestProcedures = new Set(JSON.parse(atob("{{ completed_test_procedures_b64 }}")));
     const runs = JSON.parse(atob("{{ runs_b64 }}"));
+
+    // Manage current tab manually
+    var currentTab = 0;
+    const NUMTABS = 4;
 
     // Allows string format ala Python's str.format() method.
     // Example:
@@ -401,6 +437,49 @@
         }
     }
 
+    function handleTabChange() {
+        // Update the tab indicator
+        for (let tab = 0; tab < NUMTABS; tab++) {
+            const tabIndicator = document.getElementById(`indicator-step-${tab}`);
+            if (tab === currentTab) {
+                tabIndicator.classList.add("active");
+                tabIndicator.classList.remove("inactive"); 
+            } else {
+                tabIndicator.classList.add("inactive");
+                tabIndicator.classList.remove("active");
+            }
+        }
+
+        // Show/Hide correct buttons in wizard nav
+        const prevButton = document.getElementById("wizard-nav-prev");
+        prevButton.style.display = (currentTab == 0) ? "none": "inline-block";
+        const nextButton = document.getElementById("wizard-nav-next");
+        nextButton.style.display = (currentTab == NUMTABS-1) ? "none": "inline-block";
+        const submitButton = document.getElementById("wizard-nav-submit");
+        submitButton.style.display = (currentTab == NUMTABS-1) ? "inline-block": "none";
+
+        // Set button disable/enable state
+        // TODO
+    }
+
+    function handleNextButton(event) {
+        if (currentTab < NUMTABS-1) {
+            currentTab += 1;
+            const triggerElements = Array.from(document.querySelectorAll('#pills-tab button'));
+            triggerElements[currentTab].click();
+            handleTabChange();
+        }
+    }
+
+    function handlePrevButton(event) {
+        if (currentTab > 0) {
+            currentTab -= 1;
+            const triggerElements = Array.from(document.querySelectorAll('#pills-tab button'));
+            triggerElements[currentTab].click();
+            handleTabChange();
+        }
+    }
+
     addEventListener("load", (event) => {
         // Setup event listeners
         const input = document.getElementById("csipAusVersionSelect");
@@ -415,6 +494,9 @@
 
         // Add runs
         insertRuns();
+
+        // Get setup for showing first tab
+        handleTabChange();
     });
 
 </script>
