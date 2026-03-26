@@ -10,7 +10,30 @@
 {% else %}
 <div class="container">
 
-    <h2>Compliance Request</h2>
+    <!-- Page title with close button -->
+    <div class="d-flex">
+        <h2 class="flex-grow-1" style="display: inline-block;">Compliance Request</h2>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-toggle="modal" data-bs-target="#discardModal"></button>
+    </div>
+
+    <!-- Modal for aborting/leaving a compliance request (discards all entered data) -->
+    <div id="discardModal" class="modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Are you sure you want to leave?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>You will lose all information entered.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Continue with Compliance Request</button>
+                <a id="continue-button" class="btn btn-outline-danger" href="{{ url_for('compliance_page') }}" role="button">Leave</a> 
+            </div>
+            </div>
+        </div>
+    </div>
 
     <!--
     This is the tab page navigation required by bootstrap for tabs
