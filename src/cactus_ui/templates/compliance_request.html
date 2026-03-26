@@ -81,100 +81,104 @@
             <!-- Form uses self-submission technique -->
             <form action="{{ url_for('compliance_request_page')}}" method="post">
                 <div class="mb-4">
-                    <h4>Compliance</h4>
-                    <div class="row mt-4">
-                        <label for="csipAusVersionSelect" class="col-auto col-form-label">Standard</label>
-                        <div class="col col-auto">
-                            <select id="csipAusVersionSelect" name="csipaus-version" class="form-select"
-                                aria-label="Select CSIPAus Version">
-                                {% for version in csipaus_versions %}
-                                <option value="{{ version }}">CSIP-AUS {{version}}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <h4 class="alert-heading">Witness Testing Requirement</h4>
+                        <p>Witness testing must be completed before any compliance request can be submitted.</p>
+                        <p class="mb-0">If you are yet to complete witness testing, please contact <a href="mailto:support@bsgip.com">support@bsgip.com</a> to arrange a date.</p>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
-                </div>
-                <div class="mb-3">
-                    <h4>Classes</h4>
-                    <div class="d-flex mb-2">
-                        <button type="button" class="btn btn-sm btn-primary" onclick="updateClassCheckboxState(true);">Select
-                            All</button>
-                        <button type="button" class="ms-2 btn btn-sm btn-secondary"
-                            onclick="updateClassCheckboxState(false);">Deselect All</button>
-                    </div>
-                </div>
-                <div class="mb-5">
-                    <!-- Add all the classes upfront and show/hide them based on chosen CSIPAus version-->
-                    <div class="container prevent-select">
-                        {% set NUM_COLS = 9 %}
-                        {% set NUM_ROWS = (all_compliance_classes|length)//NUM_COLS + 1 %}
-                        {% for r in range(NUM_ROWS) %}
-                        <div class="row">
-                            {% for c in range(NUM_COLS) %}
-                            {% set index = r*NUM_COLS+c %}
-                            {% if index < all_compliance_classes|length %} {% set class=all_compliance_classes[index] if index < all_compliance_classes|length else "placeholder" %}
-                            <div class="col">
-                                <div id="class-checkbox-container-{{class}}" class="form-check">
-                                    <input id="class-checkbox-{{class}}" name="{{class}}" class="form-check-input" type="checkbox"
-                                        value="{{ class }}" onchange="handleClassChange(event);">
-                                    <label class="form-check-label" for="class-checkbox-{{class}}">
-                                        {{ class }}
-                                    </label>
-                                </div>
-                            </div>
-                            {% else %}
-                            <div class="col">
-                            </div>
-                            {% endif %}
+                    <div class="mt-4">
+                        <label for="csipAusVersionSelect" class="form-label">Compliance Standard</label>
+                        <select id="csipAusVersionSelect" name="csipaus-version" class="form-select" aria-label="Select CSIPAus Version">
+                            {% for version in csipaus_versions %}
+                            <option value="{{ version }}">CSIP-AUS {{version}}</option>
                             {% endfor %}
-                        </div>
-                        {% endfor %}
+                        </select>
+                        <div class="form-text">A compliance request can only be made against one compliance standard at a time.</div>
                     </div>
-                </div>
-                <div class="mb-3">
-                    <div id="missing-runs-alert" class="alert alert-danger" role="alert" style="display: none;">
-                        <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i> Runs Missing</h4>
-                        <p>Some of the chosen compliance classes do not have successful test runs:</p>
-                        <ul id="missing-runs-list">
-                        </ul>
-                        <p>There is a total of <b id="missing-runs-count"></b> missing runs.</p>
-                        <hr>
-                        <p class="mb-0">You must either completed the required tests or remove compliance classes that are incomplete
-                            before proceeding with the compliance request.</p>
+                    
+                    <div class="mt-4">
+                        <label for="witnesstesting-date-input" class="form-label">Witness Testing Date</label>
+                        <input id="witnesstesting-date-input" name="witnesstesting_date" class="form-control" type="date" aria-label="Witness Testing Date"></input>
+                        <div id="witnesstesting-date-help" class="form-text">The date when in-person witness testing was performed.</div>
                     </div>
-                    <!-- Add all the runs upfront and show/hide them based on chosen Compliance Classes and CSIPAus version-->
-                    <div class="row mb-3">
-                        <h4 id="select-runs-header">Runs</h4>
-                        {% for p in completed_test_procedures %}
-                        <div id="test-container-{{p}}" class="row my-2" style="display: none;">
-                            <label for="run-select-{{p}}" class="col-auto col-form-label"><a
-                                    href="{{ url_for('procedure_yaml_page', test_procedure_id=p) }}">{{
-                                    p }} </a></label>
-                            <div class="col-auto mx-2">
-                                <select id="run-select-{{p}}" onchange="handleRunChange(event);"
-                                    class="form-select" aria-label="Run Select {{p}}">
-                                </select>
-                            </div>
-                            <div class="col-auto me-5">
-                                <a id="run-link-{{p}}" href="#" target="_blank"
-                                    class="btn btn-md btn-outline-secondary">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
+                    
                 </div>
             </form>
         </div>
         <!-- STEP 2 -->
         <div class="tab-pane fade" id="pills-step2" role="tabpanel" aria-labelledby="pills-step2-tab" tabindex="0">
-            <h4>WITNESS TESTING</h4>
-            <div>
-                <label for="witnesstesting-date-input" class="form-label">Date</label>
-                <input id="witnesstesting-date-input" name="witnesstesting_date" class="form-control" type="date"
-                    aria-label="Witness Testing Date"></textarea>
-                <div id="witnesstesting-date-help" class="form-text">We'll never share your email with anyone else.</div>
+            <div class="mb-3">
+                <h4>Classes</h4>
+                <p>Choose all the compliance classes you want to be assessed under.</p>
+                <div class="d-flex mb-2">
+                    <button type="button" class="btn btn-sm btn-primary" onclick="updateClassCheckboxState(true);">Select
+                        All</button>
+                    <button type="button" class="ms-2 btn btn-sm btn-secondary"
+                        onclick="updateClassCheckboxState(false);">Deselect All</button>
+                </div>
+            </div>
+            <div class="mb-5">
+                <!-- Add all the classes upfront and show/hide them based on chosen CSIPAus version-->
+                <div class="container prevent-select">
+                    {% set NUM_COLS = 9 %}
+                    {% set NUM_ROWS = (all_compliance_classes|length)//NUM_COLS + 1 %}
+                    {% for r in range(NUM_ROWS) %}
+                    <div class="row">
+                        {% for c in range(NUM_COLS) %}
+                        {% set index = r*NUM_COLS+c %}
+                        {% if index < all_compliance_classes|length %} {% set class=all_compliance_classes[index] if index < all_compliance_classes|length else "placeholder" %}
+                        <div class="col">
+                            <div id="class-checkbox-container-{{class}}" class="form-check">
+                                <input id="class-checkbox-{{class}}" name="{{class}}" class="form-check-input" type="checkbox"
+                                    value="{{ class }}" onchange="handleClassChange(event);">
+                                <label class="form-check-label" for="class-checkbox-{{class}}">
+                                    {{ class }}
+                                </label>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="col">
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="mb-3">
+                <div id="missing-runs-alert" class="alert alert-danger" role="alert" style="display: none;">
+                    <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i> Runs Missing</h4>
+                    <p>Some of the chosen compliance classes do not have successful test runs:</p>
+                    <ul id="missing-runs-list">
+                    </ul>
+                    <p>There is a total of <b id="missing-runs-count"></b> missing runs.</p>
+                    <hr>
+                    <p class="mb-0">You must either completed the required tests or remove compliance classes that are incomplete
+                        before proceeding with the compliance request.</p>
+                </div>
+                <!-- Add all the runs upfront and show/hide them based on chosen Compliance Classes and CSIPAus version-->
+                <div class="row mb-3">
+                    <h4 id="select-runs-header">Runs</h4>
+                    {% for p in completed_test_procedures %}
+                    <div id="test-container-{{p}}" class="row my-2" style="display: none;">
+                        <label for="run-select-{{p}}" class="col-auto col-form-label"><a
+                                href="{{ url_for('procedure_yaml_page', test_procedure_id=p) }}">{{
+                                p }} </a></label>
+                        <div class="col-auto mx-2">
+                            <select id="run-select-{{p}}" onchange="handleRunChange(event);"
+                                class="form-select" aria-label="Run Select {{p}}">
+                            </select>
+                        </div>
+                        <div class="col-auto me-5">
+                            <a id="run-link-{{p}}" href="#" target="_blank"
+                                class="btn btn-md btn-outline-secondary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
         <!-- STEP 3 -->
