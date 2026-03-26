@@ -1595,8 +1595,9 @@
             stepAlertElement.innerHTML = ''; // remove any error message
             proceedButton.innerHTML = spinner();
             xhrRequest(uri, (content) => {
-                // Success. The next status update will handle removing the proceed button
-                proceedState == null;
+                // Reset state and clear button so the next proceed step can render cleanly
+                proceedState = null;
+                stepProceedElement.innerHTML = "";
             }, (status, content) => {
                 // Something went wrong
                 proceedState = "errored";
