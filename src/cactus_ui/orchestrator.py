@@ -653,6 +653,25 @@ def fetch_compliance_requests(access_token: str) -> list[orchestrator.Compliance
     ]
 
 
+def fetch_compliance_request(
+    access_token: str, compliance_request_id: int
+) -> orchestrator.ComplianceRequestContentResponse | None:
+    return orchestrator.ComplianceRequestContentResponse(
+        compliance_standard="v1.2",
+        witness_test=datetime.now(timezone.utc),
+        classes=["M"],
+        runs=[1],
+        der_brand="placeholder-brand",
+        der_oem="placeholder-oem",
+        der_series="placeholder-series1, placeholder-series2",
+        der_repmodels="placeholder-model-X, placeholder-model-Y",
+        software_type="proxy",
+        software_providers="placeholder-software-provider",
+        software_versions="placeholder-software-version",
+        hardware_details="placeholder-hardware-details",
+    )
+
+
 # ----------------------------------------------------------------------------------
 #
 #  Admin only functions

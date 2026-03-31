@@ -161,7 +161,10 @@
                 </div>
                 <!-- Add all the runs upfront and show/hide them based on chosen Compliance Classes and CSIPAus version-->
                 <div class="row mb-3">
-                    <h4 id="select-runs-header">Runs</h4>
+                    <div id="select-runs-header">
+                        <h4>Runs</h4>
+                        <p>For each test procedure, choose which run you want assessing. Note: Only successful (finalised and passing all critieria) runs are shown.</p>
+                    </div>
                     {% for p in completed_test_procedures %}
                     <div id="test-container-{{p}}" class="row my-2" style="display: none;">
                         <label for="run-select-{{p}}" class="col-auto col-form-label"><a
@@ -272,6 +275,7 @@
     const testProcedures = JSON.parse(atob("{{ test_procedures_b64 }}"));
     const completedTestProcedures = new Set(JSON.parse(atob("{{ completed_test_procedures_b64 }}")));
     const runs = JSON.parse(atob("{{ runs_b64 }}"));
+    const prefillComplianceRequest = JSON.parse(atob("{{ prefill_compliance_request_b64 }}"));
 
     // Manage current tab manually
     var currentTab = 0;
@@ -459,6 +463,24 @@
         }
     }
 
+    function getCompliantClasses() {
+        const missingTestsByClass = getMissingTests(allComplianceClasses, getCsipausVersion());
+        const compliantClasses = [];
+        for (const c of allComplianceClasses) {
+            if (missingTestsByClass[0][c].size === 0) compliantClasses.push(c)
+        }
+        return compliantClasses;
+    }
+
+    function preselectCompliantClasses() {
+        const compliantClasses = getCompliantClasses();
+        for (const c of compliantClasses) {
+            var checkbox = document.getElementById(`class-checkbox-${c}`);
+            checkbox.checked = true;
+        }
+        updateForClassChange();
+    }
+
     function handleTabChange() {
         // Update the tab indicator
         for (let tab = 0; tab < NUMTABS; tab++) {
@@ -502,6 +524,29 @@
         }
     }
 
+    function prefillControl(elementId, value) {
+        const el = document.getElementById(elementId);
+        el.value = value;
+    }
+
+    function prefill(prefillValues) {
+        prefillControl("csipaus-version-select", prefillValues.compliance_standard);
+        prefillControl("witnesstesting-date-input", prefillValues.witness_test.split('T')[0]);
+
+        // Compliance classes and runs are not prefilled
+
+        prefillControl("der-brand-input", prefillValues.der_brand);
+        prefillControl("der-oem-input", prefillValues.der_oem);
+        prefillControl("der-series-input", prefillValues.der_series);
+        prefillControl("der-repmod-textarea", prefillValues.der_repmodels);
+
+        prefillControl("sc-type-select", prefillValues.software_type);
+        prefillControl("sc-providers-input", prefillValues.software_providers);
+        prefillControl("sc-versions-input", prefillValues.software_versions);
+        prefillControl("onsite-details-textarea", prefillValues.hardware_details);
+
+    }
+
     addEventListener("load", (event) => {
         // Setup event listeners
         const input = document.getElementById("csipaus-version-select");
@@ -516,6 +561,14 @@
 
         // Add runs
         insertRuns();
+
+        // Preselect compliant classes
+        preselectCompliantClasses()
+
+        // Prefill
+        if (prefillComplianceRequest) {
+            prefill(prefillComplianceRequest);
+        }
 
         // Get setup for showing first tab
         handleTabChange();

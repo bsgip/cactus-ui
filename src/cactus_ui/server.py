@@ -1134,7 +1134,13 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
             pass
 
     PAGE = "compliance_request.html"
+    # Get prefill compliance request (if requested)
     prefill_compliance_request_id = request.args.get("prefill")
+    compliance_request = None
+    if prefill_compliance_request_id is not None:
+        compliance_request = orchestrator.fetch_compliance_request(
+            access_token=access_token, compliance_request_id=prefill_compliance_request_id
+        )
 
     # Get test procedures
     test_procedures = fetch_all_test_procedures(access_token=access_token)
@@ -1187,6 +1193,9 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
         runs_b64=b64encode(json.dumps(runs, default=custom_serializer).encode()).decode(),
         completed_test_procedures_b64=b64encode(json.dumps(completed_test_procedures).encode()).decode(),
         completed_test_procedures=completed_test_procedures,
+        prefill_compliance_request_b64=b64encode(
+            json.dumps(compliance_request, default=custom_serializer).encode()
+        ).decode(),
         error=error,
     )
 
