@@ -1160,6 +1160,7 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
 
     all_compliance_classes = list(classes)
     all_compliance_classes.sort()
+    compliance_class_details = {c: fetch_compliance_class(c) for c in all_compliance_classes}
 
     csipaus_versions = list(tests_by_csipaus_version_and_class.keys())
 
@@ -1185,6 +1186,7 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
         default_csipaus_version=csipaus_versions[0],
         all_compliance_classes=all_compliance_classes,
         all_compliance_classes_b64=b64encode(json.dumps(all_compliance_classes).encode()).decode(),
+        compliance_class_details=compliance_class_details,
         tests_by_csipaus_version_and_class_b64=b64encode(
             json.dumps(tests_by_csipaus_version_and_class).encode()
         ).decode(),

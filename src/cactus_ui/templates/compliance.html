@@ -23,7 +23,7 @@
           <div class="mb-3">
             <label for="recipient-name" class="col-form-label">Existing Compliance Request:</label>
             <select id="prefill-select" class="form-select" aria-label="Default select example">
-                <option selected>No Pre-fill</option>
+                <option selected>No pre-fill</option>
             </select>
           </div>
         </form>
@@ -304,7 +304,7 @@
         const modalButton = document.getElementById("continue-button");
         modalSelect.onchange = (event) => {
             switch(event.target.value) {
-                case "No Pre-fill":
+                case "No pre-fill":
                     modalButton.innerHTML = "Continue";
                     modalButton.href = complianceRequestPageURL;
                     break;

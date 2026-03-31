@@ -131,10 +131,10 @@
                         {% set index = r*NUM_COLS+c %}
                         {% if index < all_compliance_classes|length %} {% set class=all_compliance_classes[index] if index < all_compliance_classes|length else "placeholder" %}
                         <div class="col">
-                            <div id="class-checkbox-container-{{class}}" class="form-check">
+                            <div id="class-checkbox-container-{{class}}" class="form-check" >
                                 <input id="class-checkbox-{{class}}" name="class_{{class}}" form="compliance-request-form" class="form-check-input" type="checkbox"
-                                    value="{{ class }}" onchange="handleClassChange(event);">
-                                <label class="form-check-label" for="class-checkbox-{{class}}">
+                                    value="{{ class }}" onchange="handleClassChange(event);" >
+                                <label class="form-check-label" for="class-checkbox-{{class}}" data-bs-toggle="tooltip" data-bs-title="{{compliance_class_details[class].description}}">
                                     {{ class }}
                                 </label>
                             </div>
@@ -572,6 +572,10 @@
 
         // Get setup for showing first tab
         handleTabChange();
+
+        // Enable tooltips
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
     });
 
 </script>
