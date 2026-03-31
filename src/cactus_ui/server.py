@@ -1084,11 +1084,33 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
     if request.method == "POST":
         # User compliance request (new)
         if request.form.get("action") == "new-request":
-            witnesstesting_date = request.form.get("witnesstesting_date")
-            print(f"{witnesstesting_date=}")
-            # _ = orchestrator.create_compliance_request()
-            error = "Failed to create new compliance request"
-        # User compliance request (update)
+            form_keys = [
+                "csipaus_version",
+                "witnesstesting_date",
+                "der_brand",
+                "der_oem",
+                "der_series",
+                "der_representative_models",
+                "software_client_type",
+                "software_client_providers",
+                "software_client_versions",
+                "onsite_hardware_details",
+            ]
+            try:
+                for form_key in form_keys:
+                    value = request.form.get(form_key)
+                    print(f"{form_key}={value}")
+                compliance_classes = [request.form.get(key) for key in request.form.keys() if key.startswith("class_")]
+                print(f"{compliance_classes=}")
+                runs = {key: request.form.get(key) for key in request.form.keys() if key.startswith("run_")}
+                print(f"{runs=}")
+
+                # _ = orchestrator.create_compliance_request()
+            except Exception as e:
+                error = f"Failed to create new compliance request. {e}"
+            # User compliance request (update)
+            return redirect(url_for("compliance_page"))
+
         elif request.form.get("action") == "update-request":
             # return redirect(url_for("run_status_page", run_id=init_result.response.run_id))
             pass
