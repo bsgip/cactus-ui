@@ -586,6 +586,16 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
     )
 
 
+@app.route("/admin/run/<int:run_id>/html_report", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_run_html_report_page(access_token: str, run_id: int) -> str | Response:
+    html = orchestrator.admin_fetch_run_power_limit_chart(access_token, run_id)
+    if html is None:
+        return Response(response="Failed to generate HTML report.", status=HTTPStatus.BAD_GATEWAY)
+    return Response(html, mimetype="text/html")
+
+
 @app.route("/admin/run/<int:run_id>/status", methods=["GET"])
 @login_required
 @admin_role_required
@@ -1427,6 +1437,15 @@ def _handle_run_status_post(access_token: str, run_id: str) -> str | Response | 
     return None
 
 
+@app.route("/run/<int:run_id>/html_report", methods=["GET"])
+@login_required
+def run_html_report_page(access_token: str, run_id: int) -> str | Response:
+    html = orchestrator.fetch_run_power_limit_chart(access_token, run_id)
+    if html is None:
+        return Response(response="Failed to generate HTML report.", status=HTTPStatus.BAD_GATEWAY)
+    return Response(html, mimetype="text/html")
+
+
 @app.route("/run/<int:run_id>", methods=["GET", "POST"])
 @login_required
 def run_status_page(access_token: str, run_id: str) -> str | Response:
@@ -1473,6 +1492,7 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
         playlist_info=playlist_info,
         next_playlist_run_id=next_playlist_run_id,
         current_active_run=current_active_run,
+        is_admin_view=False,
         cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
     )
 

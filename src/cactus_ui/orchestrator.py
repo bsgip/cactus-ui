@@ -19,6 +19,7 @@ if ENV_FILE:
 # envvars
 CACTUS_ORCHESTRATOR_BASEURL = env["CACTUS_ORCHESTRATOR_BASEURL"]
 CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT = int(env.get("CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT", "30"))
+CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_LONG = int(env.get("CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_LONG", "120"))
 CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN = int(env.get("CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN", "120"))
 
 
@@ -354,6 +355,15 @@ def fetch_run_artifact(access_token: str, run_id: str) -> tuple[bytes | None, st
     return (response.content, generate_run_artifact_file_name(response, run_id))
 
 
+def fetch_run_power_limit_chart(access_token: str, run_id: int) -> str | None:
+    """Fetch the power limit HTML chart for a run. Returns HTML string or None on failure."""
+    uri = generate_uri(orchestrator.uri.RunPowerLimitChart.format(run_id=run_id))
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_LONG)
+    if response is None or not is_success_response(response):
+        return None
+    return response.text
+
+
 def fetch_multiple_run_artifacts(access_token: str, run_ids: list[int]) -> bytes | None:
     """Fetch artifacts for multiple runs as a single ZIP file"""
     uri = generate_uri("/run/artifact/multiple")
@@ -663,6 +673,15 @@ def admin_fetch_run_artifact(access_token: str, run_id: str) -> tuple[bytes | No
         return (None, "")
 
     return (response.content, generate_run_artifact_file_name(response, run_id))
+
+
+def admin_fetch_run_power_limit_chart(access_token: str, run_id: int) -> str | None:
+    """Admin: fetch the power limit HTML chart for a run. Returns HTML string or None on failure."""
+    uri = generate_uri(orchestrator.uri.AdminRunPowerLimitChart.format(run_id=run_id))
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_LONG)
+    if response is None or not is_success_response(response):
+        return None
+    return response.text
 
 
 def admin_fetch_run_group_artifact(access_token: str, run_group_id: int) -> bytes | None:
