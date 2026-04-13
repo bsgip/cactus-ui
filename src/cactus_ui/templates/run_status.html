@@ -284,11 +284,18 @@
         <div class="alert alert-primary" role="alert">
             <p>This run has been finalised and is no longer active.</p>
 
-            <p>Click the button below to download the run's artifacts.</p>
-            <form id='download-form' method="POST" action="{{ url_for('run_status_page', run_id=run_id) }}">
-                <input type="hidden" name="action" value="artifact">
-                <button type="submit" class="btn btn-primary">Download Artifacts</button>
-            </form>
+            <p>Click the buttons below to download the run's artifacts or view the HTML report.</p>
+            <div class="d-flex gap-2 flex-wrap">
+                <form id='download-form' method="POST" action="{{ url_for('admin_run_status_page', run_id=run_id) if is_admin_view else url_for('run_status_page', run_id=run_id) }}">
+                    <input type="hidden" name="action" value="artifact">
+                    <button type="submit" class="btn btn-primary">Download Artifacts</button>
+                </form>
+                {% if is_admin_view %}
+                <a href="{{ url_for('admin_run_html_report_page', run_id=run_id) }}" target="_blank" class="btn btn-outline-secondary">View HTML Report</a>
+                {% else %}
+                <a href="{{ url_for('run_html_report_page', run_id=run_id) }}" target="_blank" class="btn btn-outline-secondary">View HTML Report</a>
+                {% endif %}
+            </div>
         </div>
         {% else %}
         <div class="alert alert-warning" role="alert">
