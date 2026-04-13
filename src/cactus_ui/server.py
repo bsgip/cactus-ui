@@ -916,16 +916,8 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
             if not run_id:
                 error = "No run ID specified."
             else:
-                archive_data = orchestrator.finalise_run(access_token, run_id)
-                if archive_data is None:
-                    error = "Failed to finalise the run or retrieve artifacts."
-                else:
-                    return send_file(
-                        io.BytesIO(archive_data),
-                        as_attachment=True,
-                        download_name=f"{run_id}_artifacts.zip",
-                        mimetype="application/zip",
-                    )
+                if not orchestrator.finalise_run(access_token, run_id):
+                    error = "Failed to finalise the run."
 
         # Handle dl artifact
         elif request.form.get("action") == "artifact":
@@ -1403,15 +1395,9 @@ def _handle_run_status_post(access_token: str, run_id: str) -> str | Response | 
             )
         return None
     elif action == "finalise":
-        archive_data = orchestrator.finalise_run(access_token, run_id)
-        if archive_data is None:
-            return "Failed to finalise the run or retrieve artifacts."
-        return send_file(
-            io.BytesIO(archive_data),
-            as_attachment=True,
-            download_name=f"{run_id}_artifacts.zip",
-            mimetype="application/zip",
-        )
+        if not orchestrator.finalise_run(access_token, run_id):
+            return "Failed to finalise the run."
+        return None
     elif action == "artifact":
         artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
         if artifact_data is None:
@@ -1440,9 +1426,10 @@ def _handle_run_status_post(access_token: str, run_id: str) -> str | Response | 
 @app.route("/run/<int:run_id>/html_report", methods=["GET"])
 @login_required
 def run_html_report_page(access_token: str, run_id: int) -> str | Response:
-    html = orchestrator.fetch_run_power_limit_chart(access_token, run_id)
+    html, error_detail = orchestrator.fetch_run_power_limit_chart(access_token, run_id)
     if html is None:
-        return Response(response="Failed to generate HTML report.", status=HTTPStatus.BAD_GATEWAY)
+        message = error_detail or "Failed to generate HTML report."
+        return Response(response=message, status=HTTPStatus.BAD_GATEWAY)
     return Response(html, mimetype="text/html")
 
 

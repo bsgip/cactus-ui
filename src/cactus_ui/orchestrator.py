@@ -318,18 +318,11 @@ def start_run(access_token: str, run_id: str) -> StartResult:
         return StartResult(success=False, error_message="Unexpected error when attempting to start the run.")
 
 
-def finalise_run(access_token: str, run_id: str) -> bytes | None:
-    """Given an already started run - finalise it and return the resulting ZIP file bytes"""
+def finalise_run(access_token: str, run_id: str) -> bool:
+    """Finalise a run. Returns True on success, False on error."""
     uri = generate_uri(orchestrator.uri.RunFinalise.format(run_id=run_id))
     response = safe_request("POST", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
-    if response is None or not is_success_response(response):
-        return None
-
-    # This is a special case - we DID finalize but got no data due to a downstream error. Treat it as a general failure.
-    if response.status_code == HTTPStatus.NO_CONTENT:
-        return None
-
-    return response.content
+    return response is not None and is_success_response(response)
 
 
 def finalise_playlist(access_token: str, run_id: str) -> bytes | None:
@@ -355,13 +348,19 @@ def fetch_run_artifact(access_token: str, run_id: str) -> tuple[bytes | None, st
     return (response.content, generate_run_artifact_file_name(response, run_id))
 
 
-def fetch_run_power_limit_chart(access_token: str, run_id: int) -> str | None:
-    """Fetch the power limit HTML chart for a run. Returns HTML string or None on failure."""
+def fetch_run_power_limit_chart(access_token: str, run_id: int) -> tuple[str | None, str | None]:
+    """Fetch the power limit HTML chart for a run. Returns (html, error_detail)."""
     uri = generate_uri(orchestrator.uri.RunPowerLimitChart.format(run_id=run_id))
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_LONG)
-    if response is None or not is_success_response(response):
-        return None
-    return response.text
+    if response is None:
+        return (None, None)
+    if not is_success_response(response):
+        try:
+            detail = response.json().get("detail", None)
+        except Exception:
+            detail = None
+        return (None, detail)
+    return (response.text, None)
 
 
 def fetch_multiple_run_artifacts(access_token: str, run_ids: list[int]) -> bytes | None:

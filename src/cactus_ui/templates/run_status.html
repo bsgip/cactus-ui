@@ -452,29 +452,9 @@
             });
 
             if (response.ok) {
-                // Download the ZIP file
-                const blob = await response.blob();
-                const contentDisposition = response.headers.get('Content-Disposition');
-                let filename = 'artifacts.zip';
-                if (contentDisposition) {
-                    const match = contentDisposition.match(/filename="?([^";\n]+)"?/);
-                    if (match) filename = match[1];
-                }
-
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                a.remove();
-
                 // Redirect to next run in playlist, or reload to show completed state
                 if (nextRunId) {
-                    setTimeout(() => {
-                        window.location.href = `/run/${nextRunId}`;
-                    }, 500);
+                    window.location.href = `/run/${nextRunId}`;
                 } else {
                     window.location.reload();
                 }
