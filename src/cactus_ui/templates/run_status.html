@@ -456,7 +456,7 @@
                 if (nextRunId) {
                     window.location.href = `/run/${nextRunId}`;
                 } else {
-                    window.location.reload();
+                    window.location.replace(window.location.pathname);
                 }
             } else {
                 alert('Failed to finalise the run. Please try again.');
