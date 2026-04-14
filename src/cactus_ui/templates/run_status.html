@@ -291,11 +291,14 @@
                     <button type="submit" class="btn btn-primary">Download Artifacts</button>
                 </form>
                 {% if is_witness_test %}
-                {% if is_admin_view %}
-                <a href="{{ url_for('admin_run_html_report_page', run_id=run_id) }}" target="_blank" class="btn btn-outline-secondary">View Device Power Chart</a>
-                {% else %}
-                <a href="{{ url_for('run_html_report_page', run_id=run_id) }}" target="_blank" class="btn btn-outline-secondary">View Device Power Chart</a>
-                {% endif %}
+                <form action="{{ url_for('admin_run_html_report_page' if is_admin_view else 'run_html_report_page', run_id=run_id) }}"
+                      method="GET" target="_blank" class="d-flex gap-1 align-items-center">
+                  <input type="text" name="video_start"
+                         placeholder="Video offset (MM:SS)"
+                         title="Optional: enter the video timestamp (MM:SS or H:MM:SS) at which the test started. Leave blank for test-relative time. Invalid values are ignored."
+                         class="form-control form-control-sm" style="width:165px;">
+                  <button type="submit" class="btn btn-outline-secondary">View Device Power Chart</button>
+                </form>
                 {% endif %}
             </div>
         </div>

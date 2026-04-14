@@ -348,9 +348,11 @@ def fetch_run_artifact(access_token: str, run_id: str) -> tuple[bytes | None, st
     return (response.content, generate_run_artifact_file_name(response, run_id))
 
 
-def fetch_run_power_limit_chart(access_token: str, run_id: int) -> tuple[str | None, str | None]:
+def fetch_run_power_limit_chart(access_token: str, run_id: int, video_start_seconds: float | None = None) -> tuple[str | None, str | None]:
     """Fetch the power limit HTML chart for a run. Returns (html, error_detail)."""
     uri = generate_uri(orchestrator.uri.RunPowerLimitChart.format(run_id=run_id))
+    if video_start_seconds is not None:
+        uri = f"{uri}?video_start_seconds={video_start_seconds}"
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_LONG)
     if response is None:
         return (None, None)
@@ -674,9 +676,11 @@ def admin_fetch_run_artifact(access_token: str, run_id: str) -> tuple[bytes | No
     return (response.content, generate_run_artifact_file_name(response, run_id))
 
 
-def admin_fetch_run_power_limit_chart(access_token: str, run_id: int) -> str | None:
+def admin_fetch_run_power_limit_chart(access_token: str, run_id: int, video_start_seconds: float | None = None) -> str | None:
     """Admin: fetch the power limit HTML chart for a run. Returns HTML string or None on failure."""
     uri = generate_uri(orchestrator.uri.AdminRunPowerLimitChart.format(run_id=run_id))
+    if video_start_seconds is not None:
+        uri = f"{uri}?video_start_seconds={video_start_seconds}"
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_LONG)
     if response is None or not is_success_response(response):
         return None

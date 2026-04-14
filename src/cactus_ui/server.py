@@ -594,11 +594,34 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
     )
 
 
+def _parse_video_start(raw: str | None) -> float | None:
+    """Parse a video timestamp string ('SS', 'M:SS', 'MM:SS', 'H:MM:SS') to seconds.
+
+    Returns None if the input is absent, empty, or cannot be parsed — callers treat
+    None as "no offset" and generate the chart with the default test-relative axis.
+    """
+    if not raw:
+        return None
+    parts = raw.strip().split(":")
+    try:
+        nums = [float(p) for p in parts]
+    except ValueError:
+        return None
+    if len(nums) == 1:
+        return nums[0]
+    if len(nums) == 2:
+        return nums[0] * 60 + nums[1]
+    if len(nums) == 3:
+        return nums[0] * 3600 + nums[1] * 60 + nums[2]
+    return None
+
+
 @app.route("/admin/run/<int:run_id>/html_report", methods=["GET"])
 @login_required
 @admin_role_required
 def admin_run_html_report_page(access_token: str, run_id: int) -> str | Response:
-    html = orchestrator.admin_fetch_run_power_limit_chart(access_token, run_id)
+    video_start = _parse_video_start(request.args.get("video_start"))
+    html = orchestrator.admin_fetch_run_power_limit_chart(access_token, run_id, video_start_seconds=video_start)
     if html is None:
         return Response(response="Failed to generate HTML report.", status=HTTPStatus.BAD_GATEWAY)
     return Response(html, mimetype="text/html")
@@ -1434,7 +1457,8 @@ def _handle_run_status_post(access_token: str, run_id: str) -> str | Response | 
 @app.route("/run/<int:run_id>/html_report", methods=["GET"])
 @login_required
 def run_html_report_page(access_token: str, run_id: int) -> str | Response:
-    html, error_detail = orchestrator.fetch_run_power_limit_chart(access_token, run_id)
+    video_start = _parse_video_start(request.args.get("video_start"))
+    html, error_detail = orchestrator.fetch_run_power_limit_chart(access_token, run_id, video_start_seconds=video_start)
     if html is None:
         message = error_detail or "Failed to generate HTML report."
         return Response(response=message, status=HTTPStatus.BAD_GATEWAY)
