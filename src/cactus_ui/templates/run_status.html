@@ -233,34 +233,6 @@
     </div>
 </div>
 
-<div class="modal fade" id="powerChartModal" tabindex="-1" aria-labelledby="powerChartModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form action="{{ url_for('admin_run_html_report_page' if is_admin_view else 'run_html_report_page', run_id=run_id) }}"
-                  method="GET" target="_blank">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="powerChartModalLabel">View Device Power Chart</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Would you like to align the time axis to a video recording of the test?</p>
-                    <p>Enter the video timestamp (MM:SS) at which the test started, or leave blank for test-relative time.</p>
-                    <div class="d-flex align-items-center gap-2">
-                        <label class="form-label mb-0 text-nowrap" for="powerChartVideoStart">Video timestamp:</label>
-                        <input type="text" id="powerChartVideoStart" name="video_start"
-                               class="form-control form-control-sm" style="width:100px;"
-                               placeholder="MM:SS" autocomplete="off">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">View Report</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <br>
 <div class="row justify-content-center">
     <div class="card status-container ">
@@ -320,11 +292,21 @@
                     <button type="submit" class="btn btn-primary">Download Artifacts</button>
                 </form>
                 {% if is_witness_test %}
-                <button type="button" class="btn btn-outline-secondary"
-                        data-bs-toggle="modal" data-bs-target="#powerChartModal"
-                        data-report-url="{{ url_for('admin_run_html_report_page' if is_admin_view else 'run_html_report_page', run_id=run_id) }}">
-                    View Device Power Chart
-                </button>
+                <details>
+                    <summary class="btn btn-outline-secondary">View Device Power Chart</summary>
+                    <form action="{{ url_for('admin_run_html_report_page' if is_admin_view else 'run_html_report_page', run_id=run_id) }}"
+                          method="GET" target="_blank"
+                          class="mt-2 p-3 border rounded bg-light d-flex flex-column gap-2" style="width: 280px;">
+                        <p class="mb-1 small">Optionally align the time axis to a video recording. Enter the video timestamp (MM:SS) at which the test started.</p>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 text-nowrap small" for="powerChartVideoStart">Video timestamp:</label>
+                            <input type="text" id="powerChartVideoStart" name="video_start"
+                                   class="form-control form-control-sm" style="width:90px;"
+                                   placeholder="MM:SS" autocomplete="off">
+                        </div>
+                        <button type="submit" class="btn btn-outline-secondary btn-sm align-self-start">Open Report</button>
+                    </form>
+                </details>
                 {% endif %}
             </div>
         </div>
