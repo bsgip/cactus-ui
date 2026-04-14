@@ -17,6 +17,8 @@ from pathlib import Path
 from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
 from cactus_schema.orchestrator.compliance import fetch_compliance_classes
+# cactus_test_definitions is imported only for witness test class membership used in HTML report display
+from cactus_test_definitions.client.test_procedures import get_all_test_procedures
 
 import cactus_schema.orchestrator as schema
 import jwt
@@ -50,6 +52,11 @@ else:
     logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
+
+_WITNESS_CLASSES = frozenset({"DER-A", "DER-G", "DER-L", "DR-A", "DR-D", "DR-G", "DR-L"})
+_WITNESS_PROCEDURE_IDS: frozenset[str] = frozenset(
+    str(pid) for pid, tp in get_all_test_procedures().items() if _WITNESS_CLASSES & set(tp.classes)
+)
 
 
 ENV_FILE = find_dotenv()
@@ -581,6 +588,7 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
         error=error,
         playlist_info=None,
         is_admin_view=True,
+        is_witness_test=run_procedure_id in _WITNESS_PROCEDURE_IDS,
         user_buttons_state="disabled",
         cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
     )
@@ -1480,6 +1488,7 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
         next_playlist_run_id=next_playlist_run_id,
         current_active_run=current_active_run,
         is_admin_view=False,
+        is_witness_test=run_procedure_id in _WITNESS_PROCEDURE_IDS,
         cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
     )
 
