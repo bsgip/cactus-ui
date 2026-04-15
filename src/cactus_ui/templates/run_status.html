@@ -293,7 +293,7 @@
                 </form>
                 {% if is_witness_test %}
                 <details>
-                    <summary class="btn btn-outline-secondary">View Device Power Chart</summary>
+                    <summary class="btn btn-outline-secondary">Witness Test Chart</summary>
                     <form action="{{ url_for('admin_run_html_report_page' if is_admin_view else 'run_html_report_page', run_id=run_id) }}"
                           method="GET" target="_blank"
                           class="mt-2 p-3 border rounded bg-light d-flex flex-column gap-2" style="width: 280px;">
@@ -304,7 +304,7 @@
                                    class="form-control form-control-sm" style="width:90px;"
                                    placeholder="MM:SS" autocomplete="off">
                         </div>
-                        <button type="submit" class="btn btn-outline-secondary btn-sm align-self-start">Open Report</button>
+                        <button type="submit" class="btn btn-outline-secondary btn-sm align-self-start">Create Chart</button>
                     </form>
                 </details>
                 {% endif %}
