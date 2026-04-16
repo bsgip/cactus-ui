@@ -54,7 +54,7 @@ else:
 
 logger = logging.getLogger(__name__)
 
-_WITNESS_CLASSES = frozenset({"DER-A", "DER-G", "DER-L", "DR-A", "DR-D", "DR-G", "DR-L"})
+_WITNESS_CLASSES = frozenset({"DER-A", "DER-G", "DER-L", "DR-D", "DR-G", "DR-L"})
 _WITNESS_PROCEDURE_IDS: frozenset[str] = frozenset(
     str(pid) for pid, tp in get_all_test_procedures().items() if _WITNESS_CLASSES & set(tp.classes)
 )
