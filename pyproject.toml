@@ -13,7 +13,7 @@ dependencies = [
     "authlib",
     "requests",
     "pyjwt",
-    "cactus-schema>=0.0.17",
+    "cactus-schema>=0.0.18",
     "cactus-test-definitions",  # used only for determining witness test class membership for HTML report display
 ]
 
