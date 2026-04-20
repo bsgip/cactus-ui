@@ -393,7 +393,7 @@
     const runIsLive = "{{ run_is_live }}" === 'True';
     const userRunStatusUri = "{{ url_for('run_status_page', run_id=run_id) }}";
     const adminRunStatusUri = "{{ url_for('admin_run_status_page', run_id=run_id) }}";
-    const proceedUri = "{{ url_for('send_proceed', run_id=run_id) }}";
+    const proceedUri = "{{ proceed_uri }}";
     const runStatusUri = isAdminView ? adminRunStatusUri : userRunStatusUri;
     const formAction = runStatusUri
 
