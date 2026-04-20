@@ -317,6 +317,8 @@
 
 
 <style>
+    body { padding-bottom: 50px; }
+
     .status-container {
         width: 100%;
         max-width: 1000px;
@@ -772,6 +774,28 @@
         }
 
         return fragments
+    }
+
+    function updateBannerStep(stepStatus) {
+        const el = document.getElementById('banner-step');
+        if (!el) return;
+        const entries = Object.entries(stepStatus);
+        let activeStep = null;
+        let activeIdx = -1;
+        for (let i = 0; i < entries.length; i++) {
+            const [name, info] = entries[i];
+            const isActive = typeof info === 'number'
+                ? info === 1
+                : (info.started_at && !info.completed_at);
+            if (isActive) { activeStep = name; activeIdx = i; break; }
+        }
+        if (activeStep) {
+            el.textContent = `Step ${activeIdx + 1}: ${activeStep}`;
+            el.style.color = '#fff';
+        } else {
+            el.textContent = 'No active step';
+            el.style.color = '#6c757d';
+        }
     }
 
     const MAX_VISIBLE_REQUESTS = 50;
@@ -1662,6 +1686,7 @@
         // update steps table
         const stepsTable = document.getElementById('update-steps-table');
         stepsTable.innerHTML = stepStatusTableBody(status.step_status ?? {}, status.timestamp_start).join("");
+        updateBannerStep(status.step_status ?? {});
 
         // update criteria table (append synthetic XSD validity criteria)
         const criteria = status.criteria ?? [];
@@ -1896,6 +1921,15 @@
         }
 
 
+        // Banner clock
+        function updateBannerClock() {
+            const el = document.getElementById('banner-clock');
+            if (!el) return;
+            el.textContent = new Date().toTimeString().slice(0, 8);
+        }
+        setInterval(updateBannerClock, 1000);
+        updateBannerClock();
+
         // Start polling
         if (runIsLive) {
             const uri = isAdminView ? "{{ url_for('admin_run_status_json', run_id=run_id) }}" : "{{ url_for('run_status_json', run_id=run_id) }}";
@@ -1913,5 +1947,13 @@
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"
     integrity="sha256-/wN4amD2yTzKz+D7tsLjxnHXkwhWo2ifLzkxE9jWVew=" crossorigin="anonymous"></script>
+
+{% if run_is_live %}
+<div id="status-banner" style="position:fixed;bottom:0;left:0;right:0;z-index:1050;background:#212529;color:#fff;padding:8px 20px;display:flex;align-items:center;gap:20px;font-family:monospace;font-size:0.95rem;">
+    <span><i class="fas fa-clock"></i> <span id="banner-clock">--:--:--</span></span>
+    <span style="color:#6c757d;">|</span>
+    <span id="banner-step" style="color:#adb5bd;">No active step</span>
+</div>
+{% endif %}
 
 {% endblock %}
