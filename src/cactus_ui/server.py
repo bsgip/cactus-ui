@@ -18,6 +18,9 @@ from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
 from cactus_schema.orchestrator.compliance import fetch_compliance_classes
 
+# cactus_test_definitions is imported only for witness test class membership used in HTML report display
+from cactus_test_definitions.client.test_procedures import get_all_test_procedures
+
 import cactus_schema.orchestrator as schema
 import jwt
 from authlib.integrations.flask_client import OAuth
@@ -50,6 +53,11 @@ else:
     logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
+
+_WITNESS_CLASSES = frozenset({"DER-A", "DER-G", "DER-L", "DR-D", "DR-G", "DR-L"})
+_WITNESS_PROCEDURE_IDS: frozenset[str] = frozenset(
+    str(pid) for pid, tp in get_all_test_procedures().items() if _WITNESS_CLASSES & set(tp.classes)
+)
 
 
 ENV_FILE = find_dotenv()
@@ -581,10 +589,44 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
         error=error,
         playlist_info=None,
         is_admin_view=True,
+        is_witness_test=run_procedure_id in _WITNESS_PROCEDURE_IDS,
         user_buttons_state="disabled",
         proceed_uri=url_for("admin_send_proceed", run_id=run_id),
         cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
     )
+
+
+def _parse_video_start(raw: str | None) -> float | None:
+    """Parse a video timestamp string ('SS', 'M:SS', 'MM:SS', 'H:MM:SS') to seconds.
+
+    Returns None if the input is absent, empty, or cannot be parsed — callers treat
+    None as "no offset" and generate the chart with the default test-relative axis.
+    """
+    if not raw:
+        return None
+    parts = raw.strip().split(":")
+    try:
+        nums = [float(p) for p in parts]
+    except ValueError:
+        return None
+    if len(nums) == 1:
+        return nums[0]
+    if len(nums) == 2:
+        return nums[0] * 60 + nums[1]
+    if len(nums) == 3:
+        return nums[0] * 3600 + nums[1] * 60 + nums[2]
+    return None
+
+
+@app.route("/admin/run/<int:run_id>/html_report", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_run_html_report_page(access_token: str, run_id: int) -> str | Response:
+    video_start = _parse_video_start(request.args.get("video_start"))
+    html = orchestrator.admin_fetch_run_power_limit_chart(access_token, run_id, video_start_seconds=video_start)
+    if html is None:
+        return Response(response="Failed to generate HTML report.", status=HTTPStatus.BAD_GATEWAY)
+    return Response(html, mimetype="text/html")
 
 
 @app.route("/admin/run/<int:run_id>/status", methods=["GET"])
@@ -907,16 +949,8 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
             if not run_id:
                 error = "No run ID specified."
             else:
-                archive_data = orchestrator.finalise_run(access_token, run_id)
-                if archive_data is None:
-                    error = "Failed to finalise the run or retrieve artifacts."
-                else:
-                    return send_file(
-                        io.BytesIO(archive_data),
-                        as_attachment=True,
-                        download_name=f"{run_id}_artifacts.zip",
-                        mimetype="application/zip",
-                    )
+                if not orchestrator.finalise_run(access_token, run_id):
+                    error = "Failed to finalise the run."
 
         # Handle dl artifact
         elif request.form.get("action") == "artifact":
@@ -1394,15 +1428,9 @@ def _handle_run_status_post(access_token: str, run_id: str) -> str | Response | 
             )
         return None
     elif action == "finalise":
-        archive_data = orchestrator.finalise_run(access_token, run_id)
-        if archive_data is None:
-            return "Failed to finalise the run or retrieve artifacts."
-        return send_file(
-            io.BytesIO(archive_data),
-            as_attachment=True,
-            download_name=f"{run_id}_artifacts.zip",
-            mimetype="application/zip",
-        )
+        if not orchestrator.finalise_run(access_token, run_id):
+            return "Failed to finalise the run."
+        return None
     elif action == "artifact":
         artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
         if artifact_data is None:
@@ -1426,6 +1454,17 @@ def _handle_run_status_post(access_token: str, run_id: str) -> str | Response | 
                 return response
         return "Failed to download playlist artifacts."
     return None
+
+
+@app.route("/run/<int:run_id>/html_report", methods=["GET"])
+@login_required
+def run_html_report_page(access_token: str, run_id: int) -> str | Response:
+    video_start = _parse_video_start(request.args.get("video_start"))
+    html, error_detail = orchestrator.fetch_run_power_limit_chart(access_token, run_id, video_start_seconds=video_start)
+    if html is None:
+        message = error_detail or "Failed to generate HTML report."
+        return Response(response=message, status=HTTPStatus.BAD_GATEWAY)
+    return Response(html, mimetype="text/html")
 
 
 @app.route("/run/<int:run_id>", methods=["GET", "POST"])
@@ -1474,6 +1513,8 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
         playlist_info=playlist_info,
         next_playlist_run_id=next_playlist_run_id,
         current_active_run=current_active_run,
+        is_admin_view=False,
+        is_witness_test=run_procedure_id in _WITNESS_PROCEDURE_IDS,
         proceed_uri=url_for("send_proceed", run_id=run_id),
         cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
     )

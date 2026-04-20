@@ -232,6 +232,7 @@
         </div>
     </div>
 </div>
+
 <br>
 <div class="row justify-content-center">
     <div class="card status-container ">
@@ -284,11 +285,30 @@
         <div class="alert alert-primary" role="alert">
             <p>This run has been finalised and is no longer active.</p>
 
-            <p>Click the button below to download the run's artifacts.</p>
-            <form id='download-form' method="POST" action="{{ url_for('run_status_page', run_id=run_id) }}">
-                <input type="hidden" name="action" value="artifact">
-                <button type="submit" class="btn btn-primary">Download Artifacts</button>
-            </form>
+            <p>Click below to download the run's artifacts{% if is_witness_test %} or view the Device Power Chart{% endif %}.</p>
+            <div class="d-flex gap-2 flex-wrap">
+                <form id='download-form' method="POST" action="{{ url_for('admin_run_status_page', run_id=run_id) if is_admin_view else url_for('run_status_page', run_id=run_id) }}">
+                    <input type="hidden" name="action" value="artifact">
+                    <button type="submit" class="btn btn-primary">Download Artifacts</button>
+                </form>
+                {% if is_witness_test %}
+                <details>
+                    <summary class="btn btn-outline-secondary">Witness Test Chart</summary>
+                    <form action="{{ url_for('admin_run_html_report_page' if is_admin_view else 'run_html_report_page', run_id=run_id) }}"
+                          method="GET" target="_blank"
+                          class="mt-2 p-3 border rounded bg-light d-flex flex-column gap-2" style="width: 280px;">
+                        <p class="mb-1 small">Optionally align the time axis to a video recording. Enter the video timestamp (MM:SS) at which the test started.</p>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 text-nowrap small" for="powerChartVideoStart">Video timestamp:</label>
+                            <input type="text" id="powerChartVideoStart" name="video_start"
+                                   class="form-control form-control-sm" style="width:90px;"
+                                   placeholder="MM:SS" autocomplete="off">
+                        </div>
+                        <button type="submit" class="btn btn-outline-secondary btn-sm align-self-start">Create Chart</button>
+                    </form>
+                </details>
+                {% endif %}
+            </div>
         </div>
         {% else %}
         <div class="alert alert-warning" role="alert">
@@ -447,31 +467,11 @@
             });
 
             if (response.ok) {
-                // Download the ZIP file
-                const blob = await response.blob();
-                const contentDisposition = response.headers.get('Content-Disposition');
-                let filename = 'artifacts.zip';
-                if (contentDisposition) {
-                    const match = contentDisposition.match(/filename="?([^";\n]+)"?/);
-                    if (match) filename = match[1];
-                }
-
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                a.remove();
-
                 // Redirect to next run in playlist, or reload to show completed state
                 if (nextRunId) {
-                    setTimeout(() => {
-                        window.location.href = `/run/${nextRunId}`;
-                    }, 500);
+                    window.location.href = `/run/${nextRunId}`;
                 } else {
-                    window.location.reload();
+                    window.location.replace(window.location.pathname);
                 }
             } else {
                 alert('Failed to finalise the run. Please try again.');
@@ -1936,6 +1936,8 @@
             const pollRateMs = 10000; // 10 seconds
             startPollingRunStatus(uri, pollRateMs);
         }
+
+
     });
 
 
