@@ -591,6 +591,7 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
         is_admin_view=True,
         is_witness_test=run_procedure_id in _WITNESS_PROCEDURE_IDS,
         user_buttons_state="disabled",
+        proceed_uri=url_for("admin_send_proceed", run_id=run_id),
         cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
     )
 
@@ -1514,6 +1515,7 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
         current_active_run=current_active_run,
         is_admin_view=False,
         is_witness_test=run_procedure_id in _WITNESS_PROCEDURE_IDS,
+        proceed_uri=url_for("send_proceed", run_id=run_id),
         cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
     )
 
@@ -1556,6 +1558,19 @@ def run_request_details(access_token: str, request_id: int, run_id: str) -> Resp
 def send_proceed(access_token: str, run_id: str) -> Response:
 
     proceed_response = orchestrator.send_proceed(access_token=access_token, run_id=run_id)
+
+    if proceed_response is None:
+        return Response(response="Failed to proceed to next step", status=HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    return Response(response=proceed_response.to_json(), status=HTTPStatus.OK, mimetype="application/json")
+
+
+@app.route("/admin/run/<int:run_id>/proceed", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_send_proceed(access_token: str, run_id: str) -> Response:
+
+    proceed_response = orchestrator.admin_send_proceed(access_token=access_token, run_id=run_id)
 
     if proceed_response is None:
         return Response(response="Failed to proceed to next step", status=HTTPStatus.INTERNAL_SERVER_ERROR)
