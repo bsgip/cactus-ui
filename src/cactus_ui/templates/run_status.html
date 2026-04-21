@@ -497,13 +497,13 @@
     }
 
     function parseOffsetSeconds(offsetStr) {
-        const match = offsetStr.match(/(\d+)m(\d+)s|(\d+)s/);
-        if (!match) return 0;
-
-        if (match[1] && match[2]) {
-            return parseInt(match[1]) * 60 + parseInt(match[2]);
-        }
-        return parseInt(match[3]) || 0;
+        const minsSecsMatch = offsetStr.match(/^(\d+)m(\d+)s$/);
+        if (minsSecsMatch) return parseInt(minsSecsMatch[1]) * 60 + parseInt(minsSecsMatch[2]);
+        const minsMatch = offsetStr.match(/^(\d+)m$/);
+        if (minsMatch) return parseInt(minsMatch[1]) * 60;
+        const secsMatch = offsetStr.match(/^(\d+)s$/);
+        if (secsMatch) return parseInt(secsMatch[1]);
+        return 0;
     }
 
     function formatTimeLabel(seconds) {
@@ -1082,7 +1082,7 @@
 
     // CHARTS
 
-    function calculateMaxTime(timeline, timelineStart) {
+    function calculateMaxTime(timeline, timelineStart, basisOffsetSeconds = 0) {
         if (!timelineStart) {
             return CHART_CONFIG.MIN_VISIBLE_TIME;
         }
@@ -1093,7 +1093,7 @@
         // Find the latest data point in any stream
         timeline?.data_streams?.forEach(stream => {
             stream.data.forEach(point => {
-                maxDataTime = Math.max(maxDataTime, parseOffsetSeconds(point.offset) + 20);
+                maxDataTime = Math.max(maxDataTime, parseOffsetSeconds(point.offset) + basisOffsetSeconds + 20);
             });
         });
 
@@ -1121,7 +1121,7 @@
         return currentMax;
     }
 
-    function convertDataStreamsToChartJs(dataStreams) {
+    function convertDataStreamsToChartJs(dataStreams, basisOffsetSeconds = 0) {
         return dataStreams.map(ds => {
             // Sort data by offset time
             const sortedData = [...ds.data].sort((a, b) =>
@@ -1130,7 +1130,7 @@
             // Each point is stored as a 20s interval
             const expandedData = [];
             sortedData.forEach((point, index) => {
-                const startX = parseOffsetSeconds(point.offset);
+                const startX = parseOffsetSeconds(point.offset) + basisOffsetSeconds;
                 const endX = startX + 20;
 
                 // Add start point
@@ -1400,7 +1400,9 @@
 
         const start = new Date(timelineStart);
         const nowSeconds = (new Date() - start) / 1000;
-        const maxTime = calculateMaxTime(timeline, timelineStart);
+        const nowOffsetSeconds = timeline?.now_offset ? parseOffsetSeconds(timeline.now_offset) : 0;
+        const basisOffsetSeconds = nowOffsetSeconds > 0 ? nowSeconds - nowOffsetSeconds : 0;
+        const maxTime = calculateMaxTime(timeline, timelineStart, basisOffsetSeconds);
 
         // ======================================================
         // MINIMAL: Just move the 'now' line
@@ -1429,7 +1431,7 @@
         // ======================================================
         if (updateType === 'incremental' && timelineChart && timelineActivityChart) {
             const dataStreams = timeline?.data_streams || [];
-            const datasets = dataStreams.length > 0 ? convertDataStreamsToChartJs(dataStreams) : [];
+            const datasets = dataStreams.length > 0 ? convertDataStreamsToChartJs(dataStreams, basisOffsetSeconds) : [];
 
             const { stepCompletions, allRequests } = extractActivityData(stepStatus, requestHistory, timelineStart);
             const activityDatasets = createActivityDatasets(stepCompletions, allRequests);
@@ -1466,7 +1468,7 @@
         document.getElementById('timelineActivityChart').style.display = 'block';
 
         const dataStreams = timeline?.data_streams || [];
-        const datasets = dataStreams.length > 0 ? convertDataStreamsToChartJs(dataStreams) : [];
+        const datasets = dataStreams.length > 0 ? convertDataStreamsToChartJs(dataStreams, basisOffsetSeconds) : [];
         const annotations = createChartAnnotations(timeline, timelineStart, nowSeconds);
 
         const sharedXAxisConfig = {
