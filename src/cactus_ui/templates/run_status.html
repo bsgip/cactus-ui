@@ -1416,9 +1416,11 @@
             }
 
             // Only update axis if it changed
-            if (timelineChart.options.scales.x.max !== maxTime) {
+            if (timelineChart.options.scales.x.max !== maxTime || timelineChart.options.scales.x.min !== basisOffsetSeconds) {
                 timelineChart.options.scales.x.max = maxTime;
+                timelineChart.options.scales.x.min = basisOffsetSeconds;
                 timelineActivityChart.options.scales.x.max = maxTime;
+                timelineActivityChart.options.scales.x.min = basisOffsetSeconds;
             }
 
             timelineChart.update('none');
@@ -1443,8 +1445,9 @@
             timelineChart.options.plugins.annotation.annotations = annotations;
             timelineChart.options.plugins.legend.display = datasets.length > 0;
 
-            if (timelineChart.options.scales.x.max !== maxTime) {
+            if (timelineChart.options.scales.x.max !== maxTime || timelineChart.options.scales.x.min !== basisOffsetSeconds) {
                 timelineChart.options.scales.x.max = maxTime;
+                timelineChart.options.scales.x.min = basisOffsetSeconds;
             }
 
             timelineChart.update('none');
@@ -1452,8 +1455,9 @@
             // Update activity chart
             timelineActivityChart.data.datasets = activityDatasets;
 
-            if (timelineActivityChart.options.scales.x.max !== maxTime) {
+            if (timelineActivityChart.options.scales.x.max !== maxTime || timelineActivityChart.options.scales.x.min !== basisOffsetSeconds) {
                 timelineActivityChart.options.scales.x.max = maxTime;
+                timelineActivityChart.options.scales.x.min = basisOffsetSeconds;
             }
 
             timelineActivityChart.update('none');
@@ -1473,7 +1477,7 @@
 
         const sharedXAxisConfig = {
             type: 'linear',
-            min: 0,
+            min: basisOffsetSeconds,
             max: maxTime,
             ticks: {
                 callback: value => formatTimeLabel(Math.floor(value)),
