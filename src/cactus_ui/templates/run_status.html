@@ -1401,7 +1401,9 @@
         const start = new Date(timelineStart);
         const nowSeconds = (new Date() - start) / 1000;
         const nowOffsetSeconds = timeline?.now_offset ? parseOffsetSeconds(timeline.now_offset) : 0;
-        const basisOffsetSeconds = nowOffsetSeconds > 0 ? nowSeconds - nowOffsetSeconds : 0;
+        // nowOffsetSeconds is quantised to 20s intervals by the runner, so subtract and re-floor to
+        // avoid a fractional remainder (e.g. 8s) appearing as the axis min when no crop is active.
+        const basisOffsetSeconds = Math.floor(Math.max(0, nowSeconds - nowOffsetSeconds) / 20) * 20;
         const maxTime = calculateMaxTime(timeline, timelineStart, basisOffsetSeconds);
 
         // ======================================================
