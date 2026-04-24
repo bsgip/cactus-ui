@@ -112,8 +112,8 @@
         overflow: hidden;
     }
     .playlist-col {
-        max-width: 420px;
-        min-width: 220px;
+        max-width: 320px;
+        min-width: 180px;
         overflow: hidden;
     }
     .playlist-container {
@@ -137,15 +137,29 @@
     .status-dot.pending  { background-color: #adb5bd; }
     .status-dot.active   { background-color: #0d6efd; }
     .status-dot.skipped  { background-color: #6c757d; }
-    .test-row { cursor: pointer; }
+    .test-row {
+        cursor: pointer;
+        padding: 3px 8px;
+        border: 1px solid #dee2e6;
+        border-top: none;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
     .test-row:hover { background-color: #f0f4ff; }
-    .test-row.in-queue { background-color: #e7f1ff; }
+    .test-row.in-queue { background-color: #cfe2ff; font-weight: 500; }
+    .test-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
     details summary {
-        padding: 5px 12px;
+        padding: 4px 8px;
         background: #f8f9fa;
         border: 1px solid #dee2e6;
         border-bottom: none;
         font-weight: 500;
+        font-size: 0.85rem;
         user-select: none;
         cursor: pointer;
         list-style: none;
@@ -209,22 +223,23 @@
 
             const rows = visible.map(t => {
                 const queued = inQueue.has(t.id);
-                return `<div class="test-row list-group-item d-flex align-items-center gap-2 ${queued ? 'in-queue' : ''}" data-test-id="${t.id}">
-                    <span style="flex:1; min-width:0;">
-                        <code style="white-space:nowrap;">${t.id}</code>
-                        <small class="text-body-secondary ms-1">${t.description}</small>
-                    </span>
-                    <span class="badge ${queued ? 'bg-primary' : 'bg-secondary'}" style="flex-shrink:0;">${queued ? '✓' : '+'}</span>
+                return `<div class="test-row ${queued ? 'in-queue' : ''}" data-test-id="${t.id}"
+                    data-bs-toggle="tooltip" data-bs-title="${t.description}" data-bs-placement="right">
+                    ${queued ? '✓ ' : ''}<code>${t.id}</code>
                 </div>`;
             }).join('');
 
             html += `<details open>
                 <summary>${category}</summary>
-                <div class="list-group list-group-flush">${rows}</div>
+                <div class="test-grid">${rows}</div>
             </details>`;
         }
 
         container.innerHTML = html;
+
+        container.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+            bootstrap.Tooltip.getOrCreateInstance(el, { delay: { show: 300, hide: 0 } });
+        });
 
         container.querySelectorAll('.test-row').forEach(el => {
             el.addEventListener('click', () => {
