@@ -59,16 +59,9 @@ _WITNESS_PROCEDURE_IDS: frozenset[str] = frozenset(
     str(pid) for pid, tp in get_all_test_procedures().items() if _WITNESS_CLASSES & set(tp.classes)
 )
 
-# Tests available for playlist building: excludes immediate_start procedures, grouped by category
-_PLAYLIST_TESTS_BY_CATEGORY: dict[str, list[dict]] = {}
-for _pid, _tp in get_all_test_procedures().items():
-    if not _tp.preconditions.immediate_start:
-        _cat = _tp.category
-        if _cat not in _PLAYLIST_TESTS_BY_CATEGORY:
-            _PLAYLIST_TESTS_BY_CATEGORY[_cat] = []
-        _PLAYLIST_TESTS_BY_CATEGORY[_cat].append(
-            {"id": str(_pid), "description": _tp.description, "is_witness": str(_pid) in _WITNESS_PROCEDURE_IDS}
-        )
+_IMMEDIATE_START_IDS: frozenset[str] = frozenset(
+    str(pid) for pid, tp in get_all_test_procedures().items() if tp.preconditions.immediate_start
+)
 
 
 ENV_FILE = find_dotenv()
@@ -250,6 +243,27 @@ def run_summary_to_compliance_status(test_procedure: schema.TestProcedureRunSumm
             return "failed"
     else:
         return "unknown"
+
+
+def build_playlist_tests_by_category(
+    procedures: list[schema.TestProcedureRunSummaryResponse],
+) -> dict[str, list[dict]]:
+    """Build ordered category→tests dict for the playlist builder, excluding immediate_start procedures."""
+    result: dict[str, list[dict]] = {}
+    for p in procedures:
+        if str(p.test_procedure_id) in _IMMEDIATE_START_IDS:
+            continue
+        cat = p.category
+        if cat not in result:
+            result[cat] = []
+        result[cat].append(
+            {
+                "id": str(p.test_procedure_id),
+                "description": p.description,
+                "is_witness": str(p.test_procedure_id) in _WITNESS_PROCEDURE_IDS,
+            }
+        )
+    return result
 
 
 def build_test_status_dict(run: schema.RunResponse) -> dict:
@@ -1158,6 +1172,10 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
         if isinstance(result, str):
             error = result
 
+    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
+    if procedures is None:
+        error = "Unable to fetch test procedures."
+
     run_groups = orchestrator.fetch_run_groups(access_token, 1)
     active_run_group: schema.RunGroupResponse | None = None
     if not run_groups or not run_groups.items:
@@ -1171,7 +1189,7 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
     return render_template(
         "playlists.html",
         error=error,
-        tests_by_category=_PLAYLIST_TESTS_BY_CATEGORY,
+        tests_by_category=build_playlist_tests_by_category(procedures or []),
         run_groups=[] if run_groups is None else run_groups.items,
         run_group_id=run_group_id,
         active_run_group=active_run_group,
