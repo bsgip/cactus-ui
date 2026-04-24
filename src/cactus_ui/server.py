@@ -60,7 +60,9 @@ _WITNESS_PROCEDURE_IDS: frozenset[str] = frozenset(
 )
 
 _IMMEDIATE_START_IDS: frozenset[str] = frozenset(
-    str(pid) for pid, tp in get_all_test_procedures().items() if tp.preconditions.immediate_start
+    str(pid)
+    for pid, tp in get_all_test_procedures().items()
+    if tp.preconditions is not None and tp.preconditions.immediate_start
 )
 
 # Category and test ordering derived from local definition order (used to sort playlist builder display)
@@ -1254,8 +1256,8 @@ def past_playlist_sessions_json(access_token: str, run_group_id: int) -> Respons
         )
 
     # Active sessions first, then most recent
-    result.sort(key=lambda x: x["created_at"], reverse=True)
-    result.sort(key=lambda x: not x["is_active"])
+    result.sort(key=lambda x: str(x["created_at"]), reverse=True)
+    result.sort(key=lambda x: not bool(x["is_active"]))
 
     return Response(response=json.dumps(result), status=HTTPStatus.OK, mimetype="application/json")
 
