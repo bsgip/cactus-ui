@@ -1240,8 +1240,7 @@ def past_playlist_sessions_json(access_token: str, run_group_id: int) -> Respons
             continue
         first_run = runs_sorted[0]
         is_active = any(
-            (r.status.value if hasattr(r.status, "value") else str(r.status)) in active_statuses
-            for r in runs_sorted
+            (r.status.value if hasattr(r.status, "value") else str(r.status)) in active_statuses for r in runs_sorted
         )
         result.append(
             {
