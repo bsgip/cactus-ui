@@ -62,7 +62,9 @@
 
             {# Queue list #}
             <div id="queue-section" style="flex-shrink: 0; max-height: 40%; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 8px;">
-                <p id="queue-empty" class="text-muted m-3">No tests selected. Click tests in the library to add them.</p>
+                <div id="queue-empty" class="alert alert-warning m-2 py-2" role="alert">
+                    <strong>No tests selected.</strong> Click tests in the library to build your playlist.
+                </div>
                 <div id="queue-list"></div>
             </div>
 
@@ -146,9 +148,19 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        display: flex;
+        align-items: center;
+        gap: 5px;
     }
     .test-row:hover { background-color: #f0f4ff; }
     .test-row.in-queue { background-color: #cfe2ff; font-weight: 500; }
+    .test-check {
+        font-size: 0.9rem;
+        color: #adb5bd;
+        flex-shrink: 0;
+        line-height: 1;
+    }
+    .test-row.in-queue .test-check { color: #0d6efd; }
     .test-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -214,6 +226,12 @@
 
     function renderTestLibrary() {
         const container = document.getElementById('test-library');
+
+        // Dispose existing tooltip instances before replacing DOM nodes
+        container.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+            bootstrap.Tooltip.getInstance(el)?.dispose();
+        });
+
         const inQueue = new Set(queue.map(q => q.id));
         let html = '';
 
@@ -223,9 +241,10 @@
 
             const rows = visible.map(t => {
                 const queued = inQueue.has(t.id);
+                const check = queued ? '✓' : '☐';
                 return `<div class="test-row ${queued ? 'in-queue' : ''}" data-test-id="${t.id}"
                     data-bs-toggle="tooltip" data-bs-title="${t.description}" data-bs-placement="right">
-                    ${queued ? '✓ ' : ''}<code>${t.id}</code>
+                    <span class="test-check">${check}</span><code>${t.id}</code>
                 </div>`;
             }).join('');
 
@@ -238,7 +257,7 @@
         container.innerHTML = html;
 
         container.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-            bootstrap.Tooltip.getOrCreateInstance(el, { delay: { show: 300, hide: 0 } });
+            bootstrap.Tooltip.getOrCreateInstance(el, { delay: { show: 400, hide: 0 } });
         });
 
         container.querySelectorAll('.test-row').forEach(el => {
