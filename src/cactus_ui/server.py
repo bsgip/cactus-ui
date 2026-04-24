@@ -273,6 +273,7 @@ def build_playlist_tests_by_category(
                 "id": str(p.test_procedure_id),
                 "description": p.description,
                 "is_witness": str(p.test_procedure_id) in _WITNESS_PROCEDURE_IDS,
+                "classes": p.classes or [],
             }
         )
     # Sort categories and tests within each category by local definition order
@@ -1191,6 +1192,11 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
     if procedures is None:
         error = "Unable to fetch test procedures."
 
+    all_classes: set[str] = set()
+    for p in procedures or []:
+        if p.classes:
+            all_classes.update(p.classes)
+
     run_groups = orchestrator.fetch_run_groups(access_token, 1)
     active_run_group: schema.RunGroupResponse | None = None
     if not run_groups or not run_groups.items:
@@ -1205,6 +1211,7 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
         "playlists.html",
         error=error,
         tests_by_category=build_playlist_tests_by_category(procedures or []),
+        classes=fetch_compliance_classes(all_classes),
         run_groups=[] if run_groups is None else run_groups.items,
         run_group_id=run_group_id,
         active_run_group=active_run_group,

@@ -37,11 +37,48 @@
 
         {# ── Left panel: Test Library ── #}
         <div class="col playlist-col">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-shrink: 0;">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; flex-shrink: 0;">
                 <h5 style="margin: 0; flex: 1;">Test Library</h5>
-                <button id="witness-toggle" class="btn btn-outline-secondary btn-sm" type="button">Witness Tests Only</button>
+                <button id="witness-toggle" class="btn btn-outline-secondary btn-sm" type="button">Witness Only</button>
+                <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#class-filter-modal">
+                    <i class="fas fa-sliders"></i>
+                </button>
+            </div>
+            <div style="flex-shrink: 0; margin-bottom: 4px;">
+                <small id="filter-summary" class="text-muted">Showing ALL compliance classes</small>
             </div>
             <div id="test-library" class="playlist-container"></div>
+        </div>
+
+        {# Compliance class filter modal #}
+        <div class="modal fade" id="class-filter-modal" tabindex="-1" aria-labelledby="class-filter-modal-label" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="class-filter-modal-label">Filter Compliance Classes</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="class-filter-form">
+                            <p class="text-muted small">TS 5573:2025 (Table 12.5) — tests with no class membership are always shown.</p>
+                            {% for c in classes %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="{{ c.name }}"
+                                    name="{{ c.name }}" id="class-check-{{ c.name }}"
+                                    oninput="classFilterChanged()" checked>
+                                <label class="form-check-label" for="class-check-{{ c.name }}">
+                                    <strong>({{ c.name }})</strong> {{ c.description }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-primary" onclick="selectAllClasses()">Select ALL</button>
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         {# ── Right panel: Queue + History ── #}
@@ -219,8 +256,11 @@
         for (const t of tests) allTests[t.id] = t;
     }
 
+    const allClassNames = [{% for c in classes %}"{{ c.name }}", {% endfor %}];
+
     let queue = [];        // [{id, description}, ...]
     let witnessOnly = false;
+    let activeClassFilters = new Set(allClassNames);  // all checked = no filter
 
     // ── Rendering ────────────────────────────────────────────────────────────
 
@@ -236,7 +276,15 @@
         let html = '';
 
         for (const [category, tests] of Object.entries(testsByCategory)) {
-            const visible = witnessOnly ? tests.filter(t => t.is_witness) : tests;
+            const allFiltered = activeClassFilters.size === allClassNames.length;
+            const visible = tests.filter(t => {
+                if (witnessOnly && !t.is_witness) return false;
+                if (!allFiltered) {
+                    // tests with no class membership are always shown
+                    if (t.classes.length > 0 && !t.classes.some(c => activeClassFilters.has(c))) return false;
+                }
+                return true;
+            });
             if (visible.length === 0) continue;
 
             const rows = visible.map(t => {
@@ -440,6 +488,38 @@
             document.getElementById('past-sessions-content').style.display = '';
             document.getElementById('past-sessions-content').innerHTML = '<p class="text-danger">Failed to load session history.</p>';
         });
+    }
+
+    // ── Compliance class filter ───────────────────────────────────────────────
+
+    function classFilterChanged() {
+        const checked = Array.from(new FormData(document.getElementById('class-filter-form')).values());
+        activeClassFilters = new Set(checked);
+
+        const summary = document.getElementById('filter-summary');
+        const btn = document.querySelector('#class-filter-modal .btn-outline-primary');
+        if (checked.length === allClassNames.length) {
+            summary.textContent = 'Showing ALL compliance classes';
+            btn.textContent = 'Select NONE';
+        } else if (checked.length === 0) {
+            summary.textContent = 'Showing NO compliance classes';
+            btn.textContent = 'Select ALL';
+        } else if (checked.length <= 4) {
+            summary.textContent = `Showing ${checked.join(', ')}`;
+            btn.textContent = 'Select ALL';
+        } else {
+            summary.textContent = `Showing ${checked.length} compliance classes`;
+            btn.textContent = 'Select ALL';
+        }
+
+        renderTestLibrary();
+    }
+
+    function selectAllClasses() {
+        const allSelected = activeClassFilters.size === allClassNames.length;
+        const form = document.getElementById('class-filter-form');
+        form.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = !allSelected; });
+        classFilterChanged();
     }
 
     // ── Init ──────────────────────────────────────────────────────────────────
