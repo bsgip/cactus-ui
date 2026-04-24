@@ -63,6 +63,14 @@ _IMMEDIATE_START_IDS: frozenset[str] = frozenset(
     str(pid) for pid, tp in get_all_test_procedures().items() if tp.preconditions.immediate_start
 )
 
+# Category and test ordering derived from local definition order (used to sort playlist builder display)
+_CATEGORY_ORDER: dict[str, int] = {}
+_TEST_ORDER: dict[str, int] = {}
+for _i, (_pid, _tp) in enumerate(get_all_test_procedures().items()):
+    if _tp.category not in _CATEGORY_ORDER:
+        _CATEGORY_ORDER[_tp.category] = len(_CATEGORY_ORDER)
+    _TEST_ORDER[str(_pid)] = _i
+
 
 ENV_FILE = find_dotenv()
 if ENV_FILE:
@@ -248,7 +256,11 @@ def run_summary_to_compliance_status(test_procedure: schema.TestProcedureRunSumm
 def build_playlist_tests_by_category(
     procedures: list[schema.TestProcedureRunSummaryResponse],
 ) -> dict[str, list[dict]]:
-    """Build ordered category→tests dict for the playlist builder, excluding immediate_start procedures."""
+    """Build ordered category→tests dict for the playlist builder, excluding immediate_start procedures.
+
+    Categories and tests within each category are sorted by local definition order so the display
+    is consistent regardless of the order the orchestrator returns procedures.
+    """
     result: dict[str, list[dict]] = {}
     for p in procedures:
         if str(p.test_procedure_id) in _IMMEDIATE_START_IDS:
@@ -263,7 +275,10 @@ def build_playlist_tests_by_category(
                 "is_witness": str(p.test_procedure_id) in _WITNESS_PROCEDURE_IDS,
             }
         )
-    return result
+    # Sort categories and tests within each category by local definition order
+    for cat in result:
+        result[cat].sort(key=lambda t: _TEST_ORDER.get(t["id"], 999))
+    return dict(sorted(result.items(), key=lambda x: _CATEGORY_ORDER.get(x[0], 999)))
 
 
 def build_test_status_dict(run: schema.RunResponse) -> dict:
