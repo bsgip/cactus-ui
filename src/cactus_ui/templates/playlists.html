@@ -9,23 +9,21 @@
 {% endif %}
 
 <div class="max-page-height" style="padding-top:10px; display: flex; flex-direction: column;">
-    <div style="display: flex;">
+    <div style="display: flex; align-items: baseline; gap: 10px;">
         {% if run_groups|length < 2 %}
             {% if active_run_group %}
                 <h2>Playlists for {{ active_run_group.name }}</h2>
             {% endif %}
         {% else %}
-            <h2>Playlists for </h2>
-            <div class="dropdown" style="margin-left: 10px;">
-                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown"
-                    aria-expanded="false">
+            <h2>Playlists for</h2>
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     {{ active_run_group.name }}
                 </button>
                 <ul class="dropdown-menu">
                     {% for rg in run_groups %}
                     {% if rg.run_group_id != run_group_id %}
-                    <li><a class="dropdown-item"
-                            href="{{ url_for('group_playlists_page', run_group_id=rg.run_group_id) }}">{{rg.name}}</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('group_playlists_page', run_group_id=rg.run_group_id) }}">{{ rg.name }}</a></li>
                     {% endif %}
                     {% endfor %}
                 </ul>
@@ -36,71 +34,65 @@
     <hr>
 
     <div class="row" style="flex: 1; overflow: hidden;">
+
+        {# ── Left panel: Test Library ── #}
         <div class="col playlist-col">
-            <h5>Playlists</h5>
-
-            <div class="playlist-container">
-                <div class="card" style="border-radius: 0; border-bottom: none;">
-                    <div class="list-group list-group-flush">
-                        <a id="active-playlists-button" href="#"
-                            class="playlist-btn list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                            style="border-radius: 0; width:100%">
-                            Active Playlists
-                        </a>
-                    </div>
-                </div>
-
-                {% if playlists %}
-                {% for playlist in playlists %}
-                <div class="card" style="border-radius: 0; border-bottom: none;">
-                    <div class="list-group list-group-flush">
-                        <a href="#" id="playlist-{{ playlist.id }}"
-                            data-playlist-id="{{ playlist.id }}"
-                            data-playlist-name="{{ playlist.name }}"
-                            data-playlist-description="{{ playlist.description }}"
-                            data-procedures="{{ playlist.procedures | join(',') }}"
-                            class="playlist-btn list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                            {{ playlist.name }}
-                            <span class="badge text-bg-info" data-bs-toggle="tooltip" data-bs-title="Times run">{{ playlist_run_counts[playlist.id] }}</span>
-                        </a>
-                    </div>
-                </div>
-                {% endfor %}
-                {% else %}
-                <div class="alert alert-info">
-                    No playlists configured. Set the <code>CACTUS_PLAYLISTS</code> environment variable to define playlists.
-                </div>
-                {% endif %}
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-shrink: 0;">
+                <h5 style="margin: 0; flex: 1;">Test Library</h5>
+                <button id="witness-toggle" class="btn btn-outline-secondary btn-sm" type="button">Witness Only</button>
             </div>
+            <div id="test-library" class="playlist-container"></div>
         </div>
-        <div class="col">
-            <div style="display:flex; padding-top: 5px; padding-bottom: 5px; align-items: center;">
-                <h5 id="playlist-title" style="flex: 1;">Select a Playlist</h5>
-                <div id="playlist-actions" style="margin-left: 10px;"></div>
+
+        {# ── Right panel: Queue + History ── #}
+        <div class="col" style="display: flex; flex-direction: column; overflow: hidden;">
+
+            {# Queue header #}
+            <div style="display: flex; align-items: center; gap: 8px; padding: 5px 0; flex-shrink: 0;">
+                <h5 style="margin: 0; flex: 1;">Current Playlist</h5>
+                <small class="text-muted">May take up to 30s per test</small>
+                <button id="start-btn" class="btn btn-info btn-sm" type="button" disabled>Start Playlist</button>
+            </div>
+
+            {# Hidden form for submitting #}
+            <form id="start-form" method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}">
+                <input type="hidden" name="action" value="initialise_playlist">
+                <input type="hidden" name="procedures" id="procedures-input">
+            </form>
+
+            {# Queue list #}
+            <div id="queue-section" style="flex-shrink: 0; max-height: 40%; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 8px;">
+                <p id="queue-empty" class="text-muted m-3">No tests selected. Click tests in the library to add them.</p>
+                <div id="queue-list"></div>
+            </div>
+
+            <hr style="flex-shrink: 0; margin: 4px 0;">
+
+            {# Past sessions #}
+            <div style="flex-shrink: 0; padding: 4px 0;">
+                <h5 style="margin: 0;">Past Sessions</h5>
             </div>
             <div class="playlist-table-container">
-                <div id="playlist-content">
-                    <p class="text-muted">Select a playlist from the left to view its tests and run history.</p>
+                <div id="past-sessions-loading">
+                    <div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div>
+                    Loading sessions...
                 </div>
+                <div id="past-sessions-content" style="display: none;"></div>
             </div>
+
         </div>
     </div>
 </div>
 
 <style>
-    html,
-    body {
+    html, body {
         height: 100%;
         margin: 0;
         overflow: hidden;
         display: flex;
         flex-direction: column;
     }
-
-    .main-footer {
-        margin-top: 0 !important;
-    }
-
+    .main-footer { margin-top: 0 !important; }
     .main-content {
         flex: 1;
         overflow: hidden;
@@ -108,395 +100,335 @@
         display: flex;
         flex-direction: column;
     }
-
     .max-page-height {
         flex: 1;
         min-height: 0;
         overflow: hidden;
     }
-
     .col {
         height: 100%;
         display: flex;
         flex-direction: column;
         overflow: hidden;
     }
-
     .playlist-col {
-        max-width: 350px;
-        min-width: 200px;
-        overflow: auto;
+        max-width: 420px;
+        min-width: 220px;
+        overflow: hidden;
     }
-
     .playlist-container {
         flex: 1;
+        overflow-y: auto;
     }
-
     .playlist-table-container {
-        margin-top: 5px;
         flex: 1;
-        overflow: auto;
+        overflow-y: auto;
+        margin-top: 4px;
     }
-
-    .push-right {
-        margin: 0 0 0 auto;
-    }
-
     .status-dot {
         display: inline-block;
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
         border-radius: 50%;
         margin: 0 2px;
     }
-
-    .status-dot.success { background-color: #198754; }
-    .status-dot.failed { background-color: #dc3545; }
-    .status-dot.pending { background-color: #adb5bd; }
-    .status-dot.active { background-color: #0d6efd; }
-    .status-dot.skipped { background-color: #6c757d; }
+    .status-dot.success  { background-color: #198754; }
+    .status-dot.failed   { background-color: #dc3545; }
+    .status-dot.pending  { background-color: #adb5bd; }
+    .status-dot.active   { background-color: #0d6efd; }
+    .status-dot.skipped  { background-color: #6c757d; }
+    .test-row { cursor: pointer; }
+    .test-row:hover { background-color: #f0f4ff; }
+    .test-row.in-queue { background-color: #e7f1ff; }
+    details summary {
+        padding: 5px 12px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-bottom: none;
+        font-weight: 500;
+        user-select: none;
+        cursor: pointer;
+        list-style: none;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    details summary::before { content: '▶ '; font-size: 0.7em; }
+    details[open] summary::before { content: '▼ '; font-size: 0.7em; }
+    .queue-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 10px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .queue-item:last-child { border-bottom: none; }
+    .move-btns {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+    }
+    .move-btn {
+        background: none;
+        border: 1px solid #ced4da;
+        border-radius: 3px;
+        line-height: 1;
+        padding: 1px 4px;
+        font-size: 0.65rem;
+        cursor: pointer;
+        color: #495057;
+    }
+    .move-btn:hover:not(:disabled) { background: #e9ecef; }
+    .move-btn:disabled { opacity: 0.3; cursor: default; }
 </style>
 
 <script>
+    const testsByCategory = {{ tests_by_category | tojson }};
     const runGroupId = {{ run_group_id }};
-    const playlistRunsUrlBase = "{{ url_for('playlist_runs_json', run_group_id=run_group_id, playlist_id='PLAYLIST_ID') }}".replace('PLAYLIST_ID', '');
-    const activePlaylistsUrl = "{{ url_for('active_playlists_json', run_group_id=run_group_id) }}";
+    const pastSessionsUrl = "{{ url_for('past_playlist_sessions_json', run_group_id=run_group_id) }}";
     const runStatusUrlBase = "{{ url_for('run_status_page', run_id=0) }}".replace('0', '');
+    const postUrl = "{{ url_for('group_playlists_page', run_group_id=run_group_id) }}";
 
-    function initTooltips() {
-        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-            bootstrap.Tooltip.getOrCreateInstance(el, { delay: { show: 0, hide: 0 } });
+    // Flat lookup: id -> test object
+    const allTests = {};
+    for (const tests of Object.values(testsByCategory)) {
+        for (const t of tests) allTests[t.id] = t;
+    }
+
+    let queue = [];        // [{id, description}, ...]
+    let witnessOnly = false;
+
+    // ── Rendering ────────────────────────────────────────────────────────────
+
+    function renderTestLibrary() {
+        const container = document.getElementById('test-library');
+        const inQueue = new Set(queue.map(q => q.id));
+        let html = '';
+
+        for (const [category, tests] of Object.entries(testsByCategory)) {
+            const visible = witnessOnly ? tests.filter(t => t.is_witness) : tests;
+            if (visible.length === 0) continue;
+
+            const rows = visible.map(t => {
+                const queued = inQueue.has(t.id);
+                return `<div class="test-row list-group-item d-flex align-items-center gap-2 ${queued ? 'in-queue' : ''}" data-test-id="${t.id}">
+                    <span style="flex:1; min-width:0;">
+                        <code style="white-space:nowrap;">${t.id}</code>
+                        <small class="text-body-secondary ms-1">${t.description}</small>
+                    </span>
+                    <span class="badge ${queued ? 'bg-primary' : 'bg-secondary'}" style="flex-shrink:0;">${queued ? '✓' : '+'}</span>
+                </div>`;
+            }).join('');
+
+            html += `<details open>
+                <summary>${category}</summary>
+                <div class="list-group list-group-flush">${rows}</div>
+            </details>`;
+        }
+
+        container.innerHTML = html;
+
+        container.querySelectorAll('.test-row').forEach(el => {
+            el.addEventListener('click', () => {
+                const id = el.getAttribute('data-test-id');
+                const idx = queue.findIndex(q => q.id === id);
+                if (idx >= 0) {
+                    queue.splice(idx, 1);
+                } else {
+                    queue.push({ id, description: allTests[id].description });
+                }
+                renderQueue();
+                renderTestLibrary();
+            });
         });
     }
 
-    function buildStatusDots(testStatuses) {
-        let dots = '';
-        let isActive = false;
-        let activeRunId = null;
-        let activeTestProcedureId = null;
+    function renderQueue() {
+        const list = document.getElementById('queue-list');
+        const empty = document.getElementById('queue-empty');
+        const startBtn = document.getElementById('start-btn');
 
-        for (const testStatus of testStatuses) {
-            let dotClass = 'pending';
-            let title = testStatus.test_procedure_id + ': Queued';
-            if (testStatus.all_criteria_met === true) {
-                dotClass = 'success';
-                title = testStatus.test_procedure_id + ': Passed';
-            } else if (testStatus.all_criteria_met === false) {
-                dotClass = 'failed';
-                title = testStatus.test_procedure_id + ': Failed';
-            } else if (testStatus.status === 'skipped') {
-                dotClass = 'skipped';
-                title = testStatus.test_procedure_id + ': Skipped';
-            } else if (testStatus.status === 'started' || testStatus.status === 'provisioning') {
-                dotClass = 'active';
-                title = testStatus.test_procedure_id + ': Running';
-                isActive = true;
-                if (!activeRunId) {
-                    activeRunId = testStatus.run_id;
-                    activeTestProcedureId = testStatus.test_procedure_id;
-                }
-            } else if (testStatus.status === 'initialised') {
-                // Initialised but not started = queued, but still active for navigation
-                isActive = true;
-                if (!activeRunId) {
-                    activeRunId = testStatus.run_id;
-                    activeTestProcedureId = testStatus.test_procedure_id;
-                }
-            }
-            dots += `<span class="status-dot ${dotClass}" data-bs-toggle="tooltip" data-bs-title="${title}"></span>`;
-        }
-
-        return { dots, isActive, activeRunId, activeTestProcedureId };
-    }
-
-    function handlePlaylistButtonClick(e) {
-        // Update active class
-        document.querySelectorAll(".playlist-btn").forEach(el => el.classList.remove('active'));
-        this.classList.add('active');
-
-        // Check if this is the active playlists button
-        if (this.id === "active-playlists-button") {
-            document.getElementById("playlist-title").innerHTML = "Active Playlists";
-            document.getElementById("playlist-actions").innerHTML = "";
-            loadActivePlaylists();
+        if (queue.length === 0) {
+            list.innerHTML = '';
+            empty.style.display = '';
+            startBtn.disabled = true;
             return;
         }
 
-        const playlist_id = this.getAttribute("data-playlist-id");
-        const playlist_name = this.getAttribute("data-playlist-name");
-        const playlist_description = this.getAttribute("data-playlist-description");
-        const procedures = this.getAttribute("data-procedures").split(",");
+        empty.style.display = 'none';
+        startBtn.disabled = false;
 
-        // Update title
-        document.getElementById("playlist-title").innerHTML = playlist_name;
-
-        // Build procedure list with index for dropdown
-        const procedureOptions = procedures.map((p, idx) =>
-            `<option value="${idx}">${idx === 0 ? 'Start from beginning' : 'Start from ' + p}</option>`
-        ).join('');
-
-        // Show playlist info and start form with dropdown
-        document.getElementById("playlist-actions").innerHTML = `
-            <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}">
-                <input type="hidden" name="playlist_id" value="${playlist_id}">
-                <input type="hidden" name="action" value="initialise_playlist">
-                <div class="d-flex align-items-center gap-2">
-                    <select name="start_index" class="form-select form-select-sm" style="width: auto;">
-                        ${procedureOptions}
-                    </select>
-                    <button type="submit" class="btn btn-info btn-sm" onclick="handleButtonClick(event)">
-                        Start Playlist
-                    </button>
+        list.innerHTML = queue.map((t, i) => `
+            <div class="queue-item">
+                <div class="move-btns">
+                    <button class="move-btn" onclick="moveUp(${i})" ${i === 0 ? 'disabled' : ''}>▲</button>
+                    <button class="move-btn" onclick="moveDown(${i})" ${i === queue.length - 1 ? 'disabled' : ''}>▼</button>
                 </div>
-                <small class="text-muted d-block mt-1">May take up to 30s per test</small>
-            </form>`;
-
-        // Build procedure list for display
-        const procedureListHtml = procedures.map((p, idx) =>
-            `<li><code>${p}</code></li>`
-        ).join('');
-
-        // Show content: description, procedure list and run history
-        const descriptionHtml = playlist_description ? `<p class="text-muted">${playlist_description}</p>` : '';
-        document.getElementById("playlist-content").innerHTML = `
-            ${descriptionHtml}
-            <h6>Tests in this playlist:</h6>
-            <ol>${procedureListHtml}</ol>
-            <hr>
-            <h6>Previous Playlist Runs:</h6>
-            <div id="playlist-runs-loading">
-                <div class="spinner-border spinner-border-sm" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                Loading run history...
-            </div>
-            <div id="playlist-runs-table" style="display: none;"></div>
-        `;
-
-        // Fetch run history for this playlist
-        loadPlaylistRuns(playlist_id, playlist_name, procedures);
+                <span style="flex:1; min-width:0;">
+                    <code>${t.id}</code>
+                    <small class="text-body-secondary ms-1">${t.description}</small>
+                </span>
+                <button class="btn btn-sm btn-outline-danger py-0" onclick="removeFromQueue(${i})">✕</button>
+            </div>`).join('');
     }
 
-    function loadPlaylistRuns(playlist_id, playlist_name, procedures) {
-        const url = playlistRunsUrlBase + playlist_id;
+    // ── Queue actions ─────────────────────────────────────────────────────────
 
-        xhrRequest(url, (content) => {
-            const runs = JSON.parse(content);
-            document.getElementById("playlist-runs-loading").style.display = "none";
-            const table = document.getElementById("playlist-runs-table");
-            table.style.display = "block";
+    function moveUp(i) {
+        if (i <= 0) return;
+        [queue[i - 1], queue[i]] = [queue[i], queue[i - 1]];
+        renderQueue();
+        renderTestLibrary();
+    }
 
-            if (runs.length === 0) {
-                table.innerHTML = `<p class="text-muted">No previous runs for this playlist.</p>`;
+    function moveDown(i) {
+        if (i >= queue.length - 1) return;
+        [queue[i], queue[i + 1]] = [queue[i + 1], queue[i]];
+        renderQueue();
+        renderTestLibrary();
+    }
+
+    function removeFromQueue(i) {
+        queue.splice(i, 1);
+        renderQueue();
+        renderTestLibrary();
+    }
+
+    // ── Status dots ───────────────────────────────────────────────────────────
+
+    function buildStatusDots(testStatuses) {
+        let dots = '';
+        let activeRunId = null;
+
+        for (const ts of testStatuses) {
+            let cls = 'pending', title = ts.test_procedure_id + ': Queued';
+            if (ts.all_criteria_met === true)        { cls = 'success'; title = ts.test_procedure_id + ': Passed'; }
+            else if (ts.all_criteria_met === false)   { cls = 'failed';  title = ts.test_procedure_id + ': Failed'; }
+            else if (ts.status === 'skipped')         { cls = 'skipped'; title = ts.test_procedure_id + ': Skipped'; }
+            else if (ts.status === 'started' || ts.status === 'provisioning') {
+                cls = 'active'; title = ts.test_procedure_id + ': Running';
+                if (!activeRunId) activeRunId = ts.run_id;
+            } else if (ts.status === 'initialised') {
+                if (!activeRunId) activeRunId = ts.run_id;
+            }
+            dots += `<span class="status-dot ${cls}" data-bs-toggle="tooltip" data-bs-title="${title}"></span>`;
+        }
+        return { dots, activeRunId };
+    }
+
+    // ── Past sessions ─────────────────────────────────────────────────────────
+
+    function loadPastSessions() {
+        xhrRequest(pastSessionsUrl, (content) => {
+            const sessions = JSON.parse(content);
+            const loading = document.getElementById('past-sessions-loading');
+            const container = document.getElementById('past-sessions-content');
+            loading.style.display = 'none';
+            container.style.display = '';
+
+            if (sessions.length === 0) {
+                container.innerHTML = '<p class="text-muted">No past playlist sessions.</p>';
                 return;
             }
 
-            // Build table with status dots
             let html = `<table class="table table-sm">
-                <thead>
-                    <tr>
-                        <th>Run</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>`;
+                <thead><tr>
+                    <th>Session</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr></thead><tbody>`;
 
-            for (const run of runs) {
-                const created = new Date(Date.parse(run.created_at));
+            for (const s of sessions) {
+                const created = new Date(Date.parse(s.created_at));
+                const { dots, activeRunId } = buildStatusDots(s.test_statuses);
+                const rowClass = s.is_active ? 'class="table-info"' : '';
 
-                // Build status dots and check if playlist is active
-                const { dots, isActive, activeRunId } = buildStatusDots(run.test_statuses);
-
-                // Build action buttons
-                let actionButtons = '';
-                if (isActive && activeRunId) {
-                    actionButtons = `
-                        <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="display: inline;"
-                            onsubmit="return confirm('Are you sure you want to end this playlist? This will finalize the current test and skip all remaining tests.')">
+                let actions = '';
+                if (s.is_active && activeRunId) {
+                    actions = `
+                        <a href="${runStatusUrlBase}${activeRunId}" class="btn btn-sm btn-primary me-1">
+                            <i class="fas fa-play"></i> Go to run
+                        </a>
+                        <form method="POST" action="${postUrl}" style="display:inline;"
+                            onsubmit="return confirm('End this playlist? The current test will be finalised and remaining tests skipped.')">
                             <input type="hidden" name="run_id" value="${activeRunId}">
                             <input type="hidden" name="action" value="skip_playlist">
-                            <button type="submit" class="btn btn-sm btn-outline-danger" title="End playlist">
-                                <i class="fas fa-stop"></i> End
-                            </button>
+                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-stop"></i> End</button>
                         </form>`;
                 } else {
-                    // Build dropdown with all runs that have artifacts
-                    let dropdownItems = '';
-                    for (const testStatus of run.test_statuses) {
-                        if (testStatus.has_artifacts) {
-                            dropdownItems += `
-                                <li>
-                                    <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="margin: 0;">
-                                        <input type="hidden" name="run_id" value="${testStatus.run_id}">
-                                        <input type="hidden" name="action" value="artifact">
-                                        <button type="submit" class="dropdown-item">
-                                            #${testStatus.run_id} - ${testStatus.test_procedure_id}
-                                        </button>
-                                    </form>
-                                </li>`;
-                        }
-                    }
+                    const withArtifacts = s.test_statuses.filter(ts => ts.has_artifacts);
+                    if (withArtifacts.length > 0) {
+                        const items = withArtifacts.map(ts => `
+                            <li>
+                                <form method="POST" action="${postUrl}" style="margin:0;">
+                                    <input type="hidden" name="run_id" value="${ts.run_id}">
+                                    <input type="hidden" name="action" value="artifact">
+                                    <button type="submit" class="dropdown-item">#${ts.run_id} – ${ts.test_procedure_id}</button>
+                                </form>
+                            </li>`).join('');
 
-                    if (dropdownItems) {
-                        // Collect all run IDs that have artifacts for "Download All"
-                        const artifactRunIds = run.test_statuses
-                            .filter(ts => ts.has_artifacts)
-                            .map(ts => ts.run_id);
+                        const downloadAll = withArtifacts.length > 1 ? `
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form method="POST" action="${postUrl}" style="margin:0;">
+                                    <input type="hidden" name="run_ids" value="${withArtifacts.map(ts => ts.run_id).join(',')}">
+                                    <input type="hidden" name="action" value="artifact_all">
+                                    <button type="submit" class="dropdown-item"><i class="fas fa-download"></i> Download All</button>
+                                </form>
+                            </li>` : '';
 
-                        let downloadAllItem = '';
-                        if (artifactRunIds.length > 1) {
-                            downloadAllItem = `
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="margin: 0;">
-                                        <input type="hidden" name="run_ids" value="${artifactRunIds.join(',')}">
-                                        <input type="hidden" name="playlist_name" value="${playlist_name}">
-                                        <input type="hidden" name="action" value="artifact_all">
-                                        <button type="submit" class="dropdown-item">
-                                            <i class="fas fa-download"></i> Download All
-                                        </button>
-                                    </form>
-                                </li>`;
-                        }
-
-                        actionButtons = `
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-download"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    ${dropdownItems}
-                                    ${downloadAllItem}
-                                </ul>
-                            </div>`;
-                    } else {
-                        actionButtons = `
-                            <button class="btn btn-sm btn-outline-secondary" disabled>
+                        actions = `<div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-download"></i>
-                            </button>`;
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">${items}${downloadAll}</ul>
+                        </div>`;
+                    } else {
+                        actions = `<button class="btn btn-sm btn-outline-secondary" disabled><i class="fas fa-download"></i></button>`;
                     }
                 }
 
-                html += `
-                    <tr>
-                        <td><a href="${runStatusUrlBase}${run.first_run_id}">#${run.first_run_id}</a></td>
-                        <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})</small></td>
-                        <td>${dots}</td>
-                        <td class="text-end">${actionButtons}</td>
-                    </tr>`;
+                html += `<tr ${rowClass}>
+                    <td><a href="${runStatusUrlBase}${s.first_run_id}"><code>${s.short_id}</code></a><br>
+                        <small class="text-body-secondary">${s.test_statuses.length} test${s.test_statuses.length !== 1 ? 's' : ''}</small></td>
+                    <td>${formatDate(created)}<br><small class="text-body-secondary">${formatRelativeDate(created)}</small></td>
+                    <td>${dots}</td>
+                    <td class="text-end">${actions}</td>
+                </tr>`;
             }
 
-            html += `</tbody></table>`;
-            table.innerHTML = html;
-            initTooltips();
-        }, (status, error) => {
-            document.getElementById("playlist-runs-loading").style.display = "none";
-            document.getElementById("playlist-runs-table").style.display = "block";
-            document.getElementById("playlist-runs-table").innerHTML = `<p class="text-danger">Failed to load run history.</p>`;
+            html += '</tbody></table>';
+            container.innerHTML = html;
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+                bootstrap.Tooltip.getOrCreateInstance(el, { delay: { show: 0, hide: 0 } });
+            });
+        }, () => {
+            document.getElementById('past-sessions-loading').style.display = 'none';
+            document.getElementById('past-sessions-content').style.display = '';
+            document.getElementById('past-sessions-content').innerHTML = '<p class="text-danger">Failed to load session history.</p>';
         });
     }
 
-    function loadActivePlaylists() {
-        // Show loading state
-        document.getElementById("playlist-content").innerHTML = `
-            <div id="playlist-runs-loading">
-                <div class="spinner-border spinner-border-sm" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                Loading active playlists...
-            </div>
-            <div id="playlist-runs-table" style="display: none;"></div>
-        `;
+    // ── Init ──────────────────────────────────────────────────────────────────
 
-        const url = activePlaylistsUrl;
+    addEventListener('load', () => {
+        renderTestLibrary();
+        renderQueue();
+        loadPastSessions();
 
-        xhrRequest(url, (content) => {
-            const runs = JSON.parse(content);
-            document.getElementById("playlist-runs-loading").style.display = "none";
-            const table = document.getElementById("playlist-runs-table");
-            table.style.display = "block";
-
-            if (runs.length === 0) {
-                table.innerHTML = `<p class="text-muted">No active playlists.</p>`;
-                return;
-            }
-
-            // Build table with status dots
-            let html = `<table class="table table-sm">
-                <thead>
-                    <tr>
-                        <th>Playlist</th>
-                        <th>Run</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>`;
-
-            for (const run of runs) {
-                const created = new Date(Date.parse(run.created_at));
-
-                // Build status dots and get active run info
-                const { dots, activeRunId, activeTestProcedureId } = buildStatusDots(run.test_statuses);
-
-                // Build action buttons
-                let actionButtons = '';
-                if (activeRunId) {
-                    // Go to active run button
-                    actionButtons += `
-                        <a href="${runStatusUrlBase}${activeRunId}" class="btn btn-sm btn-primary me-1" title="Go to active run">
-                            <i class="fas fa-play"></i> Go to active (${activeTestProcedureId})
-                        </a>`;
-                    // End playlist button
-                    actionButtons += `
-                        <form method="POST" action="{{ url_for('group_playlists_page', run_group_id=run_group_id) }}" style="display: inline;"
-                            onsubmit="return confirm('Are you sure you want to end this playlist? This will finalize the current test and skip all remaining tests.')">
-                            <input type="hidden" name="run_id" value="${activeRunId}">
-                            <input type="hidden" name="action" value="skip_playlist">
-                            <button type="submit" class="btn btn-sm btn-danger" title="End playlist">
-                                <i class="fas fa-stop"></i> End
-                            </button>
-                        </form>`;
-                }
-
-                html += `
-                    <tr class="table-info">
-                        <td>${run.playlist_name}</td>
-                        <td>#${run.first_run_id}</td>
-                        <td>${formatDate(created)}<br><small class="text-body-secondary">(${formatRelativeDate(created)})</small></td>
-                        <td>${dots}</td>
-                        <td class="text-end">${actionButtons}</td>
-                    </tr>`;
-            }
-
-            html += `</tbody></table>`;
-            table.innerHTML = html;
-            initTooltips();
-        }, (status, error) => {
-            document.getElementById("playlist-runs-loading").style.display = "none";
-            document.getElementById("playlist-runs-table").style.display = "block";
-            document.getElementById("playlist-runs-table").innerHTML = `<p class="text-danger">Failed to load active playlists.</p>`;
+        document.getElementById('witness-toggle').addEventListener('click', function () {
+            witnessOnly = !witnessOnly;
+            this.classList.toggle('btn-outline-secondary', !witnessOnly);
+            this.classList.toggle('btn-secondary', witnessOnly);
+            renderTestLibrary();
         });
-    }
 
-    function handleButtonClick(e) {
-        e.target.innerHTML = `<div class="spinner-border spinner-border-sm" role="status"></div>`;
-        e.target.disabled = true;
-        e.target.closest('form').submit();
-    }
-
-    addEventListener("load", (event) => {
-        // Initialize Bootstrap tooltips with zero delay
-        initTooltips();
-
-        // Install onclick handlers for playlist btns
-        document.querySelectorAll(".playlist-btn").forEach(el => el.onclick = handlePlaylistButtonClick);
-
-        // Start with active playlists selected
-        handlePlaylistButtonClick.call(document.getElementById("active-playlists-button"));
+        document.getElementById('start-btn').addEventListener('click', function () {
+            if (queue.length === 0) return;
+            document.getElementById('procedures-input').value = JSON.stringify(queue.map(q => q.id));
+            this.innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
+            this.disabled = true;
+            document.getElementById('start-form').submit();
+        });
     });
 </script>
 
