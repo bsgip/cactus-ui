@@ -584,6 +584,10 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
     else:
         initial_status_b64 = ""
 
+    playlist_info, next_playlist_run_id, current_active_run = (
+        _build_playlist_info(access_token, run_response, admin=True) if run_response else (None, None, None)
+    )
+
     return render_template(
         "run_status.html",
         run_is_live=run_is_live,
@@ -594,7 +598,9 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
         run_test_uri=run_test_uri,
         run_procedure_id=run_procedure_id,
         error=error,
-        playlist_info=None,
+        playlist_info=playlist_info,
+        next_playlist_run_id=next_playlist_run_id,
+        current_active_run=current_active_run,
         is_admin_view=True,
         is_witness_test=is_witness_test(run_response),
         user_buttons_state="disabled",
@@ -1243,7 +1249,7 @@ def past_playlist_sessions_json(access_token: str, run_group_id: int) -> Respons
 
 
 def _build_playlist_info(
-    access_token: str, run_response: schema.RunResponse
+    access_token: str, run_response: schema.RunResponse, admin: bool = False
 ) -> tuple[dict | None, int | None, dict | None]:
     """Build playlist template context from a run that belongs to a playlist.
 
@@ -1252,13 +1258,14 @@ def _build_playlist_info(
     if not run_response.playlist_runs:
         return None, None, None
 
+    fetch_run = orchestrator.admin_fetch_individual_run if admin else orchestrator.fetch_individual_run
     current_order = run_response.playlist_order
     active_playlist_session = session.get("active_playlist", {})
 
     playlist_runs_full: list[dict] = []
     first_run_started_at = None
     for i, r in enumerate(run_response.playlist_runs):
-        full_run = orchestrator.fetch_individual_run(access_token, str(r.run_id))
+        full_run = fetch_run(access_token, str(r.run_id))
         if full_run:
             if i == 0:
                 first_run_started_at = full_run.created_at.isoformat() if full_run.created_at else None
