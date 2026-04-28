@@ -18,6 +18,9 @@ from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
 from cactus_schema.orchestrator.compliance import fetch_compliance_classes
 
+# cactus_test_definitions is imported only for witness test class membership used in HTML report display
+from cactus_test_definitions.client.test_procedures import get_all_test_procedures
+
 import cactus_schema.orchestrator as schema
 import jwt
 from authlib.integrations.flask_client import OAuth
@@ -51,6 +54,25 @@ else:
 
 logger = logging.getLogger(__name__)
 
+_WITNESS_CLASSES = frozenset({"DER-A", "DER-G", "DER-L", "DR-D", "DR-G", "DR-L"})
+_WITNESS_PROCEDURE_IDS: frozenset[str] = frozenset(
+    str(pid) for pid, tp in get_all_test_procedures().items() if _WITNESS_CLASSES & set(tp.classes)
+)
+
+_IMMEDIATE_START_IDS: frozenset[str] = frozenset(
+    str(pid)
+    for pid, tp in get_all_test_procedures().items()
+    if tp.preconditions is not None and tp.preconditions.immediate_start
+)
+
+# Category and test ordering derived from local definition order (used to sort playlist builder display)
+_CATEGORY_ORDER: dict[str, int] = {}
+_TEST_ORDER: dict[str, int] = {}
+for _i, (_pid, _tp) in enumerate(get_all_test_procedures().items()):
+    if _tp.category not in _CATEGORY_ORDER:
+        _CATEGORY_ORDER[_tp.category] = len(_CATEGORY_ORDER)
+    _TEST_ORDER[str(_pid)] = _i
+
 
 ENV_FILE = find_dotenv()
 if ENV_FILE:
@@ -80,22 +102,6 @@ CACTUS_PLATFORM_SUPPORT_EMAIL = env["CACTUS_PLATFORM_SUPPORT_EMAIL"]
 BANNER_MESSAGE = env.get("BANNER_MESSAGE")
 LOGIN_BANNER_MESSAGE = env.get("LOGIN_BANNER_MESSAGE")
 
-
-@dataclass
-class PlaylistConfig:
-    id: str
-    name: str
-    procedures: list[str]
-    description: str = ""
-
-
-# Parse playlists from environment variable
-CACTUS_PLAYLISTS: list[PlaylistConfig] = []
-_playlists_raw = env.get("CACTUS_PLAYLISTS", "[]")
-try:
-    CACTUS_PLAYLISTS = [PlaylistConfig(**p) for p in json.loads(_playlists_raw)]
-except (json.JSONDecodeError, TypeError) as e:
-    logger.warning(f"Failed to parse CACTUS_PLAYLISTS: {e}")
 
 F = TypeVar("F", bound=Callable[..., object])
 
@@ -247,6 +253,35 @@ def run_summary_to_compliance_status(test_procedure: schema.TestProcedureRunSumm
             return "failed"
     else:
         return "unknown"
+
+
+def build_playlist_tests_by_category(
+    procedures: list[schema.TestProcedureRunSummaryResponse],
+) -> dict[str, list[dict]]:
+    """Build ordered category→tests dict for the playlist builder, excluding immediate_start procedures.
+
+    Categories and tests within each category are sorted by local definition order so the display
+    is consistent regardless of the order the orchestrator returns procedures.
+    """
+    result: dict[str, list[dict]] = {}
+    for p in procedures:
+        if str(p.test_procedure_id) in _IMMEDIATE_START_IDS:
+            continue
+        cat = p.category
+        if cat not in result:
+            result[cat] = []
+        result[cat].append(
+            {
+                "id": str(p.test_procedure_id),
+                "description": p.description,
+                "is_witness": str(p.test_procedure_id) in _WITNESS_PROCEDURE_IDS,
+                "classes": p.classes or [],
+            }
+        )
+    # Sort categories and tests within each category by local definition order
+    for cat in result:
+        result[cat].sort(key=lambda t: _TEST_ORDER.get(t["id"], 999))
+    return dict(sorted(result.items(), key=lambda x: _CATEGORY_ORDER.get(x[0], 999)))
 
 
 def build_test_status_dict(run: schema.RunResponse) -> dict:
@@ -581,9 +616,44 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
         error=error,
         playlist_info=None,
         is_admin_view=True,
+        is_witness_test=run_procedure_id in _WITNESS_PROCEDURE_IDS,
         user_buttons_state="disabled",
+        proceed_uri=url_for("admin_send_proceed", run_id=run_id),
         cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
     )
+
+
+def _parse_video_start(raw: str | None) -> float | None:
+    """Parse a video timestamp string ('SS', 'M:SS', 'MM:SS', 'H:MM:SS') to seconds.
+
+    Returns None if the input is absent, empty, or cannot be parsed — callers treat
+    None as "no offset" and generate the chart with the default test-relative axis.
+    """
+    if not raw:
+        return None
+    parts = raw.strip().split(":")
+    try:
+        nums = [float(p) for p in parts]
+    except ValueError:
+        return None
+    if len(nums) == 1:
+        return nums[0]
+    if len(nums) == 2:
+        return nums[0] * 60 + nums[1]
+    if len(nums) == 3:
+        return nums[0] * 3600 + nums[1] * 60 + nums[2]
+    return None
+
+
+@app.route("/admin/run/<int:run_id>/html_report", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_run_html_report_page(access_token: str, run_id: int) -> str | Response:
+    video_start = _parse_video_start(request.args.get("video_start"))
+    html = orchestrator.admin_fetch_run_power_limit_chart(access_token, run_id, video_start_seconds=video_start)
+    if html is None:
+        return Response(response="Failed to generate HTML report.", status=HTTPStatus.BAD_GATEWAY)
+    return Response(html, mimetype="text/html")
 
 
 @app.route("/admin/run/<int:run_id>/status", methods=["GET"])
@@ -922,16 +992,8 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
             if not run_id:
                 error = "No run ID specified."
             else:
-                archive_data = orchestrator.finalise_run(access_token, run_id)
-                if archive_data is None:
-                    error = "Failed to finalise the run or retrieve artifacts."
-                else:
-                    return send_file(
-                        io.BytesIO(archive_data),
-                        as_attachment=True,
-                        download_name=f"{run_id}_artifacts.zip",
-                        mimetype="application/zip",
-                    )
+                if not orchestrator.finalise_run(access_token, run_id):
+                    error = "Failed to finalise the run."
 
         # Handle dl artifact
         elif request.form.get("action") == "artifact":
@@ -1204,21 +1266,24 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
 
 def _handle_initialise_playlist(access_token: str, run_group_id: int) -> str | Response | None:
     """Handle starting a playlist. Returns a redirect on success, an error string, or None."""
-    playlist_id = request.form.get("playlist_id")
-    start_index = int(request.form.get("start_index", "0"))
-    if not playlist_id:
-        return "No playlist selected."
+    procedures_raw = request.form.get("procedures", "")
+    if not procedures_raw:
+        return "No tests selected."
 
-    playlist = next((p for p in CACTUS_PLAYLISTS if p.id == playlist_id), None)
-    if not playlist:
-        return "Invalid playlist selected."
+    try:
+        procedures = json.loads(procedures_raw)
+    except (json.JSONDecodeError, ValueError):
+        return "Invalid test selection."
 
-    init_result = orchestrator.init_playlist(access_token, run_group_id, playlist.procedures, start_index)
+    if not procedures or not isinstance(procedures, list):
+        return "No tests selected."
+
+    init_result = orchestrator.init_playlist(access_token, run_group_id, procedures, 0)
     if init_result.response is not None:
         if init_result.response.playlist_execution_id and init_result.response.playlist_runs:
             session["active_playlist"] = {
                 "execution_id": init_result.response.playlist_execution_id,
-                "name": playlist.name,
+                "name": "Custom Playlist",
                 "started_at": datetime.now(timezone.utc).isoformat(),
                 "runs": [
                     {"run_id": r.run_id, "test_procedure_id": r.test_procedure_id}
@@ -1291,31 +1356,6 @@ def _handle_skip_playlist(access_token: str) -> str | Response | None:
     return "Failed to download playlist artifacts."
 
 
-def _count_playlist_executions(access_token: str, run_group_id: int) -> dict[str, int]:
-    """Count how many times each playlist has been executed in a run group."""
-    playlist_run_counts: dict[str, int] = {p.id: 0 for p in CACTUS_PLAYLISTS}
-    runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, None)
-    if not runs_page:
-        return playlist_run_counts
-
-    playlist_executions: dict[str, list[schema.RunResponse]] = {}
-    for run in runs_page.items:
-        if run.playlist_execution_id:
-            if run.playlist_execution_id not in playlist_executions:
-                playlist_executions[run.playlist_execution_id] = []
-            playlist_executions[run.playlist_execution_id].append(run)
-
-    for exec_id, runs in playlist_executions.items():
-        runs_sorted = sorted(runs, key=lambda r: r.playlist_order or 0)
-        execution_procedures = [r.test_procedure_id for r in runs_sorted]
-        for playlist in CACTUS_PLAYLISTS:
-            if execution_procedures == playlist.procedures:
-                playlist_run_counts[playlist.id] += 1
-                break
-
-    return playlist_run_counts
-
-
 def _handle_playlists_post(access_token: str, run_group_id: int) -> str | Response | None:
     """Dispatch POST actions for the playlists page."""
     action = request.form.get("action")
@@ -1333,7 +1373,7 @@ def _handle_playlists_post(access_token: str, run_group_id: int) -> str | Respon
 @app.route("/group/<int:run_group_id>/playlists", methods=["GET", "POST"])
 @login_required
 def group_playlists_page(access_token: str, run_group_id: int) -> str | Response:
-    """Page for viewing and starting playlists"""
+    """Page for building and starting playlists"""
     error: str | None = None
 
     if request.method == "POST":
@@ -1343,7 +1383,15 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
         if isinstance(result, str):
             error = result
 
-    # Fetch the run groups (for the breadcrumbs selector)
+    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
+    if procedures is None:
+        error = "Unable to fetch test procedures."
+
+    all_classes: set[str] = set()
+    for p in procedures or []:
+        if p.classes:
+            all_classes.update(p.classes)
+
     run_groups = orchestrator.fetch_run_groups(access_token, 1)
     active_run_group: schema.RunGroupResponse | None = None
     if not run_groups or not run_groups.items:
@@ -1357,163 +1405,54 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
     return render_template(
         "playlists.html",
         error=error,
-        playlists=CACTUS_PLAYLISTS,
-        playlist_run_counts=_count_playlist_executions(access_token, run_group_id),
+        tests_by_category=build_playlist_tests_by_category(procedures or []),
+        classes=fetch_compliance_classes(all_classes),
         run_groups=[] if run_groups is None else run_groups.items,
         run_group_id=run_group_id,
         active_run_group=active_run_group,
     )
 
 
-@app.route("/group/<int:run_group_id>/playlist_runs/<playlist_id>", methods=["GET"])
+@app.route("/group/<int:run_group_id>/past_playlist_sessions", methods=["GET"])
 @login_required
-def playlist_runs_json(access_token: str, run_group_id: int, playlist_id: str) -> Response:
-    """Fetch run history for a specific playlist"""
-    # Find the playlist config to get procedure IDs
-    playlist = next((p for p in CACTUS_PLAYLISTS if p.id == playlist_id), None)
-    if not playlist:
-        return Response(
-            response=json.dumps([]),
-            status=HTTPStatus.OK,
-            mimetype="application/json",
-        )
-
-    # Fetch all runs for this run group with playlist_execution_id set
-    # Group them by playlist_execution_id
-    runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, None)
-    if runs_page is None:
-        return Response(
-            response=json.dumps([]),
-            status=HTTPStatus.OK,
-            mimetype="application/json",
-        )
-
-    # Group runs by playlist_execution_id
-    playlist_executions: dict[str, list[schema.RunResponse]] = {}
-    for run in runs_page.items:
-        if run.playlist_execution_id:
-            if run.playlist_execution_id not in playlist_executions:
-                playlist_executions[run.playlist_execution_id] = []
-            playlist_executions[run.playlist_execution_id].append(run)
-
-    # Build response: list of playlist runs with test statuses
-    result = []
-    for exec_id, runs in playlist_executions.items():
-        runs_sorted = sorted(runs, key=lambda r: r.playlist_order or 0)
-        if not runs_sorted:
-            continue
-
-        # Check if this execution matches our playlist exactly
-        # by comparing the procedure IDs in order
-        execution_procedures = [r.test_procedure_id for r in runs_sorted]
-        if execution_procedures != playlist.procedures:
-            continue
-
-        first_run = runs_sorted[0]
-
-        # Build test status list
-        test_statuses = [build_test_status_dict(run) for run in runs_sorted]
-
-        # Check if any run has artifacts
-        has_artifacts = any(r.has_artifacts for r in runs_sorted)
-
-        result.append(
-            {
-                "playlist_execution_id": exec_id,
-                "first_run_id": first_run.run_id,
-                "created_at": first_run.created_at.isoformat(),
-                "test_statuses": test_statuses,
-                "has_artifacts": has_artifacts,
-            }
-        )
-
-    # Sort by created_at descending (most recent first)
-    result.sort(key=lambda x: str(x["created_at"]), reverse=True)
-
-    return Response(
-        response=json.dumps(result),
-        status=HTTPStatus.OK,
-        mimetype="application/json",
-    )
-
-
-@app.route("/group/<int:run_group_id>/active_playlists", methods=["GET"])
-@login_required
-def active_playlists_json(access_token: str, run_group_id: int) -> Response:
-    """Fetch all active playlist executions (those with at least one non-finalized run)"""
-    # Fetch all runs to find playlists with non-finalized runs (including initialised)
+def past_playlist_sessions_json(access_token: str, run_group_id: int) -> Response:
+    """Fetch all playlist sessions (active and completed) grouped by execution ID."""
     all_runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, None)
     if all_runs_page is None:
-        return Response(
-            response=json.dumps([]),
-            status=HTTPStatus.OK,
-            mimetype="application/json",
-        )
+        return Response(response=json.dumps([]), status=HTTPStatus.OK, mimetype="application/json")
 
-    # Statuses that indicate a playlist is still active (not completed)
     active_statuses = {"initialised", "started", "provisioning"}
 
-    # Find playlist_execution_ids that have at least one active run
-    active_playlist_ids: set[str] = set()
-    for run in all_runs_page.items:
-        status_str = run.status.value if hasattr(run.status, "value") else str(run.status)
-        if run.playlist_execution_id and status_str in active_statuses:
-            active_playlist_ids.add(run.playlist_execution_id)
-
-    if not active_playlist_ids:
-        return Response(
-            response=json.dumps([]),
-            status=HTTPStatus.OK,
-            mimetype="application/json",
-        )
-
-    # Group all runs by playlist_execution_id, but only for active playlists
     playlist_executions: dict[str, list[schema.RunResponse]] = {}
     for run in all_runs_page.items:
-        if run.playlist_execution_id and run.playlist_execution_id in active_playlist_ids:
-            if run.playlist_execution_id not in playlist_executions:
-                playlist_executions[run.playlist_execution_id] = []
-            playlist_executions[run.playlist_execution_id].append(run)
+        if run.playlist_execution_id:
+            playlist_executions.setdefault(run.playlist_execution_id, []).append(run)
 
-    # Build response
     result = []
     for exec_id, runs in playlist_executions.items():
         runs_sorted = sorted(runs, key=lambda r: r.playlist_order or 0)
         if not runs_sorted:
             continue
-
         first_run = runs_sorted[0]
-
-        # Find the playlist config to get the name
-        playlist = next(
-            (p for p in CACTUS_PLAYLISTS if first_run.test_procedure_id in p.procedures),
-            None,
+        is_active = any(
+            (r.status.value if hasattr(r.status, "value") else str(r.status)) in active_statuses for r in runs_sorted
         )
-        playlist_name = playlist.name if playlist else "Unknown Playlist"
-        playlist_id = playlist.id if playlist else None
-
-        # Build test status list
-        test_statuses = [build_test_status_dict(run) for run in runs_sorted]
-
         result.append(
             {
                 "playlist_execution_id": exec_id,
-                "playlist_id": playlist_id,
-                "playlist_name": playlist_name,
+                "short_id": exec_id[:8],
                 "first_run_id": first_run.run_id,
                 "created_at": first_run.created_at.isoformat(),
-                "test_statuses": test_statuses,
+                "test_statuses": [build_test_status_dict(r) for r in runs_sorted],
+                "is_active": is_active,
             }
         )
 
-    # Sort by created_at descending (most recent first)
+    # Active sessions first, then most recent
     result.sort(key=lambda x: str(x["created_at"]), reverse=True)
+    result.sort(key=lambda x: not bool(x["is_active"]))
 
-    return Response(
-        response=json.dumps(result),
-        status=HTTPStatus.OK,
-        mimetype="application/json",
-    )
+    return Response(response=json.dumps(result), status=HTTPStatus.OK, mimetype="application/json")
 
 
 def _build_playlist_info(
@@ -1586,15 +1525,9 @@ def _handle_run_status_post(access_token: str, run_id: str) -> str | Response | 
             )
         return None
     elif action == "finalise":
-        archive_data = orchestrator.finalise_run(access_token, run_id)
-        if archive_data is None:
-            return "Failed to finalise the run or retrieve artifacts."
-        return send_file(
-            io.BytesIO(archive_data),
-            as_attachment=True,
-            download_name=f"{run_id}_artifacts.zip",
-            mimetype="application/zip",
-        )
+        if not orchestrator.finalise_run(access_token, run_id):
+            return "Failed to finalise the run."
+        return None
     elif action == "artifact":
         artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
         if artifact_data is None:
@@ -1618,6 +1551,17 @@ def _handle_run_status_post(access_token: str, run_id: str) -> str | Response | 
                 return response
         return "Failed to download playlist artifacts."
     return None
+
+
+@app.route("/run/<int:run_id>/html_report", methods=["GET"])
+@login_required
+def run_html_report_page(access_token: str, run_id: int) -> str | Response:
+    video_start = _parse_video_start(request.args.get("video_start"))
+    html, error_detail = orchestrator.fetch_run_power_limit_chart(access_token, run_id, video_start_seconds=video_start)
+    if html is None:
+        message = error_detail or "Failed to generate HTML report."
+        return Response(response=message, status=HTTPStatus.BAD_GATEWAY)
+    return Response(html, mimetype="text/html")
 
 
 @app.route("/run/<int:run_id>", methods=["GET", "POST"])
@@ -1666,6 +1610,9 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
         playlist_info=playlist_info,
         next_playlist_run_id=next_playlist_run_id,
         current_active_run=current_active_run,
+        is_admin_view=False,
+        is_witness_test=run_procedure_id in _WITNESS_PROCEDURE_IDS,
+        proceed_uri=url_for("send_proceed", run_id=run_id),
         cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
     )
 
@@ -1708,6 +1655,19 @@ def run_request_details(access_token: str, request_id: int, run_id: str) -> Resp
 def send_proceed(access_token: str, run_id: str) -> Response:
 
     proceed_response = orchestrator.send_proceed(access_token=access_token, run_id=run_id)
+
+    if proceed_response is None:
+        return Response(response="Failed to proceed to next step", status=HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    return Response(response=proceed_response.to_json(), status=HTTPStatus.OK, mimetype="application/json")
+
+
+@app.route("/admin/run/<int:run_id>/proceed", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_send_proceed(access_token: str, run_id: str) -> Response:
+
+    proceed_response = orchestrator.admin_send_proceed(access_token=access_token, run_id=run_id)
 
     if proceed_response is None:
         return Response(response="Failed to proceed to next step", status=HTTPStatus.INTERNAL_SERVER_ERROR)

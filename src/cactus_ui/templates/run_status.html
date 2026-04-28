@@ -232,6 +232,7 @@
         </div>
     </div>
 </div>
+
 <br>
 <div class="row justify-content-center">
     <div class="card status-container ">
@@ -284,11 +285,30 @@
         <div class="alert alert-primary" role="alert">
             <p>This run has been finalised and is no longer active.</p>
 
-            <p>Click the button below to download the run's artifacts.</p>
-            <form id='download-form' method="POST" action="{{ url_for('run_status_page', run_id=run_id) }}">
-                <input type="hidden" name="action" value="artifact">
-                <button type="submit" class="btn btn-primary">Download Artifacts</button>
-            </form>
+            <p>Click below to download the run's artifacts{% if is_witness_test %} or view the Device Power Chart{% endif %}.</p>
+            <div class="d-flex gap-2 flex-wrap">
+                <form id='download-form' method="POST" action="{{ url_for('admin_run_status_page', run_id=run_id) if is_admin_view else url_for('run_status_page', run_id=run_id) }}">
+                    <input type="hidden" name="action" value="artifact">
+                    <button type="submit" class="btn btn-primary">Download Artifacts</button>
+                </form>
+                {% if is_witness_test %}
+                <details>
+                    <summary class="btn btn-outline-secondary">Witness Test Chart</summary>
+                    <form action="{{ url_for('admin_run_html_report_page' if is_admin_view else 'run_html_report_page', run_id=run_id) }}"
+                          method="GET" target="_blank"
+                          class="mt-2 p-3 border rounded bg-light d-flex flex-column gap-2" style="width: 280px;">
+                        <p class="mb-1 small">Optionally align the time axis to a video recording. Enter the video timestamp (MM:SS) at which the test started.</p>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 text-nowrap small" for="powerChartVideoStart">Video timestamp:</label>
+                            <input type="text" id="powerChartVideoStart" name="video_start"
+                                   class="form-control form-control-sm" style="width:90px;"
+                                   placeholder="MM:SS" autocomplete="off">
+                        </div>
+                        <button type="submit" class="btn btn-outline-secondary btn-sm align-self-start">Create Chart</button>
+                    </form>
+                </details>
+                {% endif %}
+            </div>
         </div>
         {% else %}
         <div class="alert alert-warning" role="alert">
@@ -317,6 +337,7 @@
 
 
 <style>
+
     .status-container {
         width: 100%;
         max-width: 1000px;
@@ -393,7 +414,7 @@
     const runIsLive = "{{ run_is_live }}" === 'True';
     const userRunStatusUri = "{{ url_for('run_status_page', run_id=run_id) }}";
     const adminRunStatusUri = "{{ url_for('admin_run_status_page', run_id=run_id) }}";
-    const proceedUri = "{{ url_for('send_proceed', run_id=run_id) }}";
+    const proceedUri = "{{ proceed_uri }}";
     const runStatusUri = isAdminView ? adminRunStatusUri : userRunStatusUri;
     const formAction = runStatusUri
 
@@ -445,31 +466,11 @@
             });
 
             if (response.ok) {
-                // Download the ZIP file
-                const blob = await response.blob();
-                const contentDisposition = response.headers.get('Content-Disposition');
-                let filename = 'artifacts.zip';
-                if (contentDisposition) {
-                    const match = contentDisposition.match(/filename="?([^";\n]+)"?/);
-                    if (match) filename = match[1];
-                }
-
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                a.remove();
-
                 // Redirect to next run in playlist, or reload to show completed state
                 if (nextRunId) {
-                    setTimeout(() => {
-                        window.location.href = `/run/${nextRunId}`;
-                    }, 500);
+                    window.location.href = `/run/${nextRunId}`;
                 } else {
-                    window.location.reload();
+                    window.location.replace(window.location.pathname);
                 }
             } else {
                 alert('Failed to finalise the run. Please try again.');
@@ -495,13 +496,13 @@
     }
 
     function parseOffsetSeconds(offsetStr) {
-        const match = offsetStr.match(/(\d+)m(\d+)s|(\d+)s/);
-        if (!match) return 0;
-
-        if (match[1] && match[2]) {
-            return parseInt(match[1]) * 60 + parseInt(match[2]);
-        }
-        return parseInt(match[3]) || 0;
+        const minsSecsMatch = offsetStr.match(/^(\d+)m(\d+)s$/);
+        if (minsSecsMatch) return parseInt(minsSecsMatch[1]) * 60 + parseInt(minsSecsMatch[2]);
+        const minsMatch = offsetStr.match(/^(\d+)m$/);
+        if (minsMatch) return parseInt(minsMatch[1]) * 60;
+        const secsMatch = offsetStr.match(/^(\d+)s$/);
+        if (secsMatch) return parseInt(secsMatch[1]);
+        return 0;
     }
 
     function formatTimeLabel(seconds) {
@@ -637,7 +638,7 @@
                         <tr><th>Max VAR (neg)</th><td>${renderDerUnit(set.max_var_neg, 'VA')}</td></tr>
                         <tr><th>Max Charge Rate</th><td>${renderDerUnit(set.max_charge_rate_w, 'W')}</td></tr>
                         <tr><th>Max Discharge Rate</th><td>${renderDerUnit(set.max_discharge_rate_w, 'W')}</td></tr>
-                        <tr><th>Grad W</th><td>${renderDerUnit(set.grad_w, 'W')}</td></tr>
+                        <tr><th>setGradW</th><td>${renderDerValue(set.grad_w)}</td></tr>
                         <tr><th>DOE Modes Enabled</th><td>${renderBadges(set.doe_modes_enabled)}</td></tr>`
             : `<tr><td>${notSet}</td></tr>`;
 
@@ -772,6 +773,28 @@
         }
 
         return fragments
+    }
+
+    function updateBannerStep(stepStatus) {
+        const el = document.getElementById('banner-step');
+        if (!el) return;
+        const entries = Object.entries(stepStatus);
+        let activeStep = null;
+        let activeIdx = -1;
+        for (let i = 0; i < entries.length; i++) {
+            const [name, info] = entries[i];
+            const isActive = typeof info === 'number'
+                ? info === 1
+                : (info.started_at && !info.completed_at);
+            if (isActive) { activeStep = name; activeIdx = i; break; }
+        }
+        if (activeStep) {
+            el.textContent = `Step ${activeIdx + 1}: ${activeStep}`;
+            el.style.color = '#fff';
+        } else {
+            el.textContent = 'No active step';
+            el.style.color = '#6c757d';
+        }
     }
 
     const MAX_VISIBLE_REQUESTS = 50;
@@ -1058,7 +1081,7 @@
 
     // CHARTS
 
-    function calculateMaxTime(timeline, timelineStart) {
+    function calculateMaxTime(timeline, timelineStart, basisOffsetSeconds = 0) {
         if (!timelineStart) {
             return CHART_CONFIG.MIN_VISIBLE_TIME;
         }
@@ -1069,7 +1092,7 @@
         // Find the latest data point in any stream
         timeline?.data_streams?.forEach(stream => {
             stream.data.forEach(point => {
-                maxDataTime = Math.max(maxDataTime, parseOffsetSeconds(point.offset) + 20);
+                maxDataTime = Math.max(maxDataTime, parseOffsetSeconds(point.offset) + basisOffsetSeconds + 20);
             });
         });
 
@@ -1097,7 +1120,7 @@
         return currentMax;
     }
 
-    function convertDataStreamsToChartJs(dataStreams) {
+    function convertDataStreamsToChartJs(dataStreams, basisOffsetSeconds = 0) {
         return dataStreams.map(ds => {
             // Sort data by offset time
             const sortedData = [...ds.data].sort((a, b) =>
@@ -1106,7 +1129,7 @@
             // Each point is stored as a 20s interval
             const expandedData = [];
             sortedData.forEach((point, index) => {
-                const startX = parseOffsetSeconds(point.offset);
+                const startX = parseOffsetSeconds(point.offset) + basisOffsetSeconds;
                 const endX = startX + 20;
 
                 // Add start point
@@ -1114,7 +1137,7 @@
 
                 // If not at the end, check if there's a gap to the next segment
                 if (index < sortedData.length - 1) {
-                    const nextStartX = parseOffsetSeconds(sortedData[index + 1].offset);
+                    const nextStartX = parseOffsetSeconds(sortedData[index + 1].offset) + basisOffsetSeconds;
 
                     // Only add the end point if there's a gap, or if it's the last segment
                     if (nextStartX > endX) {
@@ -1376,7 +1399,11 @@
 
         const start = new Date(timelineStart);
         const nowSeconds = (new Date() - start) / 1000;
-        const maxTime = calculateMaxTime(timeline, timelineStart);
+        const nowOffsetSeconds = timeline?.now_offset ? parseOffsetSeconds(timeline.now_offset) : 0;
+        // nowOffsetSeconds is quantised to 20s intervals by the runner, so subtract and re-floor to
+        // avoid a fractional remainder (e.g. 8s) appearing as the axis min when no crop is active.
+        const basisOffsetSeconds = Math.floor(Math.max(0, nowSeconds - nowOffsetSeconds) / 20) * 20;
+        const maxTime = calculateMaxTime(timeline, timelineStart, basisOffsetSeconds);
 
         // ======================================================
         // MINIMAL: Just move the 'now' line
@@ -1390,9 +1417,11 @@
             }
 
             // Only update axis if it changed
-            if (timelineChart.options.scales.x.max !== maxTime) {
+            if (timelineChart.options.scales.x.max !== maxTime || timelineChart.options.scales.x.min !== basisOffsetSeconds) {
                 timelineChart.options.scales.x.max = maxTime;
+                timelineChart.options.scales.x.min = basisOffsetSeconds;
                 timelineActivityChart.options.scales.x.max = maxTime;
+                timelineActivityChart.options.scales.x.min = basisOffsetSeconds;
             }
 
             timelineChart.update('none');
@@ -1405,7 +1434,7 @@
         // ======================================================
         if (updateType === 'incremental' && timelineChart && timelineActivityChart) {
             const dataStreams = timeline?.data_streams || [];
-            const datasets = dataStreams.length > 0 ? convertDataStreamsToChartJs(dataStreams) : [];
+            const datasets = dataStreams.length > 0 ? convertDataStreamsToChartJs(dataStreams, basisOffsetSeconds) : [];
 
             const { stepCompletions, allRequests } = extractActivityData(stepStatus, requestHistory, timelineStart);
             const activityDatasets = createActivityDatasets(stepCompletions, allRequests);
@@ -1417,8 +1446,9 @@
             timelineChart.options.plugins.annotation.annotations = annotations;
             timelineChart.options.plugins.legend.display = datasets.length > 0;
 
-            if (timelineChart.options.scales.x.max !== maxTime) {
+            if (timelineChart.options.scales.x.max !== maxTime || timelineChart.options.scales.x.min !== basisOffsetSeconds) {
                 timelineChart.options.scales.x.max = maxTime;
+                timelineChart.options.scales.x.min = basisOffsetSeconds;
             }
 
             timelineChart.update('none');
@@ -1426,8 +1456,9 @@
             // Update activity chart
             timelineActivityChart.data.datasets = activityDatasets;
 
-            if (timelineActivityChart.options.scales.x.max !== maxTime) {
+            if (timelineActivityChart.options.scales.x.max !== maxTime || timelineActivityChart.options.scales.x.min !== basisOffsetSeconds) {
                 timelineActivityChart.options.scales.x.max = maxTime;
+                timelineActivityChart.options.scales.x.min = basisOffsetSeconds;
             }
 
             timelineActivityChart.update('none');
@@ -1442,12 +1473,12 @@
         document.getElementById('timelineActivityChart').style.display = 'block';
 
         const dataStreams = timeline?.data_streams || [];
-        const datasets = dataStreams.length > 0 ? convertDataStreamsToChartJs(dataStreams) : [];
+        const datasets = dataStreams.length > 0 ? convertDataStreamsToChartJs(dataStreams, basisOffsetSeconds) : [];
         const annotations = createChartAnnotations(timeline, timelineStart, nowSeconds);
 
         const sharedXAxisConfig = {
             type: 'linear',
-            min: 0,
+            min: basisOffsetSeconds,
             max: maxTime,
             ticks: {
                 callback: value => formatTimeLabel(Math.floor(value)),
@@ -1595,8 +1626,9 @@
             stepAlertElement.innerHTML = ''; // remove any error message
             proceedButton.innerHTML = spinner();
             xhrRequest(uri, (content) => {
-                // Success. The next status update will handle removing the proceed button
-                proceedState == null;
+                // Reset state and clear button so the next proceed step can render cleanly
+                proceedState = null;
+                stepProceedElement.innerHTML = "";
             }, (status, content) => {
                 // Something went wrong
                 proceedState = "errored";
@@ -1661,6 +1693,7 @@
         // update steps table
         const stepsTable = document.getElementById('update-steps-table');
         stepsTable.innerHTML = stepStatusTableBody(status.step_status ?? {}, status.timestamp_start).join("");
+        updateBannerStep(status.step_status ?? {});
 
         // update criteria table (append synthetic XSD validity criteria)
         const criteria = status.criteria ?? [];
@@ -1895,12 +1928,23 @@
         }
 
 
+        // Banner clock
+        function updateBannerClock() {
+            const el = document.getElementById('banner-clock');
+            if (!el) return;
+            el.textContent = new Date().toTimeString().slice(0, 8);
+        }
+        setInterval(updateBannerClock, 1000);
+        updateBannerClock();
+
         // Start polling
         if (runIsLive) {
             const uri = isAdminView ? "{{ url_for('admin_run_status_json', run_id=run_id) }}" : "{{ url_for('run_status_json', run_id=run_id) }}";
             const pollRateMs = 10000; // 10 seconds
             startPollingRunStatus(uri, pollRateMs);
         }
+
+
     });
 
 
@@ -1912,5 +1956,14 @@
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"
     integrity="sha256-/wN4amD2yTzKz+D7tsLjxnHXkwhWo2ifLzkxE9jWVew=" crossorigin="anonymous"></script>
+
+{% if run_is_live %}
+<div style="height:60px;"></div>
+<div id="status-banner" style="position:fixed;bottom:0;left:0;right:0;z-index:1050;background:#212529;color:#fff;padding:8px 20px;display:flex;align-items:center;gap:20px;font-family:monospace;font-size:0.95rem;">
+    <span><i class="fas fa-clock"></i> <span id="banner-clock">--:--:--</span></span>
+    <span style="color:#6c757d;">|</span>
+    <span id="banner-step" style="color:#adb5bd;">No active step</span>
+</div>
+{% endif %}
 
 {% endblock %}
