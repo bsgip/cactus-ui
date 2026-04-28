@@ -18,9 +18,6 @@ from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
 from cactus_schema.orchestrator.compliance import fetch_compliance_classes
 
-# cactus_test_definitions is imported only for witness test class membership used in HTML report display
-from cactus_test_definitions.client.test_procedures import get_all_test_procedures
-
 import cactus_schema.orchestrator as schema
 import jwt
 from authlib.integrations.flask_client import OAuth
@@ -55,23 +52,10 @@ else:
 logger = logging.getLogger(__name__)
 
 _WITNESS_CLASSES = frozenset({"DER-A", "DER-G", "DER-L", "DR-D", "DR-G", "DR-L"})
-_WITNESS_PROCEDURE_IDS: frozenset[str] = frozenset(
-    str(pid) for pid, tp in get_all_test_procedures().items() if _WITNESS_CLASSES & set(tp.classes)
-)
 
-_IMMEDIATE_START_IDS: frozenset[str] = frozenset(
-    str(pid)
-    for pid, tp in get_all_test_procedures().items()
-    if tp.preconditions is not None and tp.preconditions.immediate_start
-)
 
-# Category and test ordering derived from local definition order (used to sort playlist builder display)
-_CATEGORY_ORDER: dict[str, int] = {}
-_TEST_ORDER: dict[str, int] = {}
-for _i, (_pid, _tp) in enumerate(get_all_test_procedures().items()):
-    if _tp.category not in _CATEGORY_ORDER:
-        _CATEGORY_ORDER[_tp.category] = len(_CATEGORY_ORDER)
-    _TEST_ORDER[str(_pid)] = _i
+def is_witness_test(run_response: schema.RunResponse | None) -> bool:
+    return bool(_WITNESS_CLASSES & set(run_response.classes or [])) if run_response else False
 
 
 ENV_FILE = find_dotenv()
@@ -260,12 +244,11 @@ def build_playlist_tests_by_category(
 ) -> dict[str, list[dict]]:
     """Build ordered category→tests dict for the playlist builder, excluding immediate_start procedures.
 
-    Categories and tests within each category are sorted by local definition order so the display
-    is consistent regardless of the order the orchestrator returns procedures.
+    Procedures are expected to arrive in definition order from the orchestrator; insertion order is preserved.
     """
     result: dict[str, list[dict]] = {}
     for p in procedures:
-        if str(p.test_procedure_id) in _IMMEDIATE_START_IDS:
+        if p.immediate_start:
             continue
         cat = p.category
         if cat not in result:
@@ -274,14 +257,11 @@ def build_playlist_tests_by_category(
             {
                 "id": str(p.test_procedure_id),
                 "description": p.description,
-                "is_witness": str(p.test_procedure_id) in _WITNESS_PROCEDURE_IDS,
+                "is_witness": bool(_WITNESS_CLASSES & set(p.classes or [])),
                 "classes": p.classes or [],
             }
         )
-    # Sort categories and tests within each category by local definition order
-    for cat in result:
-        result[cat].sort(key=lambda t: _TEST_ORDER.get(t["id"], 999))
-    return dict(sorted(result.items(), key=lambda x: _CATEGORY_ORDER.get(x[0], 999)))
+    return result
 
 
 def build_test_status_dict(run: schema.RunResponse) -> dict:
@@ -616,7 +596,7 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
         error=error,
         playlist_info=None,
         is_admin_view=True,
-        is_witness_test=run_procedure_id in _WITNESS_PROCEDURE_IDS,
+        is_witness_test=is_witness_test(run_response),
         user_buttons_state="disabled",
         proceed_uri=url_for("admin_send_proceed", run_id=run_id),
         cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
@@ -1418,7 +1398,7 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
         next_playlist_run_id=next_playlist_run_id,
         current_active_run=current_active_run,
         is_admin_view=False,
-        is_witness_test=run_procedure_id in _WITNESS_PROCEDURE_IDS,
+        is_witness_test=is_witness_test(run_response),
         proceed_uri=url_for("send_proceed", run_id=run_id),
         cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
     )
