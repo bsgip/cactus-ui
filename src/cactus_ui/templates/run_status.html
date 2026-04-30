@@ -285,15 +285,15 @@
         <div class="alert alert-primary" role="alert">
             <p>This run has been finalised and is no longer active.</p>
 
-            <p>Click below to download the run's artifacts{% if is_witness_test %} or view the Device Power Chart{% endif %}.</p>
+            <p>Click below to download the run's artifacts{% if not is_immediate_start %} or view the Active Power Chart{% endif %}.</p>
             <div class="d-flex gap-2 flex-wrap">
                 <form id='download-form' method="POST" action="{{ url_for('admin_run_status_page', run_id=run_id) if is_admin_view else url_for('run_status_page', run_id=run_id) }}">
                     <input type="hidden" name="action" value="artifact">
                     <button type="submit" class="btn btn-primary">Download Artifacts</button>
                 </form>
-                {% if is_witness_test %}
+                {% if not is_immediate_start %}
                 <details>
-                    <summary class="btn btn-outline-secondary">Witness Test Chart</summary>
+                    <summary class="btn btn-outline-secondary">Active Power Chart</summary>
                     <form action="{{ url_for('admin_run_html_report_page' if is_admin_view else 'run_html_report_page', run_id=run_id) }}"
                           method="GET" target="_blank"
                           class="mt-2 p-3 border rounded bg-light d-flex flex-column gap-2" style="width: 280px;">
