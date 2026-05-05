@@ -324,16 +324,18 @@ def admin_stats_page(access_token: str) -> str:
         for name, count in sorted(stats.runs_per_user.items(), key=lambda x: x[1], reverse=True)
     ]
 
-    # Sort runs_per_week by week key and convert week key to label
-    def _week_label(week_str: str) -> str:
+    # Build weekly bars; x-axis label shows month only when it changes
+    week_bars: list[dict] = []
+    last_month = None
+    for week_str, count in sorted(stats.runs_per_week.items()):
         try:
             year_s, week_s = week_str.split("-W")
             dt = datetime.strptime(f"{year_s}-W{int(week_s):02d}-1", "%G-W%V-%u")
-            return dt.strftime("%-d %b")
+            month_label = dt.strftime("%b %Y")
         except (ValueError, AttributeError):
-            return week_str
-
-    runs_per_week = {_week_label(k): v for k, v in sorted(stats.runs_per_week.items())}
+            month_label = week_str
+        week_bars.append({"label": month_label if month_label != last_month else "", "count": count})
+        last_month = month_label
 
     # Sort procedures by total_runs descending (all procedures are returned, not just top 20)
     procedures = sorted(stats.procedures, key=lambda p: p.get("total_runs", 0), reverse=True)
@@ -349,7 +351,7 @@ def admin_stats_page(access_token: str) -> str:
         user_leaderboard=user_leaderboard,
         procedures=procedures,
         max_run_number=stats.max_run_id,
-        runs_per_week=runs_per_week,
+        runs_per_week=week_bars,
     )
 
 

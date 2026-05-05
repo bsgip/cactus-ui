@@ -109,24 +109,24 @@
 
     <!-- Runs Per Week -->
     {% if runs_per_week %}
-    {% set max_week_runs = runs_per_week.values() | max if runs_per_week.values() | list | length > 0 else 1 %}
+    {% set max_week_runs = (runs_per_week | map(attribute='count') | list | max) if runs_per_week | length > 0 else 1 %}
     <div class="card shadow-sm mb-4">
         <div class="card-header fw-bold"><i class="fas fa-calendar-week me-2"></i>Tests Per Week</div>
         <div class="card-body py-2">
             <div class="d-flex align-items-end" style="gap: 2px; height: 110px;">
-                {% for week, count in runs_per_week.items() %}
-                {% set bar_h = (count / max_week_runs * 80) | int %}
+                {% for bar in runs_per_week %}
+                {% set bar_h = (bar.count / max_week_runs * 80) | int %}
                 {% if bar_h < 2 %}{% set bar_h = 2 %}{% endif %}
                 <div class="d-flex flex-column align-items-center flex-fill" style="min-width: 0;">
-                    <small class="text-muted" style="font-size: 0.6rem; line-height: 1.2;">{{ count }}</small>
-                    <div class="w-100 bg-success rounded-top" style="height: {{ bar_h }}px;" title="{{ week }}: {{ count }} runs"></div>
+                    <small class="text-muted" style="font-size: 0.6rem; line-height: 1.2;">{{ bar.count }}</small>
+                    <div class="w-100 bg-success rounded-top" style="height: {{ bar_h }}px;" title="{{ bar.label or '' }}: {{ bar.count }} runs"></div>
                 </div>
                 {% endfor %}
             </div>
             <div class="d-flex" style="gap: 2px; margin-top: 3px; border-top: 1px solid #dee2e6;">
-                {% for week, count in runs_per_week.items() %}
+                {% for bar in runs_per_week %}
                 <div class="text-center flex-fill" style="min-width: 0;">
-                    <small class="text-muted text-truncate d-block" style="font-size: 0.6rem;">{{ week }}</small>
+                    <small class="text-muted text-truncate d-block" style="font-size: 0.6rem;">{{ bar.label }}</small>
                 </div>
                 {% endfor %}
             </div>
