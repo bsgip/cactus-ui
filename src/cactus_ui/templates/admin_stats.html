@@ -119,14 +119,15 @@
                 {% if bar_h < 2 %}{% set bar_h = 2 %}{% endif %}
                 <div class="d-flex flex-column align-items-center flex-fill" style="min-width: 0;">
                     <small class="text-muted" style="font-size: 0.6rem; line-height: 1.2;">{{ bar.count }}</small>
-                    <div class="w-100 bg-success rounded-top" style="height: {{ bar_h }}px;" title="{{ bar.label or '' }}: {{ bar.count }} runs"></div>
+                    <div class="w-100 bg-success rounded-top" style="height: {{ bar_h }}px;" title="{{ bar.month }} {{ bar.year }}: {{ bar.count }} runs"></div>
                 </div>
                 {% endfor %}
             </div>
             <div class="d-flex" style="gap: 2px; margin-top: 3px; border-top: 1px solid #dee2e6;">
                 {% for bar in runs_per_week %}
                 <div class="text-center flex-fill" style="min-width: 0;">
-                    <small class="text-muted text-truncate d-block" style="font-size: 0.6rem;">{{ bar.label }}</small>
+                    <small class="text-muted text-truncate d-block" style="font-size: 0.6rem;">{{ bar.month }}</small>
+                    <small class="text-muted text-truncate d-block" style="font-size: 0.6rem;">{{ bar.year }}</small>
                 </div>
                 {% endfor %}
             </div>
