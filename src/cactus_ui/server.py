@@ -339,11 +339,13 @@ def admin_stats_page(access_token: str) -> str:
             month_key = week_str
             month_display = week_str
             year_display = ""
-        week_bars.append({
-            "month": month_display if month_key != last_month else "",
-            "year": year_display if year_display != last_year else "",
-            "count": count,
-        })
+        week_bars.append(
+            {
+                "month": month_display if month_key != last_month else "",
+                "year": year_display if year_display != last_year else "",
+                "count": count,
+            }
+        )
         last_month = month_key
         last_year = year_display
 
