@@ -16,11 +16,11 @@ from os import environ as env
 from pathlib import Path
 from typing import Any, Callable, TypeVar, cast
 from urllib.parse import quote_plus, urlencode
-from cactus_schema.orchestrator.compliance import fetch_compliance_classes
 
 import cactus_schema.orchestrator as schema
 import jwt
 from authlib.integrations.flask_client import OAuth
+from cactus_schema.orchestrator.compliance import fetch_compliance_classes
 from dataclass_wizard import JSONWizard
 from dotenv import find_dotenv, load_dotenv
 from flask import (
@@ -157,7 +157,7 @@ def login_required(f: F) -> F:
         if access_token is None:
             return redirect(url_for("login"))
 
-        return f(access_token=access_token, *args, **kwargs)
+        return f(*args, access_token=access_token, **kwargs)
 
     return cast(F, decorated)
 
@@ -469,7 +469,7 @@ def admin_group_runs_page(access_token: str, run_group_id: int) -> str | Respons
             category_slug = p.category.replace(" ", "-")  # This could do with a more robust slugify method
 
             # Add this procedure to the list of groups
-            existing_group = find_first(grouped_procedures, lambda x: x.slug == category_slug)
+            existing_group = find_first(grouped_procedures, lambda x, slug=category_slug: x.slug == slug)
             if existing_group:
                 existing_group.summaries.append(p)
             else:
@@ -818,7 +818,7 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
         csip_aus_versions=csip_aus_versions.items,
         pen=(
             "" if config.pen == 0 else config.pen
-        ),  # A PEN of 0 is reserved. Replace with "" to trigger display of placeholder text # noqa: 501
+        ),  # A PEN of 0 is reserved. Replace with "" to trigger display of placeholder text
     )
 
 
@@ -1004,7 +1004,7 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
             category_slug = p.category.replace(" ", "-")  # This could do with a more robust slugify method
 
             # Add this procedure to the list of groups
-            existing_group = find_first(grouped_procedures, lambda x: x.slug == category_slug)
+            existing_group = find_first(grouped_procedures, lambda x, slug=category_slug: x.slug == slug)
             if existing_group:
                 existing_group.summaries.append(p)
             else:
@@ -1546,4 +1546,4 @@ def inject_global_template_context() -> dict:
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=int(env.get("PORT", 3000)), debug=True)  # nosec - not for deployment
+    app.run(host="127.0.0.1", port=int(env.get("PORT", 3000)), debug=True)  # noqa: S201 - not for deployment
