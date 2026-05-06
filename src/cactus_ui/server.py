@@ -8,13 +8,14 @@ import os
 import zipfile
 from base64 import b64encode
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from functools import lru_cache, wraps
 from http import HTTPStatus
 from os import environ as env
 from pathlib import Path
-from typing import Any, Callable, TypeVar, cast
+from typing import Any, cast
 from urllib.parse import quote_plus, urlencode
 
 import cactus_schema.orchestrator as schema
@@ -44,7 +45,7 @@ from cactus_ui.compliance_class import fetch_compliance_class
 # Setup logs
 logconf_fp = "./logconf.json"
 if os.path.exists(logconf_fp):
-    with open(logconf_fp, "r") as f:
+    with open(logconf_fp) as f:
         logging.config.dictConfig(json.load(f))
 else:
     logging.basicConfig(level=logging.INFO)
@@ -52,6 +53,8 @@ else:
 logger = logging.getLogger(__name__)
 
 _WITNESS_CLASSES = frozenset({"DER-A", "DER-G", "DER-L", "DR-D", "DR-G", "DR-L"})
+ACTIVE_RUN_STATUSES = [1, 2, 6]  # initialized, started, provisioning
+FINALIZED_RUN_STATUSES = [3, 4]  # finalized by user, finalized by timeout
 
 
 def is_witness_test(run_response: schema.RunResponse | None) -> bool:
@@ -87,9 +90,6 @@ BANNER_MESSAGE = env.get("BANNER_MESSAGE")
 LOGIN_BANNER_MESSAGE = env.get("LOGIN_BANNER_MESSAGE")
 
 
-F = TypeVar("F", bound=Callable[..., object])
-
-
 @dataclass
 class GroupedProcedure:
     slug: str
@@ -123,8 +123,8 @@ def get_access_token() -> str | None:
         return None
 
     try:
-        exp_time = datetime.fromtimestamp(float(user["expires_at"]), tz=timezone.utc)
-        if exp_time < datetime.now(tz=timezone.utc):
+        exp_time = datetime.fromtimestamp(float(user["expires_at"]), tz=datetime.UTC)
+        if exp_time < datetime.now(tz=datetime.UTC):
             logger.info(f"User access_token expired at {exp_time}.")
             return None
     except Exception as exc:
@@ -150,9 +150,9 @@ def get_username_from_session() -> str | None:
     return user_info.get("name")
 
 
-def login_required(f: F) -> F:
+def login_required[F: Callable[..., object]](f: F) -> F:
     @wraps(f)
-    def decorated(*args: Any, **kwargs: Any) -> Any:
+    def decorated(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
         access_token = get_access_token()
         if access_token is None:
             return redirect(url_for("login"))
@@ -180,9 +180,9 @@ def get_permissions() -> list[str] | None:
     return decoded_jwt["permissions"]
 
 
-def admin_role_required(f: F) -> F:
+def admin_role_required[F: Callable[..., object]](f: F) -> F:
     @wraps(f)
-    def decorated(*args: Any, **kwargs: Any) -> Any:
+    def decorated(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
         permissions = get_permissions()
         if not permissions or "admin:all" not in permissions:
             return redirect(url_for("login_or_home_page"))
@@ -223,9 +223,6 @@ def download_playlist_artifacts(access_token: str, run_ids: list[int], download_
 
 
 def run_summary_to_compliance_status(test_procedure: schema.TestProcedureRunSummaryResponse) -> str:
-    ACTIVE_RUN_STATUSES = [1, 2, 6]  # initialized, started, provisioning
-    FINALIZED_RUN_STATUSES = [3, 4]  # finalized by user, finalized by timeout
-
     if test_procedure.latest_run_status in ACTIVE_RUN_STATUSES:
         return "active"
     elif test_procedure.run_count == 0:
@@ -293,7 +290,7 @@ def admin_page(access_token: str) -> str:
     if users is None:
         return render_template("admin.html", error="Failed to retrieve users.")
 
-    def custom_serializer(obj: Any) -> str | dict:
+    def custom_serializer(obj: Any) -> str | dict:  # noqa: ANN401
         if isinstance(obj, JSONWizard):
             # This is pretty crufty - but we're forcing in our own custom property
             # Josh - I wrote this on xmas eve (sue me) - probably better done with a subclass
@@ -1077,7 +1074,7 @@ def _handle_initialise_playlist(access_token: str, run_group_id: int) -> str | R
             session["active_playlist"] = {
                 "execution_id": init_result.response.playlist_execution_id,
                 "name": "Custom Playlist",
-                "started_at": datetime.now(timezone.utc).isoformat(),
+                "started_at": datetime.now(datetime.UTC).isoformat(),
                 "runs": [
                     {"run_id": r.run_id, "test_procedure_id": r.test_procedure_id}
                     for r in init_result.response.playlist_runs

@@ -1,12 +1,11 @@
 import logging
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import IntEnum, auto
 from http import HTTPStatus
 from os import environ as env
-from typing import Any, Callable, TypeVar
-
-_T = TypeVar("_T")
+from typing import Any
 
 import cactus_schema.orchestrator as orchestrator
 import requests
@@ -31,9 +30,7 @@ class StartResult:
     error_message: str | None
 
 
-def handle_pagination(
-    paginated_json: dict, item_parser: Callable[[dict], _T]
-) -> orchestrator.Pagination[_T]:
+def handle_pagination[T](paginated_json: dict, item_parser: Callable[[dict], T]) -> orchestrator.Pagination[T]:
     total_pages = paginated_json.get("pages", 1)
     current_page = paginated_json.get("page", 1)
     if current_page == 1:
@@ -89,7 +86,11 @@ def _determine_run_failure_type(response: requests.Response | None) -> Initialis
 
 
 def safe_request(
-    method: str, url: str, headers: dict, timeout: int, json: Any | None = None
+    method: str,
+    url: str,
+    headers: dict,
+    timeout: int,
+    json: Any | None = None,  # noqa: ANN401
 ) -> requests.Response | None:
     """Unified method for making requests that ensures they log / handle exceptions"""
     try:
