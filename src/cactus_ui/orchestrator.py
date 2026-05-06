@@ -4,7 +4,9 @@ from dataclasses import dataclass
 from enum import IntEnum, auto
 from http import HTTPStatus
 from os import environ as env
-from typing import Any, Callable
+from typing import Any, Callable, TypeVar
+
+_T = TypeVar("_T")
 
 import cactus_schema.orchestrator as orchestrator
 import requests
@@ -30,8 +32,8 @@ class StartResult:
 
 
 def handle_pagination(
-    paginated_json: dict, item_parser: Callable[[dict], orchestrator.PaginatedType]
-) -> orchestrator.Pagination[orchestrator.PaginatedType]:
+    paginated_json: dict, item_parser: Callable[[dict], _T]
+) -> orchestrator.Pagination[_T]:
     total_pages = paginated_json.get("pages", 1)
     current_page = paginated_json.get("page", 1)
     if current_page == 1:
@@ -620,11 +622,11 @@ def get_matchable_description(u: dict) -> str:
 
     | characters are used to separate fields to prevent matching across fields.
     """
-    matchable_description = f"{u["user_id"]}"
+    matchable_description = f"{u['user_id']}"
     if u["name"]:
-        matchable_description += f"|{u["name"]}"
+        matchable_description += f"|{u['name']}"
     for rg in u["run_groups"]:
-        matchable_description += f"|{rg["run_group_id"]}|{rg["name"]}"
+        matchable_description += f"|{rg['run_group_id']}|{rg['name']}"
     return matchable_description
 
 

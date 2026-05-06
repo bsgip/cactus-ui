@@ -76,7 +76,7 @@ oauth.register(
     client_kwargs={
         "scope": "user:all openid profile email",
     },
-    server_metadata_url=f'https://{env.get("AUTH0_DOMAIN")}/.well-known/openid-configuration',
+    server_metadata_url=f"https://{env.get('AUTH0_DOMAIN')}/.well-known/openid-configuration",
 )  # type: ignore
 
 # envvars
