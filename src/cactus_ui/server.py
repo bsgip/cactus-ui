@@ -1543,4 +1543,4 @@ def inject_global_template_context() -> dict:
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=int(env.get("PORT", 3000)), debug=True)  # noqa: S201 - not for deployment
+    app.run(host="127.0.0.1", port=int(env.get("PORT", 3000)), debug=True)  # noqa: S201  # nosec B201 - not for deployment
