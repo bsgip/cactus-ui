@@ -10,7 +10,7 @@ from base64 import b64encode
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from functools import lru_cache, wraps
 from http import HTTPStatus
 from os import environ as env
@@ -39,7 +39,6 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.wrappers.response import Response
 
 import cactus_ui.orchestrator as orchestrator
-from cactus_ui.common import find_first
 from cactus_ui.compliance_class import fetch_compliance_class
 
 # Setup logs
@@ -123,8 +122,8 @@ def get_access_token() -> str | None:
         return None
 
     try:
-        exp_time = datetime.fromtimestamp(float(user["expires_at"]), tz=datetime.UTC)
-        if exp_time < datetime.now(tz=datetime.UTC):
+        exp_time = datetime.fromtimestamp(float(user["expires_at"]), tz=UTC)
+        if exp_time < datetime.now(tz=UTC):
             logger.info(f"User access_token expired at {exp_time}.")
             return None
     except Exception as exc:
@@ -222,7 +221,9 @@ def download_playlist_artifacts(access_token: str, run_ids: list[int], download_
     )
 
 
-def run_summary_to_compliance_status(test_procedure: schema.TestProcedureRunSummaryResponse) -> str:
+def run_summary_to_compliance_status(
+    test_procedure: schema.TestProcedureRunSummaryResponse,
+) -> str:
     if test_procedure.latest_run_status in ACTIVE_RUN_STATUSES:
         return "active"
     elif test_procedure.run_count == 0:
@@ -353,7 +354,9 @@ def admin_stats_page(access_token: str) -> str:
 @app.route("/admin/group/<int:run_group_id>", methods=["GET", "POST"])
 @login_required
 @admin_role_required
-def admin_run_group_page(access_token: str, run_group_id: int) -> str | Response:  # noqa: C901
+def admin_run_group_page(  # noqa: C901
+    access_token: str, run_group_id: int
+) -> str | Response:
     error: str | None = None
     """This is the admin-only page summarizing compliance across a run group"""
 
@@ -391,7 +394,10 @@ def admin_run_group_page(access_token: str, run_group_id: int) -> str | Response
 
         for compliance_class, tests in tests_by_class.items():
             per_run_status = [
-                {"procedure": procedure_map[t], "status": run_summary_to_compliance_status(procedure_map[t])}
+                {
+                    "procedure": procedure_map[t],
+                    "status": run_summary_to_compliance_status(procedure_map[t]),
+                }
                 for t in tests
             ]
             compliant: bool = all([run["status"] == "success" for run in per_run_status])
@@ -426,7 +432,9 @@ def admin_run_group_page(access_token: str, run_group_id: int) -> str | Response
 @app.route("/admin/group/<int:run_group_id>/runs", methods=["GET", "POST"])
 @login_required
 @admin_role_required
-def admin_group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # noqa: C901
+def admin_group_runs_page(  # noqa: C901
+    access_token: str, run_group_id: int
+) -> str | Response:
     error: str | None = None
     """This is the admin equivalent of group_runs_page"""
     # Handle POST for triggering an artifact download
@@ -466,7 +474,7 @@ def admin_group_runs_page(access_token: str, run_group_id: int) -> str | Respons
             category_slug = p.category.replace(" ", "-")  # This could do with a more robust slugify method
 
             # Add this procedure to the list of groups
-            existing_group = find_first(grouped_procedures, lambda x, slug=category_slug: x.slug == slug)
+            existing_group = next((x for x in grouped_procedures if x.slug == category_slug), None)
             if existing_group:
                 existing_group.summaries.append(p)
             else:
@@ -509,7 +517,10 @@ def admin_group_runs_page(access_token: str, run_group_id: int) -> str | Respons
     )
 
 
-@app.route("/admin/run_group/<int:run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
+@app.route(
+    "/admin/run_group/<int:run_group_id>/procedure_runs/<test_procedure_id>",
+    methods=["GET"],
+)
 @login_required
 @admin_role_required
 def admin_procedure_runs_json(access_token: str, run_group_id: int, test_procedure_id: str) -> Response:
@@ -700,9 +711,17 @@ def procedure_yaml_page(access_token: str, test_procedure_id: str) -> str | Resp
     # Request the paginated list of procedures from upstream
     yaml = orchestrator.fetch_procedure_yaml(access_token, test_procedure_id)
     if yaml is None:
-        return render_template("procedure_yaml.html", error=f"Failed to fetch YAML for test '{test_procedure_id}'.")
+        return render_template(
+            "procedure_yaml.html",
+            error=f"Failed to fetch YAML for test '{test_procedure_id}'.",
+        )
 
-    return render_template("procedure_yaml.html", test_procedure_id=test_procedure_id, yaml=yaml, error=error)
+    return render_template(
+        "procedure_yaml.html",
+        test_procedure_id=test_procedure_id,
+        yaml=yaml,
+        error=error,
+    )
 
 
 def send_zip_file(filename: str, files: dict[str, bytes | None]) -> Response:
@@ -731,7 +750,10 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
                 error = "Failed to retrieve certificate for run group."
             else:
                 return send_file(
-                    io.BytesIO(download_bytes), "application/x-x509-user-cert", True, download_name=download_file_name
+                    io.BytesIO(download_bytes),
+                    "application/x-x509-user-cert",
+                    True,
+                    download_name=download_file_name,
                 )
 
         elif action == "download-ca":
@@ -752,7 +774,12 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
             if not download_bytes or not download_file_name:
                 error = "Failed to generate a shared aggregator certificate for all run groups."
             else:
-                return send_file(io.BytesIO(download_bytes), "application/zip", True, download_name=download_file_name)
+                return send_file(
+                    io.BytesIO(download_bytes),
+                    "application/zip",
+                    True,
+                    download_name=download_file_name,
+                )
 
         elif action == "generatedevice" or action == "generateagg":
             run_group_id = int(request.form.get("run_group_id", ""))
@@ -762,7 +789,12 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
             if not download_bytes or not download_file_name:
                 error = "Failed to generate certificate for run group."
             else:
-                return send_file(io.BytesIO(download_bytes), "application/zip", True, download_name=download_file_name)
+                return send_file(
+                    io.BytesIO(download_bytes),
+                    "application/zip",
+                    True,
+                    download_name=download_file_name,
+                )
 
         elif action == "setpen":
             try:
@@ -883,7 +915,10 @@ def run_group_page(access_token: str, run_group_id: int) -> str:
 
         for compliance_class, tests in tests_by_class.items():
             per_run_status = [
-                {"procedure": procedure_map[t], "status": run_summary_to_compliance_status(procedure_map[t])}
+                {
+                    "procedure": procedure_map[t],
+                    "status": run_summary_to_compliance_status(procedure_map[t]),
+                }
                 for t in tests
             ]
             compliant: bool = all([run["status"] == "success" for run in per_run_status])
@@ -917,7 +952,9 @@ def run_group_page(access_token: str, run_group_id: int) -> str:
 
 @app.route("/group/<int:run_group_id>/runs", methods=["GET", "POST"])
 @login_required
-def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # noqa: C901
+def group_runs_page(  # noqa: C901
+    access_token: str, run_group_id: int
+) -> str | Response:
     error: str | None = None
 
     # Handle POST for triggering a new run / precondition phase
@@ -1001,7 +1038,7 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
             category_slug = p.category.replace(" ", "-")  # This could do with a more robust slugify method
 
             # Add this procedure to the list of groups
-            existing_group = find_first(grouped_procedures, lambda x, slug=category_slug: x.slug == slug)
+            existing_group = next((x for x in grouped_procedures if x.slug == category_slug), None)
             if existing_group:
                 existing_group.summaries.append(p)
             else:
@@ -1074,7 +1111,7 @@ def _handle_initialise_playlist(access_token: str, run_group_id: int) -> str | R
             session["active_playlist"] = {
                 "execution_id": init_result.response.playlist_execution_id,
                 "name": "Custom Playlist",
-                "started_at": datetime.now(datetime.UTC).isoformat(),
+                "started_at": datetime.now(UTC).isoformat(),
                 "runs": [
                     {"run_id": r.run_id, "test_procedure_id": r.test_procedure_id}
                     for r in init_result.response.playlist_runs
@@ -1272,7 +1309,7 @@ def _build_playlist_info(
                 {
                     "run_id": r.run_id,
                     "test_procedure_id": r.test_procedure_id,
-                    "status": r.status.value if hasattr(r.status, "value") else str(r.status),
+                    "status": (r.status.value if hasattr(r.status, "value") else str(r.status)),
                     "all_criteria_met": None,
                     "has_artifacts": False,
                 }
@@ -1448,9 +1485,16 @@ def send_proceed(access_token: str, run_id: str) -> Response:
     proceed_response = orchestrator.send_proceed(access_token=access_token, run_id=run_id)
 
     if proceed_response is None:
-        return Response(response="Failed to proceed to next step", status=HTTPStatus.INTERNAL_SERVER_ERROR)
+        return Response(
+            response="Failed to proceed to next step",
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
 
-    return Response(response=proceed_response.to_json(), status=HTTPStatus.OK, mimetype="application/json")
+    return Response(
+        response=proceed_response.to_json(),
+        status=HTTPStatus.OK,
+        mimetype="application/json",
+    )
 
 
 @app.route("/admin/run/<int:run_id>/proceed", methods=["GET"])
@@ -1461,9 +1505,16 @@ def admin_send_proceed(access_token: str, run_id: str) -> Response:
     proceed_response = orchestrator.admin_send_proceed(access_token=access_token, run_id=run_id)
 
     if proceed_response is None:
-        return Response(response="Failed to proceed to next step", status=HTTPStatus.INTERNAL_SERVER_ERROR)
+        return Response(
+            response="Failed to proceed to next step",
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
 
-    return Response(response=proceed_response.to_json(), status=HTTPStatus.OK, mimetype="application/json")
+    return Response(
+        response=proceed_response.to_json(),
+        status=HTTPStatus.OK,
+        mimetype="application/json",
+    )
 
 
 @app.route("/callback", methods=["GET", "POST"])
@@ -1490,7 +1541,8 @@ def callback() -> Response:
 @app.route("/login")
 def login() -> str:
     return oauth.auth0.authorize_redirect(
-        redirect_uri=url_for("callback", _external=True), audience=CACTUS_ORCHESTRATOR_AUDIENCE
+        redirect_uri=url_for("callback", _external=True),
+        audience=CACTUS_ORCHESTRATOR_AUDIENCE,
     )
 
 
@@ -1543,4 +1595,8 @@ def inject_global_template_context() -> dict:
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=int(env.get("PORT", 3000)), debug=True)  # noqa: S201  # nosec B201 - not for deployment
+    app.run(
+        host="127.0.0.1",
+        port=int(env.get("PORT", 3000)),
+        debug=True,  # noqa: S201  # nosec B201 - not for deployment
+    )
