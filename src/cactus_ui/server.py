@@ -70,7 +70,7 @@ if not (env.get("CACTUS_UI_LOCALDEV", "false").lower() == "true"):
     app.wsgi_app = ProxyFix(app.wsgi_app)  # type: ignore
 
 
-oauth = OAuth(app)  # type: ignore
+oauth = OAuth(app)
 oauth.register(
     "auth0",
     client_id=env.get("AUTH0_CLIENT_ID"),
@@ -79,7 +79,7 @@ oauth.register(
         "scope": "user:all openid profile email",
     },
     server_metadata_url=f"https://{env.get('AUTH0_DOMAIN')}/.well-known/openid-configuration",
-)  # type: ignore
+)
 
 # envvars
 CACTUS_ORCHESTRATOR_AUDIENCE = env["CACTUS_ORCHESTRATOR_AUDIENCE"]
