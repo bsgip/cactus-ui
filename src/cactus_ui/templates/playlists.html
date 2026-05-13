@@ -107,6 +107,15 @@
 
             <hr style="flex-shrink: 0; margin: 4px 0;">
 
+            {# Active Playlist section #}
+            <div id="active-playlist-section" style="display: none; flex-shrink: 0;">
+                <div style="padding: 4px 0 6px 0;">
+                    <h5 style="margin: 0;">Active Playlist</h5>
+                </div>
+                <div id="active-playlist-content"></div>
+                <hr style="flex-shrink: 0; margin: 4px 0;">
+            </div>
+
             {# Past sessions #}
             <div style="flex-shrink: 0; padding: 4px 0;">
                 <h5 style="margin: 0;">Past Sessions</h5>
@@ -396,6 +405,56 @@
         return { dots, activeRunId };
     }
 
+    // ── Active playlist ───────────────────────────────────────────────────────
+
+    function renderActivePlaylist(activeSessions) {
+        const section = document.getElementById('active-playlist-section');
+        const content = document.getElementById('active-playlist-content');
+
+        if (activeSessions.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+
+        section.style.display = '';
+        let html = '';
+
+        for (const s of activeSessions) {
+            const created = new Date(Date.parse(s.created_at));
+            const { dots, activeRunId } = buildStatusDots(s.test_statuses);
+            const runId = activeRunId || s.first_run_id;
+
+            html += `<div class="card border-primary mb-2">
+                <div class="card-body py-2">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div>
+                            <a href="${runStatusUrlBase}${s.first_run_id}"><code>${s.short_id}</code></a>
+                            <small class="text-body-secondary ms-1">${s.test_statuses.length} test${s.test_statuses.length !== 1 ? 's' : ''}</small>
+                        </div>
+                        <small class="text-muted">${formatDate(created)}</small>
+                        <div style="flex:1;">${dots}</div>
+                        <a href="${runStatusUrlBase}${runId}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-play"></i> Go to run
+                        </a>
+                        <form method="POST" action="${postUrl}" style="display:inline;"
+                            onsubmit="return confirm('Finalise this playlist? The current test will be finalised and remaining tests skipped.')">
+                            <input type="hidden" name="run_id" value="${runId}">
+                            <input type="hidden" name="action" value="skip_playlist">
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                <i class="fas fa-stop"></i> Finalise Playlist
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        content.innerHTML = html;
+        content.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+            bootstrap.Tooltip.getOrCreateInstance(el, { delay: { show: 0, hide: 0 } });
+        });
+    }
+
     // ── Past sessions ─────────────────────────────────────────────────────────
 
     function loadPastSessions() {
@@ -406,7 +465,12 @@
             loading.style.display = 'none';
             container.style.display = '';
 
-            if (sessions.length === 0) {
+            const activeSessions = sessions.filter(s => s.is_active);
+            const pastSessions = sessions.filter(s => !s.is_active);
+
+            renderActivePlaylist(activeSessions);
+
+            if (pastSessions.length === 0) {
                 container.innerHTML = '<p class="text-muted">No past playlist sessions.</p>';
                 return;
             }
@@ -419,57 +483,43 @@
                     <th></th>
                 </tr></thead><tbody>`;
 
-            for (const s of sessions) {
+            for (const s of pastSessions) {
                 const created = new Date(Date.parse(s.created_at));
-                const { dots, activeRunId } = buildStatusDots(s.test_statuses);
-                const rowClass = s.is_active ? 'class="table-info"' : '';
+                const { dots } = buildStatusDots(s.test_statuses);
 
                 let actions = '';
-                if (s.is_active && activeRunId) {
-                    actions = `
-                        <a href="${runStatusUrlBase}${activeRunId}" class="btn btn-sm btn-primary me-1">
-                            <i class="fas fa-play"></i> Go to run
-                        </a>
-                        <form method="POST" action="${postUrl}" style="display:inline;"
-                            onsubmit="return confirm('End this playlist? The current test will be finalised and remaining tests skipped.')">
-                            <input type="hidden" name="run_id" value="${activeRunId}">
-                            <input type="hidden" name="action" value="skip_playlist">
-                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-stop"></i> End</button>
-                        </form>`;
+                const withArtifacts = s.test_statuses.filter(ts => ts.has_artifacts);
+                if (withArtifacts.length > 0) {
+                    const items = withArtifacts.map(ts => `
+                        <li>
+                            <form method="POST" action="${postUrl}" style="margin:0;">
+                                <input type="hidden" name="run_id" value="${ts.run_id}">
+                                <input type="hidden" name="action" value="artifact">
+                                <button type="submit" class="dropdown-item">#${ts.run_id} – ${ts.test_procedure_id}</button>
+                            </form>
+                        </li>`).join('');
+
+                    const downloadAll = withArtifacts.length > 1 ? `
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="POST" action="${postUrl}" style="margin:0;">
+                                <input type="hidden" name="run_ids" value="${withArtifacts.map(ts => ts.run_id).join(',')}">
+                                <input type="hidden" name="action" value="artifact_all">
+                                <button type="submit" class="dropdown-item"><i class="fas fa-download"></i> Download All</button>
+                            </form>
+                        </li>` : '';
+
+                    actions = `<div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">${items}${downloadAll}</ul>
+                    </div>`;
                 } else {
-                    const withArtifacts = s.test_statuses.filter(ts => ts.has_artifacts);
-                    if (withArtifacts.length > 0) {
-                        const items = withArtifacts.map(ts => `
-                            <li>
-                                <form method="POST" action="${postUrl}" style="margin:0;">
-                                    <input type="hidden" name="run_id" value="${ts.run_id}">
-                                    <input type="hidden" name="action" value="artifact">
-                                    <button type="submit" class="dropdown-item">#${ts.run_id} – ${ts.test_procedure_id}</button>
-                                </form>
-                            </li>`).join('');
-
-                        const downloadAll = withArtifacts.length > 1 ? `
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form method="POST" action="${postUrl}" style="margin:0;">
-                                    <input type="hidden" name="run_ids" value="${withArtifacts.map(ts => ts.run_id).join(',')}">
-                                    <input type="hidden" name="action" value="artifact_all">
-                                    <button type="submit" class="dropdown-item"><i class="fas fa-download"></i> Download All</button>
-                                </form>
-                            </li>` : '';
-
-                        actions = `<div class="dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-download"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">${items}${downloadAll}</ul>
-                        </div>`;
-                    } else {
-                        actions = `<button class="btn btn-sm btn-outline-secondary" disabled><i class="fas fa-download"></i></button>`;
-                    }
+                    actions = `<button class="btn btn-sm btn-outline-secondary" disabled><i class="fas fa-download"></i></button>`;
                 }
 
-                html += `<tr ${rowClass}>
+                html += `<tr>
                     <td><a href="${runStatusUrlBase}${s.first_run_id}"><code>${s.short_id}</code></a><br>
                         <small class="text-body-secondary">${s.test_statuses.length} test${s.test_statuses.length !== 1 ? 's' : ''}</small></td>
                     <td>${formatDate(created)}<br><small class="text-body-secondary">${formatRelativeDate(created)}</small></td>
