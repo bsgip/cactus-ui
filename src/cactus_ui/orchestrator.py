@@ -1,10 +1,11 @@
 import logging
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import IntEnum, auto
 from http import HTTPStatus
 from os import environ as env
-from typing import Any, Callable
+from typing import Any
 
 import cactus_schema.orchestrator as orchestrator
 import requests
@@ -29,9 +30,7 @@ class StartResult:
     error_message: str | None
 
 
-def handle_pagination(
-    paginated_json: dict, item_parser: Callable[[dict], orchestrator.PaginatedType]
-) -> orchestrator.Pagination[orchestrator.PaginatedType]:
+def handle_pagination[T](paginated_json: dict, item_parser: Callable[[dict], T]) -> orchestrator.Pagination[T]:
     total_pages = paginated_json.get("pages", 1)
     current_page = paginated_json.get("page", 1)
     if current_page == 1:
@@ -87,7 +86,11 @@ def _determine_run_failure_type(response: requests.Response | None) -> Initialis
 
 
 def safe_request(
-    method: str, url: str, headers: dict, timeout: int, json: Any | None = None
+    method: str,
+    url: str,
+    headers: dict,
+    timeout: int,
+    json: Any | None = None,  # noqa: ANN401
 ) -> requests.Response | None:
     """Unified method for making requests that ensures they log / handle exceptions"""
     try:
@@ -620,11 +623,11 @@ def get_matchable_description(u: dict) -> str:
 
     | characters are used to separate fields to prevent matching across fields.
     """
-    matchable_description = f"{u["user_id"]}"
+    matchable_description = f"{u['user_id']}"
     if u["name"]:
-        matchable_description += f"|{u["name"]}"
+        matchable_description += f"|{u['name']}"
     for rg in u["run_groups"]:
-        matchable_description += f"|{rg["run_group_id"]}|{rg["name"]}"
+        matchable_description += f"|{rg['run_group_id']}|{rg['name']}"
     return matchable_description
 
 
