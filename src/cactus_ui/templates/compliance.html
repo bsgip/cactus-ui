@@ -146,6 +146,8 @@
     const isAdminView = "{{ is_admin_view }}" === 'True';
     const complianceRequestPageURL = "{{ url_for('compliance_request_page') }}"
 
+    const StatusToStr = ["UNKNOWN", "submitted", "pushed-back", "under-review", "finalised"];
+
     // Allows string format ala Python's str.format() method.
     // Example:
     // 'My name is {}!'.format("Sam");
@@ -192,14 +194,14 @@
             requestIdCell.innerHTML = request.compliance_request_id;
             createdCell.innerHTML = request.created_at;
             if (isAdminView) {
-                detailsCell.innerHTML = request.user_details;
+                detailsCell.innerHTML = "insert user details here";
             } else {
-                detailsCell.innerHTML = request.request_details;
+                detailsCell.innerHTML = "insert request details here";
             }
 
             // Determine status descriptions
             var status;
-            switch(request.status) {
+            switch(StatusToStr[request.status]) {
                 case "submitted":
                     status = isAdminView ? "Awaiting Review" : "Submitted";
                     break;
@@ -219,7 +221,7 @@
 
             // Determine suitable actions depending on the request status and who is viewing
             var actions = [];
-            switch(request.status) {
+            switch(StatusToStr[request.status]) {
                 case "submitted":
                     actions.push(...(isAdminView ? ["edit"] : ["edit", "delete"]));
                     break;

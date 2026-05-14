@@ -43,6 +43,9 @@ from werkzeug.wrappers.response import Response
 import cactus_ui.orchestrator as orchestrator
 from cactus_ui.common import find_first
 from cactus_ui.compliance_class import fetch_compliance_class
+from cactus_ui import mock
+
+MOCK_RESPONSES = True
 
 # Setup logs
 logconf_fp = "./logconf.json"
@@ -56,7 +59,9 @@ logger = logging.getLogger(__name__)
 
 _WITNESS_CLASSES = frozenset({"DER-A", "DER-G", "DER-L", "DR-D", "DR-G", "DR-L"})
 _WITNESS_PROCEDURE_IDS: frozenset[str] = frozenset(
-    str(pid) for pid, tp in get_all_test_procedures().items() if _WITNESS_CLASSES & set(tp.classes)
+    str(pid)
+    for pid, tp in get_all_test_procedures().items()
+    if _WITNESS_CLASSES & set(tp.classes)
 )
 
 _IMMEDIATE_START_IDS: frozenset[str] = frozenset(
@@ -92,7 +97,7 @@ oauth.register(
     client_kwargs={
         "scope": "user:all openid profile email",
     },
-    server_metadata_url=f'https://{env.get("AUTH0_DOMAIN")}/.well-known/openid-configuration',
+    server_metadata_url=f"https://{env.get('AUTH0_DOMAIN')}/.well-known/openid-configuration",
 )  # type: ignore
 
 # envvars
@@ -218,7 +223,9 @@ def parse_bool(v: str | None) -> bool:
     return True
 
 
-def download_playlist_artifacts(access_token: str, run_ids: list[int], download_name: str) -> Response | None:
+def download_playlist_artifacts(
+    access_token: str, run_ids: list[int], download_name: str
+) -> Response | None:
     """Download artifacts for multiple runs as a single ZIP file.
 
     Returns a Flask send_file response if successful, None otherwise.
@@ -238,7 +245,9 @@ def download_playlist_artifacts(access_token: str, run_ids: list[int], download_
     )
 
 
-def run_summary_to_compliance_status(test_procedure: schema.TestProcedureRunSummaryResponse) -> str:
+def run_summary_to_compliance_status(
+    test_procedure: schema.TestProcedureRunSummaryResponse,
+) -> str:
     ACTIVE_RUN_STATUSES = [1, 2, 6]  # initialized, started, provisioning
     FINALIZED_RUN_STATUSES = [3, 4]  # finalized by user, finalized by timeout
 
@@ -318,7 +327,9 @@ def admin_page(access_token: str) -> str:
             # This is pretty crufty - but we're forcing in our own custom property
             # Josh - I wrote this on xmas eve (sue me) - probably better done with a subclass
             raw_data = obj.to_dict()
-            raw_data["matchable_description"] = orchestrator.get_matchable_description_for_user(raw_data)
+            raw_data["matchable_description"] = (
+                orchestrator.get_matchable_description_for_user(raw_data)
+            )
             return raw_data
         # Otherwise rely on standard serialization
         return json.dumps(obj)
@@ -326,7 +337,9 @@ def admin_page(access_token: str) -> str:
     return render_template(
         "admin.html",
         users=users,
-        users_b64=b64encode(json.dumps(users, default=custom_serializer).encode()).decode(),
+        users_b64=b64encode(
+            json.dumps(users, default=custom_serializer).encode()
+        ).decode(),
     )
 
 
@@ -341,7 +354,9 @@ def admin_stats_page(access_token: str) -> str:
     # Convert runs_per_user dict to sorted leaderboard list for the template
     user_leaderboard = [
         {"name": name, "run_count": count}
-        for name, count in sorted(stats.runs_per_user.items(), key=lambda x: x[1], reverse=True)
+        for name, count in sorted(
+            stats.runs_per_user.items(), key=lambda x: x[1], reverse=True
+        )
     ]
 
     # Sort runs_per_week by week key and convert week key to label
@@ -356,7 +371,9 @@ def admin_stats_page(access_token: str) -> str:
     runs_per_week = {_week_label(k): v for k, v in sorted(stats.runs_per_week.items())}
 
     # Sort procedures by total_runs descending (all procedures are returned, not just top 20)
-    procedures = sorted(stats.procedures, key=lambda p: p.get("total_runs", 0), reverse=True)
+    procedures = sorted(
+        stats.procedures, key=lambda p: p.get("total_runs", 0), reverse=True
+    )
 
     return render_template(
         "admin_stats.html",
@@ -383,7 +400,9 @@ def admin_run_group_page(access_token: str, run_group_id: int) -> str | Response
     if request.method == "POST":
         # Handle dl artifact
         if request.form.get("action") == "compliance":
-            compliance_report = orchestrator.admin_fetch_run_group_artifact(access_token, run_group_id)
+            compliance_report = orchestrator.admin_fetch_run_group_artifact(
+                access_token, run_group_id
+            )
             if compliance_report is None:
                 error = "There was an error generating the compliance report."
             else:
@@ -414,10 +433,15 @@ def admin_run_group_page(access_token: str, run_group_id: int) -> str | Response
 
         for compliance_class, tests in tests_by_class.items():
             per_run_status = [
-                {"procedure": procedure_map[t], "status": run_summary_to_compliance_status(procedure_map[t])}
+                {
+                    "procedure": procedure_map[t],
+                    "status": run_summary_to_compliance_status(procedure_map[t]),
+                }
                 for t in tests
             ]
-            compliant: bool = all([run["status"] == "success" for run in per_run_status])
+            compliant: bool = all(
+                [run["status"] == "success" for run in per_run_status]
+            )
             compliance_by_class[compliance_class] = {
                 "class_details": fetch_compliance_class(compliance_class),
                 "compliant": compliant,
@@ -425,7 +449,9 @@ def admin_run_group_page(access_token: str, run_group_id: int) -> str | Response
             }
 
     # Fetch the run groups (for the breadcrumbs selector)
-    run_groups = orchestrator.admin_fetch_run_groups(access_token=access_token, run_group_id=run_group_id, page=1)
+    run_groups = orchestrator.admin_fetch_run_groups(
+        access_token=access_token, run_group_id=run_group_id, page=1
+    )
     active_run_group: schema.RunGroupResponse | None = None
     if not run_groups or not run_groups.items:
         error = "Unable to fetch run groups."
@@ -460,7 +486,9 @@ def admin_group_runs_page(access_token: str, run_group_id: int) -> str | Respons
             if not run_id:
                 error = "No run ID specified."
             else:
-                artifact_data, download_name = orchestrator.admin_fetch_run_artifact(access_token, run_id)
+                artifact_data, download_name = orchestrator.admin_fetch_run_artifact(
+                    access_token, run_id
+                )
                 if artifact_data is None:
                     error = "Failed to retrieve artifacts."
                 else:
@@ -486,14 +514,20 @@ def admin_group_runs_page(access_token: str, run_group_id: int) -> str | Respons
     else:
         # Organise the procedures by grouping them under the "category" label present (while also preserving order)
         for p in procedures:
-            category_slug = p.category.replace(" ", "-")  # This could do with a more robust slugify method
+            category_slug = p.category.replace(
+                " ", "-"
+            )  # This could do with a more robust slugify method
 
             # Add this procedure to the list of groups
-            existing_group = find_first(grouped_procedures, lambda x: x.slug == category_slug)
+            existing_group = find_first(
+                grouped_procedures, lambda x: x.slug == category_slug
+            )
             if existing_group:
                 existing_group.summaries.append(p)
             else:
-                grouped_procedures.append(GroupedProcedure(category_slug, p.category, [p]))
+                grouped_procedures.append(
+                    GroupedProcedure(category_slug, p.category, [p])
+                )
 
             classes = p.classes if p.classes else []
             classes_by_test[p.test_procedure_id] = classes
@@ -505,10 +539,14 @@ def admin_group_runs_page(access_token: str, run_group_id: int) -> str | Respons
                 tmp_classes_by_category[category_slug] = set(classes)
 
     # convert sets to lists (sets are not serializable to json)
-    classes_by_category: dict[str, list[str]] = {key: list(value) for key, value in tmp_classes_by_category.items()}
+    classes_by_category: dict[str, list[str]] = {
+        key: list(value) for key, value in tmp_classes_by_category.items()
+    }
 
     # Fetch the run groups (for the breadcrumbs selector)
-    run_groups = orchestrator.admin_fetch_run_groups(access_token=access_token, run_group_id=run_group_id, page=1)
+    run_groups = orchestrator.admin_fetch_run_groups(
+        access_token=access_token, run_group_id=run_group_id, page=1
+    )
     active_run_group: schema.RunGroupResponse | None = None
     if not run_groups or not run_groups.items:
         error = "Unable to fetch run groups."
@@ -524,7 +562,9 @@ def admin_group_runs_page(access_token: str, run_group_id: int) -> str | Respons
         grouped_procedures=grouped_procedures,
         classes=fetch_compliance_classes(all_classes),
         classes_by_test_b64=b64encode(json.dumps(classes_by_test).encode()).decode(),
-        classes_by_category_b64=b64encode(json.dumps(classes_by_category).encode()).decode(),
+        classes_by_category_b64=b64encode(
+            json.dumps(classes_by_category).encode()
+        ).decode(),
         run_groups=[] if run_groups is None else run_groups.items,
         run_group_id=run_group_id,
         active_run_group=active_run_group,
@@ -532,11 +572,18 @@ def admin_group_runs_page(access_token: str, run_group_id: int) -> str | Respons
     )
 
 
-@app.route("/admin/run_group/<int:run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
+@app.route(
+    "/admin/run_group/<int:run_group_id>/procedure_runs/<test_procedure_id>",
+    methods=["GET"],
+)
 @login_required
 @admin_role_required
-def admin_procedure_runs_json(access_token: str, run_group_id: int, test_procedure_id: str) -> Response:
-    runs_page = orchestrator.admin_fetch_group_runs_for_procedure(access_token, run_group_id, test_procedure_id)
+def admin_procedure_runs_json(
+    access_token: str, run_group_id: int, test_procedure_id: str
+) -> Response:
+    runs_page = orchestrator.admin_fetch_group_runs_for_procedure(
+        access_token, run_group_id, test_procedure_id
+    )
     if runs_page is None:
         return Response(
             response=f"Unable to fetch runs for {test_procedure_id}.",
@@ -551,7 +598,9 @@ def admin_procedure_runs_json(access_token: str, run_group_id: int, test_procedu
 @login_required
 @admin_role_required
 def admin_active_runs_json(access_token: str, run_group_id: int) -> Response:
-    runs_page = orchestrator.admin_fetch_runs_for_group(access_token, run_group_id, 1, False)
+    runs_page = orchestrator.admin_fetch_runs_for_group(
+        access_token, run_group_id, 1, False
+    )
     if runs_page is None:
         return Response(
             response="Unable to load active runs.",
@@ -571,7 +620,9 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
     if request.method == "POST":
         # Handle downloading a prior run's artifacts
         if request.form.get("action") == "artifact":
-            artifact_data, download_name = orchestrator.admin_fetch_run_artifact(access_token, run_id)
+            artifact_data, download_name = orchestrator.admin_fetch_run_artifact(
+                access_token, run_id
+            )
             if artifact_data is None:
                 error = "Failed to retrieve artifacts."
             else:
@@ -582,7 +633,9 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
                     mimetype="application/zip",
                 )
 
-    status = orchestrator.admin_fetch_run_status(access_token=access_token, run_id=run_id)
+    status = orchestrator.admin_fetch_run_status(
+        access_token=access_token, run_id=run_id
+    )
     run_is_live = status is not None
 
     run_status = None
@@ -650,9 +703,13 @@ def _parse_video_start(raw: str | None) -> float | None:
 @admin_role_required
 def admin_run_html_report_page(access_token: str, run_id: int) -> str | Response:
     video_start = _parse_video_start(request.args.get("video_start"))
-    html = orchestrator.admin_fetch_run_power_limit_chart(access_token, run_id, video_start_seconds=video_start)
+    html = orchestrator.admin_fetch_run_power_limit_chart(
+        access_token, run_id, video_start_seconds=video_start
+    )
     if html is None:
-        return Response(response="Failed to generate HTML report.", status=HTTPStatus.BAD_GATEWAY)
+        return Response(
+            response="Failed to generate HTML report.", status=HTTPStatus.BAD_GATEWAY
+        )
     return Response(html, mimetype="text/html")
 
 
@@ -661,7 +718,9 @@ def admin_run_html_report_page(access_token: str, run_id: int) -> str | Response
 @admin_role_required
 def admin_run_status_json(access_token: str, run_id: str) -> Response:
 
-    status = orchestrator.admin_fetch_run_status(access_token=access_token, run_id=run_id)
+    status = orchestrator.admin_fetch_run_status(
+        access_token=access_token, run_id=run_id
+    )
 
     if status is None:
         return Response(
@@ -673,7 +732,9 @@ def admin_run_status_json(access_token: str, run_id: str) -> Response:
     return Response(response=status, status=200, mimetype="application/json")
 
 
-def fetch_all_test_procedures(access_token: str) -> list[schema.TestProcedureResponse] | None:
+def fetch_all_test_procedures(
+    access_token: str,
+) -> list[schema.TestProcedureResponse] | None:
     """Requests all pages of test procedures
 
     Returns:
@@ -706,7 +767,9 @@ def procedures_page(access_token: str) -> str:
 
     all_procedures = fetch_all_test_procedures(access_token)
     if all_procedures is None:
-        return render_template("procedures.html", error="Failed to retrieve procedures.")
+        return render_template(
+            "procedures.html", error="Failed to retrieve procedures."
+        )
 
     return render_template("procedures.html", procedures=all_procedures)
 
@@ -733,9 +796,17 @@ def procedure_yaml_page(access_token: str, test_procedure_id: str) -> str | Resp
     # Request the paginated list of procedures from upstream
     yaml = orchestrator.fetch_procedure_yaml(access_token, test_procedure_id)
     if yaml is None:
-        return render_template("procedure_yaml.html", error=f"Failed to fetch YAML for test '{test_procedure_id}'.")
+        return render_template(
+            "procedure_yaml.html",
+            error=f"Failed to fetch YAML for test '{test_procedure_id}'.",
+        )
 
-    return render_template("procedure_yaml.html", test_procedure_id=test_procedure_id, yaml=yaml, error=error)
+    return render_template(
+        "procedure_yaml.html",
+        test_procedure_id=test_procedure_id,
+        yaml=yaml,
+        error=error,
+    )
 
 
 def send_zip_file(filename: str, files: dict[str, bytes | None]) -> Response:
@@ -747,7 +818,9 @@ def send_zip_file(filename: str, files: dict[str, bytes | None]) -> Response:
     zip_buffer.seek(0)
 
     mimetype = "application/zip"
-    return send_file(zip_buffer, as_attachment=True, download_name=filename, mimetype=mimetype)
+    return send_file(
+        zip_buffer, as_attachment=True, download_name=filename, mimetype=mimetype
+    )
 
 
 @app.route("/config", methods=["GET", "POST"])
@@ -759,16 +832,23 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
         action = request.form.get("action")
         if action == "downloadcert":
             run_group_id = int(request.form.get("run_group_id", ""))
-            download_bytes, download_file_name = orchestrator.download_client_cert(access_token, run_group_id)
+            download_bytes, download_file_name = orchestrator.download_client_cert(
+                access_token, run_group_id
+            )
             if not download_bytes or not download_file_name:
                 error = "Failed to retrieve certificate for run group."
             else:
                 return send_file(
-                    io.BytesIO(download_bytes), "application/x-x509-user-cert", True, download_name=download_file_name
+                    io.BytesIO(download_bytes),
+                    "application/x-x509-user-cert",
+                    True,
+                    download_name=download_file_name,
                 )
 
         elif action == "download-ca":
-            download_bytes = orchestrator.download_certificate_authority_cert(access_token)
+            download_bytes = orchestrator.download_certificate_authority_cert(
+                access_token
+            )
             mimetype = "application/x-x509-ca-cert"
             download_file_name = "cactus-serca.pem"
             if download_bytes is None:
@@ -781,11 +861,18 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
                     mimetype=mimetype,
                 )
         elif action == "generatesharedcertificateallrungroups":
-            download_bytes, download_file_name = orchestrator.generate_shared_client_cert(access_token)
+            download_bytes, download_file_name = (
+                orchestrator.generate_shared_client_cert(access_token)
+            )
             if not download_bytes or not download_file_name:
                 error = "Failed to generate a shared aggregator certificate for all run groups."
             else:
-                return send_file(io.BytesIO(download_bytes), "application/zip", True, download_name=download_file_name)
+                return send_file(
+                    io.BytesIO(download_bytes),
+                    "application/zip",
+                    True,
+                    download_name=download_file_name,
+                )
 
         elif action == "generatedevice" or action == "generateagg":
             run_group_id = int(request.form.get("run_group_id", ""))
@@ -795,7 +882,12 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
             if not download_bytes or not download_file_name:
                 error = "Failed to generate certificate for run group."
             else:
-                return send_file(io.BytesIO(download_bytes), "application/zip", True, download_name=download_file_name)
+                return send_file(
+                    io.BytesIO(download_bytes),
+                    "application/zip",
+                    True,
+                    download_name=download_file_name,
+                )
 
         elif action == "setpen":
             try:
@@ -852,10 +944,16 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
     )
 
 
-@app.route("/run_group/<int:run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
+@app.route(
+    "/run_group/<int:run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"]
+)
 @login_required
-def procedure_runs_json(access_token: str, run_group_id: int, test_procedure_id: str) -> Response:
-    runs_page = orchestrator.fetch_group_runs_for_procedure(access_token, run_group_id, test_procedure_id)
+def procedure_runs_json(
+    access_token: str, run_group_id: int, test_procedure_id: str
+) -> Response:
+    runs_page = orchestrator.fetch_group_runs_for_procedure(
+        access_token, run_group_id, test_procedure_id
+    )
     if runs_page is None:
         return Response(
             response=f"Unable to fetch runs for {test_procedure_id}.",
@@ -889,7 +987,9 @@ def runs_page(access_token: str) -> str | Response:  # noqa: C901
     if not run_groups or not run_groups.items:
         return redirect(url_for("config_page"))
 
-    return redirect(url_for("group_runs_page", run_group_id=run_groups.items[0].run_group_id))
+    return redirect(
+        url_for("group_runs_page", run_group_id=run_groups.items[0].run_group_id)
+    )
 
 
 @app.route("/group/<int:run_group_id>", methods=["GET"])
@@ -899,7 +999,9 @@ def run_group_page(access_token: str, run_group_id: int) -> str:
     """This page summarizes compliance across a run group"""
 
     # Fetch procedures
-    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token=access_token, run_group_id=run_group_id)
+    procedures = orchestrator.fetch_group_procedure_run_summaries(
+        access_token=access_token, run_group_id=run_group_id
+    )
 
     compliance_by_class = {}
 
@@ -916,10 +1018,15 @@ def run_group_page(access_token: str, run_group_id: int) -> str:
 
         for compliance_class, tests in tests_by_class.items():
             per_run_status = [
-                {"procedure": procedure_map[t], "status": run_summary_to_compliance_status(procedure_map[t])}
+                {
+                    "procedure": procedure_map[t],
+                    "status": run_summary_to_compliance_status(procedure_map[t]),
+                }
                 for t in tests
             ]
-            compliant: bool = all([run["status"] == "success" for run in per_run_status])
+            compliant: bool = all(
+                [run["status"] == "success" for run in per_run_status]
+            )
             compliance_by_class[compliance_class] = {
                 "class_details": fetch_compliance_class(compliance_class),
                 "compliant": compliant,
@@ -960,12 +1067,22 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
             if not test_procedure_id:
                 error = "No test procedure selected."
             else:
-                init_result = orchestrator.init_run(access_token, run_group_id, test_procedure_id)
+                init_result = orchestrator.init_run(
+                    access_token, run_group_id, test_procedure_id
+                )
                 if init_result.response is not None:
-                    return redirect(url_for("run_status_page", run_id=init_result.response.run_id))
-                elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
+                    return redirect(
+                        url_for("run_status_page", run_id=init_result.response.run_id)
+                    )
+                elif (
+                    init_result.failure_type
+                    == orchestrator.InitialiseRunFailureType.EXPIRED_CERT
+                ):
                     error = "Your certificate has expired. Please generate and download a new certificate."
-                elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
+                elif (
+                    init_result.failure_type
+                    == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE
+                ):
                     error = "You cannot start a second test run while your DeviceCapability URI is set to static."
                 else:
                     error = "Failed to trigger a new run due to an unknown error."
@@ -1001,7 +1118,9 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
             if not run_id:
                 error = "No run ID specified."
             else:
-                artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
+                artifact_data, download_name = orchestrator.fetch_run_artifact(
+                    access_token, run_id
+                )
                 if artifact_data is None:
                     error = "Failed to retrieve artifacts."
                 else:
@@ -1019,7 +1138,9 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
                 error = "Failed to delete run."
 
     # Fetch procedures
-    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
+    procedures = orchestrator.fetch_group_procedure_run_summaries(
+        access_token, run_group_id
+    )
     grouped_procedures: list[GroupedProcedure] = []
 
     all_classes: set[str] = set()
@@ -1031,14 +1152,20 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
     else:
         # Organise the procedures by grouping them under the "category" label present (while also preserving order)
         for p in procedures:
-            category_slug = p.category.replace(" ", "-")  # This could do with a more robust slugify method
+            category_slug = p.category.replace(
+                " ", "-"
+            )  # This could do with a more robust slugify method
 
             # Add this procedure to the list of groups
-            existing_group = find_first(grouped_procedures, lambda x: x.slug == category_slug)
+            existing_group = find_first(
+                grouped_procedures, lambda x: x.slug == category_slug
+            )
             if existing_group:
                 existing_group.summaries.append(p)
             else:
-                grouped_procedures.append(GroupedProcedure(category_slug, p.category, [p]))
+                grouped_procedures.append(
+                    GroupedProcedure(category_slug, p.category, [p])
+                )
 
             classes = p.classes if p.classes else []
             classes_by_test[p.test_procedure_id] = classes
@@ -1050,7 +1177,9 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
                 tmp_classes_by_category[category_slug] = set(classes)
 
     # convert sets to lists (sets are not serializable to json)
-    classes_by_category: dict[str, list[str]] = {key: list(value) for key, value in tmp_classes_by_category.items()}
+    classes_by_category: dict[str, list[str]] = {
+        key: list(value) for key, value in tmp_classes_by_category.items()
+    }
 
     # Fetch the run groups (for the breadcrumbs selector)
     run_groups = orchestrator.fetch_run_groups(access_token, 1)
@@ -1069,7 +1198,9 @@ def group_runs_page(access_token: str, run_group_id: int) -> str | Response:  # 
         grouped_procedures=grouped_procedures,
         classes=fetch_compliance_classes(all_classes),
         classes_by_test_b64=b64encode(json.dumps(classes_by_test).encode()).decode(),
-        classes_by_category_b64=b64encode(json.dumps(classes_by_category).encode()).decode(),
+        classes_by_category_b64=b64encode(
+            json.dumps(classes_by_category).encode()
+        ).decode(),
         run_groups=[] if run_groups is None else run_groups.items,
         run_group_id=run_group_id,
         active_run_group=active_run_group,
@@ -1084,14 +1215,22 @@ def playlists_page(access_token: str) -> str | Response:
     if not run_groups or not run_groups.items:
         return redirect(url_for("config_page"))
 
-    return redirect(url_for("group_playlists_page", run_group_id=run_groups.items[0].run_group_id))
+    return redirect(
+        url_for("group_playlists_page", run_group_id=run_groups.items[0].run_group_id)
+    )
 
 
 @app.route("/compliance")
 @login_required
 def compliance_page(access_token: str) -> str:
     PAGE = "compliance.html"
-    requests = orchestrator.fetch_compliance_requests(access_token)
+    # Temporarily support mocked version of fetching compliance requests
+    # TODO remove
+    if MOCK_RESPONSES:
+        requests = mock.mock_responses["mock_fetch_compliance_requests"]
+    else:
+        requests = orchestrator.fetch_compliance_requests(access_token=access_token)
+
     if requests is None:
         return render_template(PAGE, error="Failed to fetch compliance requests.")
 
@@ -1099,7 +1238,9 @@ def compliance_page(access_token: str) -> str:
         if isinstance(obj, JSONWizard):
             # Abuse custom serializer to add 'matchable_description' property to requests
             raw_data = obj.to_dict()
-            raw_data["matchable_description"] = orchestrator.get_matchable_description_for_compliance_requests(raw_data)
+            raw_data["matchable_description"] = (
+                orchestrator.get_matchable_description_for_compliance_requests(raw_data)
+            )
             return raw_data
         # Otherwise rely on standard serialization
         return json.dumps(obj)
@@ -1107,7 +1248,9 @@ def compliance_page(access_token: str) -> str:
     return render_template(
         PAGE,
         requests=requests,
-        requests_b64=b64encode(json.dumps(requests, default=custom_serializer).encode()).decode(),
+        requests_b64=b64encode(
+            json.dumps(requests, default=custom_serializer).encode()
+        ).decode(),
         is_admin_view=False,
     )
 
@@ -1117,7 +1260,13 @@ def compliance_page(access_token: str) -> str:
 @admin_role_required
 def admin_compliance_page(access_token: str) -> str:
     PAGE = "compliance.html"
-    requests = orchestrator.fetch_compliance_requests(access_token)
+    # Temporarily support mocked version of fetching compliance requests
+    # TODO remove
+    if MOCK_RESPONSES:
+        requests = mock.mock_responses["mock_fetch_compliance_requests"]
+    else:
+        requests = orchestrator.fetch_compliance_requests(access_token=access_token)
+
     if requests is None:
         return render_template(PAGE, error="Failed to fetch compliance requests.")
 
@@ -1125,7 +1274,9 @@ def admin_compliance_page(access_token: str) -> str:
         if isinstance(obj, JSONWizard):
             # Abuse custom serializer to add 'matchable_description' property to requests
             raw_data = obj.to_dict()
-            raw_data["matchable_description"] = orchestrator.get_matchable_description_for_compliance_requests(raw_data)
+            raw_data["matchable_description"] = (
+                orchestrator.get_matchable_description_for_compliance_requests(raw_data)
+            )
             return raw_data
         # Otherwise rely on standard serialization
         return json.dumps(obj)
@@ -1133,7 +1284,9 @@ def admin_compliance_page(access_token: str) -> str:
     return render_template(
         PAGE,
         requests=requests,
-        requests_b64=b64encode(json.dumps(requests, default=custom_serializer).encode()).decode(),
+        requests_b64=b64encode(
+            json.dumps(requests, default=custom_serializer).encode()
+        ).decode(),
         is_admin_view=True,
     )
 
@@ -1144,11 +1297,12 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
     error: str | None = None
 
     if request.method == "POST":
+        print(request.form)
         # User compliance request (new)
         if request.form.get("action") == "new-request":
-            form_keys = [
-                "csipaus_version",
-                "witnesstesting_date",
+            ALL_FORM_KEYS = [
+                "csip_aus_version",
+                "witnessed_at",
                 "der_brand",
                 "der_oem",
                 "der_series",
@@ -1159,17 +1313,35 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
                 "onsite_hardware_details",
             ]
             try:
-                for form_key in form_keys:
-                    value = request.form.get(form_key)
-                    print(f"{form_key}={value}")
-                compliance_classes = [request.form.get(key) for key in request.form.keys() if key.startswith("class_")]
-                print(f"{compliance_classes=}")
-                runs = {key: request.form.get(key) for key in request.form.keys() if key.startswith("run_")}
-                print(f"{runs=}")
+                form_data = {key: request.form.get(key) for key in ALL_FORM_KEYS}
+            except KeyError as e:
+                error = f"Errors retrieving values from compliance request form. {e}"
 
-                # _ = orchestrator.create_compliance_request()
-            except Exception as e:
-                error = f"Failed to create new compliance request. {e}"
+            classes = {
+                request.form.get(key)
+                for key in request.form.keys()
+                if key.startswith("class_")
+            }
+            runs = {
+                request.form.get(key)
+                for key in request.form.keys()
+                if key.startswith("run_")
+            }
+
+            if not error:
+                try:
+                    if MOCK_RESPONSES:
+                        pass  # TODO
+                    else:
+                        _ = orchestrator.create_compliance_request(
+                            access_token=access_token,
+                            classes=classes,
+                            runs=runs,
+                            **form_data,
+                        )
+                except Exception as e:
+                    error = f"Failed to create new compliance request. {e}"
+
             # User compliance request (update)
             return redirect(url_for("compliance_page"))
 
@@ -1200,15 +1372,22 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
     prefill_compliance_request_id = request.args.get("prefill")
     compliance_request = None
     if prefill_compliance_request_id is not None:
-        compliance_request = orchestrator.fetch_compliance_request(
-            access_token=access_token, compliance_request_id=prefill_compliance_request_id
-        )
+        # Temporarily support mocked version of fetching compliance request
+        # TODO remove
+        if MOCK_RESPONSES:
+            compliance_request = mock.mock_responses["mock_fetch_compliance_request"]
+        else:
+            compliance_request = orchestrator.fetch_compliance_request(
+                access_token=access_token,
+                compliance_request_id=prefill_compliance_request_id,
+            )
 
     # Get test procedures
     test_procedures = fetch_all_test_procedures(access_token=access_token)
     if test_procedures is None:
         return render_template(
-            PAGE, error="Failed to fetch test procedures. Unable to continue with Compliance Request."
+            PAGE,
+            error="Failed to fetch test procedures. Unable to continue with Compliance Request.",
         )
 
     # Map CSIPAus version to test procedure
@@ -1222,15 +1401,23 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
 
     all_compliance_classes = list(classes)
     all_compliance_classes.sort()
-    compliance_class_details = {c: fetch_compliance_class(c) for c in all_compliance_classes}
+    compliance_class_details = {
+        c: fetch_compliance_class(c) for c in all_compliance_classes
+    }
 
     csipaus_versions = list(tests_by_csipaus_version_and_class.keys())
 
     # Get all successful runs for user
-    runs = orchestrator.fetch_ordered_successful_runs(access_token=access_token)
+    if MOCK_RESPONSES:
+        runs = mock.mock_responses["mock_fetch_ordered_successful_runs"]
+    else:
+        runs = orchestrator.fetch_ordered_successful_runs(access_token=access_token)
 
-    completed_test_procedures = list({r.test_procedure_id for r in runs}) if runs else []
+    completed_test_procedures = (
+        list({r.test_procedure_id for r in runs}) if runs else []
+    )
     completed_test_procedures.sort()
+    print(f"{completed_test_procedures=}")
 
     def custom_serializer(obj: Any) -> str | dict:
         if isinstance(obj, JSONWizard):
@@ -1247,15 +1434,23 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
         csipaus_versions=csipaus_versions,
         default_csipaus_version=csipaus_versions[0],
         all_compliance_classes=all_compliance_classes,
-        all_compliance_classes_b64=b64encode(json.dumps(all_compliance_classes).encode()).decode(),
+        all_compliance_classes_b64=b64encode(
+            json.dumps(all_compliance_classes).encode()
+        ).decode(),
         compliance_class_details=compliance_class_details,
         tests_by_csipaus_version_and_class_b64=b64encode(
             json.dumps(tests_by_csipaus_version_and_class).encode()
         ).decode(),
         test_procedures=test_procedures,
-        test_procedures_b64=b64encode(json.dumps(test_procedures, default=custom_serializer).encode()).decode(),
-        runs_b64=b64encode(json.dumps(runs, default=custom_serializer).encode()).decode(),
-        completed_test_procedures_b64=b64encode(json.dumps(completed_test_procedures).encode()).decode(),
+        test_procedures_b64=b64encode(
+            json.dumps(test_procedures, default=custom_serializer).encode()
+        ).decode(),
+        runs_b64=b64encode(
+            json.dumps(runs, default=custom_serializer).encode()
+        ).decode(),
+        completed_test_procedures_b64=b64encode(
+            json.dumps(completed_test_procedures).encode()
+        ).decode(),
         completed_test_procedures=completed_test_procedures,
         prefill_compliance_request_b64=b64encode(
             json.dumps(compliance_request, default=custom_serializer).encode()
@@ -1264,7 +1459,9 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
     )
 
 
-def _handle_initialise_playlist(access_token: str, run_group_id: int) -> str | Response | None:
+def _handle_initialise_playlist(
+    access_token: str, run_group_id: int
+) -> str | Response | None:
     """Handle starting a playlist. Returns a redirect on success, an error string, or None."""
     procedures_raw = request.form.get("procedures", "")
     if not procedures_raw:
@@ -1280,7 +1477,10 @@ def _handle_initialise_playlist(access_token: str, run_group_id: int) -> str | R
 
     init_result = orchestrator.init_playlist(access_token, run_group_id, procedures, 0)
     if init_result.response is not None:
-        if init_result.response.playlist_execution_id and init_result.response.playlist_runs:
+        if (
+            init_result.response.playlist_execution_id
+            and init_result.response.playlist_runs
+        ):
             session["active_playlist"] = {
                 "execution_id": init_result.response.playlist_execution_id,
                 "name": "Custom Playlist",
@@ -1293,7 +1493,10 @@ def _handle_initialise_playlist(access_token: str, run_group_id: int) -> str | R
         return redirect(url_for("run_status_page", run_id=init_result.response.run_id))
     elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
         return "Your certificate has expired. Please generate and download a new certificate."
-    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
+    elif (
+        init_result.failure_type
+        == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE
+    ):
         return "You cannot start a second test run while your DeviceCapability URI is set to static."
     else:
         return "Failed to trigger playlist due to an unknown error."
@@ -1356,7 +1559,9 @@ def _handle_skip_playlist(access_token: str) -> str | Response | None:
     return "Failed to download playlist artifacts."
 
 
-def _handle_playlists_post(access_token: str, run_group_id: int) -> str | Response | None:
+def _handle_playlists_post(
+    access_token: str, run_group_id: int
+) -> str | Response | None:
     """Dispatch POST actions for the playlists page."""
     action = request.form.get("action")
     if action == "initialise_playlist":
@@ -1383,7 +1588,9 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
         if isinstance(result, str):
             error = result
 
-    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
+    procedures = orchestrator.fetch_group_procedure_run_summaries(
+        access_token, run_group_id
+    )
     if procedures is None:
         error = "Unable to fetch test procedures."
 
@@ -1417,9 +1624,13 @@ def group_playlists_page(access_token: str, run_group_id: int) -> str | Response
 @login_required
 def past_playlist_sessions_json(access_token: str, run_group_id: int) -> Response:
     """Fetch all playlist sessions (active and completed) grouped by execution ID."""
-    all_runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, None)
+    all_runs_page = orchestrator.fetch_runs_for_group(
+        access_token, run_group_id, 1, None
+    )
     if all_runs_page is None:
-        return Response(response=json.dumps([]), status=HTTPStatus.OK, mimetype="application/json")
+        return Response(
+            response=json.dumps([]), status=HTTPStatus.OK, mimetype="application/json"
+        )
 
     active_statuses = {"initialised", "started", "provisioning"}
 
@@ -1435,7 +1646,9 @@ def past_playlist_sessions_json(access_token: str, run_group_id: int) -> Respons
             continue
         first_run = runs_sorted[0]
         is_active = any(
-            (r.status.value if hasattr(r.status, "value") else str(r.status)) in active_statuses for r in runs_sorted
+            (r.status.value if hasattr(r.status, "value") else str(r.status))
+            in active_statuses
+            for r in runs_sorted
         )
         result.append(
             {
@@ -1452,7 +1665,9 @@ def past_playlist_sessions_json(access_token: str, run_group_id: int) -> Respons
     result.sort(key=lambda x: str(x["created_at"]), reverse=True)
     result.sort(key=lambda x: not bool(x["is_active"]))
 
-    return Response(response=json.dumps(result), status=HTTPStatus.OK, mimetype="application/json")
+    return Response(
+        response=json.dumps(result), status=HTTPStatus.OK, mimetype="application/json"
+    )
 
 
 def _build_playlist_info(
@@ -1474,14 +1689,18 @@ def _build_playlist_info(
         full_run = orchestrator.fetch_individual_run(access_token, str(r.run_id))
         if full_run:
             if i == 0:
-                first_run_started_at = full_run.created_at.isoformat() if full_run.created_at else None
+                first_run_started_at = (
+                    full_run.created_at.isoformat() if full_run.created_at else None
+                )
             playlist_runs_full.append(build_test_status_dict(full_run))
         else:
             playlist_runs_full.append(
                 {
                     "run_id": r.run_id,
                     "test_procedure_id": r.test_procedure_id,
-                    "status": r.status.value if hasattr(r.status, "value") else str(r.status),
+                    "status": r.status.value
+                    if hasattr(r.status, "value")
+                    else str(r.status),
                     "all_criteria_met": None,
                     "has_artifacts": False,
                 }
@@ -1496,7 +1715,9 @@ def _build_playlist_info(
     }
 
     next_playlist_run_id = None
-    if current_order is not None and current_order + 1 < len(run_response.playlist_runs):
+    if current_order is not None and current_order + 1 < len(
+        run_response.playlist_runs
+    ):
         next_playlist_run_id = run_response.playlist_runs[current_order + 1].run_id
 
     current_active_run = None
@@ -1529,7 +1750,9 @@ def _handle_run_status_post(access_token: str, run_id: str) -> str | Response | 
             return "Failed to finalise the run."
         return None
     elif action == "artifact":
-        artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
+        artifact_data, download_name = orchestrator.fetch_run_artifact(
+            access_token, run_id
+        )
         if artifact_data is None:
             return "Failed to retrieve artifacts."
         return send_file(
@@ -1557,7 +1780,9 @@ def _handle_run_status_post(access_token: str, run_id: str) -> str | Response | 
 @login_required
 def run_html_report_page(access_token: str, run_id: int) -> str | Response:
     video_start = _parse_video_start(request.args.get("video_start"))
-    html, error_detail = orchestrator.fetch_run_power_limit_chart(access_token, run_id, video_start_seconds=video_start)
+    html, error_detail = orchestrator.fetch_run_power_limit_chart(
+        access_token, run_id, video_start_seconds=video_start
+    )
     if html is None:
         message = error_detail or "Failed to generate HTML report."
         return Response(response=message, status=HTTPStatus.BAD_GATEWAY)
@@ -1591,10 +1816,14 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
         run_procedure_id = run_response.test_procedure_id
         run_has_artifacts = run_response.has_artifacts
 
-    initial_status_b64 = b64encode(status.encode()).decode() if status is not None else ""
+    initial_status_b64 = (
+        b64encode(status.encode()).decode() if status is not None else ""
+    )
 
     playlist_info, next_playlist_run_id, current_active_run = (
-        _build_playlist_info(access_token, run_response) if run_response else (None, None, None)
+        _build_playlist_info(access_token, run_response)
+        if run_response
+        else (None, None, None)
     )
 
     return render_template(
@@ -1638,7 +1867,9 @@ def run_status_json(access_token: str, run_id: str) -> Response:
 def run_request_details(access_token: str, request_id: int, run_id: str) -> Response:
     """Fetch raw request/response data for a specific request."""
 
-    request_data = orchestrator.fetch_request_details(access_token=access_token, request_id=request_id, run_id=run_id)
+    request_data = orchestrator.fetch_request_details(
+        access_token=access_token, request_id=request_id, run_id=run_id
+    )
 
     if request_data is None:
         return Response(
@@ -1647,19 +1878,30 @@ def run_request_details(access_token: str, request_id: int, run_id: str) -> Resp
             mimetype="application/json",
         )
 
-    return Response(response=request_data, status=HTTPStatus.OK, mimetype="application/json")
+    return Response(
+        response=request_data, status=HTTPStatus.OK, mimetype="application/json"
+    )
 
 
 @app.route("/run/<int:run_id>/proceed", methods=["GET"])
 @login_required
 def send_proceed(access_token: str, run_id: str) -> Response:
 
-    proceed_response = orchestrator.send_proceed(access_token=access_token, run_id=run_id)
+    proceed_response = orchestrator.send_proceed(
+        access_token=access_token, run_id=run_id
+    )
 
     if proceed_response is None:
-        return Response(response="Failed to proceed to next step", status=HTTPStatus.INTERNAL_SERVER_ERROR)
+        return Response(
+            response="Failed to proceed to next step",
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
 
-    return Response(response=proceed_response.to_json(), status=HTTPStatus.OK, mimetype="application/json")
+    return Response(
+        response=proceed_response.to_json(),
+        status=HTTPStatus.OK,
+        mimetype="application/json",
+    )
 
 
 @app.route("/admin/run/<int:run_id>/proceed", methods=["GET"])
@@ -1667,12 +1909,21 @@ def send_proceed(access_token: str, run_id: str) -> Response:
 @admin_role_required
 def admin_send_proceed(access_token: str, run_id: str) -> Response:
 
-    proceed_response = orchestrator.admin_send_proceed(access_token=access_token, run_id=run_id)
+    proceed_response = orchestrator.admin_send_proceed(
+        access_token=access_token, run_id=run_id
+    )
 
     if proceed_response is None:
-        return Response(response="Failed to proceed to next step", status=HTTPStatus.INTERNAL_SERVER_ERROR)
+        return Response(
+            response="Failed to proceed to next step",
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
 
-    return Response(response=proceed_response.to_json(), status=HTTPStatus.OK, mimetype="application/json")
+    return Response(
+        response=proceed_response.to_json(),
+        status=HTTPStatus.OK,
+        mimetype="application/json",
+    )
 
 
 @app.route("/callback", methods=["GET", "POST"])
@@ -1685,13 +1936,19 @@ def callback() -> Response:
     if access_token and "userinfo" in token and "name" in token["userinfo"]:
         user_name = token["userinfo"]["name"]
         try:
-            success = orchestrator.update_username(access_token=access_token, user_name=user_name)
+            success = orchestrator.update_username(
+                access_token=access_token, user_name=user_name
+            )
             if not success:
                 logger.error(f"Failed to update username '{user_name}'.")
         except Exception as e:
-            logger.error(f"Exception trying to update username '{user_name}'", exc_info=e)
+            logger.error(
+                f"Exception trying to update username '{user_name}'", exc_info=e
+            )
     else:
-        logger.error("Unable to update username. User info or access token missing from token.")
+        logger.error(
+            "Unable to update username. User info or access token missing from token."
+        )
 
     return redirect("/")
 
@@ -1699,7 +1956,8 @@ def callback() -> Response:
 @app.route("/login")
 def login() -> str:
     return oauth.auth0.authorize_redirect(
-        redirect_uri=url_for("callback", _external=True), audience=CACTUS_ORCHESTRATOR_AUDIENCE
+        redirect_uri=url_for("callback", _external=True),
+        audience=CACTUS_ORCHESTRATOR_AUDIENCE,
     )
 
 
