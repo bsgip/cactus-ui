@@ -1509,7 +1509,12 @@
                             common: { drawTime: 'beforeDraw' },
                             annotations
                         },
-                        legend: { display: datasets.length > 0 }
+                        legend: { display: datasets.length > 0 },
+                        tooltip: {
+                            callbacks: {
+                                title: items => items.length ? formatTimeLabel(Math.floor(items[0].parsed.x)) : ''
+                            }
+                        }
                     },
                     scales: {
                         x: {
