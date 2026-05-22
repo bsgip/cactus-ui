@@ -52,8 +52,10 @@ else:
 logger = logging.getLogger(__name__)
 
 _WITNESS_CLASSES = frozenset({"DER-A", "DER-G", "DER-L", "DR-D", "DR-G", "DR-L"})
-ACTIVE_RUN_STATUSES = [1, 2, 6]  # initialized, started, provisioning
-FINALIZED_RUN_STATUSES = [3, 4]  # finalized by user, finalized by timeout
+# Integer status codes used by TestProcedureRunSummaryResponse.latest_run_status (not a RunStatusResponse enum)
+_ACTIVE_RUN_STATUS_INTS = [1, 2, 6]  # initialised, started, provisioning
+_FINALIZED_RUN_STATUS_INTS = [3, 4]  # finalised by user, finalised by timeout
+# RunStatusResponse enum values used by RunResponse.status
 _ACTIVE_RUN_STATUSES = frozenset(
     {schema.RunStatusResponse.initialised, schema.RunStatusResponse.started, schema.RunStatusResponse.provisioning}
 )
@@ -227,11 +229,11 @@ def download_playlist_artifacts(access_token: str, run_ids: list[int], download_
 def run_summary_to_compliance_status(
     test_procedure: schema.TestProcedureRunSummaryResponse,
 ) -> str:
-    if test_procedure.latest_run_status in ACTIVE_RUN_STATUSES:
+    if test_procedure.latest_run_status in _ACTIVE_RUN_STATUS_INTS:
         return "active"
     elif test_procedure.run_count == 0:
         return "runless"
-    elif test_procedure.latest_run_status in FINALIZED_RUN_STATUSES:
+    elif test_procedure.latest_run_status in _FINALIZED_RUN_STATUS_INTS:
         if test_procedure.latest_all_criteria_met:
             return "success"
         else:
