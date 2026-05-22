@@ -54,6 +54,9 @@ logger = logging.getLogger(__name__)
 _WITNESS_CLASSES = frozenset({"DER-A", "DER-G", "DER-L", "DR-D", "DR-G", "DR-L"})
 ACTIVE_RUN_STATUSES = [1, 2, 6]  # initialized, started, provisioning
 FINALIZED_RUN_STATUSES = [3, 4]  # finalized by user, finalized by timeout
+_ACTIVE_RUN_STATUSES = frozenset(
+    {schema.RunStatusResponse.initialised, schema.RunStatusResponse.started, schema.RunStatusResponse.provisioning}
+)
 
 
 def is_witness_test(run_response: schema.RunResponse | None) -> bool:
@@ -585,7 +588,6 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
                 )
 
     status = orchestrator.admin_fetch_run_status(access_token=access_token, run_id=run_id)
-    run_is_live = status is not None
 
     run_status = None
     run_test_uri = None
@@ -598,6 +600,8 @@ def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
         run_test_uri = run_response.test_url
         run_procedure_id = run_response.test_procedure_id
         run_has_artifacts = run_response.has_artifacts
+
+    run_is_live = status is not None or (run_response is not None and run_response.status in _ACTIVE_RUN_STATUSES)
 
     # Take the big JSON response string and encode it using base64 so we can embed it in the template and re-hydrate
     # it easily enough
@@ -1419,7 +1423,6 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
             error = result
 
     status = orchestrator.fetch_run_status(access_token=access_token, run_id=run_id)
-    run_is_live = status is not None
 
     run_status = None
     run_test_uri = None
@@ -1432,6 +1435,8 @@ def run_status_page(access_token: str, run_id: str) -> str | Response:
         run_test_uri = run_response.test_url
         run_procedure_id = run_response.test_procedure_id
         run_has_artifacts = run_response.has_artifacts
+
+    run_is_live = status is not None or (run_response is not None and run_response.status in _ACTIVE_RUN_STATUSES)
 
     initial_status_b64 = b64encode(status.encode()).decode() if status is not None else ""
 
