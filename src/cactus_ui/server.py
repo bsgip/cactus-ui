@@ -1192,7 +1192,6 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
     error: str | None = None
 
     if request.method == "POST":
-        print(request.form)
         # User compliance request (new)
         if request.form.get("action") == "new-request":
             all_form_keys = [
@@ -1289,7 +1288,6 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
 
     completed_test_procedures = list({r.test_procedure_id for r in runs}) if runs else []  # type: ignore
     completed_test_procedures.sort()
-    print(f"{completed_test_procedures=}")
 
     def custom_serializer(obj: Any) -> str | dict:  # noqa: ANN401
         if isinstance(obj, JSONWizard):

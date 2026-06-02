@@ -470,7 +470,7 @@ def fetch_ordered_successful_runs(
     Successful = all_criteria_met AND finalised
     Runs are sorted by `finalised_at` time.
     """
-    uri = orchestrator.uri.RunRequestList  # TODO
+    uri = generate_uri(orchestrator.uri.RunList + "?passed=true")
     response = safe_request(
         "GET",
         uri,
