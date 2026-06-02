@@ -27,6 +27,11 @@ function formatDate(d) {
     return d.toLocaleString('sv'); // Sweden format is YYYY-MM-DD HH:MM:SS
 }
 
+function toUTC(date) {
+    // date: Date
+    return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds());
+}
+
 function xhrRequest(uri, onSuccess, onFail) {
     // makes xhr request to uri. Calls onSuccess with xhr.responseText on success. 
     // Calls onFail otherwise with two params: xhr.status/null and xhr.responseText/null  

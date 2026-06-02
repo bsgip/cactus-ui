@@ -91,7 +91,7 @@
                     </div>
                     <div class="mt-4">
                         <label for="csipaus-version-select" class="form-label">Compliance Standard</label>
-                        <select id="csipaus-version-select" name="csipaus_version" class="form-select" aria-label="Select CSIPAus Version">
+                        <select id="csipaus-version-select" name="csip_aus_version" class="form-select" aria-label="Select CSIPAus Version">
                             {% for version in csipaus_versions %}
                             <option value="{{ version }}">CSIP-AUS {{version}}</option>
                             {% endfor %}
@@ -101,7 +101,7 @@
                     
                     <div class="mt-4">
                         <label for="witnesstesting-date-input" class="form-label">Witness Testing Date</label>
-                        <input id="witnesstesting-date-input" name="witnesstesting_date" class="form-control" type="date" aria-label="Witness Testing Date"></input>
+                        <input id="witnesstesting-date-input" name="witnessed_at" class="form-control" type="date" aria-label="Witness Testing Date"></input>
                         <div id="witnesstesting-date-help" class="form-text">The date when in-person witness testing was performed.</div>
                     </div>
                     
