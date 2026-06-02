@@ -780,7 +780,7 @@ def fetch_compliance_request(
         return None
 
     parsed_body = orchestrator.ComplianceRequestResponse.from_json(response.text)
-    if not isinstance(parsed_body, list):
+    if isinstance(parsed_body, list):
         return [parsed_body]
     else:
         return parsed_body

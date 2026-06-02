@@ -530,20 +530,21 @@
     }
 
     function prefill(prefillValues) {
-        prefillControl("csipaus-version-select", prefillValues.compliance_standard);
-        prefillControl("witnesstesting-date-input", prefillValues.witness_test.split('T')[0]);
+        prefillControl("csipaus-version-select", prefillValues.csip_aus_version);
+        prefillControl("witnesstesting-date-input", prefillValues.witnessed_at.split('T')[0]);
 
         // Compliance classes and runs are not prefilled
+        // They should be deliberately chosen each time
 
         prefillControl("der-brand-input", prefillValues.der_brand);
         prefillControl("der-oem-input", prefillValues.der_oem);
         prefillControl("der-series-input", prefillValues.der_series);
-        prefillControl("der-repmod-textarea", prefillValues.der_repmodels);
+        prefillControl("der-repmod-textarea", prefillValues.der_representative_models);
 
-        prefillControl("sc-type-select", prefillValues.software_type);
-        prefillControl("sc-providers-input", prefillValues.software_providers);
-        prefillControl("sc-versions-input", prefillValues.software_versions);
-        prefillControl("onsite-details-textarea", prefillValues.hardware_details);
+        prefillControl("sc-type-select", prefillValues.software_client_type);
+        prefillControl("sc-providers-input", prefillValues.software_client_providers);
+        prefillControl("sc-versions-input", prefillValues.software_client_versions);
+        prefillControl("onsite-details-textarea", prefillValues.onsite_hardware_details);
 
     }
 
