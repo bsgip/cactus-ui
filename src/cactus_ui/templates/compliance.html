@@ -200,7 +200,7 @@
             if (isAdminView) {
                 // Admin view shows user information
                 const userCell = newRow.insertCell();
-                userCell.innerHTML = "insert user details here";
+                userCell.innerHTML = `${request.created_by_user.user_name}<br><small class="text-body-secondary">ID: ${request.created_by_user.user_id}<small>`;
             } else {
                 // Client view shows requested compliance classes
                 const classesCell = newRow.insertCell();

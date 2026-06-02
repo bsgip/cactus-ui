@@ -1103,3 +1103,23 @@ def admin_fetch_individual_run(access_token: str, run_id: str) -> orchestrator.R
         return parsed_body[0]
     else:
         return parsed_body
+
+
+def admin_fetch_compliance_requests(
+    access_token: str,
+    page: int,
+) -> orchestrator.Pagination[orchestrator.AdminComplianceRequestResponse] | None:
+    """Fetch all compliance requests"""
+    uri = generate_uri(orchestrator.uri.AdminComplianceRequestList + f"?page={page}")
+
+    response = safe_request(
+        "GET",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+    )
+
+    if response is None or not is_success_response(response):
+        return None
+
+    return handle_pagination(response.json(), lambda r: orchestrator.AdminComplianceRequestResponse.from_dict(r))

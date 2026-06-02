@@ -37,10 +37,8 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.wrappers.response import Response
 
 import cactus_ui.orchestrator as orchestrator
-from cactus_ui import mock
 from cactus_ui.compliance_class import fetch_compliance_class
 
-MOCK_RESPONSES = False
 
 # Setup logs
 logconf_fp = "./logconf.json"
@@ -1134,17 +1132,11 @@ def playlists_page(access_token: str) -> str | Response:
 @login_required
 def compliance_page(access_token: str) -> str:
     page = "compliance.html"
-    # Temporarily support mocked version of fetching compliance requests
-    # TODO remove
-    if MOCK_RESPONSES:
-        requests = mock.mock_responses["mock_fetch_compliance_requests"]
-    else:
-        paged_requests = orchestrator.fetch_compliance_requests(access_token=access_token, page=1)
 
-        if paged_requests is None:
-            return render_template(page, error="Failed to fetch compliance requests.")
-
-        requests = paged_requests.items
+    paged_requests = orchestrator.fetch_compliance_requests(access_token=access_token, page=1)
+    if paged_requests is None:
+        return render_template(page, error="Failed to fetch compliance requests.")
+    requests = paged_requests.items
 
     def custom_serializer(obj: Any) -> str | dict:  # noqa: ANN401
         if isinstance(obj, JSONWizard):
@@ -1168,17 +1160,11 @@ def compliance_page(access_token: str) -> str:
 @admin_role_required
 def admin_compliance_page(access_token: str) -> str:
     page = "compliance.html"
-    # Temporarily support mocked version of fetching compliance requests
-    # TODO remove
-    if MOCK_RESPONSES:
-        requests = mock.mock_responses["mock_fetch_compliance_requests"]
-    else:
-        paged_requests = orchestrator.fetch_compliance_requests(access_token=access_token, page=1)
 
-        if paged_requests is None:
-            return render_template(page, error="Failed to fetch compliance requests.")
-
-        requests = paged_requests.items
+    paged_requests = orchestrator.admin_fetch_compliance_requests(access_token=access_token, page=1)
+    if paged_requests is None:
+        return render_template(page, error="Failed to fetch compliance requests.")
+    requests = paged_requests.items
 
     if requests is None:
         return render_template(page, error="Failed to fetch compliance requests.")
@@ -1231,15 +1217,12 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
 
             if not error:
                 try:
-                    if MOCK_RESPONSES:
-                        pass  # TODO
-                    else:
-                        _ = orchestrator.create_compliance_request(
-                            access_token=access_token,
-                            classes=classes,
-                            runs=runs,
-                            **form_data,
-                        )
+                    _ = orchestrator.create_compliance_request(
+                        access_token=access_token,
+                        classes=classes,
+                        runs=runs,
+                        **form_data,
+                    )
                 except Exception as e:
                     error = f"Failed to create new compliance request. {e}"
 
@@ -1273,15 +1256,10 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
     prefill_compliance_request_id = request.args.get("prefill")
     compliance_request = None
     if prefill_compliance_request_id is not None:
-        # Temporarily support mocked version of fetching compliance request
-        # TODO remove
-        if MOCK_RESPONSES:
-            compliance_request = mock.mock_responses["mock_fetch_compliance_request"]
-        else:
-            compliance_request = orchestrator.fetch_compliance_request(
-                access_token=access_token,
-                compliance_request_id=int(prefill_compliance_request_id),
-            )
+        compliance_request = orchestrator.fetch_compliance_request(
+            access_token=access_token,
+            compliance_request_id=int(prefill_compliance_request_id),
+        )
 
     # Get test procedures
     test_procedures = fetch_all_test_procedures(access_token=access_token)
@@ -1307,10 +1285,7 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
     csipaus_versions = list(tests_by_csipaus_version_and_class.keys())
 
     # Get all successful runs for user
-    if MOCK_RESPONSES:
-        runs = mock.mock_responses["mock_fetch_ordered_successful_runs"]
-    else:
-        runs = orchestrator.fetch_ordered_successful_runs(access_token=access_token)
+    runs = orchestrator.fetch_ordered_successful_runs(access_token=access_token)
 
     completed_test_procedures = list({r.test_procedure_id for r in runs}) if runs else []  # type: ignore
     completed_test_procedures.sort()
