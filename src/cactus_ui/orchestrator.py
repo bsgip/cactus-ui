@@ -745,9 +745,10 @@ def admin_send_proceed(access_token: str, run_id: str) -> orchestrator.ProceedRe
 
 def fetch_compliance_requests(
     access_token: str,
-) -> list[orchestrator.ComplianceRequestResponse] | None:
+    page: int,
+) -> orchestrator.Pagination[orchestrator.ComplianceRequestResponse] | None:
     """Fetch all compliance requests for user."""
-    uri = generate_uri(orchestrator.uri.ComplianceRequestList)
+    uri = generate_uri(orchestrator.uri.ComplianceRequestList + f"?page={page}")
 
     response = safe_request(
         "GET",
@@ -759,11 +760,7 @@ def fetch_compliance_requests(
     if response is None or not is_success_response(response):
         return None
 
-    parsed_body = orchestrator.ComplianceRequestResponse.from_json(response.text)
-    if not isinstance(parsed_body, list):
-        return [parsed_body]
-    else:
-        return parsed_body
+    return handle_pagination(response.json(), lambda r: orchestrator.ComplianceRequestResponse.from_dict(r))
 
 
 def fetch_compliance_request(
@@ -805,7 +802,7 @@ def create_compliance_request(
     onsite_hardware_details: str,
 ) -> orchestrator.ComplianceRequestResponse | None:
     """Creates a new compliance request - returns the created"""
-    uri = generate_uri(orchestrator.uri.ComplianceRequest)
+    uri = generate_uri(orchestrator.uri.ComplianceRequestList)
     response = safe_request(
         "POST",
         uri,
@@ -825,6 +822,29 @@ def create_compliance_request(
             software_client_versions=software_client_versions,
             onsite_hardware_details=onsite_hardware_details,
         ).to_dict(),
+    )
+
+    if response is None or not is_success_response(response):
+        return None
+
+    body_data = orchestrator.ComplianceRequestResponse.from_json(response.text)
+    if isinstance(body_data, list):
+        return body_data[0]
+    else:
+        return body_data
+
+
+def update_compliance_request(
+    access_token: str, compliance_request_id: int, **kwargs
+) -> orchestrator.ComplianceRequestResponse | None:
+    uri = generate_uri(orchestrator.uri.ComplianceRequest.format(compliance_request_id=compliance_request_id))
+
+    response = safe_request(
+        "PUT",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+        json=orchestrator.ComplianceRequestUpdateRequest(**kwargs),
     )
 
     if response is None or not is_success_response(response):

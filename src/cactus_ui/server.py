@@ -40,7 +40,7 @@ import cactus_ui.orchestrator as orchestrator
 from cactus_ui import mock
 from cactus_ui.compliance_class import fetch_compliance_class
 
-MOCK_RESPONSES = True
+MOCK_RESPONSES = False
 
 # Setup logs
 logconf_fp = "./logconf.json"
@@ -1139,10 +1139,12 @@ def compliance_page(access_token: str) -> str:
     if MOCK_RESPONSES:
         requests = mock.mock_responses["mock_fetch_compliance_requests"]
     else:
-        requests = orchestrator.fetch_compliance_requests(access_token=access_token)
+        paged_requests = orchestrator.fetch_compliance_requests(access_token=access_token, page=1)
 
-    if requests is None:
-        return render_template(page, error="Failed to fetch compliance requests.")
+        if paged_requests is None:
+            return render_template(page, error="Failed to fetch compliance requests.")
+
+        requests = paged_requests.items
 
     def custom_serializer(obj: Any) -> str | dict:  # noqa: ANN401
         if isinstance(obj, JSONWizard):
@@ -1171,7 +1173,12 @@ def admin_compliance_page(access_token: str) -> str:
     if MOCK_RESPONSES:
         requests = mock.mock_responses["mock_fetch_compliance_requests"]
     else:
-        requests = orchestrator.fetch_compliance_requests(access_token=access_token)
+        paged_requests = orchestrator.fetch_compliance_requests(access_token=access_token, page=1)
+
+        if paged_requests is None:
+            return render_template(page, error="Failed to fetch compliance requests.")
+
+        requests = paged_requests.items
 
     if requests is None:
         return render_template(page, error="Failed to fetch compliance requests.")

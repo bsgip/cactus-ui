@@ -163,7 +163,7 @@
 
     function createActionButtons(actions, request) {
         var actionToIconMapping = {
-            'edit': {"icon": `<i class="fas fa-pen"></i>`, "buttonColor": "btn-outline-primary", "tooltip": "Edit Compliance Request"},
+            'edit': {"icon": `<i class="fas fa-pen"></i>`, "buttonColor": "btn-outline-primary", "tooltip": "Review/Edit Compliance Request"},
             'view': {"icon": `<i class="fas fa-eye"></i>`, "buttonColor": "btn-outline-secondary", "tooltip": "View Compliance Request"},
             'download': {"icon": `<i class="fas fa-download"></i>`, "buttonColor": "btn-outline-secondary", "tooltip": "Download Compliance Request"},
             'delete': {"icon": `<i class="fas fa-trash"></i>`, "buttonColor": "btn-outline-danger", "tooltip": "Delete Compliance Request [PERMANENT]"},
@@ -264,7 +264,7 @@
     function displayNoRequests() {
         const table = document.getElementById("requests-table-body");
         const newRow = table.insertRow();
-        newRow.innerHTML = '<td colspan="5" class="text-center">No Compliance Requests found.</td>'
+        newRow.innerHTML = '<td colspan="6" class="text-center">No Compliance Requests found.</td>'
     }
 
     function fetchFilteredRequests(filterText) {
