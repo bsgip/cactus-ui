@@ -198,13 +198,15 @@
             witnessTestCell.innerHTML = `${formatDate(witnessedAt)}<br><small class="text-body-secondary">(${formatRelativeDate(witnessedAt)})<small>`;
 
             if (isAdminView) {
+                // Admin view shows user information
                 const userCell = newRow.insertCell();
                 userCell.innerHTML = "insert user details here";
             } else {
-                
+                // Client view shows requested compliance classes
                 const classesCell = newRow.insertCell();
                 
-                classesCell.innerHTML = request.classes.join(' ,');
+                const badges = request.classes.map((c) => `<span class="badge bg-secondary">${c}</span>`);
+                classesCell.innerHTML = badges.join(' ');
             }
             
             // Determine status descriptions
