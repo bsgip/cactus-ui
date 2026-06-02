@@ -68,12 +68,13 @@
         <table class="table table-striped">
             <thead>
                 <tr>
-                    <th>Request ID</th>
+                    <th>#</th>
                     <th>Created</th>
+                    <th>Witness Test</th>
                     {% if is_admin_view %}
                     <th>Client</th>
                     {% else %}
-                    <th>Details</th>
+                    <th>Classes</th>
                     {% endif %}
                     <th>Status</th>
                     <th></th> <!-- Actions(s) column -->
@@ -185,21 +186,29 @@
         for (const request of requestsForTable) {
             const newRow = table.insertRow();
 
-            const requestIdCell = newRow.insertCell(0);
-            const createdCell = newRow.insertCell(1);
-            const detailsCell = newRow.insertCell(2);
-            const statusCell = newRow.insertCell(3);
-            const actionsCell = newRow.insertCell(4);
-
+            const requestIdCell = newRow.insertCell();
             requestIdCell.innerHTML = request.compliance_request_id;
-            createdCell.innerHTML = request.created_at;
-            if (isAdminView) {
-                detailsCell.innerHTML = "insert user details here";
-            } else {
-                detailsCell.innerHTML = "insert request details here";
-            }
 
+            const createdCell = newRow.insertCell();
+            const createdAt = new Date(Date.parse(request.created_at));
+            createdCell.innerHTML = `${formatDate(createdAt)}<br><small class="text-body-secondary">(${formatRelativeDate(createdAt)})<small>`;
+
+            const witnessTestCell = newRow.insertCell();
+            const witnessedAt = new Date(Date.parse(request.witnessed_at));
+            witnessTestCell.innerHTML = `${formatDate(witnessedAt)}<br><small class="text-body-secondary">(${formatRelativeDate(witnessedAt)})<small>`;
+
+            if (isAdminView) {
+                const userCell = newRow.insertCell();
+                userCell.innerHTML = "insert user details here";
+            } else {
+                
+                const classesCell = newRow.insertCell();
+                
+                classesCell.innerHTML = request.classes.join(' ,');
+            }
+            
             // Determine status descriptions
+            const statusCell = newRow.insertCell();
             var status;
             switch(StatusToStr[request.status]) {
                 case "submitted":
@@ -220,6 +229,7 @@
             statusCell.innerHTML = status;
 
             // Determine suitable actions depending on the request status and who is viewing
+            const actionsCell = newRow.insertCell();
             var actions = [];
             switch(StatusToStr[request.status]) {
                 case "submitted":
