@@ -1196,7 +1196,6 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
         if request.form.get("action") == "new-request":
             all_form_keys = [
                 "csip_aus_version",
-                "witnessed_at",
                 "der_brand",
                 "der_oem",
                 "der_series",
@@ -1207,12 +1206,18 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
                 "onsite_hardware_details",
             ]
             try:
-                form_data = {key: request.form.get(key) for key in all_form_keys}
+                form_data = {key: request.form[key] for key in all_form_keys}
+
+                # Convert local date to UTC datetime
+                witnessed_at_naive = datetime.strptime(request.form["witnessed_at"], "%Y-%m-%d")
+                witnessed_at_local = witnessed_at_naive.astimezone(datetime.now(UTC).astimezone().tzinfo)
+                witnessed_at_utc = witnessed_at_local.astimezone(UTC)
+
             except KeyError as e:
                 error = f"Errors retrieving values from compliance request form. {e}"
 
-            classes = {request.form.get(key) for key in request.form.keys() if key.startswith("class_")}
-            runs = {request.form.get(key) for key in request.form.keys() if key.startswith("run_")}
+            classes = {request.form[key] for key in request.form.keys() if key.startswith("class_")}
+            runs = {int(request.form[key]) for key in request.form.keys() if key.startswith("run_")}
 
             if not error:
                 try:
@@ -1220,6 +1225,7 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
                         access_token=access_token,
                         classes=classes,
                         runs=runs,
+                        witnessed_at=witnessed_at_utc,
                         **form_data,
                     )
                 except Exception as e:
