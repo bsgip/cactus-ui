@@ -780,6 +780,13 @@
         return fragments
     }
 
+    function updateBannerAllComplete(criteria) {
+        const el = document.getElementById('banner-all-complete');
+        if (!el) return;
+        const allComplete = criteria.some(c => c.type === 'all-steps-complete' && c.success);
+        el.style.display = allComplete ? '' : 'none';
+    }
+
     function updateBannerStep(stepStatus) {
         const el = document.getElementById('banner-step');
         if (!el) return;
@@ -1682,15 +1689,19 @@
             initialisedCard.innerHTML = initialisedCardBody(instructions);
         }
 
-        // update precondition checks table
-        const preconditionChecksTable = document.getElementById('update-precondition-checks-table');
-        const preconditionChecks = status.precondition_checks ?? null;
-        if (preconditionChecks) {
-            preconditionChecksTable.innerHTML = preconditionChecksTableBody(preconditionChecks);
-        } else {
-            // If there aren't any precondition checks we remove the card entirely.
-            const preconditionCard = document.getElementById('precondition-checks-card');
-            if (preconditionCard) preconditionCard.remove();
+        // update precondition checks table - only visible during init phase
+        const preconditionCard = document.getElementById('precondition-checks-card');
+        if (preconditionCard) {
+            if (status.timestamp_start) {
+                preconditionCard.style.display = 'none';
+            } else {
+                const preconditionChecks = status.precondition_checks ?? null;
+                if (preconditionChecks) {
+                    document.getElementById('update-precondition-checks-table').innerHTML = preconditionChecksTableBody(preconditionChecks);
+                } else {
+                    preconditionCard.remove();
+                }
+            }
         }
 
         // update cactus log entries
@@ -1704,6 +1715,7 @@
         const stepsTable = document.getElementById('update-steps-table');
         stepsTable.innerHTML = stepStatusTableBody(status.step_status ?? {}, status.timestamp_start).join("");
         updateBannerStep(status.step_status ?? {});
+        updateBannerAllComplete(status.criteria ?? []);
 
         // update criteria table (append synthetic XSD validity criteria)
         const criteria = status.criteria ?? [];
@@ -1973,6 +1985,7 @@
     <span><i class="fas fa-clock"></i> <span id="banner-clock">--:--:--</span></span>
     <span style="color:#6c757d;">|</span>
     <span id="banner-step" style="color:#adb5bd;">No active step</span>
+    <span id="banner-all-complete" style="display:none;margin-left:auto;"><i class="fas fa-check-circle" style="color:#28a745;"></i> All steps complete</span>
 </div>
 {% endif %}
 
