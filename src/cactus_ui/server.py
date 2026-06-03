@@ -39,7 +39,6 @@ from werkzeug.wrappers.response import Response
 import cactus_ui.orchestrator as orchestrator
 from cactus_ui.compliance_class import fetch_compliance_class
 
-
 # Setup logs
 logconf_fp = "./logconf.json"
 if os.path.exists(logconf_fp):
@@ -1292,7 +1291,7 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
     # Get all successful runs for user
     runs = orchestrator.fetch_ordered_successful_runs(access_token=access_token)
 
-    completed_test_procedures = list({r.test_procedure_id for r in runs}) if runs else []  # type: ignore
+    completed_test_procedures = list({r.test_procedure_id for r in runs}) if runs else []
     completed_test_procedures.sort()
 
     def custom_serializer(obj: Any) -> str | dict:  # noqa: ANN401
