@@ -297,16 +297,19 @@
         if (!has_artifacts) return "";
 
         if (isAdminView) {
+            // admin shouldn't be starting or finalizing tests for other users, so the
+            // action buttons are shown disabled. Download remains functional.
             switch (run_status) {
                 case "initialised":
+                    return `<form method="POST" action="{{ url_for('admin_group_runs_page', run_group_id=run_group_id) }}">
+                    <input type="hidden" name="run_id" value="${run_id}">
+                    <button disabled type="submit" class="btn btn-primary">Start</button>
+                </form>`;
                 case "started":
-                        // admin shouldn't be starting or finalizing tests for other users.
-                        // button is disabled
-                        return `<form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
-                        <input type="hidden" name="run_id" value="${run_id}">
-                        <input type="hidden" name="action" value="artifact">
-                        <button disabled type="submit" class="btn btn-secondary">Running...</button>
-                    </form>`;
+                    return `<form method="POST" action="{{ url_for('admin_group_runs_page', run_group_id=run_group_id) }}">
+                    <input type="hidden" name="run_id" value="${run_id}">
+                    <button disabled type="submit" class="btn btn-warning">Finalise</button>
+                </form>`;
                 default:
                     return `<form method="POST" action="{{ url_for('admin_group_runs_page', run_group_id=run_group_id) }}">
                     <input type="hidden" name="run_id" value="${run_id}">
@@ -455,12 +458,12 @@
             // handle the other test procedure buttons
             document.getElementById("runs-title").innerHTML = `<a href="/procedure/${test_procedure_id}">${test_procedure_id}</a> ${description}`;
 
-            const hidden = isAdminView ? "hidden" : ""
+            const adminDisabled = isAdminView ? "disabled" : ""
             document.getElementById("runs-actions").innerHTML = `
             <form method="POST" action="{{ url_for('group_runs_page', run_group_id=run_group_id) }}">
                 <input type="hidden" name="test_procedure_id" value="${test_procedure_id}">
                 <input type="hidden" name="action" value="initialise">
-                <button ${hidden} type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">New Test Run</button>
+                <button ${adminDisabled} type="submit" class="btn btn-primary" onclick="handleButtonClick(event)">New Test Run</button>
                 <small class="text-muted d-block mt-1">May take up to 30s to initialize</small>
             </form>`;
 
