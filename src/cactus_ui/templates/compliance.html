@@ -138,6 +138,10 @@
     .hidden {
         display: none !important;
     }
+
+    .table-action-form {
+        display: inline-block;
+    }
 </style>
 <script>
     const requests = JSON.parse(atob("{{ requests_b64 }}"));
@@ -166,14 +170,31 @@
             'delete': {"icon": `<i class="fas fa-trash"></i>`, "buttonColor": "btn-outline-danger", "tooltip": "Delete Compliance Request [PERMANENT]"},
         };
 
+
         const buttonTemplate = `
-                <button class="btn btn-sm {} me-3" data-bs-toggle="tooltip" data-bs-title="{}" type="button" aria-expanded="false">
+            <form class="table-action-form" method="POST" action="{}">
+                <input type="hidden" name="compliance_request_id" value="{}">
+                <button class="btn btn-sm {} me-3" data-bs-toggle="tooltip" data-bs-title="{}" type="submit" name="action" value="{}" aria-expanded="false">
                     {}
                 </button>
+            </form>
         `;
 
+        const url = isAdminView ? "{{ url_for('admin_compliance_page')}}" : "{{ url_for('compliance_page')}}";
+
         // This relies on String.prototype being extended with the 'format' function (see above)
-        const actionButtons = actions.map((action) => buttonTemplate.format(actionToIconMapping[action]["buttonColor"], actionToIconMapping[action]["tooltip"], actionToIconMapping[action]["icon"]));
+        const actionButtons = actions.map(
+            (action) => {
+                return buttonTemplate.format(
+                    url,
+                    request.compliance_request_id,
+                    actionToIconMapping[action]["buttonColor"],
+                    actionToIconMapping[action]["tooltip"],
+                    action,
+                    actionToIconMapping[action]["icon"],
+                )
+            }
+        );
 
         return actionButtons.join("");
     }

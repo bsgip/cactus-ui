@@ -25,6 +25,29 @@ CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_LONG = int(env.get("CACTUS_ORCHESTRATOR_REQU
 CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN = int(env.get("CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN", "120"))
 
 
+# Duplicated from cactus-orchestrator/models.py
+class ComplianceRequestStatus(IntEnum):
+    """Encodes the status of a compliance request
+
+    submitted    - client has created the request
+                   admin has ability to open the request (see under_review)
+                   client has ability to edit request
+    under_review - once an admin opens a previously submitted request its status changes to 'under review'
+                   admin has ability to edit the request
+                   client can no longer edit the request
+    pushed_back  - admin has pushed the request back to the client (changes needed)
+                   admin can no longer edit the request
+                   client has ability to edit the request
+    finalised    - the compliance request is finalised (a compliance record gets created)
+                   neither admin nor client can modify the request
+    """
+
+    SUBMITTED = auto()
+    UNDER_REVIEW = auto()
+    PUSHED_BACK = auto()
+    FINALISED = auto()
+
+
 @dataclass
 class StartResult:
     success: bool

@@ -276,6 +276,8 @@
     const completedTestProcedures = new Set(JSON.parse(atob("{{ completed_test_procedures_b64 }}")));
     const runs = JSON.parse(atob("{{ runs_b64 }}"));
     const prefillComplianceRequest = JSON.parse(atob("{{ prefill_compliance_request_b64 }}"));
+    const shouldPrefillClasses = "{{prefill_classes}}" === "True";
+    const shouldPrefillRuns = "{{prefill_runs}}" === "True";
 
     // Manage current tab manually
     var currentTab = 0;
@@ -472,8 +474,7 @@
         return compliantClasses;
     }
 
-    function preselectCompliantClasses() {
-        const compliantClasses = getCompliantClasses();
+    function preselectCompliantClasses(compliantClasses) {
         for (const c of compliantClasses) {
             var checkbox = document.getElementById(`class-checkbox-${c}`);
             checkbox.checked = true;
@@ -529,12 +530,33 @@
         el.value = value;
     }
 
+    function getRun(runId) {
+        console.log(runs, runId);
+        for (const r of runs) {
+            if (r.run_id == runId) return r;
+        }
+        return null;
+    }
+
+    function selectRun(run) {
+        document.getElementById(`run-select-${run.test_procedure_id}`).value=run.run_id
+    }
+
+    function prefillRuns(runIds) {
+        for (const r of runIds) {
+            const run = getRun(r);
+            if (run) selectRun(run);
+        }
+    }
+
     function prefill(prefillValues) {
         prefillControl("csipaus-version-select", prefillValues.csip_aus_version);
         prefillControl("witnesstesting-date-input", prefillValues.witnessed_at.split('T')[0]);
 
-        // Compliance classes and runs are not prefilled
-        // They should be deliberately chosen each time
+        // Only prefill classes and runs if requested to
+        // (should only happend when editing an existing compliance request but not when cloning one)
+        if (shouldPrefillClasses) preselectCompliantClasses(prefillValues.classes);
+        if (shouldPrefillRuns) prefillRuns(prefillValues.runs);
 
         prefillControl("der-brand-input", prefillValues.der_brand);
         prefillControl("der-oem-input", prefillValues.der_oem);
@@ -564,7 +586,7 @@
         insertRuns();
 
         // Preselect compliant classes
-        preselectCompliantClasses()
+        preselectCompliantClasses(getCompliantClasses());
 
         // Prefill
         if (prefillComplianceRequest) {

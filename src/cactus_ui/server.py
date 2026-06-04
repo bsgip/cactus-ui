@@ -1127,10 +1127,30 @@ def playlists_page(access_token: str) -> str | Response:
     return redirect(url_for("group_playlists_page", run_group_id=run_groups.items[0].run_group_id))
 
 
-@app.route("/compliance")
+@app.route("/compliance", methods=["GET", "POST"])
 @login_required
-def compliance_page(access_token: str) -> str:
+def compliance_page(access_token: str) -> str | Response:
+    error: str | None = None
+
     page = "compliance.html"
+
+    if request.method == "POST":
+        action = request.form.get("action")
+        raw_compliance_request_id = request.form.get("compliance_request_id")
+        try:
+            compliance_request_id = int(raw_compliance_request_id)
+        except ValueError:
+            error = f"Not a valid compliance request_id: '{raw_compliance_request_id}'"
+
+        if not error:
+            if action == "edit":
+                pass
+            elif action == "delete":
+                pass
+            elif action == "view":
+                pass
+            elif action == "download":
+                pass
 
     paged_requests = orchestrator.fetch_compliance_requests(access_token=access_token, page=1)
     if paged_requests is None:
@@ -1148,16 +1168,52 @@ def compliance_page(access_token: str) -> str:
 
     return render_template(
         page,
+        error=error,
         requests=requests,
         requests_b64=b64encode(json.dumps(requests, default=custom_serializer).encode()).decode(),
         is_admin_view=False,
     )
 
 
-@app.route("/admin/compliance")
+@app.route("/admin/compliance", methods=["GET", "POST"])
 @login_required
 @admin_role_required
-def admin_compliance_page(access_token: str) -> str:
+def admin_compliance_page(access_token: str) -> str | Response:
+    error: str | None = None
+
+    page = "compliance.html"
+
+    if request.method == "POST":
+        action = request.form.get("action")
+        raw_compliance_request_id = request.form.get("compliance_request_id")
+        print(f">>>>>> POST {action=} {raw_compliance_request_id=}")
+        try:
+            compliance_request_id = int(raw_compliance_request_id)
+        except ValueError:
+            error = f"Not a valid compliance request_id: '{raw_compliance_request_id}'"
+
+        if not error:
+            if action == "edit":
+                # Set status to under review
+                # orchestrator.update_compliance_request(
+                #     access_token=access_token,
+                #     compliance_request_id=compliance_request_id,
+                #     status=orchestrator.ComplianceRequestStatus.UNDER_REVIEW,
+                # )
+
+                # Redirect to compliance request page
+                url = (
+                    url_for("compliance_request_page")
+                    + f"?prefill={compliance_request_id}&prefill-classes=true&prefill-runs=true"
+                )
+                return redirect(url)
+
+            elif action == "delete":
+                pass
+            elif action == "view":
+                pass
+            elif action == "download":
+                pass
     page = "compliance.html"
 
     paged_requests = orchestrator.admin_fetch_compliance_requests(access_token=access_token, page=1)
@@ -1265,6 +1321,10 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
             compliance_request_id=int(prefill_compliance_request_id),
         )
 
+    # If we are returning to an existing compliance request to edit it
+    prefill_classes = bool(request.args.get("prefill-classes"))
+    prefill_runs = bool(request.args.get("prefill-runs"))
+
     # Get test procedures
     test_procedures = fetch_all_test_procedures(access_token=access_token)
     if test_procedures is None:
@@ -1322,6 +1382,8 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
         prefill_compliance_request_b64=b64encode(
             json.dumps(compliance_request, default=custom_serializer).encode()
         ).decode(),
+        prefill_classes=prefill_classes,
+        prefill_runs=prefill_runs,
         error=error,
     )
 
