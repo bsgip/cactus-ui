@@ -29,7 +29,11 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Continue with Compliance Request</button>
-                <a id="continue-button" class="btn btn-outline-danger" href="{{ url_for('compliance_page') }}" role="button">Leave</a> 
+                    {% if is_admin_view %}
+                        <a id="continue-button" class="btn btn-outline-danger" href="{{ url_for('admin_compliance_page') }}" role="button">Leave</a> 
+                    {% else %}
+                        <a id="continue-button" class="btn btn-outline-danger" href="{{ url_for('compliance_page') }}" role="button">Leave</a> 
+                    {% endif %}
             </div>
             </div>
         </div>
@@ -79,16 +83,21 @@
         <div class="tab-pane fade show active" id="pills-step1" role="tabpanel" aria-labelledby="pills-step1-tab"
             tabindex="0">
             <!-- Form uses self-submission technique -->
-            <form id="compliance-request-form" action="{{ url_for('compliance_request_page')}}" method="post">
+            {% if is_admin_view %}
+                <form id="compliance-request-form" action="{{ url_for('admin_compliance_request_page')}}" method="post"> 
+            {% else %}
+                <form id="compliance-request-form" action="{{ url_for('compliance_request_page')}}" method="post"> 
+            {% endif %}
                 <!-- Determines how the form submission is handled by the server -->
-                <input type="hidden" name="action" value="new-request">
                 <div class="mb-4">
+                    {% if mode == "prefill-only" %}
                     <div class="alert alert-warning alert-dismissible fade show" role="alert">
                         <h4 class="alert-heading">Witness Testing Requirement</h4>
                         <p>Witness testing must be completed before any compliance request can be submitted.</p>
                         <p class="mb-0">If you are yet to complete witness testing, please contact <a href="mailto:support@bsgip.com">support@bsgip.com</a> to arrange a date.</p>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
+                    {% endif %}
                     <div class="mt-4">
                         <label for="csipaus-version-select" class="form-label">Compliance Standard</label>
                         <select id="csipaus-version-select" name="csip_aus_version" class="form-select" aria-label="Select CSIPAus Version">
@@ -122,29 +131,15 @@
             </div>
             <div class="mb-5">
                 <!-- Add all the classes upfront and show/hide them based on chosen CSIPAus version-->
-                <div class="container prevent-select">
-                    {% set NUM_COLS = 9 %}
-                    {% set NUM_ROWS = (all_compliance_classes|length)//NUM_COLS + 1 %}
-                    {% for r in range(NUM_ROWS) %}
-                    <div class="row">
-                        {% for c in range(NUM_COLS) %}
-                        {% set index = r*NUM_COLS+c %}
-                        {% if index < all_compliance_classes|length %} {% set class=all_compliance_classes[index] if index < all_compliance_classes|length else "placeholder" %}
-                        <div class="col">
-                            <div id="class-checkbox-container-{{class}}" class="form-check" >
-                                <input id="class-checkbox-{{class}}" name="class_{{class}}" form="compliance-request-form" class="form-check-input" type="checkbox"
-                                    value="{{ class }}" onchange="handleClassChange(event);" >
-                                <label class="form-check-label" for="class-checkbox-{{class}}" data-bs-toggle="tooltip" data-bs-title="{{compliance_class_details[class].description}}">
-                                    {{ class }}
-                                </label>
-                            </div>
+                <div class="class-container prevent-select">
+                    {% for class in all_compliance_classes %}
+                        <div id="class-checkbox-container-{{class}}" class="class-check form-check" >
+                            <input id="class-checkbox-{{class}}" name="class_{{class}}" form="compliance-request-form" class="form-check-input" type="checkbox"
+                                value="{{ class }}" onchange="handleClassChange(event);" >
+                            <label class="form-check-label" for="class-checkbox-{{class}}" data-bs-toggle="tooltip" data-bs-title="{{compliance_class_details[class].description}}">
+                                {{ class }}
+                            </label>
                         </div>
-                        {% else %}
-                        <div class="col">
-                        </div>
-                        {% endif %}
-                        {% endfor %}
-                    </div>
                     {% endfor %}
                 </div>
             </div>
@@ -247,12 +242,26 @@
     <div class="d-flex justify-content-end">
         <button id="wizard-nav-prev" type="button" class="btn btn-secondary mx-2" onclick="handlePrevButton()">Back</button>
         <button id="wizard-nav-next" type="button" class="btn btn-primary mx-2" onclick="handleNextButton()">Next</button>
-        <button id="wizard-nav-submit" form="compliance-request-form" type="submit" class="btn btn-primary mx-2">Submit</button>
+        <button id="wizard-nav-submit"  name="action" value="new-request" form="compliance-request-form" type="submit" class="btn btn-primary mx-2">Submit</button>
+        <button id="wizard-nav-update"  name="action" value="update-request" form="compliance-request-form" type="submit" class="btn btn-primary mx-2">Update</button>
+        <button id="wizard-nav-finalise" name="action" value="finalise" form="compliance-request-form" type="submit" class="btn btn-primary mx-2">Finalise</button>
+        <button id="wizard-nav-save" name="action" value="update-request" form="compliance-request-form" type="submit" class="btn btn-primary mx-2">Save & Exit</button>
+        <button id="wizard-nav-pushback" name="action" value="push-back" form="compliance-request-form" type="submit" class="btn btn-primary mx-2">Push Back</button>
     </div>
 
 </div>
 {% endif %}
 <style>
+.class-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.class-check {
+    min-width: 200px;
+}
+
 .prevent-select {
   -webkit-user-select: none; /* Safari */
   -ms-user-select: none; /* IE 10 and IE 11 */
@@ -278,6 +287,8 @@
     const prefillComplianceRequest = JSON.parse(atob("{{ prefill_compliance_request_b64 }}"));
     const shouldPrefillClasses = "{{prefill_classes}}" === "True";
     const shouldPrefillRuns = "{{prefill_runs}}" === "True";
+    const wizardMode = "{{ mode }}"; // edit, view, prefill-only
+    const isAdminView = "{{ is_admin_view }}" === 'True';
 
     // Manage current tab manually
     var currentTab = 0;
@@ -319,7 +330,7 @@
 
         // Change visbility of class checkboxes
         for (const c of allComplianceClasses) {
-            const visible = (typeof testsByCSIPAusVersionAndClass[csipausVersion][c] !== 'undefined');
+            let visible = (typeof testsByCSIPAusVersionAndClass[csipausVersion][c] !== 'undefined');
             const checkboxContainer = document.getElementById(`class-checkbox-container-${c}`);
             checkboxContainer.style.display = visible ? "block" : "none";
             if (visible) {
@@ -466,9 +477,11 @@
     }
 
     function getCompliantClasses() {
-        const missingTestsByClass = getMissingTests(allComplianceClasses, getCsipausVersion());
+        const csipAusVersion = getCsipausVersion();
+        const classesForCsipausversion = Object.keys(testsByCSIPAusVersionAndClass[csipAusVersion]);
+        const missingTestsByClass = getMissingTests(classesForCsipausversion, getCsipausVersion());
         const compliantClasses = [];
-        for (const c of allComplianceClasses) {
+        for (const c of classesForCsipausversion) {
             if (missingTestsByClass[0][c].size === 0) compliantClasses.push(c)
         }
         return compliantClasses;
@@ -500,8 +513,20 @@
         prevButton.style.display = (currentTab == 0) ? "none": "inline-block";
         const nextButton = document.getElementById("wizard-nav-next");
         nextButton.style.display = (currentTab == NUMTABS-1) ? "none": "inline-block";
+
+        // ... user buttons
         const submitButton = document.getElementById("wizard-nav-submit");
-        submitButton.style.display = (currentTab == NUMTABS-1) ? "inline-block": "none";
+        submitButton.style.display = (currentTab == NUMTABS-1 && !isAdminView && wizardMode != 'edit') ? "inline-block": "none";
+        const updateButton = document.getElementById("wizard-nav-update");
+        updateButton.style.display = (currentTab == NUMTABS-1 && !isAdminView && wizardMode == 'edit') ? "inline-block": "none";
+
+        // ... admin buttons
+        const finaliseButton = document.getElementById("wizard-nav-finalise");
+        finaliseButton.style.display = (currentTab == NUMTABS-1 && isAdminView && wizardMode =="edit") ? "inline-block": "none";
+        const saveButton = document.getElementById("wizard-nav-save");
+        saveButton.style.display = (currentTab == NUMTABS-1 && isAdminView && wizardMode =="edit") ? "inline-block": "none";
+        const pushbackButton = document.getElementById("wizard-nav-pushback");
+        pushbackButton.style.display = (currentTab == NUMTABS-1 && isAdminView && wizardMode =="edit") ? "inline-block": "none";
 
         // Set button disable/enable state
         // TODO
@@ -531,7 +556,6 @@
     }
 
     function getRun(runId) {
-        console.log(runs, runId);
         for (const r of runs) {
             if (r.run_id == runId) return r;
         }
@@ -586,7 +610,8 @@
         insertRuns();
 
         // Preselect compliant classes
-        preselectCompliantClasses(getCompliantClasses());
+        const classes = getCompliantClasses();
+        preselectCompliantClasses(classes);
 
         // Prefill
         if (prefillComplianceRequest) {

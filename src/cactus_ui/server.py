@@ -1144,11 +1144,19 @@ def compliance_page(access_token: str) -> str | Response:
 
         if not error:
             if action == "edit":
-                pass
+                url = (
+                    url_for("compliance_request_page")
+                    + f"?prefill={compliance_request_id}&prefill-classes=true&prefill-runs=true&action=edit"
+                )
+                return redirect(url)
             elif action == "delete":
                 pass
             elif action == "view":
-                pass
+                url = (
+                    url_for("compliance_request_page")
+                    + f"?prefill={compliance_request_id}&prefill-classes=true&prefill-runs=true&action=view"
+                )
+                return redirect(url)
             elif action == "download":
                 pass
 
@@ -1200,19 +1208,27 @@ def admin_compliance_page(access_token: str) -> str | Response:
                 #     compliance_request_id=compliance_request_id,
                 #     status=orchestrator.ComplianceRequestStatus.UNDER_REVIEW,
                 # )
+                # TODO what if the above fails??
 
-                # Redirect to compliance request page
+                # Redirect to compliance request page (edit mode)
                 url = (
-                    url_for("compliance_request_page")
-                    + f"?prefill={compliance_request_id}&prefill-classes=true&prefill-runs=true"
+                    url_for("admin_compliance_request_page")
+                    + f"?prefill={compliance_request_id}&prefill-classes=true&prefill-runs=true&action=edit"
                 )
                 return redirect(url)
 
             elif action == "delete":
+                # TODO
                 pass
             elif action == "view":
-                pass
+                # Redirect to compliance request page (view only mode)
+                url = (
+                    url_for("admin_compliance_request_page")
+                    + f"?prefill={compliance_request_id}&prefill-classes=true&prefill-runs=true&action=view"
+                )
+                return redirect(url)
             elif action == "download":
+                # TODO
                 pass
     page = "compliance.html"
 
@@ -1290,24 +1306,8 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
             return redirect(url_for("compliance_page"))
 
         elif request.form.get("action") == "update-request":
-            # return redirect(url_for("run_status_page", run_id=init_result.response.run_id))
-            pass
-        # Admin pushed form back to user
-        elif request.form.get("action") == "push-back":
-            pass
-        elif request.form.get("action") == "finalise":
-            # compliance_report, compliance_report_name = orchestrator.finalise_compliance(access_token, compliance_request_id)  # noqa E501
-            compliance_report = b""
-            compliance_report_name = "compliance_report.pdf"
-            if compliance_report is None:
-                error = "Failed to finalise the compliance request or retrieve the compliance report."
-            else:
-                return send_file(
-                    io.BytesIO(compliance_report),
-                    as_attachment=True,
-                    download_name=compliance_report_name,
-                    mimetype="application/pdf",
-                )
+            print("UPDATING request for CLIENT")
+            return redirect(url_for("compliance_page"))
         else:
             pass
 
@@ -1324,6 +1324,10 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
     # If we are returning to an existing compliance request to edit it
     prefill_classes = bool(request.args.get("prefill-classes"))
     prefill_runs = bool(request.args.get("prefill-runs"))
+
+    mode = request.args.get("action")
+    if mode is None:
+        mode = "prefill-only"
 
     # Get test procedures
     test_procedures = fetch_all_test_procedures(access_token=access_token)
@@ -1384,6 +1388,124 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
         ).decode(),
         prefill_classes=prefill_classes,
         prefill_runs=prefill_runs,
+        # mode=mode,
+        mode="edit",
+        is_admin_view=False,
+        error=error,
+    )
+
+
+@app.route("/admin/compliance-request", methods=["GET", "POST"])
+@login_required
+def admin_compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
+    error: str | None = None
+
+    if request.method == "POST":
+        if request.form.get("action") == "update-request":
+            print("UPDATING request")
+            return redirect(url_for("admin_compliance_page"))
+        # Admin pushed form back to user
+        elif request.form.get("action") == "push-back":
+            print("PUSHING BACK request")
+            return redirect(url_for("admin_compliance_page"))
+        elif request.form.get("action") == "finalise":
+            print("FINALIZING request")
+            return redirect(url_for("admin_compliance_page"))
+            # TODO
+            # compliance_report, compliance_report_name = orchestrator.finalise_compliance(access_token, compliance_request_id)  # noqa E501
+            compliance_report = b""
+            compliance_report_name = "compliance_report.pdf"
+            if compliance_report is None:
+                error = "Failed to finalise the compliance request or retrieve the compliance report."
+            else:
+                return send_file(
+                    io.BytesIO(compliance_report),
+                    as_attachment=True,
+                    download_name=compliance_report_name,
+                    mimetype="application/pdf",
+                )
+        else:
+            pass
+
+    page = "compliance_request.html"
+    # Get prefill compliance request (if requested)
+    prefill_compliance_request_id = request.args.get("prefill")
+    compliance_request = None
+    if prefill_compliance_request_id is not None:
+        compliance_request = orchestrator.fetch_compliance_request(
+            access_token=access_token,
+            compliance_request_id=int(prefill_compliance_request_id),
+        )
+
+    # If we are returning to an existing compliance request to edit it
+    prefill_classes = bool(request.args.get("prefill-classes"))
+    prefill_runs = bool(request.args.get("prefill-runs"))
+
+    mode = request.args.get("action")
+    if mode is None:
+        mode = "view"
+
+    # Get test procedures
+    test_procedures = fetch_all_test_procedures(access_token=access_token)
+    if test_procedures is None:
+        return render_template(
+            page,
+            error="Failed to fetch test procedures. Unable to continue with Compliance Request.",
+        )
+
+    # Map CSIPAus version to test procedure
+    tests_by_csipaus_version_and_class = defaultdict(lambda: defaultdict(list))
+    classes = set()
+    for p in test_procedures:
+        for v in p.target_versions:
+            for c in p.classes:
+                classes.add(c)
+                tests_by_csipaus_version_and_class[v][c].append(p.test_procedure_id)
+
+    all_compliance_classes = list(classes)
+    all_compliance_classes.sort()
+    compliance_class_details = {c: fetch_compliance_class(c) for c in all_compliance_classes}
+
+    csipaus_versions = list(tests_by_csipaus_version_and_class.keys())
+
+    # Get all successful runs for user
+    runs = orchestrator.fetch_ordered_successful_runs(access_token=access_token)
+
+    completed_test_procedures = list({r.test_procedure_id for r in runs}) if runs else []
+    completed_test_procedures.sort()
+
+    def custom_serializer(obj: Any) -> str | dict:  # noqa: ANN401
+        if isinstance(obj, JSONWizard):
+            # This is pretty crufty - but we're forcing in our own custom property
+            # Josh - I wrote this on xmas eve (sue me) - probably better done with a subclass
+            raw_data = obj.to_dict()
+            # raw_data["matchable_description"] = orchestrator.get_matchable_description_for_user(raw_data)
+            return raw_data
+        # Otherwise rely on standard serialization
+        return json.dumps(obj)
+
+    return render_template(
+        page,
+        csipaus_versions=csipaus_versions,
+        default_csipaus_version=csipaus_versions[0],
+        all_compliance_classes=all_compliance_classes,
+        all_compliance_classes_b64=b64encode(json.dumps(all_compliance_classes).encode()).decode(),
+        compliance_class_details=compliance_class_details,
+        tests_by_csipaus_version_and_class_b64=b64encode(
+            json.dumps(tests_by_csipaus_version_and_class).encode()
+        ).decode(),
+        test_procedures=test_procedures,
+        test_procedures_b64=b64encode(json.dumps(test_procedures, default=custom_serializer).encode()).decode(),
+        runs_b64=b64encode(json.dumps(runs, default=custom_serializer).encode()).decode(),
+        completed_test_procedures_b64=b64encode(json.dumps(completed_test_procedures).encode()).decode(),
+        completed_test_procedures=completed_test_procedures,
+        prefill_compliance_request_b64=b64encode(
+            json.dumps(compliance_request, default=custom_serializer).encode()
+        ).decode(),
+        prefill_classes=prefill_classes,
+        prefill_runs=prefill_runs,
+        mode=mode,
+        is_admin_view=True,
         error=error,
     )
 
