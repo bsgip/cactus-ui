@@ -1,3 +1,4 @@
+from curses import raw
 import io
 import json
 import logging
@@ -1203,12 +1204,11 @@ def admin_compliance_page(access_token: str) -> str | Response:
         if not error:
             if action == "edit":
                 # Set status to under review
-                # orchestrator.update_compliance_request(
-                #     access_token=access_token,
-                #     compliance_request_id=compliance_request_id,
-                #     status=orchestrator.ComplianceRequestStatus.UNDER_REVIEW,
-                # )
-                # TODO what if the above fails??
+                _ = orchestrator.update_compliance_request(
+                    access_token=access_token,
+                    compliance_request_id=compliance_request_id,
+                    status=orchestrator.ComplianceRequestStatus.UNDER_REVIEW,
+                )
 
                 # Redirect to compliance request page (edit mode)
                 url = (
@@ -1257,6 +1257,46 @@ def admin_compliance_page(access_token: str) -> str | Response:
     )
 
 
+def get_form_data(request):
+    error = None
+    all_form_keys = [
+        "csip_aus_version",
+        "der_brand",
+        "der_oem",
+        "der_series",
+        "der_representative_models",
+        "software_client_type",
+        "software_client_providers",
+        "software_client_versions",
+        "onsite_hardware_details",
+    ]
+    try:
+        form_data = {key: request.form[key] for key in all_form_keys}
+
+        # Convert local date to UTC datetime
+        witnessed_at_naive = datetime.strptime(request.form["witnessed_at"], "%Y-%m-%d")
+        witnessed_at_local = witnessed_at_naive.astimezone(datetime.now(UTC).astimezone().tzinfo)
+        witnessed_at_utc = witnessed_at_local.astimezone(UTC)
+
+    except KeyError as e:
+        error = f"Errors retrieving values from compliance request form. {e}"
+
+    classes = {request.form[key] for key in request.form.keys() if key.startswith("class_")}
+    runs = {int(request.form[key]) for key in request.form.keys() if key.startswith("run_")}
+
+    return form_data, classes, runs, witnessed_at_utc, error
+
+
+def get_compliance_request_id(request) -> int | None:
+    raw_compliance_request_id = request.form.get("compliance-request-id")
+    try:
+        compliance_request_id = int(raw_compliance_request_id)
+    except TypeError:
+        print(f"Failed to convert compliance request id '{raw_compliance_request_id}'")
+        compliance_request_id = None
+    return compliance_request_id
+
+
 @app.route("/compliance-request", methods=["GET", "POST"])
 @login_required
 def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
@@ -1265,51 +1305,50 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
     if request.method == "POST":
         # User compliance request (new)
         if request.form.get("action") == "new-request":
-            all_form_keys = [
-                "csip_aus_version",
-                "der_brand",
-                "der_oem",
-                "der_series",
-                "der_representative_models",
-                "software_client_type",
-                "software_client_providers",
-                "software_client_versions",
-                "onsite_hardware_details",
-            ]
-            try:
-                form_data = {key: request.form[key] for key in all_form_keys}
-
-                # Convert local date to UTC datetime
-                witnessed_at_naive = datetime.strptime(request.form["witnessed_at"], "%Y-%m-%d")
-                witnessed_at_local = witnessed_at_naive.astimezone(datetime.now(UTC).astimezone().tzinfo)
-                witnessed_at_utc = witnessed_at_local.astimezone(UTC)
-
-            except KeyError as e:
-                error = f"Errors retrieving values from compliance request form. {e}"
-
-            classes = {request.form[key] for key in request.form.keys() if key.startswith("class_")}
-            runs = {int(request.form[key]) for key in request.form.keys() if key.startswith("run_")}
-
+            form_data, classes, runs, witnessed_at, error = get_form_data(request)
             if not error:
                 try:
                     _ = orchestrator.create_compliance_request(
                         access_token=access_token,
                         classes=classes,
                         runs=runs,
-                        witnessed_at=witnessed_at_utc,
+                        witnessed_at=witnessed_at,
                         **form_data,
                     )
                 except Exception as e:
                     error = f"Failed to create new compliance request. {e}"
 
-            # User compliance request (update)
             return redirect(url_for("compliance_page"))
 
         elif request.form.get("action") == "update-request":
-            print("UPDATING request for CLIENT")
+            # Update request
+            # NO change in compliance request status
+            print("UPDATING request for client")
+
+            form_data, classes, runs, witnessed_at, error = get_form_data(request)
+            compliance_request_id = get_compliance_request_id(request)
+
+            if compliance_request_id and not error:
+                try:
+                    _ = orchestrator.update_compliance_request(
+                        access_token=access_token,
+                        compliance_request_id=compliance_request_id,
+                        **form_data,
+                        classes=classes,
+                        runs=runs,
+                        witnessed_at=witnessed_at,
+                        status=orchestrator.ComplianceRequestStatus.UNDER_REVIEW,
+                    )
+                except Exception as e:
+                    error = f"Failed to update compliance request. {e}"
+            return redirect(url_for("compliance_page"))
+        elif request.form.get("action") == "close":
+            # the form was closed (view only mode)
             return redirect(url_for("compliance_page"))
         else:
-            pass
+            # TODO We shouldn't get here
+            # Redirect to compliance page to prevent getting stuck in compliance request form
+            return redirect(url_for("compliance_page"))
 
     page = "compliance_request.html"
     # Get prefill compliance request (if requested)
@@ -1402,30 +1441,46 @@ def admin_compliance_request_page(access_token: str) -> str | Response:  # noqa:
 
     if request.method == "POST":
         if request.form.get("action") == "update-request":
-            print("UPDATING request")
+            # NO change in compliance request status
+            print("UPDATING request for admin")
             return redirect(url_for("admin_compliance_page"))
-        # Admin pushed form back to user
         elif request.form.get("action") == "push-back":
-            print("PUSHING BACK request")
+            # admin clicked push-back button
+            print("PUSHING request back to CLIENT")
+            compliance_request_id = get_compliance_request_id(request)
+
+            if compliance_request_id:
+                _ = orchestrator.update_compliance_request(
+                    access_token=access_token,
+                    compliance_request_id=compliance_request_id,
+                    status=orchestrator.ComplianceRequestStatus.PUSHED_BACK,
+                )
             return redirect(url_for("admin_compliance_page"))
         elif request.form.get("action") == "finalise":
-            print("FINALIZING request")
+            print("FINALISING request for admin")
+            compliance_request_id = get_compliance_request_id(request)
+
+            if compliance_request_id:
+                # compliance_report, compliance_report_name = orchestrator.finalise_compliance(access_token, compliance_request_id)  # noqa E501
+                compliance_report = b""
+                compliance_report_name = "compliance_report.pdf"
+                if compliance_report is None:
+                    error = "Failed to finalise the compliance request or retrieve the compliance report."
+                else:
+                    return send_file(
+                        io.BytesIO(compliance_report),
+                        as_attachment=True,
+                        download_name=compliance_report_name,
+                        mimetype="application/pdf",
+                    )
             return redirect(url_for("admin_compliance_page"))
-            # TODO
-            # compliance_report, compliance_report_name = orchestrator.finalise_compliance(access_token, compliance_request_id)  # noqa E501
-            compliance_report = b""
-            compliance_report_name = "compliance_report.pdf"
-            if compliance_report is None:
-                error = "Failed to finalise the compliance request or retrieve the compliance report."
-            else:
-                return send_file(
-                    io.BytesIO(compliance_report),
-                    as_attachment=True,
-                    download_name=compliance_report_name,
-                    mimetype="application/pdf",
-                )
+        elif request.form.get("action") == "close":
+            # admin closed request in view-only mode
+            return redirect(url_for("admin_compliance_page"))
         else:
-            pass
+            # TODO We shouldn't get here
+            # Redirect to compliance page to prevent getting stuck in compliance request form
+            return redirect(url_for("admin_compliance_page"))
 
     page = "compliance_request.html"
     # Get prefill compliance request (if requested)

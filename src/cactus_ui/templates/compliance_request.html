@@ -13,7 +13,14 @@
     <!-- Page title with close button -->
     <div class="d-flex">
         <h2 class="flex-grow-1" style="display: inline-block;">Compliance Request</h2>
-        <button type="button" class="btn-close" aria-label="Close" data-bs-toggle="modal" data-bs-target="#discardModal"></button>
+        
+        {% if mode=="view" %}
+            <!-- when viewing the close button immediately closes the compliance request via form submission-->
+            <button type="submit" form="compliance-request-form" name="action" value="close" class="btn-close" aria-label="Close"></button>
+        {% else %}
+            <!-- Show discardModal if editing to confirm closing choice-->
+            <button type="button" class="btn-close" aria-label="Close" data-bs-toggle="modal" data-bs-target="#discardModal"></button>
+        {% endif %}
     </div>
 
     <!-- Modal for aborting/leaving a compliance request (discards all entered data) -->
@@ -98,6 +105,9 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                     {% endif %}
+
+                    <!-- hidden input so passed compliance request id during editing of existing compliance request -->
+                    <input id="compliance-request-id-input" name="compliance-request-id" type="hidden"></input>
                     <div class="mt-4">
                         <label for="csipaus-version-select" class="form-label">Compliance Standard</label>
                         <select id="csipaus-version-select" name="csip_aus_version" class="form-select" aria-label="Select CSIPAus Version">
@@ -244,9 +254,9 @@
         <button id="wizard-nav-next" type="button" class="btn btn-primary mx-2" onclick="handleNextButton()">Next</button>
         <button id="wizard-nav-submit"  name="action" value="new-request" form="compliance-request-form" type="submit" class="btn btn-primary mx-2">Submit</button>
         <button id="wizard-nav-update"  name="action" value="update-request" form="compliance-request-form" type="submit" class="btn btn-primary mx-2">Update</button>
-        <button id="wizard-nav-finalise" name="action" value="finalise" form="compliance-request-form" type="submit" class="btn btn-primary mx-2">Finalise</button>
         <button id="wizard-nav-save" name="action" value="update-request" form="compliance-request-form" type="submit" class="btn btn-primary mx-2">Save & Exit</button>
         <button id="wizard-nav-pushback" name="action" value="push-back" form="compliance-request-form" type="submit" class="btn btn-primary mx-2">Push Back</button>
+        <button id="wizard-nav-finalise" name="action" value="finalise" form="compliance-request-form" type="submit" class="btn btn-primary mx-2">Finalise</button>
     </div>
 
 </div>
@@ -574,6 +584,7 @@
     }
 
     function prefill(prefillValues) {
+        prefillControl("compliance-request-id-input", prefillValues.compliance_request_id);
         prefillControl("csipaus-version-select", prefillValues.csip_aus_version);
         prefillControl("witnesstesting-date-input", prefillValues.witnessed_at.split('T')[0]);
 
@@ -591,7 +602,44 @@
         prefillControl("sc-providers-input", prefillValues.software_client_providers);
         prefillControl("sc-versions-input", prefillValues.software_client_versions);
         prefillControl("onsite-details-textarea", prefillValues.onsite_hardware_details);
+    }
 
+    function disableControl(elementName) {
+        const el = document.getElementById(elementName);
+        el.disabled = true;
+    }
+
+    function disableClasses() {
+        const classCheckboxes = document.querySelectorAll("input[type='checkbox']");
+        for (const el of classCheckboxes) {
+            el.disabled = true;
+        }
+    }
+
+    function disableRuns() {
+        const selectInputs = document.querySelectorAll("select");
+        for (const el of selectInputs) {
+            el.disabled = true;
+        }
+    }
+
+    function disableForm() {
+        disableControl("compliance-request-id-input");
+        disableControl("csipaus-version-select");
+        disableControl("witnesstesting-date-input");
+
+        disableClasses();
+        disableRuns();
+
+        disableControl("der-brand-input");
+        disableControl("der-oem-input");
+        disableControl("der-series-input");
+        disableControl("der-repmod-textarea");
+
+        disableControl("sc-type-select");
+        disableControl("sc-providers-input");
+        disableControl("sc-versions-input");
+        disableControl("onsite-details-textarea");
     }
 
     addEventListener("load", (event) => {
@@ -624,6 +672,10 @@
         // Enable tooltips
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+        if (wizardMode=="view") {
+            disableForm();
+        }
     });
 
 </script>
