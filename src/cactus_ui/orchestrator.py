@@ -867,7 +867,7 @@ def update_compliance_request(
         uri,
         generate_headers(access_token),
         CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
-        json=orchestrator.ComplianceRequestUpdateRequest(**kwargs),
+        json=orchestrator.ComplianceRequestUpdateRequest(**kwargs).to_dict(),
     )
 
     if response is None or not is_success_response(response):
