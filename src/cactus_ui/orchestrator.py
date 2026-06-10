@@ -880,6 +880,22 @@ def update_compliance_request(
         return body_data
 
 
+def delete_compliance_request(access_token: str, compliance_request_id: int) -> bool:
+    uri = generate_uri(orchestrator.uri.ComplianceRequest.format(compliance_request_id=compliance_request_id))
+
+    response = safe_request(
+        "DELETE",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+    )
+
+    if response is None or not is_success_response(response):
+        return False
+
+    return True
+
+
 # def create_run_group(access_token: str, csip_aus_version: str) -> orchestrator.RunGroupResponse | None:
 #     """Creates a new run group with the specified csip aus version - returns the created"""
 #     uri = generate_uri(orchestrator.uri.RunGroupList)

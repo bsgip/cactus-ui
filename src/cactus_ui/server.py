@@ -1153,7 +1153,11 @@ def compliance_page(access_token: str) -> str | Response:
                 )
                 return redirect(url)
             elif action == "delete":
-                pass
+                success = orchestrator.delete_compliance_request(
+                    access_token=access_token, compliance_request_id=compliance_request_id
+                )
+                if not success:
+                    error = f"Failed to delete compliance request (id={compliance_request_id})"
             elif action == "view":
                 url = (
                     url_for("compliance_request_page")
@@ -1223,8 +1227,11 @@ def admin_compliance_page(access_token: str) -> str | Response:
                 return redirect(url)
 
             elif action == "delete":
-                # TODO
-                pass
+                success = orchestrator.delete_compliance_request(
+                    access_token=access_token, compliance_request_id=compliance_request_id
+                )
+                if not success:
+                    error = f"Failed to delete compliance request (id={compliance_request_id})"
             elif action == "view":
                 # Redirect to compliance request page (view only mode)
                 url = (
