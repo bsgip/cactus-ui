@@ -1,4 +1,3 @@
-from curses import raw
 import io
 import json
 import logging
@@ -25,6 +24,7 @@ from dataclass_wizard import JSONWizard
 from dotenv import find_dotenv, load_dotenv
 from flask import (
     Flask,
+    Request,
     current_app,
     jsonify,
     redirect,
@@ -1139,8 +1139,10 @@ def compliance_page(access_token: str) -> str | Response:
         action = request.form.get("action")
         raw_compliance_request_id = request.form.get("compliance_request_id")
         try:
+            if raw_compliance_request_id is None:
+                raise ValueError
             compliance_request_id = int(raw_compliance_request_id)
-        except ValueError:
+        except (TypeError, ValueError):
             error = f"Not a valid compliance request_id: '{raw_compliance_request_id}'"
 
         if not error:
@@ -1195,10 +1197,11 @@ def admin_compliance_page(access_token: str) -> str | Response:
     if request.method == "POST":
         action = request.form.get("action")
         raw_compliance_request_id = request.form.get("compliance_request_id")
-        print(f">>>>>> POST {action=} {raw_compliance_request_id=}")
         try:
+            if raw_compliance_request_id is None:
+                raise ValueError
             compliance_request_id = int(raw_compliance_request_id)
-        except ValueError:
+        except (TypeError, ValueError):
             error = f"Not a valid compliance request_id: '{raw_compliance_request_id}'"
 
         if not error:
@@ -1207,7 +1210,9 @@ def admin_compliance_page(access_token: str) -> str | Response:
                 _ = orchestrator.update_compliance_request(
                     access_token=access_token,
                     compliance_request_id=compliance_request_id,
-                    status=orchestrator.ComplianceRequestStatus.UNDER_REVIEW,
+                    body=schema.ComplianceRequestUpdateRequest(
+                        status=orchestrator.ComplianceRequestStatus.UNDER_REVIEW,
+                    ),
                 )
 
                 # Redirect to compliance request page (edit mode)
@@ -1257,7 +1262,7 @@ def admin_compliance_page(access_token: str) -> str | Response:
     )
 
 
-def get_form_data(request):
+def get_form_data(request: Request) -> tuple[dict, set, set, datetime, str | None]:
     error = None
     all_form_keys = [
         "csip_aus_version",
@@ -1287,11 +1292,15 @@ def get_form_data(request):
     return form_data, classes, runs, witnessed_at_utc, error
 
 
-def get_compliance_request_id(request) -> int | None:
+def get_compliance_request_id(request: Request) -> int | None:
     raw_compliance_request_id = request.form.get("compliance-request-id")
+
+    if raw_compliance_request_id is None:
+        return None
+
     try:
         compliance_request_id = int(raw_compliance_request_id)
-    except TypeError:
+    except (TypeError, ValueError):
         print(f"Failed to convert compliance request id '{raw_compliance_request_id}'")
         compliance_request_id = None
     return compliance_request_id
@@ -1332,11 +1341,13 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
                     _ = orchestrator.update_compliance_request(
                         access_token=access_token,
                         compliance_request_id=compliance_request_id,
-                        **form_data,
-                        classes=classes,
-                        runs=runs,
-                        witnessed_at=witnessed_at,
-                        status=orchestrator.ComplianceRequestStatus.SUBMITTED,
+                        body=schema.ComplianceRequestUpdateRequest(
+                            **form_data,
+                            classes=classes,
+                            runs=runs,
+                            witnessed_at=witnessed_at,
+                            status=orchestrator.ComplianceRequestStatus.SUBMITTED,
+                        ),
                     )
                 except Exception as e:
                     error = f"Failed to update compliance request. {e}"
@@ -1449,11 +1460,13 @@ def admin_compliance_request_page(access_token: str) -> str | Response:  # noqa:
                     _ = orchestrator.update_compliance_request(
                         access_token=access_token,
                         compliance_request_id=compliance_request_id,
-                        **form_data,
-                        classes=classes,
-                        runs=runs,
-                        witnessed_at=witnessed_at,
-                        status=orchestrator.ComplianceRequestStatus.UNDER_REVIEW,
+                        body=schema.ComplianceRequestUpdateRequest(
+                            **form_data,
+                            classes=classes,
+                            runs=runs,
+                            witnessed_at=witnessed_at,
+                            status=orchestrator.ComplianceRequestStatus.UNDER_REVIEW,
+                        ),
                     )
                 except Exception as e:
                     error = f"Failed to update compliance request. {e}"
@@ -1469,11 +1482,13 @@ def admin_compliance_request_page(access_token: str) -> str | Response:  # noqa:
                     _ = orchestrator.update_compliance_request(
                         access_token=access_token,
                         compliance_request_id=compliance_request_id,
-                        **form_data,
-                        classes=classes,
-                        runs=runs,
-                        witnessed_at=witnessed_at,
-                        status=orchestrator.ComplianceRequestStatus.PUSHED_BACK,
+                        body=schema.ComplianceRequestUpdateRequest(
+                            **form_data,
+                            classes=classes,
+                            runs=runs,
+                            witnessed_at=witnessed_at,
+                            status=orchestrator.ComplianceRequestStatus.PUSHED_BACK,
+                        ),
                     )
                 except Exception as e:
                     error = f"Failed to update compliance request. {e}"
