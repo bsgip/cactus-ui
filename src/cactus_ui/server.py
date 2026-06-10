@@ -1323,7 +1323,6 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
         elif request.form.get("action") == "update-request":
             # Update request
             # NO change in compliance request status
-            print("UPDATING request for client")
 
             form_data, classes, runs, witnessed_at, error = get_form_data(request)
             compliance_request_id = get_compliance_request_id(request)
@@ -1337,7 +1336,7 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
                         classes=classes,
                         runs=runs,
                         witnessed_at=witnessed_at,
-                        status=orchestrator.ComplianceRequestStatus.UNDER_REVIEW,
+                        status=orchestrator.ComplianceRequestStatus.SUBMITTED,
                     )
                 except Exception as e:
                     error = f"Failed to update compliance request. {e}"
@@ -1442,19 +1441,43 @@ def admin_compliance_request_page(access_token: str) -> str | Response:  # noqa:
     if request.method == "POST":
         if request.form.get("action") == "update-request":
             # NO change in compliance request status
-            print("UPDATING request for admin")
+            form_data, classes, runs, witnessed_at, error = get_form_data(request)
+            compliance_request_id = get_compliance_request_id(request)
+
+            if compliance_request_id and not error:
+                try:
+                    _ = orchestrator.update_compliance_request(
+                        access_token=access_token,
+                        compliance_request_id=compliance_request_id,
+                        **form_data,
+                        classes=classes,
+                        runs=runs,
+                        witnessed_at=witnessed_at,
+                        status=orchestrator.ComplianceRequestStatus.UNDER_REVIEW,
+                    )
+                except Exception as e:
+                    error = f"Failed to update compliance request. {e}"
             return redirect(url_for("admin_compliance_page"))
         elif request.form.get("action") == "push-back":
             # admin clicked push-back button
-            print("PUSHING request back to CLIENT")
+            # Save any changes made by admin first and set status to pushed-back
+            form_data, classes, runs, witnessed_at, error = get_form_data(request)
             compliance_request_id = get_compliance_request_id(request)
 
-            if compliance_request_id:
-                _ = orchestrator.update_compliance_request(
-                    access_token=access_token,
-                    compliance_request_id=compliance_request_id,
-                    status=orchestrator.ComplianceRequestStatus.PUSHED_BACK,
-                )
+            if compliance_request_id and not error:
+                try:
+                    _ = orchestrator.update_compliance_request(
+                        access_token=access_token,
+                        compliance_request_id=compliance_request_id,
+                        **form_data,
+                        classes=classes,
+                        runs=runs,
+                        witnessed_at=witnessed_at,
+                        status=orchestrator.ComplianceRequestStatus.PUSHED_BACK,
+                    )
+                except Exception as e:
+                    error = f"Failed to update compliance request. {e}"
+
             return redirect(url_for("admin_compliance_page"))
         elif request.form.get("action") == "finalise":
             print("FINALISING request for admin")
