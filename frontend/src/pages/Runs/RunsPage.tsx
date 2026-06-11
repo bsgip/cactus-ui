@@ -56,7 +56,12 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
   });
 
   const runsQuery = useQuery({
-    queryKey: ['runs', runGroupId, selection.kind === 'active' ? 'active' : selection.id, isAdminView],
+    queryKey: [
+      'runs',
+      runGroupId,
+      selection.kind === 'active' ? 'active' : selection.id,
+      isAdminView,
+    ],
     queryFn: () =>
       selection.kind === 'active'
         ? fetchActiveRuns(runGroupId, isAdminView)
@@ -129,9 +134,7 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
           ) : (
             <Menu>
               <Menu.Target>
-                <Button rightSection={<IconChevronDown size={16} />}>
-                  {activeRunGroup?.name}
-                </Button>
+                <Button rightSection={<IconChevronDown size={16} />}>{activeRunGroup?.name}</Button>
               </Menu.Target>
               <Menu.Dropdown>
                 {runGroups
@@ -192,7 +195,10 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
             </Title>
             {selection.kind === 'procedure' && !isAdminView && (
               <Box>
-                <Button onClick={() => initMutation.mutate(selection.id)} loading={initMutation.isPending}>
+                <Button
+                  onClick={() => initMutation.mutate(selection.id)}
+                  loading={initMutation.isPending}
+                >
                   New Test Run
                 </Button>
                 <Text size="xs" c="dimmed" mt={4}>

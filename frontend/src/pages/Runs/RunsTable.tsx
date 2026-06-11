@@ -41,7 +41,9 @@ function ResultIcon({ run }: { run: RunResponse }) {
     return <IconX size={16} color="var(--mantine-color-red-7)" aria-label="criteria not met" />;
   }
   if (!isLiveStatus(run)) {
-    return <IconQuestionMark size={16} color="var(--mantine-color-gray-6)" aria-label="result unknown" />;
+    return (
+      <IconQuestionMark size={16} color="var(--mantine-color-gray-6)" aria-label="result unknown" />
+    );
   }
   return null;
 }

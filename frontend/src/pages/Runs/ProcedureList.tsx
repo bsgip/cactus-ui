@@ -97,11 +97,13 @@ export function ProcedureList({ summaries, selection, onSelect }: ProcedureListP
                     key={p.test_procedure_id}
                     component="button"
                     label={p.test_procedure_id}
-                    active={
-                      selection.kind === 'procedure' && selection.id === p.test_procedure_id
-                    }
+                    active={selection.kind === 'procedure' && selection.id === p.test_procedure_id}
                     onClick={() =>
-                      onSelect({ kind: 'procedure', id: p.test_procedure_id, description: p.description })
+                      onSelect({
+                        kind: 'procedure',
+                        id: p.test_procedure_id,
+                        description: p.description,
+                      })
                     }
                     rightSection={
                       p.run_count > 0 ? (
