@@ -3,8 +3,10 @@ from datetime import UTC, datetime, timedelta
 from http import HTTPStatus
 from typing import Any, cast
 
+import cactus_schema.orchestrator as schema
 import jwt
 import pytest
+from assertical.fake.generator import generate_class_instance
 from flask import session as flask_session
 
 import cactus_ui.server as server
@@ -121,6 +123,47 @@ def test_api_admin_role_required_passes_admin():
     with server.app.test_request_context("/api/admin/anything"):
         flask_session["user"] = session_user(["user:all", "admin:all"])
         assert endpoint() == "ok"
+
+
+def procedure_page(items: list[schema.TestProcedureResponse], page: int, next_page: int | None):
+    return schema.Pagination(
+        total_pages=2 if next_page else 1,
+        total_items=len(items),
+        page_size=len(items),
+        current_page=page,
+        prev_page=None if page == 1 else page - 1,
+        next_page=next_page,
+        items=items,
+    )
+
+
+def test_api_procedures_unauthenticated(client):
+    response = client.get("/api/procedures")
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.get_json() == {"error": "unauthenticated"}
+
+
+def test_api_procedures_flattens_pagination(client, monkeypatch):
+    login(client)
+    procedures = [generate_class_instance(schema.TestProcedureResponse, seed=i) for i in range(3)]
+    pages = {1: procedure_page(procedures[:2], 1, 2), 2: procedure_page(procedures[2:], 2, None)}
+    monkeypatch.setattr(server.orchestrator, "fetch_procedures", lambda access_token, page: pages[page])
+
+    response = client.get("/api/procedures")
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.get_json() == {"procedures": [p.to_dict() for p in procedures]}
+
+
+def test_api_procedures_orchestrator_failure(client, monkeypatch):
+    login(client)
+    monkeypatch.setattr(server.orchestrator, "fetch_procedures", lambda access_token, page: None)
+
+    response = client.get("/api/procedures")
+
+    assert response.status_code == HTTPStatus.BAD_GATEWAY
+    assert response.get_json() == {"error": "Failed to retrieve procedures."}
 
 
 @pytest.fixture

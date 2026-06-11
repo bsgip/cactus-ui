@@ -1,5 +1,6 @@
 import { Anchor, Box, Button, Container, Group, Text } from '@mantine/core';
 import { IconLogout } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
 import type { SessionResponse } from '../api/types';
 
 // Nav links are plain anchors (full page loads) while their targets are still
@@ -30,7 +31,7 @@ export function NavBar({ session }: { session: SessionResponse }) {
                 <Text c="white">|</Text>
               </>
             )}
-            <Anchor href="/procedures" c="white">
+            <Anchor component={Link} to="/procedures" c="white">
               Procedures
             </Anchor>
             <Text c="white">|</Text>

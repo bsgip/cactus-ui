@@ -28,3 +28,4 @@ When an endpoint's response shape changes, update its fixture in the same PR.
 | `session.json`                 | `GET /api/session`            | Regular logged-in user           |
 | `session_admin.json`           | `GET /api/session`            | User with `admin:all` permission |
 | `session_unauthenticated.json` | `GET /api/session` (401 body) | Logged-out response              |
+| `procedures.json`              | `GET /api/procedures`         | Generated from `cactus-test-definitions` (the orchestrator's own source) via `TestProcedureResponse.to_dict()` — refresh by live capture if the orchestrator adds fields |

@@ -759,9 +759,9 @@ def admin_run_status_json(access_token: str, run_id: str) -> Response:
     return Response(response=status, status=200, mimetype="application/json")
 
 
-@app.route("/procedures", methods=["GET"])
-@login_required
-def procedures_page(access_token: str) -> str:
+@app.route("/api/procedures", methods=["GET"])
+@api_login_required
+def api_procedures(access_token: str) -> Response | tuple[Response, int]:
     """Get all test procedures, handling pagination."""
     all_procedures = []
     page = 1
@@ -769,7 +769,7 @@ def procedures_page(access_token: str) -> str:
     while True:
         procedure_pages = orchestrator.fetch_procedures(access_token, page)
         if procedure_pages is None:
-            return render_template("procedures.html", error="Failed to retrieve procedures.")
+            return jsonify({"error": "Failed to retrieve procedures."}), HTTPStatus.BAD_GATEWAY
 
         all_procedures.extend(procedure_pages.items)
 
@@ -778,7 +778,7 @@ def procedures_page(access_token: str) -> str:
 
         page = procedure_pages.next_page
 
-    return render_template("procedures.html", procedures=all_procedures)
+    return jsonify({"procedures": [p.to_dict() for p in all_procedures]})
 
 
 @app.route("/procedure/<test_procedure_id>", methods=["GET"])
