@@ -31,7 +31,7 @@
                 </ul>
             </div>
         {% endif %}
-        <a style="align-content:center;" class="push-right" href="{{ url_for('admin_group_runs_page', run_group_id=run_group_id) }}">All runs for <b>{{active_run_group.name}}</b> →</a>
+        <a style="align-content:center;" class="push-right" href="{{ ('/admin/group/' if is_admin_view else '/group/') + run_group_id|string + '/runs' }}">All runs for <b>{{active_run_group.name}}</b> →</a>
     </div>
 
     <hr>

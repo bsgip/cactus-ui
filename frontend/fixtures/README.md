@@ -23,10 +23,14 @@ When an endpoint's response shape changes, update its fixture in the same PR.
 
 ## Current fixtures
 
-| File                           | Endpoint                      | Notes                                                                                                                                                                    |
-| ------------------------------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `session.json`                 | `GET /api/session`            | Regular logged-in user                                                                                                                                                   |
-| `session_admin.json`           | `GET /api/session`            | User with `admin:all` permission                                                                                                                                         |
-| `session_unauthenticated.json` | `GET /api/session` (401 body) | Logged-out response                                                                                                                                                      |
-| `procedures.json`              | `GET /api/procedures`         | Generated from `cactus-test-definitions` (the orchestrator's own source) via `TestProcedureResponse.to_dict()` — refresh by live capture if the orchestrator adds fields |
+| File                           | Endpoint                      | Notes                                                                                                                                                                                   |
+| ------------------------------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `session.json`                 | `GET /api/session`            | Regular logged-in user                                                                                                                                                                  |
+| `session_admin.json`           | `GET /api/session`            | User with `admin:all` permission                                                                                                                                                        |
+| `session_unauthenticated.json` | `GET /api/session` (401 body) | Logged-out response                                                                                                                                                                     |
+| `procedures.json`              | `GET /api/procedures`         | Generated from `cactus-test-definitions` (the orchestrator's own source) via `TestProcedureResponse.to_dict()` — refresh by live capture if the orchestrator adds fields                |
 | `procedure_yaml.json`          | `GET /api/procedure/<id>`     | ALL-01 — `yaml` taken verbatim from `cactus-test-definitions` (the orchestrator serves the same file's raw text). The MSW handler echoes the requested id back into `test_procedure_id` |
+| `run_groups.json`              | `GET /api/run_groups` (also serves `/api/admin/run_groups`) | Two synthetic run groups (so the group dropdown renders), built via `server.paginated_json` |
+| `procedure_summaries.json`     | `GET /api/group/<id>/procedure_summaries` (+ admin mirror) | Real procedures from `procedures.json` + synthetic run history for ALL-01/02/03 (pass/fail/unknown badges), built via `server.build_procedure_summaries_json` |
+| `procedure_runs.json`          | `GET /api/group/<id>/procedure_runs/<tpid>` (+ admin mirror) | ALL-01 runs covering finalised-pass, finalised-fail, initialised, and finalised-without-artifacts; the MSW handler returns it for any requested procedure |
+| `active_runs.json`             | `GET /api/group/<id>/active_runs` (+ admin mirror) | One started + one initialised run |

@@ -35,3 +35,92 @@ export interface ProcedureYamlResponse {
   test_procedure_id: string;
   yaml: string;
 }
+
+// Mirrors cactus_schema.orchestrator.Pagination (serialised by server.py paginated_json)
+export interface Pagination<T> {
+  total_pages: number;
+  total_items: number;
+  page_size: number;
+  current_page: number;
+  prev_page: number | null;
+  next_page: number | null;
+  items: T[];
+}
+
+// Mirrors cactus_schema.orchestrator.RunStatusResponse (StrEnum)
+export type RunStatus = 'initialised' | 'started' | 'finalised' | 'provisioning' | 'skipped';
+
+// Mirrors cactus_schema.orchestrator.PlaylistRunInfo
+export interface PlaylistRunInfo {
+  run_id: number;
+  test_procedure_id: string;
+  status: RunStatus;
+}
+
+// Mirrors cactus_schema.orchestrator.RunResponse
+export interface RunResponse {
+  run_id: number;
+  test_procedure_id: string;
+  test_url: string;
+  status: RunStatus;
+  all_criteria_met: boolean | null;
+  created_at: string;
+  finalised_at: string | null;
+  is_device_cert: boolean;
+  has_artifacts: boolean;
+  playlist_execution_id: string | null;
+  playlist_order: number | null;
+  playlist_runs: PlaylistRunInfo[] | null;
+  classes: string[] | null;
+}
+
+// Mirrors cactus_schema.orchestrator.RunGroupResponse
+export interface RunGroupResponse {
+  run_group_id: number;
+  name: string;
+  csip_aus_version: string;
+  created_at: string;
+  is_device_cert: boolean | null;
+  certificate_id: number | null;
+  certificate_created_at: string | null;
+  total_runs: number;
+}
+
+// Mirrors cactus_schema.orchestrator.TestProcedureRunSummaryResponse
+export interface TestProcedureRunSummary {
+  test_procedure_id: string;
+  description: string;
+  category: string;
+  classes: string[] | null;
+  run_count: number;
+  latest_all_criteria_met: boolean | null;
+  latest_run_status: number | null;
+  latest_run_id: number | null;
+  latest_run_timestamp: string | null;
+  immediate_start: boolean;
+}
+
+// Mirrors cactus_schema.orchestrator.compliance.ComplianceClass
+export interface ComplianceClass {
+  name: string;
+  description: string;
+}
+
+export interface GroupedProcedures {
+  slug: string;
+  category: string;
+  summaries: TestProcedureRunSummary[];
+}
+
+// GET /api/group/<id>/procedure_summaries (server.py build_procedure_summaries_json)
+export interface ProcedureSummariesResponse {
+  grouped_procedures: GroupedProcedures[];
+  classes: ComplianceClass[];
+  classes_by_test: Record<string, string[]>;
+  classes_by_category: Record<string, string[]>;
+}
+
+// POST /api/group/<id>/runs and /api/runs/<id>/start|finalise, DELETE /api/runs/<id>
+export interface RunActionResponse {
+  run_id: number;
+}

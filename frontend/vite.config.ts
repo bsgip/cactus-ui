@@ -15,5 +15,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/**/*.test.{ts,tsx}'],
+    // The first test in a file pays jsdom + Mantine setup costs; on a loaded VM
+    // that intermittently exceeds the 5s default.
+    testTimeout: 15_000,
   },
 });

@@ -35,7 +35,7 @@ export function NavBar({ session }: { session: SessionResponse }) {
               Procedures
             </Anchor>
             <Text c="white">|</Text>
-            <Anchor href="/runs" c="white">
+            <Anchor component={Link} to="/runs" c="white">
               Runs
             </Anchor>
             <Text c="white">|</Text>

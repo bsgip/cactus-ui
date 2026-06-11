@@ -9,7 +9,6 @@ import zipfile
 from base64 import b64encode
 from collections import defaultdict
 from collections.abc import Callable
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import lru_cache, wraps
 from http import HTTPStatus
@@ -98,13 +97,6 @@ LOGIN_BANNER_MESSAGE = env.get("LOGIN_BANNER_MESSAGE")
 FRONTEND_DIST_DIR = Path(
     env.get("CACTUS_UI_FRONTEND_DIST", Path(__file__).resolve().parents[2] / "frontend" / "dist")
 ).resolve()
-
-
-@dataclass
-class GroupedProcedure:
-    slug: str
-    category: str
-    summaries: list[schema.TestProcedureRunSummaryResponse]
 
 
 def get_access_token() -> str | None:
@@ -520,127 +512,6 @@ def admin_run_group_page(  # noqa: C901
     )
 
 
-@app.route("/admin/group/<int:run_group_id>/runs", methods=["GET", "POST"])
-@login_required
-@admin_role_required
-def admin_group_runs_page(  # noqa: C901
-    access_token: str, run_group_id: int
-) -> str | Response:
-    error: str | None = None
-    """This is the admin equivalent of group_runs_page"""
-    # Handle POST for triggering an artifact download
-    if request.method == "POST":
-        # Handle dl artifact
-        if request.form.get("action") == "artifact":
-            run_id = request.form.get("run_id")
-            if not run_id:
-                error = "No run ID specified."
-            else:
-                artifact_data, download_name = orchestrator.admin_fetch_run_artifact(access_token, run_id)
-                if artifact_data is None:
-                    error = "Failed to retrieve artifacts."
-                else:
-                    return send_file(
-                        io.BytesIO(artifact_data),
-                        as_attachment=True,
-                        download_name=download_name,
-                        mimetype="application/zip",
-                    )
-
-    # Fetch procedures
-    procedures = orchestrator.admin_fetch_group_procedure_run_summaries(
-        access_token=access_token, run_group_id=run_group_id
-    )
-    grouped_procedures: list[GroupedProcedure] = []
-
-    all_classes: set[str] = set()
-    classes_by_test: dict[str, list[str]] = {}
-    tmp_classes_by_category: dict[str, set[str]] = {}
-
-    if procedures is None:
-        error = "Unable to fetch test procedures."
-    else:
-        # Organise the procedures by grouping them under the "category" label present (while also preserving order)
-        for p in procedures:
-            category_slug = p.category.replace(" ", "-")  # This could do with a more robust slugify method
-
-            # Add this procedure to the list of groups
-            existing_group = next((x for x in grouped_procedures if x.slug == category_slug), None)
-            if existing_group:
-                existing_group.summaries.append(p)
-            else:
-                grouped_procedures.append(GroupedProcedure(category_slug, p.category, [p]))
-
-            classes = p.classes if p.classes else []
-            classes_by_test[p.test_procedure_id] = classes
-            all_classes.update(classes)
-
-            if category_slug in tmp_classes_by_category:
-                tmp_classes_by_category[category_slug].update(classes)
-            else:
-                tmp_classes_by_category[category_slug] = set(classes)
-
-    # convert sets to lists (sets are not serializable to json)
-    classes_by_category: dict[str, list[str]] = {key: list(value) for key, value in tmp_classes_by_category.items()}
-
-    # Fetch the run groups (for the breadcrumbs selector)
-    run_groups = orchestrator.admin_fetch_run_groups(access_token=access_token, run_group_id=run_group_id, page=1)
-    active_run_group: schema.RunGroupResponse | None = None
-    if not run_groups or not run_groups.items:
-        error = "Unable to fetch run groups."
-    else:
-        for rg in run_groups.items:
-            if rg.run_group_id == run_group_id:
-                active_run_group = rg
-                break
-
-    return render_template(
-        "runs.html",
-        error=error,
-        grouped_procedures=grouped_procedures,
-        classes=fetch_compliance_classes(all_classes),
-        classes_by_test_b64=b64encode(json.dumps(classes_by_test).encode()).decode(),
-        classes_by_category_b64=b64encode(json.dumps(classes_by_category).encode()).decode(),
-        run_groups=[] if run_groups is None else run_groups.items,
-        run_group_id=run_group_id,
-        active_run_group=active_run_group,
-        is_admin_view=True,
-    )
-
-
-@app.route(
-    "/admin/run_group/<int:run_group_id>/procedure_runs/<test_procedure_id>",
-    methods=["GET"],
-)
-@login_required
-@admin_role_required
-def admin_procedure_runs_json(access_token: str, run_group_id: int, test_procedure_id: str) -> Response:
-    runs_page = orchestrator.admin_fetch_group_runs_for_procedure(access_token, run_group_id, test_procedure_id)
-    if runs_page is None:
-        return Response(
-            response=f"Unable to fetch runs for {test_procedure_id}.",
-            status=HTTPStatus.NOT_FOUND,
-            mimetype="text/plain",
-        )
-
-    return jsonify(runs_page)
-
-
-@app.route("/admin/run_group/<int:run_group_id>/active_runs", methods=["GET"])
-@login_required
-@admin_role_required
-def admin_active_runs_json(access_token: str, run_group_id: int) -> Response:
-    runs_page = orchestrator.admin_fetch_runs_for_group(access_token, run_group_id, 1, False)
-    if runs_page is None:
-        return Response(
-            response="Unable to load active runs.",
-            status=HTTPStatus.NOT_FOUND,
-            mimetype="text/plain",
-        )
-
-    return jsonify(runs_page)
-
-
 @app.route("/admin/run/<int:run_id>", methods=["GET", "POST"])
 @login_required
 @admin_role_required
@@ -792,6 +663,229 @@ def api_procedure_yaml(access_token: str, test_procedure_id: str) -> Response | 
     return jsonify({"test_procedure_id": test_procedure_id, "yaml": yaml})
 
 
+def paginated_json(page: schema.Pagination) -> dict:
+    """Serialise a Pagination of JSONWizard items to a plain dict (snake_case keys, ISO datetimes)."""
+    return {
+        "total_pages": page.total_pages,
+        "total_items": page.total_items,
+        "page_size": page.page_size,
+        "current_page": page.current_page,
+        "prev_page": page.prev_page,
+        "next_page": page.next_page,
+        "items": [item.to_dict() for item in page.items],
+    }
+
+
+def build_procedure_summaries_json(procedures: list[schema.TestProcedureRunSummaryResponse]) -> dict:
+    """Groups procedure run summaries by category (preserving order) with compliance class filter maps."""
+    grouped: dict[str, dict] = {}  # slug -> group, insertion ordered
+    all_classes: set[str] = set()
+    classes_by_test: dict[str, list[str]] = {}
+    classes_by_category: dict[str, set[str]] = {}
+
+    for p in procedures:
+        category_slug = p.category.replace(" ", "-")  # This could do with a more robust slugify method
+
+        group = grouped.setdefault(category_slug, {"slug": category_slug, "category": p.category, "summaries": []})
+        group["summaries"].append(p.to_dict())
+
+        classes = p.classes if p.classes else []
+        classes_by_test[p.test_procedure_id] = classes
+        all_classes.update(classes)
+        classes_by_category.setdefault(category_slug, set()).update(classes)
+
+    return {
+        "grouped_procedures": list(grouped.values()),
+        "classes": [{"name": c.name, "description": c.description} for c in fetch_compliance_classes(all_classes)],
+        "classes_by_test": classes_by_test,
+        "classes_by_category": {key: sorted(value) for key, value in classes_by_category.items()},
+    }
+
+
+@app.route("/api/run_groups", methods=["GET"])
+@api_login_required
+def api_run_groups(access_token: str) -> Response | tuple[Response, int]:
+    """Run groups for the current user (page 1 - matches the old template's dropdown source)."""
+    run_groups = orchestrator.fetch_run_groups(access_token, 1)
+    if run_groups is None:
+        return jsonify({"error": "Unable to fetch run groups."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(paginated_json(run_groups))
+
+
+@app.route("/api/admin/run_groups", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_run_groups(access_token: str) -> Response | tuple[Response, int]:
+    """Run groups belonging to the user that owns ?run_group_id (admins can't be identified by token alone)."""
+    run_group_id = request.args.get("run_group_id", type=int)
+    if run_group_id is None:
+        return jsonify({"error": "run_group_id is required."}), HTTPStatus.BAD_REQUEST
+
+    run_groups = orchestrator.admin_fetch_run_groups(access_token, run_group_id, 1)
+    if run_groups is None:
+        return jsonify({"error": "Unable to fetch run groups."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(paginated_json(run_groups))
+
+
+@app.route("/api/group/<int:run_group_id>/procedure_summaries", methods=["GET"])
+@api_login_required
+def api_group_procedure_summaries(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
+    if procedures is None:
+        return jsonify({"error": "Unable to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(build_procedure_summaries_json(procedures))
+
+
+@app.route("/api/admin/group/<int:run_group_id>/procedure_summaries", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_group_procedure_summaries(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    procedures = orchestrator.admin_fetch_group_procedure_run_summaries(
+        access_token=access_token, run_group_id=run_group_id
+    )
+    if procedures is None:
+        return jsonify({"error": "Unable to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(build_procedure_summaries_json(procedures))
+
+
+@app.route("/api/group/<int:run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
+@api_login_required
+def api_group_procedure_runs(
+    access_token: str, run_group_id: int, test_procedure_id: str
+) -> Response | tuple[Response, int]:
+    runs_page = orchestrator.fetch_group_runs_for_procedure(access_token, run_group_id, test_procedure_id)
+    if runs_page is None:
+        return jsonify({"error": f"Unable to fetch runs for {test_procedure_id}."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(paginated_json(runs_page))
+
+
+@app.route("/api/admin/group/<int:run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_group_procedure_runs(
+    access_token: str, run_group_id: int, test_procedure_id: str
+) -> Response | tuple[Response, int]:
+    runs_page = orchestrator.admin_fetch_group_runs_for_procedure(access_token, run_group_id, test_procedure_id)
+    if runs_page is None:
+        return jsonify({"error": f"Unable to fetch runs for {test_procedure_id}."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(paginated_json(runs_page))
+
+
+@app.route("/api/group/<int:run_group_id>/active_runs", methods=["GET"])
+@api_login_required
+def api_group_active_runs(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, False)
+    if runs_page is None:
+        return jsonify({"error": "Unable to load active runs."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(paginated_json(runs_page))
+
+
+@app.route("/api/admin/group/<int:run_group_id>/active_runs", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_group_active_runs(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    runs_page = orchestrator.admin_fetch_runs_for_group(access_token, run_group_id, 1, False)
+    if runs_page is None:
+        return jsonify({"error": "Unable to load active runs."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(paginated_json(runs_page))
+
+
+@app.route("/api/group/<int:run_group_id>/runs", methods=["POST"])
+@api_login_required
+def api_init_run(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    """Initialise a new test run (the precondition phase) for a test procedure."""
+    body = request.get_json(silent=True) or {}
+    test_procedure_id = body.get("test_procedure_id")
+    if not test_procedure_id:
+        return jsonify({"error": "No test procedure selected."}), HTTPStatus.BAD_REQUEST
+
+    init_result = orchestrator.init_run(access_token, run_group_id, test_procedure_id)
+    if init_result.response is not None:
+        return jsonify({"run_id": init_result.response.run_id})
+    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
+        return (
+            jsonify({"error": "Your certificate has expired. Please generate and download a new certificate."}),
+            HTTPStatus.CONFLICT,
+        )
+    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
+        return (
+            jsonify({"error": "You cannot start a second test run while your DeviceCapability URI is set to static."}),
+            HTTPStatus.CONFLICT,
+        )
+    else:
+        return jsonify({"error": "Failed to trigger a new run due to an unknown error."}), HTTPStatus.BAD_GATEWAY
+
+
+@app.route("/api/runs/<int:run_id>/start", methods=["POST"])
+@api_login_required
+def api_start_run(access_token: str, run_id: int) -> Response | tuple[Response, int]:
+    start_result = orchestrator.start_run(access_token, str(run_id))
+    if not start_result.success:
+        error = "Failed to start the test run." if start_result.error_message is None else start_result.error_message
+        return jsonify({"error": error}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify({"run_id": run_id})
+
+
+@app.route("/api/runs/<int:run_id>/finalise", methods=["POST"])
+@api_login_required
+def api_finalise_run(access_token: str, run_id: int) -> Response | tuple[Response, int]:
+    if not orchestrator.finalise_run(access_token, str(run_id)):
+        return jsonify({"error": "Failed to finalise the run."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify({"run_id": run_id})
+
+
+@app.route("/api/runs/<int:run_id>", methods=["DELETE"])
+@api_login_required
+def api_delete_run(access_token: str, run_id: int) -> Response | tuple[Response, int]:
+    if not orchestrator.delete_individual_run(access_token, str(run_id)):
+        return jsonify({"error": "Failed to delete run."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify({"run_id": run_id})
+
+
+@app.route("/run/<int:run_id>/artifact", methods=["GET"])
+@login_required
+def run_artifact_download(access_token: str, run_id: int) -> Response:
+    """Browser-native artifact ZIP download (plain link; session cookie auth)."""
+    artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, str(run_id))
+    if artifact_data is None:
+        return Response(response="Failed to retrieve artifacts.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain")
+
+    return send_file(
+        io.BytesIO(artifact_data),
+        as_attachment=True,
+        download_name=download_name,
+        mimetype="application/zip",
+    )
+
+
+@app.route("/admin/run/<int:run_id>/artifact", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_run_artifact_download(access_token: str, run_id: int) -> Response:
+    """Browser-native artifact ZIP download for the admin view."""
+    artifact_data, download_name = orchestrator.admin_fetch_run_artifact(access_token, str(run_id))
+    if artifact_data is None:
+        return Response(response="Failed to retrieve artifacts.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain")
+
+    return send_file(
+        io.BytesIO(artifact_data),
+        as_attachment=True,
+        download_name=download_name,
+        mimetype="application/zip",
+    )
+
+
 def send_zip_file(filename: str, files: dict[str, bytes | None]) -> Response:
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, mode="w") as zip_archive:
@@ -919,46 +1013,6 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
     )
 
 
-@app.route("/run_group/<int:run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
-@login_required
-def procedure_runs_json(access_token: str, run_group_id: int, test_procedure_id: str) -> Response:
-    runs_page = orchestrator.fetch_group_runs_for_procedure(access_token, run_group_id, test_procedure_id)
-    if runs_page is None:
-        return Response(
-            response=f"Unable to fetch runs for {test_procedure_id}.",
-            status=HTTPStatus.NOT_FOUND,
-            mimetype="text/plain",
-        )
-
-    return jsonify(runs_page)
-
-
-@app.route("/run_group/<int:run_group_id>/active_runs", methods=["GET"])
-@login_required
-def active_runs_json(access_token: str, run_group_id: int) -> Response:
-    runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, False)
-    if runs_page is None:
-        return Response(
-            response="Unable to load active runs.",
-            status=HTTPStatus.NOT_FOUND,
-            mimetype="text/plain",
-        )
-
-    return jsonify(runs_page)
-
-
-@app.route("/runs", methods=["GET"])
-@login_required
-def runs_page(access_token: str) -> str | Response:  # noqa: C901
-    """Just redirects to the "first" RunGroup page"""
-
-    run_groups = orchestrator.fetch_run_groups(access_token, 1)
-    if not run_groups or not run_groups.items:
-        return redirect(url_for("config_page"))
-
-    return redirect(url_for("group_runs_page", run_group_id=run_groups.items[0].run_group_id))
-
-
 @app.route("/group/<int:run_group_id>", methods=["GET"])
 @login_required
 def run_group_page(access_token: str, run_group_id: int) -> str:
@@ -1015,136 +1069,6 @@ def run_group_page(access_token: str, run_group_id: int) -> str:
         run_group_id=run_group_id,
         active_run_group=active_run_group,
         is_admin_view=False,
-    )
-
-
-@app.route("/group/<int:run_group_id>/runs", methods=["GET", "POST"])
-@login_required
-def group_runs_page(  # noqa: C901
-    access_token: str, run_group_id: int
-) -> str | Response:
-    error: str | None = None
-
-    # Handle POST for triggering a new run / precondition phase
-    if request.method == "POST":
-        if request.form.get("action") == "initialise":
-            test_procedure_id = request.form.get("test_procedure_id")
-            if not test_procedure_id:
-                error = "No test procedure selected."
-            else:
-                init_result = orchestrator.init_run(access_token, run_group_id, test_procedure_id)
-                if init_result.response is not None:
-                    return redirect(url_for("run_status_page", run_id=init_result.response.run_id))
-                elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
-                    error = "Your certificate has expired. Please generate and download a new certificate."
-                elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
-                    error = "You cannot start a second test run while your DeviceCapability URI is set to static."
-                else:
-                    error = "Failed to trigger a new run due to an unknown error."
-
-        # Handle starting a run / test procedure phase
-        elif request.form.get("action") == "start":
-            run_id = request.form.get("run_id")
-            if not run_id:
-                error = "No run ID specified."
-            else:
-                start_result = orchestrator.start_run(access_token, run_id)
-                if start_result.success:
-                    return redirect(url_for("run_status_page", run_id=run_id))
-                else:
-                    error = (
-                        "Failed to start the test run."
-                        if start_result.error_message is None
-                        else start_result.error_message
-                    )
-
-        # Handle finalising a run
-        elif request.form.get("action") == "finalise":
-            run_id = request.form.get("run_id")
-            if not run_id:
-                error = "No run ID specified."
-            else:
-                if not orchestrator.finalise_run(access_token, run_id):
-                    error = "Failed to finalise the run."
-
-        # Handle dl artifact
-        elif request.form.get("action") == "artifact":
-            run_id = request.form.get("run_id")
-            if not run_id:
-                error = "No run ID specified."
-            else:
-                artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
-                if artifact_data is None:
-                    error = "Failed to retrieve artifacts."
-                else:
-                    return send_file(
-                        io.BytesIO(artifact_data),
-                        as_attachment=True,
-                        download_name=download_name,
-                        mimetype="application/zip",
-                    )
-        # Handle deleting a prior run
-        elif request.form.get("action") == "delete":
-            run_id = request.form["run_id"]
-            delete_result = orchestrator.delete_individual_run(access_token, run_id)
-            if not delete_result:
-                error = "Failed to delete run."
-
-    # Fetch procedures
-    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
-    grouped_procedures: list[GroupedProcedure] = []
-
-    all_classes: set[str] = set()
-    classes_by_test: dict[str, list[str]] = {}
-    tmp_classes_by_category: dict[str, set[str]] = {}
-
-    if procedures is None:
-        error = "Unable to fetch test procedures."
-    else:
-        # Organise the procedures by grouping them under the "category" label present (while also preserving order)
-        for p in procedures:
-            category_slug = p.category.replace(" ", "-")  # This could do with a more robust slugify method
-
-            # Add this procedure to the list of groups
-            existing_group = next((x for x in grouped_procedures if x.slug == category_slug), None)
-            if existing_group:
-                existing_group.summaries.append(p)
-            else:
-                grouped_procedures.append(GroupedProcedure(category_slug, p.category, [p]))
-
-            classes = p.classes if p.classes else []
-            classes_by_test[p.test_procedure_id] = classes
-            all_classes.update(classes)
-
-            if category_slug in tmp_classes_by_category:
-                tmp_classes_by_category[category_slug].update(classes)
-            else:
-                tmp_classes_by_category[category_slug] = set(classes)
-
-    # convert sets to lists (sets are not serializable to json)
-    classes_by_category: dict[str, list[str]] = {key: list(value) for key, value in tmp_classes_by_category.items()}
-
-    # Fetch the run groups (for the breadcrumbs selector)
-    run_groups = orchestrator.fetch_run_groups(access_token, 1)
-    active_run_group: schema.RunGroupResponse | None = None
-    if not run_groups or not run_groups.items:
-        error = "Unable to fetch run groups."
-    else:
-        for rg in run_groups.items:
-            if rg.run_group_id == run_group_id:
-                active_run_group = rg
-                break
-
-    return render_template(
-        "runs.html",
-        error=error,
-        grouped_procedures=grouped_procedures,
-        classes=fetch_compliance_classes(all_classes),
-        classes_by_test_b64=b64encode(json.dumps(classes_by_test).encode()).decode(),
-        classes_by_category_b64=b64encode(json.dumps(classes_by_category).encode()).decode(),
-        run_groups=[] if run_groups is None else run_groups.items,
-        run_group_id=run_group_id,
-        active_run_group=active_run_group,
     )
 
 
