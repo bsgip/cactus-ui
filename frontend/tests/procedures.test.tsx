@@ -22,7 +22,7 @@ describe('procedures page', () => {
     // One row per fixture procedure (plus the header row)
     expect(screen.getAllByRole('row')).toHaveLength(proceduresFixture.procedures.length + 1);
 
-    // Spot-check the first procedure: id links to the (still Flask-rendered) YAML page
+    // Spot-check the first procedure: id links to the YAML page
     const first = proceduresFixture.procedures[0];
     const link = screen.getByRole('link', { name: first.test_procedure_id });
     expect(link).toHaveAttribute('href', `/procedure/${first.test_procedure_id}`);

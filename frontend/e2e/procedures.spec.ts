@@ -13,10 +13,9 @@ test('procedures page lists every procedure from the fixture', async ({ page }) 
   await expect(page.getByRole('row')).toHaveCount(proceduresFixture.procedures.length + 1);
 
   const first = proceduresFixture.procedures[0];
-  await expect(page.getByRole('link', { name: first.test_procedure_id, exact: true })).toHaveAttribute(
-    'href',
-    `/procedure/${first.test_procedure_id}`
-  );
+  await expect(
+    page.getByRole('link', { name: first.test_procedure_id, exact: true })
+  ).toHaveAttribute('href', `/procedure/${first.test_procedure_id}`);
 
   await page.screenshot({ path: 'e2e/screenshots/procedures.png', fullPage: true });
 });

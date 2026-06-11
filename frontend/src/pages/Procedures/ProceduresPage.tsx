@@ -1,6 +1,7 @@
 import { Anchor, Table, Title } from '@mantine/core';
 import { useDocumentTitle } from '@mantine/hooks';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { fetchProcedures } from '../../api/procedures';
 import { Banner } from '../../components/Banner';
 import { ErrorAlert } from '../../components/ErrorAlert';
@@ -47,8 +48,7 @@ export function ProceduresPage() {
               data.procedures.map((procedure) => (
                 <Table.Tr key={procedure.test_procedure_id}>
                   <Table.Td>
-                    {/* /procedure/<id> is still Flask-rendered (page 2): plain anchor, not <Link> */}
-                    <Anchor href={`/procedure/${procedure.test_procedure_id}`}>
+                    <Anchor component={Link} to={`/procedure/${procedure.test_procedure_id}`}>
                       {procedure.test_procedure_id}
                     </Anchor>
                   </Table.Td>

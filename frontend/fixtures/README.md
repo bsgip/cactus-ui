@@ -23,9 +23,10 @@ When an endpoint's response shape changes, update its fixture in the same PR.
 
 ## Current fixtures
 
-| File                           | Endpoint                      | Notes                            |
-| ------------------------------ | ----------------------------- | -------------------------------- |
-| `session.json`                 | `GET /api/session`            | Regular logged-in user           |
-| `session_admin.json`           | `GET /api/session`            | User with `admin:all` permission |
-| `session_unauthenticated.json` | `GET /api/session` (401 body) | Logged-out response              |
+| File                           | Endpoint                      | Notes                                                                                                                                                                    |
+| ------------------------------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `session.json`                 | `GET /api/session`            | Regular logged-in user                                                                                                                                                   |
+| `session_admin.json`           | `GET /api/session`            | User with `admin:all` permission                                                                                                                                         |
+| `session_unauthenticated.json` | `GET /api/session` (401 body) | Logged-out response                                                                                                                                                      |
 | `procedures.json`              | `GET /api/procedures`         | Generated from `cactus-test-definitions` (the orchestrator's own source) via `TestProcedureResponse.to_dict()` — refresh by live capture if the orchestrator adds fields |
+| `procedure_yaml.json`          | `GET /api/procedure/<id>`     | ALL-01 — `yaml` taken verbatim from `cactus-test-definitions` (the orchestrator serves the same file's raw text). The MSW handler echoes the requested id back into `test_procedure_id` |

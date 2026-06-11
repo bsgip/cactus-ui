@@ -781,39 +781,15 @@ def api_procedures(access_token: str) -> Response | tuple[Response, int]:
     return jsonify({"procedures": [p.to_dict() for p in all_procedures]})
 
 
-@app.route("/procedure/<test_procedure_id>", methods=["GET"])
-@login_required
-def procedure_yaml_page(access_token: str, test_procedure_id: str) -> str | Response:
-
-    error: str | None = None
-
-    # Handle POST for triggering a new run / precondition phase
-    # if request.method == "POST":
-    #     if request.form.get("action") == "initialise":
-    #         init_result = orchestrator.init_run(access_token, test_procedure_id)
-    #         if init_result.run_id is not None:
-    #             return redirect(url_for("run_status_page", run_id=init_result.run_id))
-    #         elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
-    #             error = "Your certificate has expired. Please generate and download a new certificate."
-    #         elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
-    #             error = "You cannot start a second test run while your DeviceCapability URI is set to static."
-    #         else:
-    #             error = "Failed to trigger a new run due to an unknown error."
-
-    # Request the paginated list of procedures from upstream
+@app.route("/api/procedure/<test_procedure_id>", methods=["GET"])
+@api_login_required
+def api_procedure_yaml(access_token: str, test_procedure_id: str) -> Response | tuple[Response, int]:
+    """Get the raw YAML definition for a single test procedure."""
     yaml = orchestrator.fetch_procedure_yaml(access_token, test_procedure_id)
     if yaml is None:
-        return render_template(
-            "procedure_yaml.html",
-            error=f"Failed to fetch YAML for test '{test_procedure_id}'.",
-        )
+        return jsonify({"error": f"Failed to fetch YAML for test '{test_procedure_id}'."}), HTTPStatus.BAD_GATEWAY
 
-    return render_template(
-        "procedure_yaml.html",
-        test_procedure_id=test_procedure_id,
-        yaml=yaml,
-        error=error,
-    )
+    return jsonify({"test_procedure_id": test_procedure_id, "yaml": yaml})
 
 
 def send_zip_file(filename: str, files: dict[str, bytes | None]) -> Response:

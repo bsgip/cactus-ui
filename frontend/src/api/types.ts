@@ -29,3 +29,9 @@ export interface TestProcedureResponse {
 export interface ProceduresResponse {
   procedures: TestProcedureResponse[];
 }
+
+// GET /api/procedure/<id> (server.py api_procedure_yaml)
+export interface ProcedureYamlResponse {
+  test_procedure_id: string;
+  yaml: string;
+}

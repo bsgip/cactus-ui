@@ -166,6 +166,35 @@ def test_api_procedures_orchestrator_failure(client, monkeypatch):
     assert response.get_json() == {"error": "Failed to retrieve procedures."}
 
 
+def test_api_procedure_yaml_unauthenticated(client):
+    response = client.get("/api/procedure/ALL-01")
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.get_json() == {"error": "unauthenticated"}
+
+
+def test_api_procedure_yaml_success(client, monkeypatch):
+    login(client)
+    monkeypatch.setattr(
+        server.orchestrator, "fetch_procedure_yaml", lambda access_token, test_procedure_id: "Description: A test\n"
+    )
+
+    response = client.get("/api/procedure/ALL-01")
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.get_json() == {"test_procedure_id": "ALL-01", "yaml": "Description: A test\n"}
+
+
+def test_api_procedure_yaml_orchestrator_failure(client, monkeypatch):
+    login(client)
+    monkeypatch.setattr(server.orchestrator, "fetch_procedure_yaml", lambda access_token, test_procedure_id: None)
+
+    response = client.get("/api/procedure/ALL-01")
+
+    assert response.status_code == HTTPStatus.BAD_GATEWAY
+    assert response.get_json() == {"error": "Failed to fetch YAML for test 'ALL-01'."}
+
+
 @pytest.fixture
 def spa_dist(monkeypatch, tmp_path):
     (tmp_path / "index.html").write_text("<html><body>SPA index</body></html>")
