@@ -32,6 +32,7 @@ from flask import (
     render_template,
     request,
     send_file,
+    send_from_directory,
     session,
     url_for,
 )
@@ -92,6 +93,11 @@ CACTUS_PLATFORM_VERSION = env["CACTUS_PLATFORM_VERSION"]
 CACTUS_PLATFORM_SUPPORT_EMAIL = env["CACTUS_PLATFORM_SUPPORT_EMAIL"]
 BANNER_MESSAGE = env.get("BANNER_MESSAGE")
 LOGIN_BANNER_MESSAGE = env.get("LOGIN_BANNER_MESSAGE")
+
+# Built React SPA (frontend/dist). Overridable for tests/deployments where dist lives elsewhere.
+FRONTEND_DIST_DIR = Path(
+    env.get("CACTUS_UI_FRONTEND_DIST", Path(__file__).resolve().parents[2] / "frontend" / "dist")
+).resolve()
 
 
 @dataclass
@@ -196,6 +202,34 @@ def admin_role_required[F: Callable[..., object]](f: F) -> F:
     return cast(F, decorated)
 
 
+def api_login_required[F: Callable[..., object]](f: F) -> F:
+    """Like login_required, but for /api endpoints: returns 401 JSON instead of redirecting to login."""
+
+    @wraps(f)
+    def decorated(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
+        access_token = get_access_token()
+        if access_token is None:
+            return jsonify({"error": "unauthenticated"}), HTTPStatus.UNAUTHORIZED
+
+        return f(*args, access_token=access_token, **kwargs)
+
+    return cast(F, decorated)
+
+
+def api_admin_role_required[F: Callable[..., object]](f: F) -> F:
+    """Like admin_role_required, but for /api endpoints: returns 403 JSON instead of redirecting."""
+
+    @wraps(f)
+    def decorated(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
+        permissions = get_permissions()
+        if not permissions or "admin:all" not in permissions:
+            return jsonify({"error": "forbidden"}), HTTPStatus.FORBIDDEN
+
+        return f(*args, **kwargs)
+
+    return cast(F, decorated)
+
+
 def parse_bool(v: str | None) -> bool:
     if not v:
         return False
@@ -280,12 +314,50 @@ def build_test_status_dict(run: schema.RunResponse) -> dict:
 
 # Controllers API
 @app.route("/")
-def login_or_home_page() -> str:
-    if session.get("user") is None:
-        return render_template(
-            "login.html",
+def login_or_home_page() -> Response:
+    return send_file(FRONTEND_DIST_DIR / "index.html")
+
+
+@app.route("/<path:spa_path>")
+def spa_catch_all(spa_path: str) -> Response:
+    """Serves built SPA assets, falling back to index.html for client-side routes.
+
+    Only fires for paths not matched by any other route; /api paths must never serve HTML."""
+    if spa_path.startswith("api/"):
+        return Response(
+            response=json.dumps({"error": "not found"}),
+            status=HTTPStatus.NOT_FOUND,
+            mimetype="application/json",
         )
-    return render_template("home.html")
+
+    if (FRONTEND_DIST_DIR / spa_path).is_file():
+        return send_from_directory(FRONTEND_DIST_DIR, spa_path)
+
+    return send_file(FRONTEND_DIST_DIR / "index.html")
+
+
+@app.route("/api/session", methods=["GET"])
+def api_session() -> Response | tuple[Response, int]:
+    """Session/global context for the SPA (replaces the Jinja context processor).
+
+    Returns 401 with the login banner message when not logged in - the SPA shows the login screen."""
+    access_token = get_access_token()
+    if access_token is None:
+        return (
+            jsonify({"error": "unauthenticated", "login_banner_message": LOGIN_BANNER_MESSAGE}),
+            HTTPStatus.UNAUTHORIZED,
+        )
+
+    return jsonify(
+        {
+            "username": get_username_from_session(),
+            "permissions": get_permissions() or [],
+            "version": CACTUS_PLATFORM_VERSION,
+            "support_email": CACTUS_PLATFORM_SUPPORT_EMAIL,
+            "banner_message": BANNER_MESSAGE,
+            "hosted_images": [f"/{path}" for path in get_hosted_images()],
+        }
+    )
 
 
 @app.route("/admin")

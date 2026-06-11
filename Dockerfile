@@ -1,3 +1,10 @@
+FROM node:24-slim AS frontend
+WORKDIR /frontend/
+COPY ./frontend/package.json ./frontend/package-lock.json /frontend/
+RUN npm ci
+COPY ./frontend /frontend
+RUN npm run build
+
 FROM python:3.12-slim
 WORKDIR /app/
 
@@ -13,6 +20,7 @@ ENV PYTHONUNBUFFERED=1
 # Copy src
 COPY ./src /app/src
 COPY ./pyproject.toml /app/pyproject.toml
+COPY --from=frontend /frontend/dist /app/frontend/dist
 
 # Install deps
 RUN pip install --no-cache-dir -e /app && pip install --no-cache-dir uvicorn

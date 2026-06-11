@@ -1,0 +1,8 @@
+{
+  "username": "Test User",
+  "permissions": ["user:all"],
+  "version": "v1.6.3",
+  "support_email": "support@bsgip.com",
+  "banner_message": null,
+  "hosted_images": []
+}
