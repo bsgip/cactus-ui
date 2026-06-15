@@ -8,6 +8,15 @@
 {% if error %}
 <div class="alert alert-danger">{{ error }}</div>
 {% else %}
+<!-- Info/error from compliance request that redirected here -->
+{% if msg_type %}
+    {% set msg_type_to_alert = {"error": "alert-danger", "success": "alert-sucess"} %}
+    <div class="alert alert-dismissible alert-danger fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
+        </button>
+    </div>
+{% endif %}
 <!-- Prefill New Compliance Report Modal -->
 <div class="modal fade" id="prefillModal" tabindex="-1" aria-labelledby="prefillModalLabel" aria-hidden="true">
   <div class="modal-dialog">

@@ -1186,6 +1186,8 @@ def compliance_page(access_token: str) -> str | Response:
         error=error,
         requests=requests,
         requests_b64=b64encode(json.dumps(requests, default=custom_serializer).encode()).decode(),
+        msg=request.args.get("msg"),
+        msg_type=request.args.get("msg_type"),
         is_admin_view=False,
     )
 
@@ -1265,6 +1267,8 @@ def admin_compliance_page(access_token: str) -> str | Response:
         page,
         requests=requests,
         requests_b64=b64encode(json.dumps(requests, default=custom_serializer).encode()).decode(),
+        msg=request.args.get("msg"),
+        msg_type=request.args.get("msg_type"),
         is_admin_view=True,
     )
 
@@ -1332,9 +1336,10 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
                         **form_data,
                     )
                 except Exception as e:
-                    error = f"Failed to create new compliance request. {e}"
-
-            return redirect(url_for("compliance_page"))
+                    error = f"Failed to create compliance request. Reason={e}"
+                    p = {"msg": error, "msg_type": "error"}
+                    query_params = "?" + urlencode(p)
+            return redirect(url_for("compliance_page") + query_params)
 
         elif request.form.get("action") == "update-request":
             # Update request
@@ -1357,8 +1362,10 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
                         ),
                     )
                 except Exception as e:
-                    error = f"Failed to update compliance request. {e}"
-            return redirect(url_for("compliance_page"))
+                    error = f"Failed to update compliance request. Reason={e}"
+                    p = {"msg": error, "msg_type": "error"}
+                    query_params = "?" + urlencode(p)
+            return redirect(url_for("compliance_page") + query_params)
         elif request.form.get("action") == "close":
             # the form was closed (view only mode)
             return redirect(url_for("compliance_page"))
@@ -1475,9 +1482,12 @@ def admin_compliance_request_page(access_token: str) -> str | Response:  # noqa:
                             status=orchestrator.ComplianceRequestStatus.UNDER_REVIEW,
                         ),
                     )
+                    raise ValueError
                 except Exception as e:
-                    error = f"Failed to update compliance request. {e}"
-            return redirect(url_for("admin_compliance_page"))
+                    error = f"Failed to update compliance request. Reason={e}"
+                    p = {"msg": error, "msg_type": "error"}
+                    query_params = "?" + urlencode(p)
+            return redirect(url_for("admin_compliance_page") + query_params)
         elif request.form.get("action") == "push-back":
             # admin clicked push-back button
             # Save any changes made by admin first and set status to pushed-back
@@ -1498,19 +1508,24 @@ def admin_compliance_request_page(access_token: str) -> str | Response:  # noqa:
                         ),
                     )
                 except Exception as e:
-                    error = f"Failed to update compliance request. {e}"
+                    error = f"Failed to update compliance request. Reason={e}"
+                    p = {"msg": error, "msg_type": "error"}
+                    query_params = "?" + urlencode(p)
+            return redirect(url_for("admin_compliance_page") + query_params)
 
-            return redirect(url_for("admin_compliance_page"))
         elif request.form.get("action") == "finalise":
             print("FINALISING request for admin")
             compliance_request_id = get_compliance_request_id(request)
 
+            query_params = ""
             if compliance_request_id:
-                # compliance_report, compliance_report_name = orchestrator.finalise_compliance(access_token, compliance_request_id)  # noqa E501
-                compliance_report = b""
-                compliance_report_name = "compliance_report.pdf"
+                compliance_report, compliance_report_name = orchestrator.finalise_compliance_request(
+                    access_token=access_token, compliance_request_id=compliance_request_id
+                )
                 if compliance_report is None:
                     error = "Failed to finalise the compliance request or retrieve the compliance report."
+                    p = {"msg": error, "msg_type": "error"}
+                    query_params = "?" + urlencode(p)
                 else:
                     return send_file(
                         io.BytesIO(compliance_report),
@@ -1518,7 +1533,7 @@ def admin_compliance_request_page(access_token: str) -> str | Response:  # noqa:
                         download_name=compliance_report_name,
                         mimetype="application/pdf",
                     )
-            return redirect(url_for("admin_compliance_page"))
+            return redirect(url_for("admin_compliance_page") + query_params)
         elif request.form.get("action") == "close":
             # admin closed request in view-only mode
             return redirect(url_for("admin_compliance_page"))

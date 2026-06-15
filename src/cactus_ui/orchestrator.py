@@ -896,6 +896,10 @@ def delete_compliance_request(access_token: str, compliance_request_id: int) -> 
     return True
 
 
+def finalise_compliance_request(access_token: str, compliance_request_id: int) -> tuple[bytes | None, str]:
+    return None, ""
+
+
 # def create_run_group(access_token: str, csip_aus_version: str) -> orchestrator.RunGroupResponse | None:
 #     """Creates a new run group with the specified csip aus version - returns the created"""
 #     uri = generate_uri(orchestrator.uri.RunGroupList)
