@@ -144,6 +144,19 @@ export interface ConfigResponse {
   csip_aus_versions: CsipAusVersionResponse[];
 }
 
+// GET /api/admin/users
+export interface AdminUserResponse {
+  user_id: number;
+  subject_id: string;
+  name: string | null;
+  run_groups: RunGroupResponse[];
+  matchable_description: string;
+}
+
+export interface AdminUsersResponse {
+  users: AdminUserResponse[];
+}
+
 // GET /api/group/<id>/compliance (server.py build_compliance_json)
 export type ComplianceStatus = 'active' | 'failed' | 'success' | 'runless' | 'unknown';
 

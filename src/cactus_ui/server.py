@@ -21,7 +21,6 @@ import cactus_schema.orchestrator as schema
 import jwt
 from authlib.integrations.flask_client import OAuth
 from cactus_schema.orchestrator.compliance import fetch_compliance_classes
-from dataclass_wizard import JSONWizard
 from dotenv import find_dotenv, load_dotenv
 from flask import (
     Flask,
@@ -343,30 +342,6 @@ def api_session() -> Response | tuple[Response, int]:
     )
 
 
-@app.route("/admin")
-@login_required
-@admin_role_required
-def admin_page(access_token: str) -> str:
-    users = orchestrator.admin_fetch_users(access_token)
-    if users is None:
-        return render_template("admin.html", error="Failed to retrieve users.")
-
-    def custom_serializer(obj: Any) -> str | dict:  # noqa: ANN401
-        if isinstance(obj, JSONWizard):
-            # This is pretty crufty - but we're forcing in our own custom property
-            # Josh - I wrote this on xmas eve (sue me) - probably better done with a subclass
-            raw_data = obj.to_dict()
-            raw_data["matchable_description"] = orchestrator.get_matchable_description(raw_data)
-            return raw_data
-        # other rely on standard serialization
-        return json.dumps(obj)
-
-    return render_template(
-        "admin.html",
-        users=users,
-        users_b64=b64encode(json.dumps(users, default=custom_serializer).encode()).decode(),
-    )
-
 
 @app.route("/admin/stats")
 @login_required
@@ -664,6 +639,24 @@ def api_run_groups(access_token: str) -> Response | tuple[Response, int]:
         return jsonify({"error": "Unable to fetch run groups."}), HTTPStatus.BAD_GATEWAY
 
     return jsonify(paginated_json(run_groups))
+
+
+@app.route("/api/admin/users", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_users(access_token: str) -> Response | tuple[Response, int]:
+    """All users with their run groups."""
+    users = orchestrator.admin_fetch_users(access_token)
+    if users is None:
+        return jsonify({"error": "Unable to fetch users."}), HTTPStatus.BAD_GATEWAY
+
+    users_json = []
+    for user in users:
+        raw = user.to_dict()
+        raw["matchable_description"] = orchestrator.get_matchable_description(raw)
+        users_json.append(raw)
+
+    return jsonify({"users": users_json})
 
 
 @app.route("/api/admin/run_groups", methods=["GET"])

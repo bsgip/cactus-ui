@@ -21,7 +21,7 @@ export function NavBar({ session }: { session: SessionResponse }) {
           <Group gap="md">
             {isAdmin && (
               <>
-                <Anchor href="/admin" c="white">
+                <Anchor component={Link} to="/admin" c="white">
                   Admin
                 </Anchor>
                 <Text c="white">|</Text>
