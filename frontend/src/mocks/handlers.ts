@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import activeRunsFixture from '../../fixtures/active_runs.json';
+import complianceFixture from '../../fixtures/compliance.json';
 import procedureRunsFixture from '../../fixtures/procedure_runs.json';
 import procedureSummariesFixture from '../../fixtures/procedure_summaries.json';
 import procedureYamlFixture from '../../fixtures/procedure_yaml.json';
@@ -30,6 +31,8 @@ export const handlers = [
   ),
   http.get('/api/group/:runGroupId/active_runs', () => HttpResponse.json(activeRunsFixture)),
   http.get('/api/admin/group/:runGroupId/active_runs', () => HttpResponse.json(activeRunsFixture)),
+  http.get('/api/group/:runGroupId/compliance', () => HttpResponse.json(complianceFixture)),
+  http.get('/api/admin/group/:runGroupId/compliance', () => HttpResponse.json(complianceFixture)),
   http.post('/api/group/:runGroupId/runs', () => HttpResponse.json({ run_id: 991 })),
   http.post('/api/runs/:runId/start', ({ params }) =>
     HttpResponse.json({ run_id: Number(params.runId) })

@@ -153,7 +153,10 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
           )}
         </Group>
         {activeRunGroup && (
-          <Anchor href={`${isAdminView ? '/admin' : ''}/group/${runGroupId}`}>
+          <Anchor
+            component={Link}
+            to={`${isAdminView ? '/admin' : ''}/group/${runGroupId}`}
+          >
             Compliance for <b>{activeRunGroup.name}</b> →
           </Anchor>
         )}

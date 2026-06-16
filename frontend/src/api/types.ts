@@ -124,3 +124,24 @@ export interface ProcedureSummariesResponse {
 export interface RunActionResponse {
   run_id: number;
 }
+
+// GET /api/group/<id>/compliance (server.py build_compliance_json)
+export type ComplianceStatus = 'active' | 'failed' | 'success' | 'runless' | 'unknown';
+
+export interface PerRunStatus {
+  test_procedure_id: string;
+  description: string;
+  latest_run_id: number | null;
+  status: ComplianceStatus;
+}
+
+export interface ComplianceClassEntry {
+  class_name: string;
+  class_details: ComplianceClass;
+  compliant: boolean;
+  per_run_status: PerRunStatus[];
+}
+
+export interface ComplianceResponse {
+  compliance_by_class: ComplianceClassEntry[];
+}

@@ -170,15 +170,39 @@ def main() -> None:
     )
 
     # procedure_runs.json - ALL-01 runs covering pass/fail/initialised/no-artifacts rows
-    S = schema.RunStatusResponse
+    status = schema.RunStatusResponse
     write(
         "procedure_runs.json",
         single_page(
             [
-                run(120, "ALL-01", S.finalised, True, True, "2026-06-10T03:15:00+00:00", "2026-06-10T04:00:00+00:00"),
-                run(117, "ALL-01", S.finalised, False, True, "2026-06-09T22:10:00+00:00", "2026-06-09T22:55:00+00:00"),
-                run(110, "ALL-01", S.initialised, None, False, "2026-06-08T10:30:00+00:00"),
-                run(104, "ALL-01", S.finalised, None, False, "2026-06-07T08:00:00+00:00", "2026-06-07T09:00:00+00:00"),
+                run(
+                    120,
+                    "ALL-01",
+                    status.finalised,
+                    True,
+                    True,
+                    "2026-06-10T03:15:00+00:00",
+                    "2026-06-10T04:00:00+00:00",
+                ),
+                run(
+                    117,
+                    "ALL-01",
+                    status.finalised,
+                    False,
+                    True,
+                    "2026-06-09T22:10:00+00:00",
+                    "2026-06-09T22:55:00+00:00",
+                ),
+                run(110, "ALL-01", status.initialised, None, False, "2026-06-08T10:30:00+00:00"),
+                run(
+                    104,
+                    "ALL-01",
+                    status.finalised,
+                    None,
+                    False,
+                    "2026-06-07T08:00:00+00:00",
+                    "2026-06-07T09:00:00+00:00",
+                ),
             ]
         ),
     )
@@ -188,11 +212,14 @@ def main() -> None:
         "active_runs.json",
         single_page(
             [
-                run(123, "ALL-03", S.started, None, False, "2026-06-11T01:05:00+00:00"),
-                run(110, "ALL-01", S.initialised, None, False, "2026-06-08T10:30:00+00:00"),
+                run(123, "ALL-03", status.started, None, False, "2026-06-11T01:05:00+00:00"),
+                run(110, "ALL-01", status.initialised, None, False, "2026-06-08T10:30:00+00:00"),
             ]
         ),
     )
+
+    # compliance.json - computed from the same summaries, as /api/group/<id>/compliance serves it
+    write("compliance.json", server.build_compliance_json(summaries))
 
 
 def prettier() -> None:
@@ -201,7 +228,7 @@ def prettier() -> None:
     if npx is None:
         print("npx not found - run `npx prettier --write fixtures/*.json` from frontend/ yourself")
         return
-    subprocess.run([npx, "prettier", "--write", "*.json"], cwd=FIXTURES_DIR, check=True)
+    subprocess.run([npx, "prettier", "--write", "*.json"], cwd=FIXTURES_DIR, check=True)  # noqa: S603
 
 
 if __name__ == "__main__":

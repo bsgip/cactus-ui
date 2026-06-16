@@ -34,7 +34,7 @@ describe('runs page', () => {
     expect(link).toHaveAttribute('href', `/run/${run.run_id}`);
     expect(within(link.closest('tr')!).getByText(run.status)).toBeInTheDocument();
 
-    // The compliance summary link goes to the (Flask) run group page
+    // The compliance summary link goes to the React run group page
     expect(screen.getByRole('link', { name: /Compliance for/ })).toHaveAttribute(
       'href',
       '/group/1'

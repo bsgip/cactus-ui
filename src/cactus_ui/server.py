@@ -434,84 +434,6 @@ def admin_stats_page(access_token: str) -> str:
     )
 
 
-@app.route("/admin/group/<int:run_group_id>", methods=["GET", "POST"])
-@login_required
-@admin_role_required
-def admin_run_group_page(  # noqa: C901
-    access_token: str, run_group_id: int
-) -> str | Response:
-    error: str | None = None
-    """This is the admin-only page summarizing compliance across a run group"""
-
-    if request.method == "POST":
-        # Handle dl artifact
-        if request.form.get("action") == "compliance":
-            compliance_report = orchestrator.admin_fetch_run_group_artifact(access_token, run_group_id)
-            if compliance_report is None:
-                error = "There was an error generating the compliance report."
-            else:
-                return send_file(
-                    io.BytesIO(compliance_report),
-                    as_attachment=True,
-                    download_name=f"{run_group_id}_compliance.pdf",
-                    mimetype="application/pdf",
-                )
-
-    # Fetch procedures
-    procedures = orchestrator.admin_fetch_group_procedure_run_summaries(
-        access_token=access_token, run_group_id=run_group_id
-    )
-
-    compliance_by_class = {}
-
-    if procedures is None:
-        error = "Unabled to fetch test procedures."
-    else:
-        tests_by_class = defaultdict(list)
-        for p in procedures:
-            if p.classes:
-                for c in p.classes:
-                    tests_by_class[c].append(p.test_procedure_id)
-
-        procedure_map = {p.test_procedure_id: p for p in procedures}
-
-        for compliance_class, tests in tests_by_class.items():
-            per_run_status = [
-                {
-                    "procedure": procedure_map[t],
-                    "status": run_summary_to_compliance_status(procedure_map[t]),
-                }
-                for t in tests
-            ]
-            compliant: bool = all([run["status"] == "success" for run in per_run_status])
-            compliance_by_class[compliance_class] = {
-                "class_details": fetch_compliance_class(compliance_class),
-                "compliant": compliant,
-                "per_run_status": per_run_status,
-            }
-
-    # Fetch the run groups (for the breadcrumbs selector)
-    run_groups = orchestrator.admin_fetch_run_groups(access_token=access_token, run_group_id=run_group_id, page=1)
-    active_run_group: schema.RunGroupResponse | None = None
-    if not run_groups or not run_groups.items:
-        error = "Unable to fetch run groups."
-    else:
-        for rg in run_groups.items:
-            if rg.run_group_id == run_group_id:
-                active_run_group = rg
-                break
-
-    return render_template(
-        "run_group.html",
-        error=error,
-        compliance_by_class=compliance_by_class,
-        run_groups=[] if run_groups is None else run_groups.items,
-        run_group_id=run_group_id,
-        active_run_group=active_run_group,
-        is_admin_view=True,
-    )
-
-
 @app.route("/admin/run/<int:run_id>", methods=["GET", "POST"])
 @login_required
 @admin_role_required
@@ -702,6 +624,46 @@ def build_procedure_summaries_json(procedures: list[schema.TestProcedureRunSumma
     }
 
 
+def build_compliance_json(procedures: list[schema.TestProcedureRunSummaryResponse]) -> dict:
+    """Compute compliance-by-class from procedure run summaries."""
+    tests_by_class: dict[str, list[str]] = defaultdict(list)
+    for p in procedures:
+        if p.classes:
+            for c in p.classes:
+                tests_by_class[c].append(str(p.test_procedure_id))
+
+    procedure_map: dict[str, schema.TestProcedureRunSummaryResponse] = {
+        str(p.test_procedure_id): p for p in procedures
+    }
+    result = []
+    for compliance_class, tests in tests_by_class.items():
+        per_run_status = [
+            {
+                "test_procedure_id": t,
+                "description": procedure_map[t].description,
+                "latest_run_id": procedure_map[t].latest_run_id,
+                "status": run_summary_to_compliance_status(procedure_map[t]),
+            }
+            for t in tests
+        ]
+        compliant = all(r["status"] == "success" for r in per_run_status)
+        class_details = fetch_compliance_class(compliance_class)
+        result.append(
+            {
+                "class_name": compliance_class,
+                "class_details": {
+                    "name": class_details.name,
+                    "description": class_details.description,
+                }
+                if class_details
+                else {"name": compliance_class, "description": ""},
+                "compliant": compliant,
+                "per_run_status": per_run_status,
+            }
+        )
+    return {"compliance_by_class": result}
+
+
 @app.route("/api/run_groups", methods=["GET"])
 @api_login_required
 def api_run_groups(access_token: str) -> Response | tuple[Response, int]:
@@ -750,6 +712,47 @@ def api_admin_group_procedure_summaries(access_token: str, run_group_id: int) ->
         return jsonify({"error": "Unable to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
 
     return jsonify(build_procedure_summaries_json(procedures))
+
+
+@app.route("/api/group/<int:run_group_id>/compliance", methods=["GET"])
+@api_login_required
+def api_group_compliance(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
+    if procedures is None:
+        return jsonify({"error": "Unable to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
+    return jsonify(build_compliance_json(procedures))
+
+
+@app.route("/api/admin/group/<int:run_group_id>/compliance", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_group_compliance(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    procedures = orchestrator.admin_fetch_group_procedure_run_summaries(
+        access_token=access_token, run_group_id=run_group_id
+    )
+    if procedures is None:
+        return jsonify({"error": "Unable to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
+    return jsonify(build_compliance_json(procedures))
+
+
+@app.route("/admin/group/<int:run_group_id>/compliance_pdf", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_compliance_pdf(access_token: str, run_group_id: int) -> Response:
+    """Browser-native compliance PDF download for the admin view."""
+    compliance_report = orchestrator.admin_fetch_run_group_artifact(access_token, run_group_id)
+    if compliance_report is None:
+        return Response(
+            response="There was an error generating the compliance report.",
+            status=HTTPStatus.BAD_GATEWAY,
+            mimetype="text/plain",
+        )
+    return send_file(
+        io.BytesIO(compliance_report),
+        as_attachment=True,
+        download_name=f"{run_group_id}_compliance.pdf",
+        mimetype="application/pdf",
+    )
 
 
 @app.route("/api/group/<int:run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
@@ -1010,65 +1013,6 @@ def config_page(access_token: str) -> str | Response:  # noqa: C901
         pen=(
             "" if config.pen == 0 else config.pen
         ),  # A PEN of 0 is reserved. Replace with "" to trigger display of placeholder text
-    )
-
-
-@app.route("/group/<int:run_group_id>", methods=["GET"])
-@login_required
-def run_group_page(access_token: str, run_group_id: int) -> str:
-    error: str | None = None
-    """This page summarizes compliance across a run group"""
-
-    # Fetch procedures
-    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token=access_token, run_group_id=run_group_id)
-
-    compliance_by_class = {}
-
-    if procedures is None:
-        error = "Unabled to fetch test procedures."
-    else:
-        tests_by_class = defaultdict(list)
-        for p in procedures:
-            if p.classes:
-                for c in p.classes:
-                    tests_by_class[c].append(p.test_procedure_id)
-
-        procedure_map = {p.test_procedure_id: p for p in procedures}
-
-        for compliance_class, tests in tests_by_class.items():
-            per_run_status = [
-                {
-                    "procedure": procedure_map[t],
-                    "status": run_summary_to_compliance_status(procedure_map[t]),
-                }
-                for t in tests
-            ]
-            compliant: bool = all([run["status"] == "success" for run in per_run_status])
-            compliance_by_class[compliance_class] = {
-                "class_details": fetch_compliance_class(compliance_class),
-                "compliant": compliant,
-                "per_run_status": per_run_status,
-            }
-
-    # Fetch the run groups (for the breadcrumbs selector)
-    run_groups = orchestrator.fetch_run_groups(access_token=access_token, page=1)
-    active_run_group: schema.RunGroupResponse | None = None
-    if not run_groups or not run_groups.items:
-        error = "Unable to fetch run groups."
-    else:
-        for rg in run_groups.items:
-            if rg.run_group_id == run_group_id:
-                active_run_group = rg
-                break
-
-    return render_template(
-        "run_group.html",
-        error=error,
-        compliance_by_class=compliance_by_class,
-        run_groups=[] if run_groups is None else run_groups.items,
-        run_group_id=run_group_id,
-        active_run_group=active_run_group,
-        is_admin_view=False,
     )
 
 
