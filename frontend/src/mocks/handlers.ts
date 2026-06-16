@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import activeRunsFixture from '../../fixtures/active_runs.json';
 import complianceFixture from '../../fixtures/compliance.json';
+import configFixture from '../../fixtures/config.json';
 import procedureRunsFixture from '../../fixtures/procedure_runs.json';
 import procedureSummariesFixture from '../../fixtures/procedure_summaries.json';
 import procedureYamlFixture from '../../fixtures/procedure_yaml.json';
@@ -10,6 +11,15 @@ import sessionFixture from '../../fixtures/session.json';
 
 export const handlers = [
   http.get('/api/session', () => HttpResponse.json(sessionFixture)),
+  http.get('/api/config', () => HttpResponse.json(configFixture)),
+  http.post('/api/config/pen', () => HttpResponse.json({})),
+  http.post('/api/config/domain', () => HttpResponse.json({})),
+  http.post('/api/config/static_uri', () => HttpResponse.json({})),
+  http.post('/api/run_groups', () => HttpResponse.json(configFixture.run_groups[0], { status: 201 })),
+  http.patch('/api/run_groups/:runGroupId', ({ params }) =>
+    HttpResponse.json({ ...configFixture.run_groups[0], run_group_id: Number(params.runGroupId) })
+  ),
+  http.delete('/api/run_groups/:runGroupId', () => HttpResponse.json({})),
   http.get('/api/procedures', () => HttpResponse.json(proceduresFixture)),
   http.get('/api/procedure/:testProcedureId', ({ params }) =>
     HttpResponse.json({ ...procedureYamlFixture, test_procedure_id: params.testProcedureId })

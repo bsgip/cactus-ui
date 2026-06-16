@@ -125,6 +125,25 @@ export interface RunActionResponse {
   run_id: number;
 }
 
+// Mirrors cactus_schema.orchestrator.CSIPAusVersionResponse
+export interface CsipAusVersionResponse {
+  version: string;
+}
+
+// GET /api/config (server.py api_config)
+export interface UserConfig {
+  subscription_domain: string;
+  is_static_uri: boolean;
+  pen: number | null; // null when pen === 0 (reserved; display as placeholder)
+  static_uri: string | null;
+}
+
+export interface ConfigResponse {
+  config: UserConfig;
+  run_groups: RunGroupResponse[];
+  csip_aus_versions: CsipAusVersionResponse[];
+}
+
 // GET /api/group/<id>/compliance (server.py build_compliance_json)
 export type ComplianceStatus = 'active' | 'failed' | 'success' | 'runless' | 'unknown';
 

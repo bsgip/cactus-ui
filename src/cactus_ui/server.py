@@ -222,15 +222,6 @@ def api_admin_role_required[F: Callable[..., object]](f: F) -> F:
     return cast(F, decorated)
 
 
-def parse_bool(v: str | None) -> bool:
-    if not v:
-        return False
-
-    if v[0] in ["F", "f", "0"]:
-        return False
-
-    return True
-
 
 def download_playlist_artifacts(access_token: str, run_ids: list[int], download_name: str) -> Response | None:
     """Download artifacts for multiple runs as a single ZIP file.
@@ -856,6 +847,95 @@ def api_delete_run(access_token: str, run_id: int) -> Response | tuple[Response,
     return jsonify({"run_id": run_id})
 
 
+@app.route("/api/config", methods=["GET"])
+@api_login_required
+def api_config(access_token: str) -> Response | tuple[Response, int]:
+    config = orchestrator.fetch_config(access_token)
+    run_groups = orchestrator.fetch_run_groups(access_token, 1)
+    csip_aus_versions = orchestrator.fetch_csip_aus_versions(access_token, 1)
+    if config is None or run_groups is None or csip_aus_versions is None:
+        return jsonify({"error": "Unable to communicate with test server."}), HTTPStatus.BAD_GATEWAY
+    return jsonify(
+        {
+            "config": {
+                "subscription_domain": config.subscription_domain,
+                "is_static_uri": config.is_static_uri,
+                "pen": None if config.pen == 0 else config.pen,
+                "static_uri": config.static_uri,
+            },
+            "run_groups": [rg.to_dict() for rg in run_groups.items],
+            "csip_aus_versions": [v.to_dict() for v in csip_aus_versions.items],
+        }
+    )
+
+
+@app.route("/api/config/pen", methods=["POST"])
+@api_login_required
+def api_config_pen(access_token: str) -> Response | tuple[Response, int]:
+    body = request.get_json(silent=True) or {}
+    try:
+        pen = int(body.get("pen", 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Failed to parse PEN"}), HTTPStatus.BAD_REQUEST
+    if not orchestrator.update_config(access_token, pen=pen):
+        return jsonify({"error": "Failed to update PEN"}), HTTPStatus.BAD_GATEWAY
+    return jsonify({})
+
+
+@app.route("/api/config/domain", methods=["POST"])
+@api_login_required
+def api_config_domain(access_token: str) -> Response | tuple[Response, int]:
+    body = request.get_json(silent=True) or {}
+    domain = body.get("subscription_domain") or ""
+    if not orchestrator.update_config(access_token, subscription_domain=domain):
+        return jsonify({"error": "Failed to update subscription domain"}), HTTPStatus.BAD_GATEWAY
+    return jsonify({})
+
+
+@app.route("/api/config/static_uri", methods=["POST"])
+@api_login_required
+def api_config_static_uri(access_token: str) -> Response | tuple[Response, int]:
+    body = request.get_json(silent=True) or {}
+    is_static_uri = bool(body.get("is_static_uri", False))
+    if not orchestrator.update_config(access_token, is_static_uri=is_static_uri):
+        return jsonify({"error": "Failed to update static URI"}), HTTPStatus.BAD_GATEWAY
+    return jsonify({})
+
+
+@app.route("/api/run_groups", methods=["POST"])
+@api_login_required
+def api_create_run_group(access_token: str) -> Response | tuple[Response, int]:
+    body = request.get_json(silent=True) or {}
+    version = body.get("csip_aus_version")
+    if not version:
+        return jsonify({"error": "csip_aus_version is required."}), HTTPStatus.BAD_REQUEST
+    result = orchestrator.create_run_group(access_token, version)
+    if result is None:
+        return jsonify({"error": "Failed to create run group"}), HTTPStatus.BAD_GATEWAY
+    return jsonify(result.to_dict()), HTTPStatus.CREATED
+
+
+@app.route("/api/run_groups/<int:run_group_id>", methods=["PATCH"])
+@api_login_required
+def api_update_run_group(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    body = request.get_json(silent=True) or {}
+    name = body.get("name")
+    if not name:
+        return jsonify({"error": "name is required."}), HTTPStatus.BAD_REQUEST
+    result = orchestrator.update_run_group(access_token, run_group_id, name)
+    if result is None:
+        return jsonify({"error": "Failed to update name"}), HTTPStatus.BAD_GATEWAY
+    return jsonify(result.to_dict())
+
+
+@app.route("/api/run_groups/<int:run_group_id>", methods=["DELETE"])
+@api_login_required
+def api_delete_run_group(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    if not orchestrator.delete_run_group(access_token, run_group_id):
+        return jsonify({"error": "Failed to delete run group"}), HTTPStatus.BAD_GATEWAY
+    return jsonify({})
+
+
 @app.route("/run/<int:run_id>/artifact", methods=["GET"])
 @login_required
 def run_artifact_download(access_token: str, run_id: int) -> Response:
@@ -901,118 +981,62 @@ def send_zip_file(filename: str, files: dict[str, bytes | None]) -> Response:
     return send_file(zip_buffer, as_attachment=True, download_name=filename, mimetype=mimetype)
 
 
-@app.route("/config", methods=["GET", "POST"])
+@app.route("/config/ca_cert", methods=["GET"])
 @login_required
-def config_page(access_token: str) -> str | Response:  # noqa: C901
-    error = None
+def config_ca_cert(access_token: str) -> Response:
+    download_bytes = orchestrator.download_certificate_authority_cert(access_token)
+    if download_bytes is None:
+        return Response(response="Failed to retrieve SERCA.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain")
+    return send_file(
+        io.BytesIO(download_bytes),
+        as_attachment=True,
+        download_name="cactus-serca.pem",
+        mimetype="application/x-x509-ca-cert",
+    )
 
-    if request.method == "POST":
-        action = request.form.get("action")
-        if action == "downloadcert":
-            run_group_id = int(request.form.get("run_group_id", ""))
-            download_bytes, download_file_name = orchestrator.download_client_cert(access_token, run_group_id)
-            if not download_bytes or not download_file_name:
-                error = "Failed to retrieve certificate for run group."
-            else:
-                return send_file(
-                    io.BytesIO(download_bytes),
-                    "application/x-x509-user-cert",
-                    True,
-                    download_name=download_file_name,
-                )
 
-        elif action == "download-ca":
-            download_bytes = orchestrator.download_certificate_authority_cert(access_token)
-            mimetype = "application/x-x509-ca-cert"
-            download_file_name = "cactus-serca.pem"
-            if download_bytes is None:
-                error = "Failed to retrieve SERCA."
-            else:
-                return send_file(
-                    io.BytesIO(download_bytes),
-                    as_attachment=True,
-                    download_name=download_file_name,
-                    mimetype=mimetype,
-                )
-        elif action == "generatesharedcertificateallrungroups":
-            download_bytes, download_file_name = orchestrator.generate_shared_client_cert(access_token)
-            if not download_bytes or not download_file_name:
-                error = "Failed to generate a shared aggregator certificate for all run groups."
-            else:
-                return send_file(
-                    io.BytesIO(download_bytes),
-                    "application/zip",
-                    True,
-                    download_name=download_file_name,
-                )
+@app.route("/config/run_group/<int:run_group_id>/cert", methods=["GET"])
+@login_required
+def config_download_run_group_cert(access_token: str, run_group_id: int) -> Response:
+    download_bytes, download_file_name = orchestrator.download_client_cert(access_token, run_group_id)
+    if download_bytes is None or download_file_name is None:
+        return Response(response="Failed to retrieve certificate.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain")  # noqa: E501
+    return send_file(
+        io.BytesIO(download_bytes),
+        "application/x-x509-user-cert",
+        True,
+        download_name=download_file_name,
+    )
 
-        elif action == "generatedevice" or action == "generateagg":
-            run_group_id = int(request.form.get("run_group_id", ""))
-            download_bytes, download_file_name = orchestrator.generate_client_cert(
-                access_token, run_group_id, action == "generatedevice"
-            )
-            if not download_bytes or not download_file_name:
-                error = "Failed to generate certificate for run group."
-            else:
-                return send_file(
-                    io.BytesIO(download_bytes),
-                    "application/zip",
-                    True,
-                    download_name=download_file_name,
-                )
 
-        elif action == "setpen":
-            try:
-                pen: int = int(request.form.get("pen", 0))
-                if not orchestrator.update_config(access_token, pen=pen):
-                    error = "Failed to update PEN"
-            except ValueError:
-                error = "Failed to parse PEN"
-        elif action == "setsubscribeddomain":
-            domain = request.form.get("subscription_domain", None)
-            if domain is None:
-                domain = ""
-            if not orchestrator.update_config(access_token, subscription_domain=domain):
-                error = "Failed to update subscription domain"
-        elif action == "setstaticuri":
-            static_uri = parse_bool(request.form.get("static_uri"))
-            if not orchestrator.update_config(access_token, is_static_uri=static_uri):
-                error = "Failed to update static URI"
-        elif action == "updaterungroup":
-            new_name = request.form["name"]
-            run_group_id = int(request.form["run_group_id"])
-            if not orchestrator.update_run_group(access_token, run_group_id, new_name):
-                error = "Failed to update name"
-        elif action == "createrungroup":
-            version = request.form["version"]
-            if not orchestrator.create_run_group(access_token, version):
-                error = "Failed to create run group"
-        elif action == "deleterungroup":
-            run_group_id = int(request.form["run_group_id"])
-            if not orchestrator.delete_run_group(access_token, run_group_id):
-                error = "Failed to delete run group"
+@app.route("/config/run_group/<int:run_group_id>/cert", methods=["POST"])
+@login_required
+def config_generate_run_group_cert(access_token: str, run_group_id: int) -> Response:
+    is_device_cert = request.form.get("type", "device") == "device"
+    download_bytes, download_file_name = orchestrator.generate_client_cert(access_token, run_group_id, is_device_cert)
+    if download_bytes is None or download_file_name is None:
+        return Response(response="Failed to generate certificate.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain")  # noqa: E501
+    return send_file(
+        io.BytesIO(download_bytes),
+        "application/zip",
+        True,
+        download_name=download_file_name,
+    )
 
-    # Fetch after doing any updates so we always render the latest version of the config
-    config = orchestrator.fetch_config(access_token)
-    run_groups = orchestrator.fetch_run_groups(access_token, 1)
-    csip_aus_versions = orchestrator.fetch_csip_aus_versions(access_token, 1)
-    if config is None or run_groups is None or csip_aus_versions is None:
-        return render_template(
-            "config.html",
-            error="Unable to communicate with test server. Please try refreshing the page or re-logging in.",
+
+@app.route("/config/shared_cert", methods=["POST"])
+@login_required
+def config_generate_shared_cert(access_token: str) -> Response:
+    download_bytes, download_file_name = orchestrator.generate_shared_client_cert(access_token)
+    if download_bytes is None or download_file_name is None:
+        return Response(
+            response="Failed to generate shared certificate.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
         )
-
-    return render_template(
-        "config.html",
-        error=error,
-        domain=config.subscription_domain,
-        static_uri=config.is_static_uri,
-        static_uri_example=config.static_uri,
-        run_groups=run_groups.items,
-        csip_aus_versions=csip_aus_versions.items,
-        pen=(
-            "" if config.pen == 0 else config.pen
-        ),  # A PEN of 0 is reserved. Replace with "" to trigger display of placeholder text
+    return send_file(
+        io.BytesIO(download_bytes),
+        "application/zip",
+        True,
+        download_name=download_file_name,
     )
 
 

@@ -43,7 +43,7 @@ export function NavBar({ session }: { session: SessionResponse }) {
               Playlists
             </Anchor>
             <Text c="white">|</Text>
-            <Anchor href="/config" c="white">
+            <Anchor component={Link} to="/config" c="white">
               Config
             </Anchor>
             <Button

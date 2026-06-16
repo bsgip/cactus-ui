@@ -1,5 +1,6 @@
 import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { ConfigPage } from './pages/Config';
 import { HomePage } from './pages/Home/HomePage';
 import { ProceduresPage } from './pages/Procedures/ProceduresPage';
 import { ProcedureYamlPage } from './pages/ProcedureYaml/ProcedureYamlPage';
@@ -20,6 +21,7 @@ export const routes: RouteObject[] = [
       { path: 'admin/group/:runGroupId/runs', element: <RunsPage isAdminView={true} /> },
       { path: 'group/:runGroupId', element: <RunGroupPage isAdminView={false} /> },
       { path: 'admin/group/:runGroupId', element: <RunGroupPage isAdminView={true} /> },
+      { path: 'config', element: <ConfigPage /> },
     ],
   },
 ];
