@@ -1,10 +1,11 @@
-import { Button, Card, Code, Text, Title } from '@mantine/core';
+import { Alert, Button, Card, Code, Text, Title } from '@mantine/core';
 import type { RunStatus } from '../../api/types';
 
 interface Props {
   runId: number;
   runStatus: RunStatus | null;
   runTestUri: string | null;
+  instructions: string[];
   isAdminView: boolean;
   isStarting: boolean;
   isFinalising: boolean;
@@ -19,6 +20,7 @@ export function LiveHeaderCard({
   runId,
   runStatus,
   runTestUri,
+  instructions,
   isAdminView,
   isStarting,
   isFinalising,
@@ -35,14 +37,30 @@ export function LiveHeaderCard({
         <Code style={{ userSelect: 'all' }}>{runTestUri}</Code>
       </Text>
 
-      {runStatus === 'initialised' && (
-        <>
-          <Text mb="sm">This run is currently in the pre-start phase. It can be started at any time.</Text>
-          <Button onClick={onStart} loading={isStarting} disabled={isAdminView}>
-            Start
-          </Button>
-        </>
-      )}
+      {runStatus === 'initialised' &&
+        (instructions.length === 0 ? (
+          <>
+            <Text mb="sm">
+              This run is currently in the pre-start phase. It can be started at any time.
+            </Text>
+            <Button onClick={onStart} loading={isStarting} disabled={isAdminView}>
+              Start
+            </Button>
+          </>
+        ) : (
+          <Alert color="blue">
+            <Text>This run is currently in the pre-start phase.</Text>
+            <Text mb="xs">Please ensure the following before starting the test:</Text>
+            <ul>
+              {instructions.map((i, idx) => (
+                <li key={idx}>{i}</li>
+              ))}
+            </ul>
+            <Button onClick={onStart} loading={isStarting} disabled={isAdminView}>
+              Start
+            </Button>
+          </Alert>
+        ))}
 
       {runStatus === 'started' && (
         <>

@@ -185,6 +185,92 @@ describe('run status playlist banner', () => {
   });
 });
 
+describe('run status live panels', () => {
+  it('renders the general, precondition, criteria, steps, requests and log panels', async () => {
+    renderRunStatus('/run/123');
+
+    // Procedure heading links to the procedure YAML page.
+    expect(await screen.findByRole('link', { name: 'ALL-08' })).toHaveAttribute(
+      'href',
+      '/procedure/ALL-08'
+    );
+    expect(screen.getByText('Test in progress - 1 of 3 steps complete')).toBeInTheDocument();
+    expect(screen.getByText('Precondition Checks')).toBeInTheDocument();
+    expect(screen.getByText('edevice-registered')).toBeInTheDocument();
+    // Synthetic all-xsd-valid criterion (1 of 3 requests failed validation).
+    expect(screen.getByText('all-xsd-valid')).toBeInTheDocument();
+    expect(
+      screen.getByText('1 of 3 request(s) have XSD validation errors')
+    ).toBeInTheDocument();
+    // Steps (POST-DERSTATUS only appears in the steps table) + the Envoy log text.
+    expect(screen.getByText('POST-DERSTATUS')).toBeInTheDocument();
+    expect(screen.getByText(/GET \/edev -> 200/)).toBeInTheDocument();
+  });
+
+  it('opens the request details modal from the requests table', async () => {
+    const user = userEvent.setup();
+    renderRunStatus('/run/123');
+
+    const detailButtons = await screen.findAllByRole('button', { name: 'Details' });
+    await user.click(detailButtons[0]);
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/DERCapability/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/400 Bad Request/)).toBeInTheDocument();
+  });
+
+  it('shows the latest XSD validation error', async () => {
+    renderRunStatus('/run/123');
+    expect(await screen.findByText('Latest XSD Validation Error')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Element 'rtgMaxW': This element is not expected/)
+    ).toBeInTheDocument();
+  });
+
+  it('opens the DER device details modal', async () => {
+    const user = userEvent.setup();
+    renderRunStatus('/run/123');
+
+    await user.click(await screen.findByRole('button', { name: 'Device Details' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('DER Capability')).toBeInTheDocument();
+    expect(within(dialog).getByText('COMBINED_PV_AND_STORAGE')).toBeInTheDocument();
+  });
+
+  it('sends a proceed signal for a step blocked on proceed', async () => {
+    const proceeded = vi.fn();
+    server.use(
+      http.post('/api/runs/:runId/proceed', ({ params }) => {
+        proceeded(Number(params.runId));
+        return HttpResponse.json({ handled: true });
+      })
+    );
+    const user = userEvent.setup();
+    renderRunStatus('/run/123');
+
+    await user.click(await screen.findByRole('button', { name: /Proceed to next step/ }));
+    await waitFor(() => expect(proceeded).toHaveBeenCalledWith(123));
+  });
+
+  it('shows the active step in the bottom status banner', async () => {
+    renderRunStatus('/run/123');
+    expect(await screen.findByText('Step 2: POST-DERSETTINGS')).toBeInTheDocument();
+  });
+
+  it('enriches the initialised header card with pre-start instructions', async () => {
+    useShell({ ...shellLive, run_status: 'initialised' });
+    renderRunStatus('/run/123');
+
+    expect(
+      await screen.findByText('Please ensure the following before starting the test:')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Confirm the inverter is exporting before proceeding')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled();
+  });
+});
+
 beforeEach(() => {
   vi.stubGlobal('scrollTo', vi.fn());
 });

@@ -414,7 +414,8 @@ export interface RunnerStatus {
   csip_aus_version: string;
   log_envoy: string;
   criteria: CriteriaEntry[];
-  precondition_checks: CriteriaEntry[];
+  // Older runners (v1.3) may omit this; the precondition card is hidden when absent.
+  precondition_checks: CriteriaEntry[] | null;
   instructions: string[] | null;
   test_procedure_name: string;
   step_status: Record<string, StepEventStatus> | null;

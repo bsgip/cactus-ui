@@ -1,9 +1,10 @@
-import { Stack } from '@mantine/core';
+import { Center, Loader, Stack } from '@mantine/core';
 import { useDocumentTitle } from '@mantine/hooks';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { fetchRunStatusShell } from '../../api/runStatus';
+import { ApiError } from '../../api/client';
+import { fetchRunnerStatus, fetchRunStatusShell } from '../../api/runStatus';
 import { finalisePlaylist } from '../../api/playlists';
 import { finaliseRun, startRun } from '../../api/runs';
 import { Banner } from '../../components/Banner';
@@ -12,8 +13,12 @@ import { PageSpinner } from '../../components/PageSpinner';
 import { useSession } from '../../hooks/useSession';
 import { FinalisedView } from './FinalisedView';
 import { LiveHeaderCard } from './LiveHeaderCard';
+import { LiveStatusPanels } from './LiveStatusPanels';
 import { NotYetActiveAlert } from './NotYetActiveAlert';
 import { PlaylistBanner } from './PlaylistBanner';
+import { StatusBanner } from './StatusBanner';
+
+const POLL_INTERVAL_MS = 10_000;
 
 // Port of run_status.html / run_status_page + admin_run_status_page. One component for
 // both views: isAdminView selects /api vs /api/admin paths and gates the lifecycle
@@ -37,6 +42,28 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
 
   const invalidateShell = () =>
     queryClient.invalidateQueries({ queryKey: ['run_status_shell', runId, isAdminView] });
+
+  // Polled RunnerStatus, only while the run is live. Stops polling once the runner is gone
+  // (410), mirroring the old page's "reload on HTTP GONE" behaviour.
+  const statusQuery = useQuery({
+    queryKey: ['run_status_runner', runId, isAdminView],
+    queryFn: () => fetchRunnerStatus(runId, isAdminView),
+    enabled: shellQuery.data?.run_is_live === true,
+    retry: false,
+    refetchInterval: (query) =>
+      query.state.error instanceof ApiError && query.state.error.status === 410
+        ? false
+        : POLL_INTERVAL_MS,
+  });
+
+  // When the runner terminates (410) the run has finalised — refetch the shell so the page
+  // flips to the finalised view.
+  const statusError = statusQuery.error;
+  useEffect(() => {
+    if (statusError instanceof ApiError && statusError.status === 410) {
+      void queryClient.invalidateQueries({ queryKey: ['run_status_shell', runId, isAdminView] });
+    }
+  }, [statusError, queryClient, runId, isAdminView]);
 
   const onActionError = (error: Error) => setActionError(error.message);
 
@@ -108,18 +135,40 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
       )}
 
       {shell.run_is_live ? (
-        <LiveHeaderCard
-          runId={shell.run_id}
-          runStatus={shell.run_status}
-          runTestUri={shell.run_test_uri}
-          isAdminView={isAdminView}
-          isStarting={startMutation.isPending}
-          isFinalising={finaliseMutation.isPending}
-          onStart={() => startMutation.mutate()}
-          onFinalise={() => finaliseMutation.mutate()}
-        />
+        <>
+          <LiveHeaderCard
+            runId={shell.run_id}
+            runStatus={shell.run_status}
+            runTestUri={shell.run_test_uri}
+            instructions={statusQuery.data?.instructions ?? []}
+            isAdminView={isAdminView}
+            isStarting={startMutation.isPending}
+            isFinalising={finaliseMutation.isPending}
+            onStart={() => startMutation.mutate()}
+            onFinalise={() => finaliseMutation.mutate()}
+          />
+
+          {statusQuery.data ? (
+            <LiveStatusPanels
+              status={statusQuery.data}
+              runId={shell.run_id}
+              runStatus={shell.run_status}
+              runProcedureId={shell.run_procedure_id}
+              isAdminView={isAdminView}
+            />
+          ) : statusError && !(statusError instanceof ApiError && statusError.status === 410) ? (
+            <ErrorAlert message="Failed to retrieve current status." />
+          ) : (
+            <Center py="xl">
+              <Loader color="green" />
+            </Center>
+          )}
+
+          {/* Spacer so the fixed bottom banner never overlaps the last card. */}
+          <div style={{ height: 60 }} />
+          <StatusBanner stepStatus={statusQuery.data?.step_status ?? null} />
+        </>
       ) : (
-        /* Non-live view; live status panels and charts follow in 9c/9d. */
         <FinalisedView
           shell={shell}
           supportEmail={session?.support_email}
