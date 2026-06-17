@@ -343,21 +343,19 @@ def api_session() -> Response | tuple[Response, int]:
 
 
 
-@app.route("/admin/stats")
-@login_required
-@admin_role_required
-def admin_stats_page(access_token: str) -> str:
+@app.route("/api/admin/stats", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_stats(access_token: str) -> Response | tuple[Response, int]:
     stats = orchestrator.admin_fetch_stats(access_token)
     if stats is None:
-        return render_template("admin_stats.html", error="Failed to retrieve stats.")
+        return jsonify({"error": "Failed to retrieve stats."}), HTTPStatus.BAD_GATEWAY
 
-    # Convert runs_per_user dict to sorted leaderboard list for the template
     user_leaderboard = [
         {"name": name, "run_count": count}
         for name, count in sorted(stats.runs_per_user.items(), key=lambda x: x[1], reverse=True)
     ]
 
-    # Build weekly bars; x-axis label shows month only when it changes
     week_bars: list[dict] = []
     last_month: str | None = None
     last_year: str | None = None
@@ -382,21 +380,21 @@ def admin_stats_page(access_token: str) -> str:
         last_month = month_key
         last_year = year_display
 
-    # Sort procedures by total_runs descending (all procedures are returned, not just top 20)
     procedures = sorted(stats.procedures, key=lambda p: p.get("total_runs", 0), reverse=True)
 
-    return render_template(
-        "admin_stats.html",
-        total_users=stats.total_users,
-        total_run_groups=stats.total_run_groups,
-        total_runs=stats.total_runs,
-        total_passed=stats.total_passed,
-        total_failed=stats.total_failed,
-        version_counts=stats.version_counts,
-        user_leaderboard=user_leaderboard,
-        procedures=procedures,
-        max_run_number=stats.max_run_id,
-        runs_per_week=week_bars,
+    return jsonify(
+        {
+            "total_users": stats.total_users,
+            "total_run_groups": stats.total_run_groups,
+            "total_runs": stats.total_runs,
+            "total_passed": stats.total_passed,
+            "total_failed": stats.total_failed,
+            "max_run_number": stats.max_run_id,
+            "version_counts": stats.version_counts,
+            "user_leaderboard": user_leaderboard,
+            "procedures": procedures,
+            "runs_per_week": week_bars,
+        }
     )
 
 

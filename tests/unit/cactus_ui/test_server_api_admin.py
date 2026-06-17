@@ -88,3 +88,94 @@ def test_api_admin_users_success(client, monkeypatch):
     assert u2["name"] is None
     assert u2["run_groups"] == []
     assert u2["matchable_description"] == "2"
+
+
+# /api/admin/stats
+
+
+def test_api_admin_stats_unauthenticated(client):
+    assert client.get("/api/admin/stats").status_code == HTTPStatus.UNAUTHORIZED
+
+
+def test_api_admin_stats_forbidden(client):
+    login(client, permissions=["user:all"])
+
+    assert client.get("/api/admin/stats").status_code == HTTPStatus.FORBIDDEN
+
+
+def test_api_admin_stats_fetch_error(client, monkeypatch):
+    login(client)
+    monkeypatch.setattr(server.orchestrator, "admin_fetch_stats", lambda *a, **kw: None)
+
+    response = client.get("/api/admin/stats")
+
+    assert response.status_code == HTTPStatus.BAD_GATEWAY
+
+
+def test_api_admin_stats_success(client, monkeypatch):
+    login(client)
+    stats = generate_class_instance(
+        schema.AdminStatsResponse,
+        total_runs=40,
+        max_run_id=45,
+        total_passed=25,
+        total_failed=10,
+        total_users=5,
+        total_run_groups=3,
+        version_counts={"2.0": 2, "1.0": 1},
+        runs_per_week={"2026-W02": 3, "2026-W03": 5},
+        runs_per_user={"Alice": 20, "Bob": 15, "Charlie": 5},
+        procedures=[
+            {
+                "test_procedure_id": "S-ALL-01",
+                "classes": ["DER-A"],
+                "total_runs": 10,
+                "passed": 8,
+                "failed": 2,
+                "latest_passed": 3,
+                "latest_failed": 1,
+            },
+            {
+                "test_procedure_id": "S-ALL-02",
+                "classes": [],
+                "total_runs": 5,
+                "passed": 4,
+                "failed": 1,
+                "latest_passed": 2,
+                "latest_failed": 0,
+            },
+        ],
+    )
+    monkeypatch.setattr(server.orchestrator, "admin_fetch_stats", lambda *a, **kw: stats)
+
+    response = client.get("/api/admin/stats")
+
+    assert response.status_code == HTTPStatus.OK
+    data = response.get_json()
+    assert data["total_users"] == 5
+    assert data["total_run_groups"] == 3
+    assert data["total_runs"] == 40
+    assert data["total_passed"] == 25
+    assert data["total_failed"] == 10
+    assert data["max_run_number"] == 45
+    assert data["version_counts"] == {"2.0": 2, "1.0": 1}
+
+    # leaderboard should be sorted descending by run_count
+    assert data["user_leaderboard"][0] == {"name": "Alice", "run_count": 20}
+    assert data["user_leaderboard"][1] == {"name": "Bob", "run_count": 15}
+    assert data["user_leaderboard"][2] == {"name": "Charlie", "run_count": 5}
+
+    # procedures sorted descending by total_runs
+    assert data["procedures"][0]["test_procedure_id"] == "S-ALL-01"
+    assert data["procedures"][1]["test_procedure_id"] == "S-ALL-02"
+
+    # runs_per_week is a list of bar dicts with month/year labels
+    assert isinstance(data["runs_per_week"], list)
+    assert len(data["runs_per_week"]) == 2
+    assert all("month" in b and "year" in b and "count" in b for b in data["runs_per_week"])
+    # Both weeks in same month → second bar suppresses month/year
+    assert data["runs_per_week"][0]["count"] == 3
+    assert data["runs_per_week"][0]["month"] != ""  # first bar always has month
+    assert data["runs_per_week"][1]["count"] == 5
+    assert data["runs_per_week"][1]["month"] == ""  # same month → suppressed
+    assert data["runs_per_week"][1]["year"] == ""

@@ -1,0 +1,75 @@
+{
+  "total_users": 12,
+  "total_run_groups": 8,
+  "total_runs": 47,
+  "total_passed": 31,
+  "total_failed": 9,
+  "max_run_number": 52,
+  "version_counts": {
+    "2.0": 6,
+    "1.0": 2
+  },
+  "user_leaderboard": [
+    { "name": "Alice Example", "run_count": 20 },
+    { "name": "Bob Test", "run_count": 15 },
+    { "name": "Charlie Dev", "run_count": 8 },
+    { "name": "Diana QA", "run_count": 4 }
+  ],
+  "procedures": [
+    {
+      "test_procedure_id": "S-ALL-01",
+      "classes": ["DER-A"],
+      "total_runs": 15,
+      "passed": 10,
+      "failed": 5,
+      "latest_passed": 5,
+      "latest_failed": 2
+    },
+    {
+      "test_procedure_id": "S-ALL-02",
+      "classes": ["DER-A", "DER-G"],
+      "total_runs": 12,
+      "passed": 8,
+      "failed": 4,
+      "latest_passed": 3,
+      "latest_failed": 1
+    },
+    {
+      "test_procedure_id": "S-ALL-04",
+      "classes": [],
+      "total_runs": 8,
+      "passed": 7,
+      "failed": 1,
+      "latest_passed": 4,
+      "latest_failed": 0
+    },
+    {
+      "test_procedure_id": "C-PV-01",
+      "classes": ["DER-G"],
+      "total_runs": 5,
+      "passed": 2,
+      "failed": 3,
+      "latest_passed": 2,
+      "latest_failed": 3
+    },
+    {
+      "test_procedure_id": "C-BESS-01",
+      "classes": ["DER-A"],
+      "total_runs": 3,
+      "passed": 2,
+      "failed": 1,
+      "latest_passed": 1,
+      "latest_failed": 0
+    }
+  ],
+  "runs_per_week": [
+    { "month": "Jan", "year": "2026", "count": 3 },
+    { "month": "", "year": "", "count": 5 },
+    { "month": "", "year": "", "count": 2 },
+    { "month": "", "year": "", "count": 7 },
+    { "month": "Feb", "year": "2026", "count": 4 },
+    { "month": "", "year": "", "count": 6 },
+    { "month": "", "year": "", "count": 8 },
+    { "month": "", "year": "", "count": 5 }
+  ]
+}

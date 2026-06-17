@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import activeRunsFixture from '../../fixtures/active_runs.json';
+import adminStatsFixture from '../../fixtures/admin_stats.json';
 import adminUsersFixture from '../../fixtures/admin_users.json';
 import complianceFixture from '../../fixtures/compliance.json';
 import configFixture from '../../fixtures/config.json';
@@ -27,6 +28,7 @@ export const handlers = [
   ),
   http.get('/api/run_groups', () => HttpResponse.json(runGroupsFixture)),
   http.get('/api/admin/users', () => HttpResponse.json(adminUsersFixture)),
+  http.get('/api/admin/stats', () => HttpResponse.json(adminStatsFixture)),
   http.get('/api/admin/run_groups', () => HttpResponse.json(runGroupsFixture)),
   http.get('/api/group/:runGroupId/procedure_summaries', () =>
     HttpResponse.json(procedureSummariesFixture)

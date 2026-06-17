@@ -177,3 +177,38 @@ export interface ComplianceClassEntry {
 export interface ComplianceResponse {
   compliance_by_class: ComplianceClassEntry[];
 }
+
+// GET /api/admin/stats
+export interface WeekBar {
+  month: string;
+  year: string;
+  count: number;
+}
+
+export interface ProcedureStat {
+  test_procedure_id: string;
+  classes: string[] | null;
+  total_runs: number;
+  passed: number;
+  failed: number;
+  latest_passed: number;
+  latest_failed: number;
+}
+
+export interface UserLeaderboardEntry {
+  name: string;
+  run_count: number;
+}
+
+export interface AdminStatsResponse {
+  total_users: number;
+  total_run_groups: number;
+  total_runs: number;
+  total_passed: number;
+  total_failed: number;
+  max_run_number: number;
+  version_counts: Record<string, number>;
+  user_leaderboard: UserLeaderboardEntry[];
+  procedures: ProcedureStat[];
+  runs_per_week: WeekBar[];
+}

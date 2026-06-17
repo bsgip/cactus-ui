@@ -25,7 +25,7 @@ export function NavBar({ session }: { session: SessionResponse }) {
                   Admin
                 </Anchor>
                 <Text c="white">|</Text>
-                <Anchor href="/admin/stats" c="white">
+                <Anchor component={Link} to="/admin/stats" c="white">
                   Stats
                 </Anchor>
                 <Text c="white">|</Text>
