@@ -43,7 +43,7 @@ def test_api_run_status_unauthenticated(client):
 
 def test_api_run_status_live_run(client, monkeypatch):
     login(client)
-    run = make_run(status=schema.RunStatusResponse.started, classes=["DER-A"])
+    run = make_run(status=schema.RunStatusResponse.started, test_procedure_id="ALL-08")
     monkeypatch.setattr(server.orchestrator, "fetch_run_status", lambda access_token, run_id: '{"status_summary": "x"}')
     monkeypatch.setattr(server.orchestrator, "fetch_individual_run", lambda access_token, run_id: run)
 
@@ -56,10 +56,20 @@ def test_api_run_status_live_run(client, monkeypatch):
     assert body["run_status"] == "started"
     assert body["run_test_uri"] == run.test_url
     assert body["run_procedure_id"] == run.test_procedure_id
-    assert body["is_witness_test"] is True
+    # ALL-08 is not an immediate_start procedure, so the Active Power Chart is shown.
+    assert body["is_immediate_start"] is False
     assert body["playlist_info"] is None
     assert body["next_playlist_run_id"] is None
     assert body["current_active_run"] is None
+
+
+def test_api_run_status_immediate_start_procedure(client, monkeypatch):
+    login(client)
+    run = make_run(status=schema.RunStatusResponse.finalised, test_procedure_id="ALL-01")
+    monkeypatch.setattr(server.orchestrator, "fetch_run_status", lambda access_token, run_id: None)
+    monkeypatch.setattr(server.orchestrator, "fetch_individual_run", lambda access_token, run_id: run)
+
+    assert client.get("/api/run/1").get_json()["is_immediate_start"] is True
 
 
 def test_api_run_status_not_found(client, monkeypatch):
@@ -74,7 +84,7 @@ def test_api_run_status_not_found(client, monkeypatch):
     assert body["run_is_live"] is False
     assert body["run_status"] is None
     assert body["run_has_artifacts"] is None
-    assert body["is_witness_test"] is False
+    assert body["is_immediate_start"] is False
 
 
 def test_api_run_status_finalised_not_live(client, monkeypatch):

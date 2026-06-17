@@ -506,14 +506,16 @@ def main() -> None:
             "run_is_live": True,
             "run_status": "started",
             "run_test_uri": "https://cactus.example/run/123",
-            "run_procedure_id": "ALL-01",
+            "run_procedure_id": "ALL-08",
             "run_has_artifacts": False,
-            "is_witness_test": False,
+            "is_immediate_start": False,
             "playlist_info": None,
             "next_playlist_run_id": None,
             "current_active_run": None,
         },
     )
+    # ALL-08 is not an immediate_start procedure, so the finalised view shows the Active
+    # Power Chart. (Use an immediate_start id like ALL-01 to exercise the hidden case.)
     write(
         "run_status_shell_finalised.json",
         {
@@ -521,9 +523,9 @@ def main() -> None:
             "run_is_live": False,
             "run_status": "finalised",
             "run_test_uri": "https://cactus.example/run/120",
-            "run_procedure_id": "ALL-01",
+            "run_procedure_id": "ALL-08",
             "run_has_artifacts": True,
-            "is_witness_test": False,
+            "is_immediate_start": False,
             "playlist_info": None,
             "next_playlist_run_id": None,
             "current_active_run": None,
@@ -538,7 +540,7 @@ def main() -> None:
             "run_test_uri": "https://cactus.example/run/202",
             "run_procedure_id": "ALL-02",
             "run_has_artifacts": False,
-            "is_witness_test": False,
+            "is_immediate_start": True,
             "playlist_info": {
                 "name": "Smoke Test Playlist",
                 "started_at": "2026-06-17T04:58:00+00:00",

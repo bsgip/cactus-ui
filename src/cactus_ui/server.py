@@ -51,6 +51,27 @@ else:
 logger = logging.getLogger(__name__)
 
 _WITNESS_CLASSES = frozenset({"DER-A", "DER-G", "DER-L", "DR-D", "DR-G", "DR-L"})
+# Test procedures with `immediate_start: true` - these have no init phase and so no meaningful
+# active-power timeline, so the run status page hides the Active Power Chart for them.
+# INTERIM: hardcoded mirror of the cactus-test-definitions client procedures (same spirit as
+# _WITNESS_CLASSES above). The clean fix is an additive `immediate_start` field on the
+# orchestrator's RunResponse; swap is_immediate_start() to read that when it lands.
+_IMMEDIATE_START_PROCEDURE_IDS = frozenset(
+    {
+        "ALL-01",
+        "ALL-02",
+        "ALL-03",
+        "ALL-03-REJ",
+        "ALL-04",
+        "ALL-05",
+        "ALL-06",
+        "ALL-09",
+        "ALL-14",
+        "DRA-01",
+        "MUL-03",
+        "STO-02",
+    }
+)
 # Integer status codes used by TestProcedureRunSummaryResponse.latest_run_status (not a RunStatusResponse enum)
 _ACTIVE_RUN_STATUS_INTS = [1, 2, 6]  # initialised, started, provisioning
 _FINALIZED_RUN_STATUS_INTS = [3, 4]  # finalised by user, finalised by timeout
@@ -62,6 +83,10 @@ _ACTIVE_RUN_STATUSES = frozenset(
 
 def is_witness_test(run_response: schema.RunResponse | None) -> bool:
     return bool(_WITNESS_CLASSES & set(run_response.classes or [])) if run_response else False
+
+
+def is_immediate_start(run_response: schema.RunResponse | None) -> bool:
+    return bool(run_response and run_response.test_procedure_id in _IMMEDIATE_START_PROCEDURE_IDS)
 
 
 ENV_FILE = find_dotenv()
@@ -1420,7 +1445,7 @@ def _build_run_status_shell(access_token: str, run_id: str, admin: bool) -> dict
         "run_test_uri": run_response.test_url if run_response else None,
         "run_procedure_id": run_response.test_procedure_id if run_response else None,
         "run_has_artifacts": run_response.has_artifacts if run_response else None,
-        "is_witness_test": is_witness_test(run_response),
+        "is_immediate_start": is_immediate_start(run_response),
         "playlist_info": playlist_info,
         "next_playlist_run_id": next_playlist_run_id,
         "current_active_run": current_active_run,

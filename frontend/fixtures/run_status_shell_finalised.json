@@ -3,9 +3,9 @@
   "run_is_live": false,
   "run_status": "finalised",
   "run_test_uri": "https://cactus.example/run/120",
-  "run_procedure_id": "ALL-01",
+  "run_procedure_id": "ALL-08",
   "run_has_artifacts": true,
-  "is_witness_test": false,
+  "is_immediate_start": false,
   "playlist_info": null,
   "next_playlist_run_id": null,
   "current_active_run": null

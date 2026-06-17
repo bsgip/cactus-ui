@@ -283,7 +283,9 @@ export interface RunStatusShell {
   run_test_uri: string | null;
   run_procedure_id: string | null;
   run_has_artifacts: boolean | null;
-  is_witness_test: boolean;
+  // True for immediate_start procedures (no init phase / power timeline) — the finalised
+  // view hides the Active Power Chart when set. See server.py _IMMEDIATE_START_PROCEDURE_IDS.
+  is_immediate_start: boolean;
   playlist_info: RunStatusPlaylistInfo | null;
   next_playlist_run_id: number | null;
   current_active_run: CurrentActiveRun | null;

@@ -5,7 +5,7 @@
   "run_test_uri": "https://cactus.example/run/202",
   "run_procedure_id": "ALL-02",
   "run_has_artifacts": false,
-  "is_witness_test": false,
+  "is_immediate_start": true,
   "playlist_info": {
     "name": "Smoke Test Playlist",
     "started_at": "2026-06-17T04:58:00+00:00",
