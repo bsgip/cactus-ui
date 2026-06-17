@@ -1393,6 +1393,101 @@ def admin_send_proceed(access_token: str, run_id: str) -> Response:
     )
 
 
+# Run status page (React) JSON endpoints. The page shell (metadata + playlist context)
+# is one endpoint; the polled RunnerStatus, request details, and proceed are separate.
+def _build_run_status_shell(access_token: str, run_id: str, admin: bool) -> dict:
+    """Assemble the run status page shell: run metadata + playlist context.
+
+    Mirrors the non-status context the old run_status.html template received. The polled
+    RunnerStatus is fetched separately by /api/run/<id>/status; there is no base64 blob.
+    """
+    fetch_status = orchestrator.admin_fetch_run_status if admin else orchestrator.fetch_run_status
+    fetch_run = orchestrator.admin_fetch_individual_run if admin else orchestrator.fetch_individual_run
+
+    status = fetch_status(access_token=access_token, run_id=run_id)
+    run_response = fetch_run(access_token, run_id)
+
+    run_is_live = status is not None or (run_response is not None and run_response.status in _ACTIVE_RUN_STATUSES)
+
+    playlist_info, next_playlist_run_id, current_active_run = (
+        _build_playlist_info(access_token, run_response, admin=admin) if run_response else (None, None, None)
+    )
+
+    return {
+        "run_id": run_id,
+        "run_is_live": run_is_live,
+        "run_status": run_response.status.value if run_response else None,
+        "run_test_uri": run_response.test_url if run_response else None,
+        "run_procedure_id": run_response.test_procedure_id if run_response else None,
+        "run_has_artifacts": run_response.has_artifacts if run_response else None,
+        "is_witness_test": is_witness_test(run_response),
+        "playlist_info": playlist_info,
+        "next_playlist_run_id": next_playlist_run_id,
+        "current_active_run": current_active_run,
+    }
+
+
+@app.route("/api/run/<int:run_id>", methods=["GET"])
+@api_login_required
+def api_run_status(access_token: str, run_id: str) -> Response:
+    return jsonify(_build_run_status_shell(access_token, run_id, admin=False))
+
+
+@app.route("/api/admin/run/<int:run_id>", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_run_status(access_token: str, run_id: str) -> Response:
+    return jsonify(_build_run_status_shell(access_token, run_id, admin=True))
+
+
+@app.route("/api/run/<int:run_id>/status", methods=["GET"])
+@api_login_required
+def api_run_status_json(access_token: str, run_id: str) -> Response | tuple[Response, int]:
+    status = orchestrator.fetch_run_status(access_token=access_token, run_id=run_id)
+    if status is None:
+        return jsonify({"error": "Run status unavailable. The test runner has likely terminated."}), HTTPStatus.GONE
+    return Response(response=status, status=HTTPStatus.OK, mimetype="application/json")
+
+
+@app.route("/api/admin/run/<int:run_id>/status", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_run_status_json(access_token: str, run_id: str) -> Response | tuple[Response, int]:
+    status = orchestrator.admin_fetch_run_status(access_token=access_token, run_id=run_id)
+    if status is None:
+        return jsonify({"error": "Run status unavailable. The test runner has likely terminated."}), HTTPStatus.GONE
+    return Response(response=status, status=HTTPStatus.OK, mimetype="application/json")
+
+
+@app.route("/api/run/<int:run_id>/requests/<int:request_id>", methods=["GET"])
+@api_login_required
+def api_run_request_details(access_token: str, run_id: str, request_id: int) -> Response | tuple[Response, int]:
+    """Raw request/response for the request-details modal. Shared by user and admin views."""
+    request_data = orchestrator.fetch_request_details(access_token=access_token, request_id=request_id, run_id=run_id)
+    if request_data is None:
+        return jsonify({"error": "Request details not found"}), HTTPStatus.NOT_FOUND
+    return Response(response=request_data, status=HTTPStatus.OK, mimetype="application/json")
+
+
+@app.route("/api/runs/<int:run_id>/proceed", methods=["POST"])
+@api_login_required
+def api_send_proceed(access_token: str, run_id: str) -> Response | tuple[Response, int]:
+    proceed_response = orchestrator.send_proceed(access_token=access_token, run_id=run_id)
+    if proceed_response is None:
+        return jsonify({"error": "Failed to proceed to next step"}), HTTPStatus.BAD_GATEWAY
+    return Response(response=proceed_response.to_json(), status=HTTPStatus.OK, mimetype="application/json")
+
+
+@app.route("/api/admin/runs/<int:run_id>/proceed", methods=["POST"])
+@api_login_required
+@api_admin_role_required
+def api_admin_send_proceed(access_token: str, run_id: str) -> Response | tuple[Response, int]:
+    proceed_response = orchestrator.admin_send_proceed(access_token=access_token, run_id=run_id)
+    if proceed_response is None:
+        return jsonify({"error": "Failed to proceed to next step"}), HTTPStatus.BAD_GATEWAY
+    return Response(response=proceed_response.to_json(), status=HTTPStatus.OK, mimetype="application/json")
+
+
 @app.route("/callback", methods=["GET", "POST"])
 def callback() -> Response:
     token = oauth.auth0.authorize_access_token()

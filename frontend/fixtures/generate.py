@@ -21,7 +21,10 @@ os.environ.setdefault("CACTUS_PLATFORM_VERSION", "fixture-generation")
 os.environ.setdefault("CACTUS_PLATFORM_SUPPORT_EMAIL", "fixtures@example.com")
 os.environ.setdefault("APP_SECRET_KEY", "fixture-generation")
 
+import dataclasses  # noqa: E402
+
 import cactus_schema.orchestrator as schema  # noqa: E402
+import cactus_schema.runner.schema as runner_schema  # noqa: E402
 from cactus_schema.orchestrator.compliance import fetch_compliance_classes  # noqa: E402
 from cactus_test_definitions.client import get_all_test_procedures, get_yaml_contents  # noqa: E402
 
@@ -68,6 +71,47 @@ def write(name: str, data: dict) -> None:
         json.dump(data, f, indent=2)
         f.write("\n")
     print(f"wrote {name}")
+
+
+def check_keys(label: str, data: dict, dc: type) -> None:
+    """Guard hand-built fixtures against schema drift: the dict's keys must exactly match
+    the dataclass field names (FastAPI serialises these dataclasses with their native
+    snake_case field names, which is the wire format the UI consumes)."""
+    expected = {f.name for f in dataclasses.fields(dc)}
+    actual = set(data)
+    if actual != expected:
+        raise SystemExit(
+            f"{label}: key drift vs {dc.__name__}: "
+            f"missing={sorted(expected - actual)} unexpected={sorted(actual - expected)}"
+        )
+
+
+def check_runner_status(label: str, status: dict) -> None:
+    """Validate a hand-built RunnerStatus fixture (and its key nested shapes) against the
+    cactus_schema.runner.schema dataclasses."""
+    r = runner_schema
+    check_keys(label, status, r.RunnerStatus)
+    check_keys(f"{label}.last_client_interaction", status["last_client_interaction"], r.ClientInteraction)
+    for c in status["criteria"]:
+        check_keys(f"{label}.criteria[]", c, r.CriteriaEntry)
+    for c in status["precondition_checks"]:
+        check_keys(f"{label}.precondition_checks[]", c, r.PreconditionCheckEntry)
+    for entry in (status["step_status"] or {}).values():
+        check_keys(f"{label}.step_status[]", entry, r.StepEventStatus)
+    for req in status["request_history"]:
+        check_keys(f"{label}.request_history[]", req, r.RequestEntry)
+    if status["timeline"] is not None:
+        check_keys(f"{label}.timeline", status["timeline"], r.TimelineStatus)
+        for ds in status["timeline"]["data_streams"]:
+            check_keys(f"{label}.timeline.data_streams[]", ds, r.TimelineDataStreamEntry)
+            for point in ds["data"]:
+                check_keys(f"{label}.timeline.data_streams[].data[]", point, r.DataStreamPoint)
+    edm = status["end_device_metadata"]
+    if edm is not None:
+        check_keys(f"{label}.end_device_metadata", edm, r.EndDeviceMetadata)
+        check_keys(f"{label}.der_capability", edm["der_capability"], r.DERCapabilityInfo)
+        check_keys(f"{label}.der_settings", edm["der_settings"], r.DERSettingsInfo)
+        check_keys(f"{label}.der_status", edm["der_status"], r.DERStatusInfo)
 
 
 def single_page(items: list) -> dict:
@@ -273,6 +317,277 @@ def main() -> None:
                 "is_active": False,
             },
         ],
+    )
+
+    # --- Run status page (run_status.html port) fixtures ---------------------------------
+
+    # run_status_runner.json - a rich "started" RunnerStatus exercising every live panel:
+    # requests (incl. an XSD error + an Unmatched one), steps (resolved/active-proceed/
+    # pending), criteria, precondition checks, timeline data, and full DER metadata.
+    runner_started = {
+        "timestamp_status": "2026-06-17T05:03:00+00:00",
+        "timestamp_initialise": "2026-06-17T04:58:00+00:00",
+        "timestamp_start": "2026-06-17T05:00:00+00:00",
+        "status_summary": "Test in progress - 1 of 3 steps complete",
+        "last_client_interaction": {
+            "interaction_type": "Request Proxied",
+            "timestamp": "2026-06-17T05:02:55+00:00",
+        },
+        "csip_aus_version": "v1.2",
+        "log_envoy": (
+            "2026-06-17 05:00:10 INFO envoy GET /edev -> 200\n"
+            "2026-06-17 05:01:30 WARN envoy PUT /edev/1/ders/1/dercap -> 400 (schema invalid)\n"
+            "2026-06-17 05:02:55 INFO envoy PUT /edev/1/ders/1/ders -> 204"
+        ),
+        "criteria": [
+            {"success": True, "type": "response-contains-edev", "details": "EndDevice was registered"},
+            {"success": False, "type": "der-settings-updated", "details": "Awaiting DERSettings update"},
+        ],
+        "precondition_checks": [
+            {"success": True, "type": "edevice-registered", "details": "EndDevice 1 registered"},
+            {"success": True, "type": "der-present", "details": "DER discovered on the EndDevice"},
+        ],
+        "instructions": [
+            "Ensure the device is powered on and connected to the utility server",
+            "Confirm the inverter is exporting before proceeding",
+        ],
+        "test_procedure_name": "ALL-01",
+        "step_status": {
+            "GET-EDEV": {
+                "started_at": "2026-06-17T05:00:05+00:00",
+                "completed_at": "2026-06-17T05:00:20+00:00",
+                "event_status": None,
+            },
+            "POST-DERSETTINGS": {
+                "started_at": "2026-06-17T05:00:25+00:00",
+                "completed_at": None,
+                "event_status": "Waiting on signal to proceed",
+            },
+            "POST-DERSTATUS": {"started_at": None, "completed_at": None, "event_status": None},
+        },
+        "request_history": [
+            {
+                "url": "https://cactus.example/edev",
+                "path": "/edev",
+                "method": "GET",
+                "status": 200,
+                "timestamp": "2026-06-17T05:00:10+00:00",
+                "step_name": "GET-EDEV",
+                "body_xml_errors": [],
+                "request_id": 1,
+            },
+            {
+                "url": "https://cactus.example/edev/1/ders/1/dercap",
+                "path": "/edev/1/ders/1/dercap",
+                "method": "PUT",
+                "status": 400,
+                "timestamp": "2026-06-17T05:01:30+00:00",
+                "step_name": "POST-DERSETTINGS",
+                "body_xml_errors": ["Element 'rtgMaxW': This element is not expected. Expected is ( rtgMaxVA )."],
+                "request_id": 2,
+            },
+            {
+                "url": "https://cactus.example/edev/1/ders/1/ders",
+                "path": "/edev/1/ders/1/ders",
+                "method": "PUT",
+                "status": 204,
+                "timestamp": "2026-06-17T05:02:55+00:00",
+                "step_name": "Unmatched",
+                "body_xml_errors": [],
+                "request_id": 3,
+            },
+        ],
+        "timeline": {
+            "data_streams": [
+                {
+                    "label": "Active Power",
+                    "data": [
+                        {"watts": 0, "offset": "0s"},
+                        {"watts": 1500, "offset": "0m20s"},
+                        {"watts": 3200, "offset": "0m40s"},
+                        {"watts": 3200, "offset": "1m0s"},
+                    ],
+                    "stepped": False,
+                    "dashed": False,
+                },
+                {
+                    "label": "Limit",
+                    "data": [{"watts": 5000, "offset": "0s"}, {"watts": 5000, "offset": "1m0s"}],
+                    "stepped": True,
+                    "dashed": True,
+                },
+            ],
+            "set_max_w": 5000,
+            "now_offset": "1m0s",
+        },
+        "end_device_metadata": {
+            "edevid": 1,
+            "lfdi": "0x48BC3A2F9D14E7B6C0A1",
+            "sfdi": 123456789,
+            "nmi": "6123456789",
+            "aggregator_id": None,
+            "set_max_w": 5000,
+            "doe_modes_enabled": 3,
+            "device_category": 0,
+            "timezone_id": "Australia/Brisbane",
+            "der_capability": {
+                "der_type": "COMBINED_PV_AND_STORAGE",
+                "modes_supported": ["OP_MOD_FIXED_W", "OP_MOD_VOLT_VAR"],
+                "max_w": 5000,
+                "max_va": 5500,
+                "max_var": 3000,
+                "max_var_neg": 3000,
+                "max_a": 22,
+                "max_charge_rate_w": 5000,
+                "max_discharge_rate_w": 5000,
+                "max_wh": 13500,
+                "doe_modes_supported": ["OP_MOD_EXPORT_LIMIT_W", "OP_MOD_IMPORT_LIMIT_W"],
+            },
+            "der_settings": {
+                "modes_enabled": ["OP_MOD_FIXED_W"],
+                "max_w": 5000,
+                "max_va": 5500,
+                "max_var": 3000,
+                "max_var_neg": 3000,
+                "max_charge_rate_w": 5000,
+                "max_discharge_rate_w": 5000,
+                "grad_w": 100,
+                "doe_modes_enabled": ["OP_MOD_EXPORT_LIMIT_W"],
+            },
+            "der_status": {
+                "alarm_status": [],
+                "inverter_status": "NORMAL",
+                "operational_mode_status": "GRID_FOLLOWING",
+                "generator_connect_status": ["CONNECTED"],
+                "storage_connect_status": ["CONNECTED"],
+                "storage_mode_status": "CHARGING",
+                "state_of_charge_status": 62,
+                "local_control_mode_status": "REMOTE",
+                "manufacturer_status": "OK",
+            },
+        },
+    }
+    check_runner_status("run_status_runner.json", runner_started)
+    write("run_status_runner.json", runner_started)
+
+    # run_status_runner_initialised.json - the pre-start phase: instructions present, no
+    # timestamp_start, no steps/timeline/device yet.
+    runner_initialised = {
+        "timestamp_status": "2026-06-17T04:59:00+00:00",
+        "timestamp_initialise": "2026-06-17T04:58:00+00:00",
+        "timestamp_start": None,
+        "status_summary": "Awaiting start",
+        "last_client_interaction": {
+            "interaction_type": "Test Procedure Initialised",
+            "timestamp": "2026-06-17T04:58:00+00:00",
+        },
+        "csip_aus_version": "v1.2",
+        "log_envoy": "No logs recorded",
+        "criteria": [],
+        "precondition_checks": [
+            {"success": True, "type": "edevice-registered", "details": "EndDevice 1 registered"},
+        ],
+        "instructions": ["Ensure the device is powered on before starting the test"],
+        "test_procedure_name": "ALL-01",
+        "step_status": None,
+        "request_history": [],
+        "timeline": None,
+        "end_device_metadata": None,
+    }
+    check_runner_status("run_status_runner_initialised.json", runner_initialised)
+    write("run_status_runner_initialised.json", runner_initialised)
+
+    # run_status_shell*.json - the page shell (_build_run_status_shell output). One live
+    # standalone run, one finalised, one live run inside a playlist.
+    write(
+        "run_status_shell.json",
+        {
+            "run_id": 123,
+            "run_is_live": True,
+            "run_status": "started",
+            "run_test_uri": "https://cactus.example/run/123",
+            "run_procedure_id": "ALL-01",
+            "run_has_artifacts": False,
+            "is_witness_test": False,
+            "playlist_info": None,
+            "next_playlist_run_id": None,
+            "current_active_run": None,
+        },
+    )
+    write(
+        "run_status_shell_finalised.json",
+        {
+            "run_id": 120,
+            "run_is_live": False,
+            "run_status": "finalised",
+            "run_test_uri": "https://cactus.example/run/120",
+            "run_procedure_id": "ALL-01",
+            "run_has_artifacts": True,
+            "is_witness_test": False,
+            "playlist_info": None,
+            "next_playlist_run_id": None,
+            "current_active_run": None,
+        },
+    )
+    write(
+        "run_status_shell_playlist.json",
+        {
+            "run_id": 202,
+            "run_is_live": True,
+            "run_status": "started",
+            "run_test_uri": "https://cactus.example/run/202",
+            "run_procedure_id": "ALL-02",
+            "run_has_artifacts": False,
+            "is_witness_test": False,
+            "playlist_info": {
+                "name": "Smoke Test Playlist",
+                "started_at": "2026-06-17T04:58:00+00:00",
+                "current_order": 1,
+                "total": 3,
+                "runs": [
+                    {
+                        "test_procedure_id": "ALL-01",
+                        "run_id": 201,
+                        "status": "finalised",
+                        "all_criteria_met": True,
+                        "has_artifacts": True,
+                    },
+                    {
+                        "test_procedure_id": "ALL-02",
+                        "run_id": 202,
+                        "status": "started",
+                        "all_criteria_met": None,
+                        "has_artifacts": False,
+                    },
+                    {
+                        "test_procedure_id": "ALL-03",
+                        "run_id": 203,
+                        "status": "initialised",
+                        "all_criteria_met": None,
+                        "has_artifacts": False,
+                    },
+                ],
+            },
+            "next_playlist_run_id": 203,
+            "current_active_run": {"run_id": 202, "test_procedure_id": "ALL-02", "order": 1},
+        },
+    )
+
+    # run_request_details.json - raw request/response for the request-details modal
+    write(
+        "run_request_details.json",
+        {
+            "request_id": 2,
+            "request": (
+                "PUT /edev/1/ders/1/dercap HTTP/1.1\nHost: cactus.example\n"
+                "Content-Type: application/sep+xml\n\n"
+                '<DERCapability xmlns="urn:ieee:std:2030.5:ns"><rtgMaxW value="5000"/></DERCapability>'
+            ),
+            "response": (
+                "HTTP/1.1 400 Bad Request\nContent-Type: application/sep+xml\n\n"
+                '<Error xmlns="urn:ieee:std:2030.5:ns"><message>Element rtgMaxW is not expected</message></Error>'
+            ),
+        },
     )
 
 

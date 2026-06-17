@@ -1,0 +1,12 @@
+{
+  "run_id": 120,
+  "run_is_live": false,
+  "run_status": "finalised",
+  "run_test_uri": "https://cactus.example/run/120",
+  "run_procedure_id": "ALL-01",
+  "run_has_artifacts": true,
+  "is_witness_test": false,
+  "playlist_info": null,
+  "next_playlist_run_id": null,
+  "current_active_run": null
+}

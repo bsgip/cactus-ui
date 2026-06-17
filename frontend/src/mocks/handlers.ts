@@ -11,6 +11,9 @@ import procedureSummariesFixture from '../../fixtures/procedure_summaries.json';
 import procedureYamlFixture from '../../fixtures/procedure_yaml.json';
 import proceduresFixture from '../../fixtures/procedures.json';
 import runGroupsFixture from '../../fixtures/run_groups.json';
+import runRequestDetailsFixture from '../../fixtures/run_request_details.json';
+import runStatusRunnerFixture from '../../fixtures/run_status_runner.json';
+import runStatusShellFixture from '../../fixtures/run_status_shell.json';
 import sessionFixture from '../../fixtures/session.json';
 
 export const handlers = [
@@ -67,4 +70,13 @@ export const handlers = [
   http.post('/api/runs/:runId/finalise_playlist', ({ params }) =>
     HttpResponse.json({ run_id: Number(params.runId) })
   ),
+  // Run status page. The shell defaults to a live standalone run; tests override with
+  // server.use() for the finalised / playlist / not-found variants.
+  http.get('/api/run/:runId', () => HttpResponse.json(runStatusShellFixture)),
+  http.get('/api/admin/run/:runId', () => HttpResponse.json(runStatusShellFixture)),
+  http.get('/api/run/:runId/status', () => HttpResponse.json(runStatusRunnerFixture)),
+  http.get('/api/admin/run/:runId/status', () => HttpResponse.json(runStatusRunnerFixture)),
+  http.get('/api/run/:runId/requests/:requestId', () => HttpResponse.json(runRequestDetailsFixture)),
+  http.post('/api/runs/:runId/proceed', () => HttpResponse.json({ handled: true })),
+  http.post('/api/admin/runs/:runId/proceed', () => HttpResponse.json({ handled: true })),
 ];
