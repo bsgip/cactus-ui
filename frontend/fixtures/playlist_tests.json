@@ -1,0 +1,586 @@
+{
+  "tests_by_category": {
+    "Registration": [
+      {
+        "id": "ALL-01",
+        "description": "Discovery with Out-of-Band Registration",
+        "is_witness": false,
+        "classes": ["A", "DR-A"]
+      },
+      {
+        "id": "ALL-02",
+        "description": "Discovery with In-Band Registration",
+        "is_witness": false,
+        "classes": ["A"]
+      },
+      {
+        "id": "ALL-03",
+        "description": "Connection Point registration",
+        "is_witness": false,
+        "classes": ["C"]
+      },
+      {
+        "id": "ALL-03-REJ",
+        "description": "Client rejection of incorrect PIN",
+        "is_witness": false,
+        "classes": ["A"]
+      },
+      {
+        "id": "ALL-04",
+        "description": "Client Registration and PIN Validation",
+        "is_witness": false,
+        "classes": ["A"]
+      },
+      {
+        "id": "ALL-05",
+        "description": "Client Response to Lack of RegistrationLink",
+        "is_witness": false,
+        "classes": ["A"]
+      }
+    ],
+    "Monitoring": [
+      {
+        "id": "ALL-06",
+        "description": "Individual Readings",
+        "is_witness": false,
+        "classes": ["A", "DR-A"]
+      },
+      {
+        "id": "ALL-07",
+        "description": "Connection Status",
+        "is_witness": false,
+        "classes": ["A"]
+      },
+      {
+        "id": "ALL-08",
+        "description": "Operational Mode Status",
+        "is_witness": false,
+        "classes": ["A"]
+      },
+      {
+        "id": "ALL-09",
+        "description": "Capabilities and Settings",
+        "is_witness": false,
+        "classes": ["A"]
+      },
+      {
+        "id": "ALL-10",
+        "description": "Update telemetry post rates",
+        "is_witness": false,
+        "classes": ["A", "DR-A"]
+      },
+      {
+        "id": "MUL-01",
+        "description": "Returning DERStatus Values for Multiple DER",
+        "is_witness": false,
+        "classes": ["M"]
+      },
+      {
+        "id": "MUL-02",
+        "description": "Reporting Aggregated Telemetry for Multiple DER",
+        "is_witness": false,
+        "classes": ["M"]
+      },
+      {
+        "id": "MUL-03",
+        "description": "Validate DERCapability and DERSettings For Multiple DER",
+        "is_witness": false,
+        "classes": ["M"]
+      },
+      {
+        "id": "STO-01",
+        "description": "Individual readings - storage",
+        "is_witness": false,
+        "classes": ["STO"]
+      },
+      {
+        "id": "STO-02",
+        "description": "Capabilities and settings - storage",
+        "is_witness": false,
+        "classes": ["STO"]
+      },
+      {
+        "id": "STO-04",
+        "description": "Individual readings - storage",
+        "is_witness": false,
+        "classes": ["DER-STO"]
+      },
+      {
+        "id": "STO-05",
+        "description": "Capabilities and settings - storage",
+        "is_witness": false,
+        "classes": ["DER-STO"]
+      }
+    ],
+    "Control": [
+      {
+        "id": "ALL-11",
+        "description": "Active Control \u2013 Energise / De-energise",
+        "is_witness": false,
+        "classes": ["A"]
+      },
+      {
+        "id": "ALL-12",
+        "description": "Active Control \u2013 Disconnect",
+        "is_witness": false,
+        "classes": ["A"]
+      },
+      {
+        "id": "ALL-13",
+        "description": "Default Controls \u2013 Ramp Rate",
+        "is_witness": false,
+        "classes": ["A"]
+      },
+      {
+        "id": "ALL-14",
+        "description": "Subscribe",
+        "is_witness": false,
+        "classes": ["S-L", "S-G"]
+      },
+      {
+        "id": "ALL-15",
+        "description": "Active Controls \u2013 Energize/de-energize",
+        "is_witness": false,
+        "classes": ["S-L", "S-G"]
+      },
+      {
+        "id": "ALL-16",
+        "description": "Active Controls \u2013 Disconnect",
+        "is_witness": false,
+        "classes": ["S-L", "S-G"]
+      },
+      {
+        "id": "ALL-17",
+        "description": "Default Controls \u2013 Ramp Rate",
+        "is_witness": false,
+        "classes": ["S-L", "S-G"]
+      },
+      {
+        "id": "ALL-18",
+        "description": "Control Responses",
+        "is_witness": false,
+        "classes": ["A"]
+      },
+      {
+        "id": "ALL-19",
+        "description": "Update Function Set Assignments Poll Rate",
+        "is_witness": false,
+        "classes": ["A", "DR-A"]
+      },
+      {
+        "id": "ALL-20",
+        "description": "Update DER Program Poll Rate",
+        "is_witness": false,
+        "classes": ["A", "DR-A"]
+      },
+      {
+        "id": "ALL-21",
+        "description": "Scheduling",
+        "is_witness": false,
+        "classes": ["A", "DR-A"]
+      },
+      {
+        "id": "ALL-22",
+        "description": "Randomisation",
+        "is_witness": false,
+        "classes": ["A", "DR-A"]
+      },
+      {
+        "id": "ALL-23",
+        "description": "Communication Loss",
+        "is_witness": false,
+        "classes": ["A", "DR-A"]
+      },
+      {
+        "id": "ALL-24",
+        "description": "Validation of Scaling Factors",
+        "is_witness": false,
+        "classes": ["A"]
+      },
+      {
+        "id": "ALL-25",
+        "description": "Active control ramp rates",
+        "is_witness": false,
+        "classes": ["A"]
+      },
+      {
+        "id": "ALL-25-EXT",
+        "description": "Extended operations",
+        "is_witness": false,
+        "classes": ["A", "DR-A"]
+      },
+      {
+        "id": "GEN-01",
+        "description": "Active Control \u2013 Export Limit",
+        "is_witness": false,
+        "classes": ["G"]
+      },
+      {
+        "id": "GEN-02",
+        "description": "Active Control \u2013 Generation Limit",
+        "is_witness": false,
+        "classes": ["G"]
+      },
+      {
+        "id": "GEN-03",
+        "description": "Default Control \u2013 Export Limit",
+        "is_witness": false,
+        "classes": ["G"]
+      },
+      {
+        "id": "GEN-04",
+        "description": "Default Control \u2013 Generation Limit",
+        "is_witness": false,
+        "classes": ["G"]
+      },
+      {
+        "id": "GEN-05",
+        "description": "Active Control \u2013 Export Limit",
+        "is_witness": false,
+        "classes": ["S-G"]
+      },
+      {
+        "id": "GEN-06",
+        "description": "Active Control \u2013 Generation Limit",
+        "is_witness": false,
+        "classes": ["S-G"]
+      },
+      {
+        "id": "GEN-07",
+        "description": "Default Controls \u2013 Export Limit",
+        "is_witness": false,
+        "classes": ["S-G"]
+      },
+      {
+        "id": "GEN-08",
+        "description": "Default Controls \u2013 Generation Limit",
+        "is_witness": false,
+        "classes": ["S-G"]
+      },
+      {
+        "id": "LOA-01",
+        "description": "Active Control \u2013 Import Limit",
+        "is_witness": false,
+        "classes": ["L"]
+      },
+      {
+        "id": "LOA-02",
+        "description": "Active Control \u2013 Load Limit",
+        "is_witness": false,
+        "classes": ["L"]
+      },
+      {
+        "id": "LOA-03",
+        "description": "Default Control \u2013 Import Limit",
+        "is_witness": false,
+        "classes": ["L"]
+      },
+      {
+        "id": "LOA-04",
+        "description": "Default Control \u2013 Load Limit",
+        "is_witness": false,
+        "classes": ["L"]
+      },
+      {
+        "id": "LOA-05",
+        "description": "Active Controls \u2013 Import Limit",
+        "is_witness": false,
+        "classes": ["S-L"]
+      },
+      {
+        "id": "LOA-06",
+        "description": "Active Controls \u2013 Load Limit",
+        "is_witness": false,
+        "classes": ["S-L"]
+      },
+      {
+        "id": "LOA-07",
+        "description": "Default Controls \u2013 Import Limit",
+        "is_witness": false,
+        "classes": ["S-L"]
+      },
+      {
+        "id": "LOA-08",
+        "description": "Default Controls \u2013 Load Limit",
+        "is_witness": false,
+        "classes": ["S-L"]
+      },
+      {
+        "id": "STO-03",
+        "description": "Storage control with export limits - opModStorageTargetW with opModExpLimW",
+        "is_witness": false,
+        "classes": ["STO"]
+      },
+      {
+        "id": "STO-06",
+        "description": "Storage control with export limits - opModStorageTargetW with opModExpLimW",
+        "is_witness": false,
+        "classes": ["DER-STO"]
+      }
+    ],
+    "DER": [
+      {
+        "id": "ALL-26",
+        "description": "De-energization of DER",
+        "is_witness": true,
+        "classes": ["DER-A"]
+      },
+      {
+        "id": "ALL-27",
+        "description": "Disconnection of DER",
+        "is_witness": true,
+        "classes": ["DER-A"]
+      },
+      {
+        "id": "ALL-28",
+        "description": "Response to Changing Ramp-Rates",
+        "is_witness": true,
+        "classes": ["DER-A"]
+      },
+      {
+        "id": "ALL-29",
+        "description": "Validate Operating Telemetry",
+        "is_witness": true,
+        "classes": ["DER-A"]
+      },
+      {
+        "id": "ALL-30",
+        "description": "Persisting Settings Through Reconnection",
+        "is_witness": true,
+        "classes": ["DER-A"]
+      },
+      {
+        "id": "GEN-09",
+        "description": "Response to Cancelled Export Control",
+        "is_witness": true,
+        "classes": ["DER-G"]
+      },
+      {
+        "id": "GEN-10",
+        "description": "Primacy Validation for Generators",
+        "is_witness": true,
+        "classes": ["DER-G"]
+      },
+      {
+        "id": "GEN-11",
+        "description": "Variable Export Limit",
+        "is_witness": true,
+        "classes": ["DER-G"]
+      },
+      {
+        "id": "GEN-12",
+        "description": "Variable Generation Limit",
+        "is_witness": true,
+        "classes": ["DER-G"]
+      },
+      {
+        "id": "GEN-13",
+        "description": "Tracking export-limit through variable load",
+        "is_witness": true,
+        "classes": ["DER-G"]
+      },
+      {
+        "id": "LOA-09",
+        "description": "Response to Cancelled Import Control",
+        "is_witness": true,
+        "classes": ["DER-L"]
+      },
+      {
+        "id": "LOA-10",
+        "description": "Primacy Validation for loads",
+        "is_witness": true,
+        "classes": ["DER-L"]
+      },
+      {
+        "id": "LOA-11",
+        "description": "Variable Import Limit",
+        "is_witness": true,
+        "classes": ["DER-L"]
+      },
+      {
+        "id": "LOA-12",
+        "description": "Variable Load Limit",
+        "is_witness": true,
+        "classes": ["DER-L"]
+      },
+      {
+        "id": "LOA-13",
+        "description": "Tracking import-limit through variable load",
+        "is_witness": true,
+        "classes": ["DER-L"]
+      },
+      {
+        "id": "ALT-ALL-29",
+        "description": "Validate Operating Telemetry (EVSE Alternate - import limits increased by 20%)",
+        "is_witness": false,
+        "classes": ["DER-A-ALT"]
+      },
+      {
+        "id": "ALT-LOA-13",
+        "description": "Tracking import-limit through variable load (EVSE Alternate - import limit increased by 20%)",
+        "is_witness": false,
+        "classes": ["DER-L-ALT"]
+      }
+    ],
+    "Demand Response": [
+      {
+        "id": "DRA-01",
+        "description": "Configuration",
+        "is_witness": false,
+        "classes": ["DR-A"]
+      },
+      {
+        "id": "DRA-02",
+        "description": "Disconnect Instruction",
+        "is_witness": true,
+        "classes": ["DR-L", "DR-G"]
+      },
+      {
+        "id": "DRD-01",
+        "description": "DRED operational instruction response",
+        "is_witness": true,
+        "classes": ["DR-D"]
+      },
+      {
+        "id": "DRL-01",
+        "description": "Load operational instructions",
+        "is_witness": true,
+        "classes": ["DR-L"]
+      },
+      {
+        "id": "DRG-01",
+        "description": "Generation operational instructions",
+        "is_witness": true,
+        "classes": ["DR-G"]
+      }
+    ],
+    "Provisional": [
+      {
+        "id": "P-01",
+        "description": "Provisional - Multiple EndDevice shared DERControls",
+        "is_witness": false,
+        "classes": ["P-A"]
+      },
+      {
+        "id": "P-02",
+        "description": "Provisional - EndDevice FunctionSetAssignmentList Changes",
+        "is_witness": false,
+        "classes": ["P-A"]
+      }
+    ],
+    "Pricing": [
+      {
+        "id": "PRC-01",
+        "description": "Pricing Streamlined Flow",
+        "is_witness": false,
+        "classes": ["PRC"]
+      },
+      {
+        "id": "PRC-02",
+        "description": "Validate Client Interpretation of Pricing",
+        "is_witness": false,
+        "classes": ["PRC"]
+      },
+      {
+        "id": "PRC-03",
+        "description": "Poll Rate Compliance",
+        "is_witness": false,
+        "classes": ["PRC"]
+      },
+      {
+        "id": "PRC-04",
+        "description": "TimeTariffInterval Cancellation",
+        "is_witness": false,
+        "classes": ["PRC"]
+      },
+      {
+        "id": "PRC-05",
+        "description": "Dynamic RateComponentList",
+        "is_witness": false,
+        "classes": ["PRC"]
+      }
+    ]
+  },
+  "classes": [
+    {
+      "name": "A",
+      "description": "All clients managing DER (Excluding demand response)."
+    },
+    {
+      "name": "G",
+      "description": "Clients managing generation-type or storage-type DER."
+    },
+    {
+      "name": "L",
+      "description": "Clients managing load-type or storage-type DER."
+    },
+    {
+      "name": "C",
+      "description": "Clients conforming with the optional ConnectionPoint extension."
+    },
+    {
+      "name": "S-L",
+      "description": "Clients implementing Subscription/Notification functionality AND L class."
+    },
+    {
+      "name": "S-G",
+      "description": "Clients implementing Subscription/Notification functionality AND G class."
+    },
+    {
+      "name": "M",
+      "description": "Clients supporting management of sets of DER."
+    },
+    {
+      "name": "DER-A",
+      "description": "All DER."
+    },
+    {
+      "name": "DER-A-ALT",
+      "description": "Alternatives to specific DER-A tests (for specific DER)."
+    },
+    {
+      "name": "DER-G",
+      "description": "All DER capable of generation."
+    },
+    {
+      "name": "DER-L",
+      "description": "All DER capable of consumption."
+    },
+    {
+      "name": "DER-L-ALT",
+      "description": "Alternatives to specific DER-L tests (for specific DER)."
+    },
+    {
+      "name": "DR-A",
+      "description": "All clients managing demand response devices."
+    },
+    {
+      "name": "DR-D",
+      "description": "Clients managing or incorporated into DRED demand response devices."
+    },
+    {
+      "name": "DR-L",
+      "description": "Clients managing load-type or storage-type products with demand response capabilities."
+    },
+    {
+      "name": "DR-G",
+      "description": "Clients managing generation-type or storage-type products with demand response capabilities."
+    },
+    {
+      "name": "STO",
+      "description": "Clients conforming to the Annex G storage extensions."
+    },
+    {
+      "name": "DER-STO",
+      "description": "DER conforming to the Annex G storage extensions."
+    },
+    {
+      "name": "PRC",
+      "description": "Clients conforming to the Annex F pricing extensions."
+    },
+    {
+      "name": "P-A",
+      "description": "Provisional tests drafted as part of community consultation."
+    }
+  ]
+}

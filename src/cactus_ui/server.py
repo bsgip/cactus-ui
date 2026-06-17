@@ -838,6 +838,112 @@ def api_delete_run(access_token: str, run_id: int) -> Response | tuple[Response,
     return jsonify({"run_id": run_id})
 
 
+@app.route("/api/group/<int:run_group_id>/playlist_tests", methods=["GET"])
+@api_login_required
+def api_playlist_tests(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    """Returns tests-by-category and compliance classes for the playlist builder."""
+    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
+    if procedures is None:
+        return jsonify({"error": "Unable to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
+
+    all_classes: set[str] = set()
+    for p in procedures:
+        if p.classes:
+            all_classes.update(p.classes)
+
+    return jsonify(
+        {
+            "tests_by_category": build_playlist_tests_by_category(procedures),
+            "classes": [{"name": c.name, "description": c.description} for c in fetch_compliance_classes(all_classes)],
+        }
+    )
+
+
+@app.route("/api/group/<int:run_group_id>/playlist", methods=["POST"])
+@api_login_required
+def api_init_playlist(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    """Initialise a playlist of test runs. Also persists active_playlist in the Flask session for run_status.html."""
+    body = request.get_json(silent=True) or {}
+    procedures = body.get("procedures")
+    if not procedures or not isinstance(procedures, list):
+        return jsonify({"error": "No tests selected."}), HTTPStatus.BAD_REQUEST
+
+    init_result = orchestrator.init_playlist(access_token, run_group_id, procedures)
+    if init_result.response is not None:
+        if init_result.response.playlist_execution_id and init_result.response.playlist_runs:
+            session["active_playlist"] = {
+                "execution_id": init_result.response.playlist_execution_id,
+                "name": "Custom Playlist",
+                "started_at": datetime.now(UTC).isoformat(),
+                "runs": [
+                    {"run_id": r.run_id, "test_procedure_id": r.test_procedure_id}
+                    for r in init_result.response.playlist_runs
+                ],
+            }
+        return jsonify({"run_id": init_result.response.run_id})
+    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
+        return (
+            jsonify({"error": "Your certificate has expired. Please generate and download a new certificate."}),
+            HTTPStatus.CONFLICT,
+        )
+    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
+        return (
+            jsonify({"error": "You cannot start a second test run while your DeviceCapability URI is set to static."}),
+            HTTPStatus.CONFLICT,
+        )
+    else:
+        return jsonify({"error": "Failed to trigger playlist due to an unknown error."}), HTTPStatus.BAD_GATEWAY
+
+
+@app.route("/api/group/<int:run_group_id>/playlist_sessions", methods=["GET"])
+@api_login_required
+def api_playlist_sessions(access_token: str, run_group_id: int) -> Response:
+    """Fetch all playlist sessions (active and completed) grouped by execution ID."""
+    all_runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, None)
+    if all_runs_page is None:
+        return jsonify([])
+
+    active_statuses = {"initialised", "started", "provisioning"}
+
+    playlist_executions: dict[str, list[schema.RunResponse]] = {}
+    for run in all_runs_page.items:
+        if run.playlist_execution_id:
+            playlist_executions.setdefault(run.playlist_execution_id, []).append(run)
+
+    result = []
+    for exec_id, runs in playlist_executions.items():
+        runs_sorted = sorted(runs, key=lambda r: r.playlist_order or 0)
+        if not runs_sorted:
+            continue
+        first_run = runs_sorted[0]
+        is_active = any(
+            (r.status.value if hasattr(r.status, "value") else str(r.status)) in active_statuses for r in runs_sorted
+        )
+        result.append(
+            {
+                "playlist_execution_id": exec_id,
+                "short_id": exec_id[:8],
+                "first_run_id": first_run.run_id,
+                "created_at": first_run.created_at.isoformat(),
+                "test_statuses": [build_test_status_dict(r) for r in runs_sorted],
+                "is_active": is_active,
+            }
+        )
+
+    result.sort(key=lambda x: str(x["created_at"]), reverse=True)
+    result.sort(key=lambda x: not bool(x["is_active"]))
+
+    return jsonify(result)
+
+
+@app.route("/api/runs/<int:run_id>/finalise_playlist", methods=["POST"])
+@api_login_required
+def api_finalise_playlist(access_token: str, run_id: int) -> Response:
+    """Finalise a playlist early: finalises current test and marks remaining as skipped."""
+    orchestrator.finalise_playlist(access_token, str(run_id))
+    return jsonify({"run_id": run_id})
+
+
 @app.route("/api/config", methods=["GET"])
 @api_login_required
 def api_config(access_token: str) -> Response | tuple[Response, int]:
@@ -1031,206 +1137,24 @@ def config_generate_shared_cert(access_token: str) -> Response:
     )
 
 
-@app.route("/playlists", methods=["GET"])
+@app.route("/playlist/artifacts", methods=["GET"])
 @login_required
-def playlists_page(access_token: str) -> str | Response:
-    """Redirects to the first RunGroup's playlists page"""
-    run_groups = orchestrator.fetch_run_groups(access_token, 1)
-    if not run_groups or not run_groups.items:
-        return redirect(url_for("config_page"))
-
-    return redirect(url_for("group_playlists_page", run_group_id=run_groups.items[0].run_group_id))
-
-
-def _handle_initialise_playlist(access_token: str, run_group_id: int) -> str | Response | None:
-    """Handle starting a playlist. Returns a redirect on success, an error string, or None."""
-    procedures_raw = request.form.get("procedures", "")
-    if not procedures_raw:
-        return "No tests selected."
-
+def playlist_artifacts_download(access_token: str) -> Response:
+    """Browser-native ZIP download for all artifacts in a playlist (plain link; session cookie auth)."""
+    run_ids_raw = request.args.get("run_ids", "")
     try:
-        procedures = json.loads(procedures_raw)
-    except (json.JSONDecodeError, ValueError):
-        return "Invalid test selection."
-
-    if not procedures or not isinstance(procedures, list):
-        return "No tests selected."
-
-    init_result = orchestrator.init_playlist(access_token, run_group_id, procedures, 0)
-    if init_result.response is not None:
-        if init_result.response.playlist_execution_id and init_result.response.playlist_runs:
-            session["active_playlist"] = {
-                "execution_id": init_result.response.playlist_execution_id,
-                "name": "Custom Playlist",
-                "started_at": datetime.now(UTC).isoformat(),
-                "runs": [
-                    {"run_id": r.run_id, "test_procedure_id": r.test_procedure_id}
-                    for r in init_result.response.playlist_runs
-                ],
-            }
-        return redirect(url_for("run_status_page", run_id=init_result.response.run_id))
-    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
-        return "Your certificate has expired. Please generate and download a new certificate."
-    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
-        return "You cannot start a second test run while your DeviceCapability URI is set to static."
-    else:
-        return "Failed to trigger playlist due to an unknown error."
-
-
-def _handle_artifact_download(access_token: str) -> str | Response | None:
-    """Handle downloading artifacts for a single run. Returns a file response, error string, or None."""
-    run_id = request.form.get("run_id")
-    if not run_id:
-        return "No run ID specified."
-
-    artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
-    if artifact_data is None:
-        return "Failed to retrieve artifacts."
-
-    return send_file(
-        io.BytesIO(artifact_data),
-        as_attachment=True,
-        download_name=download_name,
-        mimetype="application/zip",
-    )
-
-
-def _handle_artifact_all_download(access_token: str) -> str | Response | None:
-    """Handle downloading all artifacts for a playlist execution."""
-    run_ids_raw = request.form.get("run_ids", "")
-    playlist_name = request.form.get("playlist_name", "playlist")
-    if not run_ids_raw:
-        return "No run IDs specified."
-
-    try:
-        run_ids = [int(rid) for rid in run_ids_raw.split(",")]
+        run_ids = [int(rid) for rid in run_ids_raw.split(",") if rid]
     except ValueError:
-        return "Invalid run IDs."
+        return Response(response="Invalid run IDs.", status=HTTPStatus.BAD_REQUEST, mimetype="text/plain")
 
-    first_run_id = run_ids[0]
-    download_name = f"{playlist_name}_{first_run_id}_artifacts.zip"
+    if not run_ids:
+        return Response(response="No run IDs specified.", status=HTTPStatus.BAD_REQUEST, mimetype="text/plain")
+
+    download_name = f"playlist_{run_ids[0]}_artifacts.zip"
     response = download_playlist_artifacts(access_token, run_ids, download_name)
-    if response:
-        return response
-    return "Failed to retrieve artifacts."
-
-
-def _handle_skip_playlist(access_token: str) -> str | Response | None:
-    """Handle skipping remaining playlist tests and downloading artifacts."""
-    run_id = request.form.get("run_id")
-    if not run_id:
-        return "No run ID specified."
-
-    orchestrator.finalise_playlist(access_token, run_id)
-
-    run_response = orchestrator.fetch_individual_run(access_token, run_id)
-    if run_response and run_response.playlist_runs:
-        run_ids = [r.run_id for r in run_response.playlist_runs]
-        first_run_id = run_ids[0]
-        download_name = f"playlist_{first_run_id}_artifacts.zip"
-        response = download_playlist_artifacts(access_token, run_ids, download_name)
-        if response:
-            return response
-    return "Failed to download playlist artifacts."
-
-
-def _handle_playlists_post(access_token: str, run_group_id: int) -> str | Response | None:
-    """Dispatch POST actions for the playlists page."""
-    action = request.form.get("action")
-    if action == "initialise_playlist":
-        return _handle_initialise_playlist(access_token, run_group_id)
-    elif action == "artifact":
-        return _handle_artifact_download(access_token)
-    elif action == "artifact_all":
-        return _handle_artifact_all_download(access_token)
-    elif action == "skip_playlist":
-        return _handle_skip_playlist(access_token)
-    return None
-
-
-@app.route("/group/<int:run_group_id>/playlists", methods=["GET", "POST"])
-@login_required
-def group_playlists_page(access_token: str, run_group_id: int) -> str | Response:
-    """Page for building and starting playlists"""
-    error: str | None = None
-
-    if request.method == "POST":
-        result = _handle_playlists_post(access_token, run_group_id)
-        if isinstance(result, Response):
-            return result
-        if isinstance(result, str):
-            error = result
-
-    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
-    if procedures is None:
-        error = "Unable to fetch test procedures."
-
-    all_classes: set[str] = set()
-    for p in procedures or []:
-        if p.classes:
-            all_classes.update(p.classes)
-
-    run_groups = orchestrator.fetch_run_groups(access_token, 1)
-    active_run_group: schema.RunGroupResponse | None = None
-    if not run_groups or not run_groups.items:
-        error = "Unable to fetch run groups."
-    else:
-        for rg in run_groups.items:
-            if rg.run_group_id == run_group_id:
-                active_run_group = rg
-                break
-
-    return render_template(
-        "playlists.html",
-        error=error,
-        tests_by_category=build_playlist_tests_by_category(procedures or []),
-        classes=fetch_compliance_classes(all_classes),
-        run_groups=[] if run_groups is None else run_groups.items,
-        run_group_id=run_group_id,
-        active_run_group=active_run_group,
-    )
-
-
-@app.route("/group/<int:run_group_id>/past_playlist_sessions", methods=["GET"])
-@login_required
-def past_playlist_sessions_json(access_token: str, run_group_id: int) -> Response:
-    """Fetch all playlist sessions (active and completed) grouped by execution ID."""
-    all_runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, None)
-    if all_runs_page is None:
-        return Response(response=json.dumps([]), status=HTTPStatus.OK, mimetype="application/json")
-
-    active_statuses = {"initialised", "started", "provisioning"}
-
-    playlist_executions: dict[str, list[schema.RunResponse]] = {}
-    for run in all_runs_page.items:
-        if run.playlist_execution_id:
-            playlist_executions.setdefault(run.playlist_execution_id, []).append(run)
-
-    result = []
-    for exec_id, runs in playlist_executions.items():
-        runs_sorted = sorted(runs, key=lambda r: r.playlist_order or 0)
-        if not runs_sorted:
-            continue
-        first_run = runs_sorted[0]
-        is_active = any(
-            (r.status.value if hasattr(r.status, "value") else str(r.status)) in active_statuses for r in runs_sorted
-        )
-        result.append(
-            {
-                "playlist_execution_id": exec_id,
-                "short_id": exec_id[:8],
-                "first_run_id": first_run.run_id,
-                "created_at": first_run.created_at.isoformat(),
-                "test_statuses": [build_test_status_dict(r) for r in runs_sorted],
-                "is_active": is_active,
-            }
-        )
-
-    # Active sessions first, then most recent
-    result.sort(key=lambda x: str(x["created_at"]), reverse=True)
-    result.sort(key=lambda x: not bool(x["is_active"]))
-
-    return Response(response=json.dumps(result), status=HTTPStatus.OK, mimetype="application/json")
+    if response is None:
+        return Response(response="Failed to retrieve artifacts.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain")
+    return response
 
 
 def _build_playlist_info(

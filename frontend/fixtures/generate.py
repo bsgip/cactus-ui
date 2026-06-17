@@ -22,6 +22,7 @@ os.environ.setdefault("CACTUS_PLATFORM_SUPPORT_EMAIL", "fixtures@example.com")
 os.environ.setdefault("APP_SECRET_KEY", "fixture-generation")
 
 import cactus_schema.orchestrator as schema  # noqa: E402
+from cactus_schema.orchestrator.compliance import fetch_compliance_classes  # noqa: E402
 from cactus_test_definitions.client import get_all_test_procedures, get_yaml_contents  # noqa: E402
 
 import cactus_ui.server as server  # noqa: E402
@@ -220,6 +221,59 @@ def main() -> None:
 
     # compliance.json - computed from the same summaries, as /api/group/<id>/compliance serves it
     write("compliance.json", server.build_compliance_json(summaries))
+
+    # playlist_tests.json - tests-by-category + classes, as /api/group/<id>/playlist_tests serves it
+    all_classes: set[str] = set()
+    for p in summaries:
+        if p.classes:
+            all_classes.update(p.classes)
+    write(
+        "playlist_tests.json",
+        {
+            "tests_by_category": server.build_playlist_tests_by_category(summaries),
+            "classes": [{"name": c.name, "description": c.description} for c in fetch_compliance_classes(all_classes)],
+        },
+    )
+
+    # playlist_sessions.json - one active + one past session, as /api/group/<id>/playlist_sessions serves it
+    def test_status(run_id: int, tp_id: str, st: str, met: bool | None, artifacts: bool) -> dict:
+        return {
+            "test_procedure_id": tp_id,
+            "run_id": run_id,
+            "status": st,
+            "all_criteria_met": met,
+            "has_artifacts": artifacts,
+        }
+
+    write(
+        "playlist_sessions.json",
+        [
+            {
+                "playlist_execution_id": "active-exec-0001-aaaa",
+                "short_id": "active-e",
+                "first_run_id": 201,
+                "created_at": "2026-06-12T02:00:00+00:00",
+                "test_statuses": [
+                    test_status(201, "ALL-01", "finalised", True, True),
+                    test_status(202, "ALL-02", "started", None, False),
+                    test_status(203, "ALL-03", "initialised", None, False),
+                ],
+                "is_active": True,
+            },
+            {
+                "playlist_execution_id": "past-exec-0002-bbbb",
+                "short_id": "past-exe",
+                "first_run_id": 150,
+                "created_at": "2026-06-10T08:00:00+00:00",
+                "test_statuses": [
+                    test_status(150, "ALL-01", "finalised", True, True),
+                    test_status(151, "ALL-02", "finalised", False, True),
+                    test_status(152, "ALL-03", "skipped", None, False),
+                ],
+                "is_active": False,
+            },
+        ],
+    )
 
 
 def prettier() -> None:

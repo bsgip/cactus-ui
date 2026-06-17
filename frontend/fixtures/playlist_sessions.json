@@ -1,0 +1,62 @@
+[
+  {
+    "playlist_execution_id": "active-exec-0001-aaaa",
+    "short_id": "active-e",
+    "first_run_id": 201,
+    "created_at": "2026-06-12T02:00:00+00:00",
+    "test_statuses": [
+      {
+        "test_procedure_id": "ALL-01",
+        "run_id": 201,
+        "status": "finalised",
+        "all_criteria_met": true,
+        "has_artifacts": true
+      },
+      {
+        "test_procedure_id": "ALL-02",
+        "run_id": 202,
+        "status": "started",
+        "all_criteria_met": null,
+        "has_artifacts": false
+      },
+      {
+        "test_procedure_id": "ALL-03",
+        "run_id": 203,
+        "status": "initialised",
+        "all_criteria_met": null,
+        "has_artifacts": false
+      }
+    ],
+    "is_active": true
+  },
+  {
+    "playlist_execution_id": "past-exec-0002-bbbb",
+    "short_id": "past-exe",
+    "first_run_id": 150,
+    "created_at": "2026-06-10T08:00:00+00:00",
+    "test_statuses": [
+      {
+        "test_procedure_id": "ALL-01",
+        "run_id": 150,
+        "status": "finalised",
+        "all_criteria_met": true,
+        "has_artifacts": true
+      },
+      {
+        "test_procedure_id": "ALL-02",
+        "run_id": 151,
+        "status": "finalised",
+        "all_criteria_met": false,
+        "has_artifacts": true
+      },
+      {
+        "test_procedure_id": "ALL-03",
+        "run_id": 152,
+        "status": "skipped",
+        "all_criteria_met": null,
+        "has_artifacts": false
+      }
+    ],
+    "is_active": false
+  }
+]

@@ -212,3 +212,36 @@ export interface AdminStatsResponse {
   procedures: ProcedureStat[];
   runs_per_week: WeekBar[];
 }
+
+// One selectable test in the playlist builder (server.py build_playlist_tests_by_category)
+export interface PlaylistTest {
+  id: string;
+  description: string;
+  is_witness: boolean;
+  classes: string[];
+}
+
+// GET /api/group/<id>/playlist_tests (server.py api_playlist_tests)
+export interface PlaylistTestsResponse {
+  tests_by_category: Record<string, PlaylistTest[]>;
+  classes: ComplianceClass[];
+}
+
+// One run within a playlist session (server.py build_test_status_dict)
+export interface PlaylistTestStatus {
+  test_procedure_id: string;
+  run_id: number;
+  status: RunStatus;
+  all_criteria_met: boolean | null;
+  has_artifacts: boolean;
+}
+
+// GET /api/group/<id>/playlist_sessions (server.py api_playlist_sessions)
+export interface PlaylistSession {
+  playlist_execution_id: string;
+  short_id: string;
+  first_run_id: number;
+  created_at: string;
+  test_statuses: PlaylistTestStatus[];
+  is_active: boolean;
+}

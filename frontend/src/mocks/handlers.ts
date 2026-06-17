@@ -4,6 +4,8 @@ import adminStatsFixture from '../../fixtures/admin_stats.json';
 import adminUsersFixture from '../../fixtures/admin_users.json';
 import complianceFixture from '../../fixtures/compliance.json';
 import configFixture from '../../fixtures/config.json';
+import playlistSessionsFixture from '../../fixtures/playlist_sessions.json';
+import playlistTestsFixture from '../../fixtures/playlist_tests.json';
 import procedureRunsFixture from '../../fixtures/procedure_runs.json';
 import procedureSummariesFixture from '../../fixtures/procedure_summaries.json';
 import procedureYamlFixture from '../../fixtures/procedure_yaml.json';
@@ -55,6 +57,14 @@ export const handlers = [
     HttpResponse.json({ run_id: Number(params.runId) })
   ),
   http.delete('/api/runs/:runId', ({ params }) =>
+    HttpResponse.json({ run_id: Number(params.runId) })
+  ),
+  http.get('/api/group/:runGroupId/playlist_tests', () => HttpResponse.json(playlistTestsFixture)),
+  http.get('/api/group/:runGroupId/playlist_sessions', () =>
+    HttpResponse.json(playlistSessionsFixture)
+  ),
+  http.post('/api/group/:runGroupId/playlist', () => HttpResponse.json({ run_id: 301 })),
+  http.post('/api/runs/:runId/finalise_playlist', ({ params }) =>
     HttpResponse.json({ run_id: Number(params.runId) })
   ),
 ];

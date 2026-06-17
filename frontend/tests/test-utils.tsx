@@ -1,4 +1,5 @@
 import { MantineProvider } from '@mantine/core';
+import { ModalsProvider } from '@mantine/modals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
@@ -11,7 +12,9 @@ export function renderApp(path = '/') {
   return render(
     <MantineProvider>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <ModalsProvider>
+          <RouterProvider router={router} />
+        </ModalsProvider>
       </QueryClientProvider>
     </MantineProvider>
   );
