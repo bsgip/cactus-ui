@@ -1309,29 +1309,6 @@ def get_hosted_images() -> list[str]:
     return [str(f.relative_to(root_path)) for f in static_base_path.glob("*.webp")]
 
 
-@app.context_processor
-def inject_global_template_context() -> dict:
-    """
-    Injects global constants and assets used across all templates, specifically:
-    - Injects images (.webp) into hosted by section of the base page's footer.
-       o NOTE: All (.webp) images under './static/base/' path will be included.
-    - sets platform version from CACTUS_PLATFORM_VERSION envvar
-    - Adds support email from CACTUS_PLATFORM_SUPPORT_EMAIL envvar.
-    - Adds the users name (if not None)
-    - Adds the BANNER_MESSAGE and LOGIN_BANNER_MESSAGE envvars (both optional)
-    """
-
-    return {
-        "version": CACTUS_PLATFORM_VERSION,
-        "hosted_images": get_hosted_images(),
-        "support_email": CACTUS_PLATFORM_SUPPORT_EMAIL,
-        "permissions": get_permissions(),
-        "username": get_username_from_session(),
-        "banner_message": BANNER_MESSAGE,
-        "login_banner_message": LOGIN_BANNER_MESSAGE,
-    }
-
-
 if __name__ == "__main__":
     app.run(
         host="127.0.0.1",
