@@ -75,9 +75,7 @@ def test_api_group_compliance_success(client, monkeypatch):
         make_summary("ALL-02", ["A"], run_count=0),
         make_summary("ALL-03", ["C"], run_count=1, latest_run_status=2, latest_run_id=101),
     ]
-    monkeypatch.setattr(
-        server.orchestrator, "fetch_group_procedure_run_summaries", lambda *a, **kw: procedures
-    )
+    monkeypatch.setattr(server.orchestrator, "fetch_group_procedure_run_summaries", lambda *a, **kw: procedures)
 
     response = client.get("/api/group/1/compliance")
 
@@ -111,9 +109,7 @@ def test_api_group_compliance_all_success(client, monkeypatch):
         "ALL-01", ["A"], run_count=1, latest_run_status=3, latest_all_criteria_met=True, latest_run_id=100
     )
     procedures = [all01]
-    monkeypatch.setattr(
-        server.orchestrator, "fetch_group_procedure_run_summaries", lambda *a, **kw: procedures
-    )
+    monkeypatch.setattr(server.orchestrator, "fetch_group_procedure_run_summaries", lambda *a, **kw: procedures)
 
     response = client.get("/api/group/1/compliance")
 
@@ -178,9 +174,7 @@ def test_admin_compliance_pdf_fetch_error(client, monkeypatch):
 def test_admin_compliance_pdf_success(client, monkeypatch):
     login(client, ["user:all", "admin:all"])
     pdf_bytes = b"%PDF-1.4 fake pdf content"
-    monkeypatch.setattr(
-        server.orchestrator, "admin_fetch_run_group_artifact", lambda *a, **kw: pdf_bytes
-    )
+    monkeypatch.setattr(server.orchestrator, "admin_fetch_run_group_artifact", lambda *a, **kw: pdf_bytes)
 
     response = client.get("/admin/group/1/compliance_pdf")
 

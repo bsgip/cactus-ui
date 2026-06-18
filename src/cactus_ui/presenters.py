@@ -116,9 +116,7 @@ def build_compliance_json(procedures: list[schema.TestProcedureRunSummaryRespons
             for c in p.classes:
                 tests_by_class[c].append(str(p.test_procedure_id))
 
-    procedure_map: dict[str, schema.TestProcedureRunSummaryResponse] = {
-        str(p.test_procedure_id): p for p in procedures
-    }
+    procedure_map: dict[str, schema.TestProcedureRunSummaryResponse] = {str(p.test_procedure_id): p for p in procedures}
     result = []
     for compliance_class, tests in tests_by_class.items():
         per_run_status = [

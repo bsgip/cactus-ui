@@ -57,12 +57,8 @@ def test_api_admin_users_success(client, monkeypatch):
     user_with_groups = generate_class_instance(
         schema.UserWithRunGroupsResponse, user_id=1, name="Alice", run_groups=[run_group]
     )
-    user_no_groups = generate_class_instance(
-        schema.UserWithRunGroupsResponse, user_id=2, name=None, run_groups=[]
-    )
-    monkeypatch.setattr(
-        server.orchestrator, "admin_fetch_users", lambda *a, **kw: [user_with_groups, user_no_groups]
-    )
+    user_no_groups = generate_class_instance(schema.UserWithRunGroupsResponse, user_id=2, name=None, run_groups=[])
+    monkeypatch.setattr(server.orchestrator, "admin_fetch_users", lambda *a, **kw: [user_with_groups, user_no_groups])
 
     response = client.get("/api/admin/users")
 

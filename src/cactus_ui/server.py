@@ -124,7 +124,6 @@ FRONTEND_DIST_DIR = Path(
 ).resolve()
 
 
-
 def download_playlist_artifacts(access_token: str, run_ids: list[int], download_name: str) -> Response | None:
     """Download artifacts for multiple runs as a single ZIP file.
 
@@ -191,7 +190,6 @@ def api_session() -> Response | tuple[Response, int]:
             "hosted_images": [f"/{path}" for path in get_hosted_images()],
         }
     )
-
 
 
 @app.route("/api/admin/stats", methods=["GET"])
@@ -784,7 +782,9 @@ def config_ca_cert(access_token: str) -> Response:
 def config_download_run_group_cert(access_token: str, run_group_id: int) -> Response:
     download_bytes, download_file_name = orchestrator.download_client_cert(access_token, run_group_id)
     if download_bytes is None or download_file_name is None:
-        return Response(response="Failed to retrieve certificate.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain")  # noqa: E501
+        return Response(
+            response="Failed to retrieve certificate.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
+        )  # noqa: E501
     return send_file(
         io.BytesIO(download_bytes),
         "application/x-x509-user-cert",
@@ -799,7 +799,9 @@ def config_generate_run_group_cert(access_token: str, run_group_id: int) -> Resp
     is_device_cert = request.form.get("type", "device") == "device"
     download_bytes, download_file_name = orchestrator.generate_client_cert(access_token, run_group_id, is_device_cert)
     if download_bytes is None or download_file_name is None:
-        return Response(response="Failed to generate certificate.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain")  # noqa: E501
+        return Response(
+            response="Failed to generate certificate.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
+        )  # noqa: E501
     return send_file(
         io.BytesIO(download_bytes),
         "application/zip",

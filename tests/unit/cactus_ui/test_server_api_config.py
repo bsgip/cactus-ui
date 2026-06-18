@@ -111,7 +111,7 @@ def test_api_config_orchestrator_failure(client, monkeypatch):
 def test_api_config_pen_success(client, monkeypatch):
     login(client)
     calls = {}
-    monkeypatch.setattr(server.orchestrator, "update_config", lambda at, **kw: (calls.update(kw) or True))
+    monkeypatch.setattr(server.orchestrator, "update_config", lambda at, **kw: calls.update(kw) or True)
 
     response = client.post("/api/config/pen", json={"pen": 99999})
 
@@ -142,7 +142,7 @@ def test_api_config_pen_orchestrator_failure(client, monkeypatch):
 def test_api_config_domain_success(client, monkeypatch):
     login(client)
     calls = {}
-    monkeypatch.setattr(server.orchestrator, "update_config", lambda at, **kw: (calls.update(kw) or True))
+    monkeypatch.setattr(server.orchestrator, "update_config", lambda at, **kw: calls.update(kw) or True)
 
     response = client.post("/api/config/domain", json={"subscription_domain": "test.example.com"})
 
@@ -153,7 +153,7 @@ def test_api_config_domain_success(client, monkeypatch):
 def test_api_config_domain_empty_clears(client, monkeypatch):
     login(client)
     calls = {}
-    monkeypatch.setattr(server.orchestrator, "update_config", lambda at, **kw: (calls.update(kw) or True))
+    monkeypatch.setattr(server.orchestrator, "update_config", lambda at, **kw: calls.update(kw) or True)
 
     response = client.post("/api/config/domain", json={})
 
@@ -167,7 +167,7 @@ def test_api_config_domain_empty_clears(client, monkeypatch):
 def test_api_config_static_uri_success(client, monkeypatch):
     login(client)
     calls = {}
-    monkeypatch.setattr(server.orchestrator, "update_config", lambda at, **kw: (calls.update(kw) or True))
+    monkeypatch.setattr(server.orchestrator, "update_config", lambda at, **kw: calls.update(kw) or True)
 
     response = client.post("/api/config/static_uri", json={"is_static_uri": True})
 
@@ -214,7 +214,7 @@ def test_api_update_run_group_success(client, monkeypatch):
     rg = generate_class_instance(schema.RunGroupResponse, seed=1)
     calls = {}
     monkeypatch.setattr(
-        server.orchestrator, "update_run_group", lambda at, rid, name: (calls.update({"rid": rid, "name": name}) or rg)
+        server.orchestrator, "update_run_group", lambda at, rid, name: calls.update({"rid": rid, "name": name}) or rg
     )
 
     response = client.patch("/api/run_groups/5", json={"name": "New Name"})
@@ -247,9 +247,7 @@ def test_api_update_run_group_orchestrator_failure(client, monkeypatch):
 def test_api_delete_run_group_success(client, monkeypatch):
     login(client)
     calls = {}
-    monkeypatch.setattr(
-        server.orchestrator, "delete_run_group", lambda at, rid: (calls.update({"rid": rid}) or True)
-    )
+    monkeypatch.setattr(server.orchestrator, "delete_run_group", lambda at, rid: calls.update({"rid": rid}) or True)
 
     response = client.delete("/api/run_groups/7")
 
