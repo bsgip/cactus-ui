@@ -6,18 +6,14 @@ import logging
 import logging.config
 import os
 import zipfile
-from collections import defaultdict
-from collections.abc import Callable
 from datetime import UTC, datetime
-from functools import lru_cache, wraps
+from functools import lru_cache
 from http import HTTPStatus
 from os import environ as env
 from pathlib import Path
-from typing import Any, cast
 from urllib.parse import quote_plus, urlencode
 
 import cactus_schema.orchestrator as schema
-import jwt
 from authlib.integrations.flask_client import OAuth
 from cactus_schema.orchestrator.compliance import fetch_compliance_classes
 from dotenv import find_dotenv, load_dotenv
@@ -36,7 +32,22 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.wrappers.response import Response
 
 import cactus_ui.orchestrator as orchestrator
-from cactus_ui.compliance_class import fetch_compliance_class
+from cactus_ui.auth import (
+    admin_role_required,
+    api_admin_role_required,
+    api_login_required,
+    get_access_token,
+    get_permissions,
+    get_username_from_session,
+    login_required,
+)
+from cactus_ui.presenters import (
+    build_compliance_json,
+    build_playlist_tests_by_category,
+    build_procedure_summaries_json,
+    build_test_status_dict,
+    paginated_json,
+)
 
 # Setup logs
 logconf_fp = "./logconf.json"
@@ -48,12 +59,11 @@ else:
 
 logger = logging.getLogger(__name__)
 
-_WITNESS_CLASSES = frozenset({"DER-A", "DER-G", "DER-L", "DR-D", "DR-G", "DR-L"})
 # Test procedures with `immediate_start: true` - these have no init phase and so no meaningful
 # active-power timeline, so the run status page hides the Active Power Chart for them.
-# INTERIM: hardcoded mirror of the cactus-test-definitions client procedures (same spirit as
-# _WITNESS_CLASSES above). The clean fix is an additive `immediate_start` field on the
-# orchestrator's RunResponse; swap is_immediate_start() to read that when it lands.
+# INTERIM: hardcoded mirror of the cactus-test-definitions client procedures (same hardcoded
+# pattern as presenters._WITNESS_CLASSES). The clean fix is an additive `immediate_start` field
+# on the orchestrator's RunResponse; swap is_immediate_start() to read that when it lands.
 _IMMEDIATE_START_PROCEDURE_IDS = frozenset(
     {
         "ALL-01",
@@ -70,9 +80,6 @@ _IMMEDIATE_START_PROCEDURE_IDS = frozenset(
         "STO-02",
     }
 )
-# Integer status codes used by TestProcedureRunSummaryResponse.latest_run_status (not a RunStatusResponse enum)
-_ACTIVE_RUN_STATUS_INTS = [1, 2, 6]  # initialised, started, provisioning
-_FINALIZED_RUN_STATUS_INTS = [3, 4]  # finalised by user, finalised by timeout
 # RunStatusResponse enum values used by RunResponse.status
 _ACTIVE_RUN_STATUSES = frozenset(
     {schema.RunStatusResponse.initialised, schema.RunStatusResponse.started, schema.RunStatusResponse.provisioning}
@@ -117,129 +124,6 @@ FRONTEND_DIST_DIR = Path(
 ).resolve()
 
 
-def get_access_token() -> str | None:
-    """Overly simple method for fetching an access token from the user's session. All validation will be handled at the
-    service receiving this access_token - all we are validating is that there is one and that it hasn't expired
-
-    Returns access_token if its present AND not expired. None otherwise."""
-
-    if "user" not in session:
-        logger.info("user not found in session.")
-        return None
-
-    user = session["user"]
-    if user is None or "access_token" not in user:
-        logger.info("access_token not found in user.")
-        return None
-
-    access_token = user["access_token"]
-    if not access_token:
-        logger.info("access_token appears to be empty.")
-        return None
-
-    # access_token should come paired with expires_at (the returned metadata from OAuth2)
-    if "expires_at" not in user:
-        logger.error("No expires_at was returned with access_token.")
-        return None
-
-    try:
-        exp_time = datetime.fromtimestamp(float(user["expires_at"]), tz=UTC)
-        if exp_time < datetime.now(tz=UTC):
-            logger.info(f"User access_token expired at {exp_time}.")
-            return None
-    except Exception as exc:
-        logger.error("Exception attempting to decode user expires_at.", exc_info=exc)
-        return None
-
-    return access_token
-
-
-def get_username_from_session() -> str | None:
-    """
-    Extracts the username from the OAuth2 session token.
-
-    Returns:
-        Username string if user is logged in, None otherwise.
-        Tries common OAuth2 fields in order of preference
-    """
-    if "user" not in session:
-        return None
-
-    user_info = session["user"].get("userinfo", {})
-
-    return user_info.get("name")
-
-
-def login_required[F: Callable[..., object]](f: F) -> F:
-    @wraps(f)
-    def decorated(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
-        access_token = get_access_token()
-        if access_token is None:
-            return redirect(url_for("login"))
-
-        return f(*args, access_token=access_token, **kwargs)
-
-    return cast(F, decorated)
-
-
-def get_permissions() -> list[str] | None:
-    if "user" not in session:
-        return None
-
-    user = session["user"]
-
-    if "access_token" not in user:
-        return None
-
-    encoded_jwt = user["access_token"]
-    decoded_jwt = jwt.decode(encoded_jwt, options={"verify_signature": False})
-
-    if "permissions" not in decoded_jwt:
-        return None
-
-    return decoded_jwt["permissions"]
-
-
-def admin_role_required[F: Callable[..., object]](f: F) -> F:
-    @wraps(f)
-    def decorated(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
-        permissions = get_permissions()
-        if not permissions or "admin:all" not in permissions:
-            return redirect(url_for("login_or_home_page"))
-
-        return f(*args, **kwargs)
-
-    return cast(F, decorated)
-
-
-def api_login_required[F: Callable[..., object]](f: F) -> F:
-    """Like login_required, but for /api endpoints: returns 401 JSON instead of redirecting to login."""
-
-    @wraps(f)
-    def decorated(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
-        access_token = get_access_token()
-        if access_token is None:
-            return jsonify({"error": "unauthenticated"}), HTTPStatus.UNAUTHORIZED
-
-        return f(*args, access_token=access_token, **kwargs)
-
-    return cast(F, decorated)
-
-
-def api_admin_role_required[F: Callable[..., object]](f: F) -> F:
-    """Like admin_role_required, but for /api endpoints: returns 403 JSON instead of redirecting."""
-
-    @wraps(f)
-    def decorated(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
-        permissions = get_permissions()
-        if not permissions or "admin:all" not in permissions:
-            return jsonify({"error": "forbidden"}), HTTPStatus.FORBIDDEN
-
-        return f(*args, **kwargs)
-
-    return cast(F, decorated)
-
-
 
 def download_playlist_artifacts(access_token: str, run_ids: list[int], download_name: str) -> Response | None:
     """Download artifacts for multiple runs as a single ZIP file.
@@ -259,58 +143,6 @@ def download_playlist_artifacts(access_token: str, run_ids: list[int], download_
         download_name=download_name,
         mimetype="application/zip",
     )
-
-
-def run_summary_to_compliance_status(
-    test_procedure: schema.TestProcedureRunSummaryResponse,
-) -> str:
-    if test_procedure.latest_run_status in _ACTIVE_RUN_STATUS_INTS:
-        return "active"
-    elif test_procedure.run_count == 0:
-        return "runless"
-    elif test_procedure.latest_run_status in _FINALIZED_RUN_STATUS_INTS:
-        if test_procedure.latest_all_criteria_met:
-            return "success"
-        else:
-            return "failed"
-    else:
-        return "unknown"
-
-
-def build_playlist_tests_by_category(
-    procedures: list[schema.TestProcedureRunSummaryResponse],
-) -> dict[str, list[dict]]:
-    """Build ordered category→tests dict for the playlist builder, excluding immediate_start procedures.
-
-    Procedures are expected to arrive in definition order from the orchestrator; insertion order is preserved.
-    """
-    result: dict[str, list[dict]] = {}
-    for p in procedures:
-        if p.immediate_start:
-            continue
-        cat = p.category
-        if cat not in result:
-            result[cat] = []
-        result[cat].append(
-            {
-                "id": str(p.test_procedure_id),
-                "description": p.description,
-                "is_witness": bool(_WITNESS_CLASSES & set(p.classes or [])),
-                "classes": p.classes or [],
-            }
-        )
-    return result
-
-
-def build_test_status_dict(run: schema.RunResponse) -> dict:
-    """Build a test status dictionary from a RunResponse for playlist display."""
-    return {
-        "test_procedure_id": run.test_procedure_id,
-        "run_id": run.run_id,
-        "status": run.status.value if hasattr(run.status, "value") else str(run.status),
-        "all_criteria_met": run.all_criteria_met,
-        "has_artifacts": run.has_artifacts,
-    }
 
 
 # Controllers API
@@ -481,85 +313,6 @@ def api_procedure_yaml(access_token: str, test_procedure_id: str) -> Response | 
         return jsonify({"error": f"Failed to fetch YAML for test '{test_procedure_id}'."}), HTTPStatus.BAD_GATEWAY
 
     return jsonify({"test_procedure_id": test_procedure_id, "yaml": yaml})
-
-
-def paginated_json(page: schema.Pagination) -> dict:
-    """Serialise a Pagination of JSONWizard items to a plain dict (snake_case keys, ISO datetimes)."""
-    return {
-        "total_pages": page.total_pages,
-        "total_items": page.total_items,
-        "page_size": page.page_size,
-        "current_page": page.current_page,
-        "prev_page": page.prev_page,
-        "next_page": page.next_page,
-        "items": [item.to_dict() for item in page.items],
-    }
-
-
-def build_procedure_summaries_json(procedures: list[schema.TestProcedureRunSummaryResponse]) -> dict:
-    """Groups procedure run summaries by category (preserving order) with compliance class filter maps."""
-    grouped: dict[str, dict] = {}  # slug -> group, insertion ordered
-    all_classes: set[str] = set()
-    classes_by_test: dict[str, list[str]] = {}
-    classes_by_category: dict[str, set[str]] = {}
-
-    for p in procedures:
-        category_slug = p.category.replace(" ", "-")  # This could do with a more robust slugify method
-
-        group = grouped.setdefault(category_slug, {"slug": category_slug, "category": p.category, "summaries": []})
-        group["summaries"].append(p.to_dict())
-
-        classes = p.classes if p.classes else []
-        classes_by_test[p.test_procedure_id] = classes
-        all_classes.update(classes)
-        classes_by_category.setdefault(category_slug, set()).update(classes)
-
-    return {
-        "grouped_procedures": list(grouped.values()),
-        "classes": [{"name": c.name, "description": c.description} for c in fetch_compliance_classes(all_classes)],
-        "classes_by_test": classes_by_test,
-        "classes_by_category": {key: sorted(value) for key, value in classes_by_category.items()},
-    }
-
-
-def build_compliance_json(procedures: list[schema.TestProcedureRunSummaryResponse]) -> dict:
-    """Compute compliance-by-class from procedure run summaries."""
-    tests_by_class: dict[str, list[str]] = defaultdict(list)
-    for p in procedures:
-        if p.classes:
-            for c in p.classes:
-                tests_by_class[c].append(str(p.test_procedure_id))
-
-    procedure_map: dict[str, schema.TestProcedureRunSummaryResponse] = {
-        str(p.test_procedure_id): p for p in procedures
-    }
-    result = []
-    for compliance_class, tests in tests_by_class.items():
-        per_run_status = [
-            {
-                "test_procedure_id": t,
-                "description": procedure_map[t].description,
-                "latest_run_id": procedure_map[t].latest_run_id,
-                "status": run_summary_to_compliance_status(procedure_map[t]),
-            }
-            for t in tests
-        ]
-        compliant = all(r["status"] == "success" for r in per_run_status)
-        class_details = fetch_compliance_class(compliance_class)
-        result.append(
-            {
-                "class_name": compliance_class,
-                "class_details": {
-                    "name": class_details.name,
-                    "description": class_details.description,
-                }
-                if class_details
-                else {"name": compliance_class, "description": ""},
-                "compliant": compliant,
-                "per_run_status": per_run_status,
-            }
-        )
-    return {"compliance_by_class": result}
 
 
 @app.route("/api/run_groups", methods=["GET"])
