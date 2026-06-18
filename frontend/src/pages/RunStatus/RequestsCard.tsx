@@ -1,4 +1,5 @@
-import { Badge, Button, Card, Table, Title } from '@mantine/core';
+import { Badge, Button, Table, Title } from '@mantine/core';
+import { ScrollCard } from '../../components/ScrollCard';
 import type { RequestEntry } from '../../api/types';
 import { formatDate } from '../../utils/dates';
 
@@ -19,10 +20,7 @@ export function RequestsCard({ requests, onShowRequest }: Props) {
   const recent = requests.slice(-MAX_VISIBLE_REQUESTS);
 
   return (
-    <Card withBorder style={{ maxHeight: 600, overflowY: 'auto' }}>
-      <Title order={5} mb="xs">
-        CSIP-Aus Requests
-      </Title>
+    <ScrollCard header={<Title order={5}>CSIP-Aus Requests</Title>}>
       <Table>
         <Table.Tbody>
           {requests.length === 0 ? (
@@ -57,7 +55,11 @@ export function RequestsCard({ requests, onShowRequest }: Props) {
                       </Badge>
                     </Table.Td>
                     <Table.Td>
-                      <Button size="xs" variant="outline" onClick={() => onShowRequest(r.request_id)}>
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => onShowRequest(r.request_id)}
+                      >
                         Details
                       </Button>
                     </Table.Td>
@@ -68,6 +70,6 @@ export function RequestsCard({ requests, onShowRequest }: Props) {
           )}
         </Table.Tbody>
       </Table>
-    </Card>
+    </ScrollCard>
   );
 }

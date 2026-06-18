@@ -1,4 +1,5 @@
-import { Button, Card, Code, Group, Table, Title } from '@mantine/core';
+import { Button, Code, Group, Table, Title } from '@mantine/core';
+import { ScrollCard } from '../../components/ScrollCard';
 import { useState } from 'react';
 import type { RequestEntry } from '../../api/types';
 import { formatDate, formatRelativeDate } from '../../utils/dates';
@@ -35,34 +36,36 @@ export function XsdErrorsCard({ requests, onShowRequest }: Props) {
   const current = withErrors[currentIndex];
 
   return (
-    <Card withBorder style={{ maxHeight: 600, overflowY: 'auto' }}>
-      <Group justify="space-between" mb="md">
-        <Title order={5}>{title(withErrors.length, totalErrorCount)}</Title>
-        {withErrors.length > 1 && (
-          <Group gap="xs">
-            <Button
-              size="xs"
-              variant="outline"
-              disabled={currentIndex === 0}
-              onClick={() => setIndex(currentIndex - 1)}
-            >
-              ← Previous
-            </Button>
-            <Button size="xs" variant="outline" color="gray" disabled>
-              {currentIndex + 1} of {withErrors.length}
-            </Button>
-            <Button
-              size="xs"
-              variant="outline"
-              disabled={currentIndex === withErrors.length - 1}
-              onClick={() => setIndex(currentIndex + 1)}
-            >
-              Next →
-            </Button>
-          </Group>
-        )}
-      </Group>
-
+    <ScrollCard
+      header={
+        <Group justify="space-between">
+          <Title order={5}>{title(withErrors.length, totalErrorCount)}</Title>
+          {withErrors.length > 1 && (
+            <Group gap="xs">
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={currentIndex === 0}
+                onClick={() => setIndex(currentIndex - 1)}
+              >
+                ← Previous
+              </Button>
+              <Button size="xs" variant="outline" color="gray" disabled>
+                {currentIndex + 1} of {withErrors.length}
+              </Button>
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={currentIndex === withErrors.length - 1}
+                onClick={() => setIndex(currentIndex + 1)}
+              >
+                Next →
+              </Button>
+            </Group>
+          )}
+        </Group>
+      }
+    >
       <Table>
         <Table.Tbody>
           {!current ? (
@@ -124,6 +127,6 @@ export function XsdErrorsCard({ requests, onShowRequest }: Props) {
           )}
         </Table.Tbody>
       </Table>
-    </Card>
+    </ScrollCard>
   );
 }

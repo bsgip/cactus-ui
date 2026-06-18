@@ -1,6 +1,12 @@
 import { Badge, Button, Card, Group, Modal, Table, Text, Title } from '@mantine/core';
+import { ScrollCard } from '../../components/ScrollCard';
 import { useDisclosure } from '@mantine/hooks';
-import type { DerCapabilityInfo, DerSettingsInfo, DerStatusInfo, EndDeviceMetadata } from '../../api/types';
+import type {
+  DerCapabilityInfo,
+  DerSettingsInfo,
+  DerStatusInfo,
+  EndDeviceMetadata,
+} from '../../api/types';
 
 interface Props {
   metadata: EndDeviceMetadata | null;
@@ -53,13 +59,16 @@ export function MetadataCard({ metadata }: Props) {
   const [opened, { open, close }] = useDisclosure(false);
 
   return (
-    <Card withBorder style={{ maxHeight: 600, overflowY: 'auto' }}>
-      <Group justify="space-between" mb="xs">
-        <Title order={5}>Active Device Metadata</Title>
-        <Button size="xs" variant="outline" color="gray" onClick={open}>
-          Device Details
-        </Button>
-      </Group>
+    <ScrollCard
+      header={
+        <Group justify="space-between">
+          <Title order={5}>Active Device Metadata</Title>
+          <Button size="xs" variant="outline" color="gray" onClick={open}>
+            Device Details
+          </Button>
+        </Group>
+      }
+    >
       <Table>
         <Table.Tbody>
           <Table.Tr>
@@ -86,7 +95,7 @@ export function MetadataCard({ metadata }: Props) {
         <DerSettingsCard set={metadata?.der_settings ?? null} />
         <DerStatusCard sta={metadata?.der_status ?? null} />
       </Modal>
-    </Card>
+    </ScrollCard>
   );
 }
 

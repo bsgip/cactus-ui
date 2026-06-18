@@ -1,14 +1,21 @@
-import { Alert, Anchor, Button, Card, Table, Text, Title } from '@mantine/core';
+import { Alert, Anchor, Button, Table, Text, Title } from '@mantine/core';
 import { useMutation } from '@tanstack/react-query';
 import { IconCheck, IconMinus, IconPlayerPlay, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
+import { ScrollCard } from '../../components/ScrollCard';
 import { sendProceed } from '../../api/runStatus';
 import type { CriteriaEntry, RunStatus, RunnerStatus, StepEventStatus } from '../../api/types';
 import { formatDate, formatRelativeDate } from '../../utils/dates';
 import { MetadataCard } from './MetadataCard';
 import { RequestDetailsModal } from './RequestDetailsModal';
 import { RequestsCard } from './RequestsCard';
-import { activeStep, criteriaWithXsd, formatTimeLabel, isProceedStepActive, stepPhase } from './statusHelpers';
+import {
+  activeStep,
+  criteriaWithXsd,
+  formatTimeLabel,
+  isProceedStepActive,
+  stepPhase,
+} from './statusHelpers';
 import { TimelineChart } from './TimelineChart';
 import { XsdErrorsCard } from './XsdErrorsCard';
 
@@ -69,10 +76,13 @@ function GeneralCard({
 }) {
   const interaction = status.last_client_interaction?.timestamp ?? null;
   return (
-    <Card withBorder style={{ maxHeight: 600, overflowY: 'auto' }}>
-      <Title order={5} mb="xs">
-        <Anchor href={`/procedure/${runProcedureId}`}>{runProcedureId}</Anchor>
-      </Title>
+    <ScrollCard
+      header={
+        <Title order={5}>
+          <Anchor href={`/procedure/${runProcedureId}`}>{runProcedureId}</Anchor>
+        </Title>
+      }
+    >
       <Table>
         <Table.Tbody>
           {status.timestamp_start && (
@@ -99,17 +109,14 @@ function GeneralCard({
           </Table.Tr>
         </Table.Tbody>
       </Table>
-    </Card>
+    </ScrollCard>
   );
 }
 
 // Shared layout for the Precondition Checks and Current Criteria tables (type / icon / details).
 function CheckTableCard({ title, entries }: { title: string; entries: CriteriaEntry[] }) {
   return (
-    <Card withBorder style={{ maxHeight: 600, overflowY: 'auto' }}>
-      <Title order={5} mb="xs">
-        {title}
-      </Title>
+    <ScrollCard header={<Title order={5}>{title}</Title>}>
       <Table>
         <Table.Tbody>
           {entries.map((c) => (
@@ -127,7 +134,7 @@ function CheckTableCard({ title, entries }: { title: string; entries: CriteriaEn
           ))}
         </Table.Tbody>
       </Table>
-    </Card>
+    </ScrollCard>
   );
 }
 
@@ -142,7 +149,10 @@ function completedCell(info: StepEventStatus, timestampStart: string | null) {
   if (stepPhase(info) !== 'resolved' || !info.completed_at || !timestampStart) return '';
   const completed = new Date(info.completed_at);
   const elapsed = Math.floor((completed.getTime() - new Date(timestampStart).getTime()) / 1000);
-  const utc = completed.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
+  const utc = completed
+    .toISOString()
+    .replace('T', ' ')
+    .replace(/\.\d+Z$/, ' UTC');
   return <span title={utc}>{formatTimeLabel(elapsed)}</span>;
 }
 
@@ -174,11 +184,7 @@ function StepsCard({
     isProceedStepActive(status.step_status) && active != null && active.name !== proceededStep;
 
   return (
-    <Card withBorder style={{ maxHeight: 600, overflowY: 'auto' }}>
-      <Title order={5} mb="xs">
-        Steps
-      </Title>
-
+    <ScrollCard header={<Title order={5}>Steps</Title>}>
       {showInstructions && (
         <Alert color="blue" mb="md">
           <ul>
@@ -217,17 +223,14 @@ function StepsCard({
           ))}
         </Table.Tbody>
       </Table>
-    </Card>
+    </ScrollCard>
   );
 }
 
 function EnvoyLogsCard({ log }: { log: string }) {
   return (
-    <Card withBorder style={{ maxHeight: 600, overflowY: 'auto' }}>
-      <Title order={5} mb="xs">
-        Envoy Logs
-      </Title>
+    <ScrollCard header={<Title order={5}>Envoy Logs</Title>}>
       <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{log || 'No logs recorded'}</pre>
-    </Card>
+    </ScrollCard>
   );
 }
