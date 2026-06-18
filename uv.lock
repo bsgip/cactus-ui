@@ -128,7 +128,7 @@ requires-dist = [
     { name = "assertical", marker = "extra == 'test'" },
     { name = "authlib" },
     { name = "bandit", marker = "extra == 'dev'" },
-    { name = "cactus-schema", specifier = ">=0.0.23" },
+    { name = "cactus-schema", specifier = ">=0.0.23,<1.0.0" },
     { name = "coverage", marker = "extra == 'dev'" },
     { name = "flask" },
     { name = "pyjwt" },
