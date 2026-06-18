@@ -1,6 +1,7 @@
 import { Alert, Anchor, Button, Collapse, Group, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconArrowRight, IconCircleCheck } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
 import type { RunStatusShell } from '../../api/types';
 
 interface Props {
@@ -78,8 +79,8 @@ export function FinalisedView({ shell, supportEmail, isAdminView }: Props) {
           </Text>
           <Button
             color="green"
-            component="a"
-            href={`${adminPrefix}/run/${shell.next_playlist_run_id}`}
+            component={Link}
+            to={`${adminPrefix}/run/${shell.next_playlist_run_id}`}
             rightSection={<IconArrowRight size={16} />}
           >
             Go to Next Test

@@ -6,7 +6,6 @@ import logging
 import logging.config
 import os
 import zipfile
-from base64 import b64encode
 from collections import defaultdict
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -27,7 +26,6 @@ from flask import (
     current_app,
     jsonify,
     redirect,
-    render_template,
     request,
     send_file,
     send_from_directory,
@@ -79,10 +77,6 @@ _FINALIZED_RUN_STATUS_INTS = [3, 4]  # finalised by user, finalised by timeout
 _ACTIVE_RUN_STATUSES = frozenset(
     {schema.RunStatusResponse.initialised, schema.RunStatusResponse.started, schema.RunStatusResponse.provisioning}
 )
-
-
-def is_witness_test(run_response: schema.RunResponse | None) -> bool:
-    return bool(_WITNESS_CLASSES & set(run_response.classes or [])) if run_response else False
 
 
 def is_immediate_start(run_response: schema.RunResponse | None) -> bool:
@@ -423,74 +417,6 @@ def api_admin_stats(access_token: str) -> Response | tuple[Response, int]:
     )
 
 
-@app.route("/admin/run/<int:run_id>", methods=["GET", "POST"])
-@login_required
-@admin_role_required
-def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
-    error: str | None = None
-
-    if request.method == "POST":
-        # Handle downloading a prior run's artifacts
-        if request.form.get("action") == "artifact":
-            artifact_data, download_name = orchestrator.admin_fetch_run_artifact(access_token, run_id)
-            if artifact_data is None:
-                error = "Failed to retrieve artifacts."
-            else:
-                return send_file(
-                    io.BytesIO(artifact_data),
-                    as_attachment=True,
-                    download_name=download_name,
-                    mimetype="application/zip",
-                )
-
-    status = orchestrator.admin_fetch_run_status(access_token=access_token, run_id=run_id)
-
-    run_status = None
-    run_test_uri = None
-    run_procedure_id = None
-    run_has_artifacts = None
-
-    run_response = orchestrator.admin_fetch_individual_run(access_token, run_id)
-    if run_response:
-        run_status = run_response.status
-        run_test_uri = run_response.test_url
-        run_procedure_id = run_response.test_procedure_id
-        run_has_artifacts = run_response.has_artifacts
-
-    run_is_live = status is not None or (run_response is not None and run_response.status in _ACTIVE_RUN_STATUSES)
-
-    # Take the big JSON response string and encode it using base64 so we can embed it in the template and re-hydrate
-    # it easily enough
-    if status is not None:
-        initial_status_b64 = b64encode(status.encode()).decode()
-    else:
-        initial_status_b64 = ""
-
-    playlist_info, next_playlist_run_id, current_active_run = (
-        _build_playlist_info(access_token, run_response, admin=True) if run_response else (None, None, None)
-    )
-
-    return render_template(
-        "run_status.html",
-        run_is_live=run_is_live,
-        run_has_artifacts=run_has_artifacts,
-        run_id=run_id,
-        initial_status_b64=initial_status_b64,
-        run_status=run_status,
-        run_test_uri=run_test_uri,
-        run_procedure_id=run_procedure_id,
-        error=error,
-        playlist_info=playlist_info,
-        next_playlist_run_id=next_playlist_run_id,
-        current_active_run=current_active_run,
-        is_admin_view=True,
-        is_witness_test=is_witness_test(run_response),
-        user_buttons_state="disabled",
-        proceed_uri=url_for("admin_send_proceed", run_id=run_id),
-        cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
-    )
-
-
 def _parse_video_start(raw: str | None) -> float | None:
     """Parse a video timestamp string ('SS', 'M:SS', 'MM:SS', 'H:MM:SS') to seconds.
 
@@ -522,23 +448,6 @@ def admin_run_html_report_page(access_token: str, run_id: int) -> str | Response
     if html is None:
         return Response(response="Failed to generate HTML report.", status=HTTPStatus.BAD_GATEWAY)
     return Response(html, mimetype="text/html")
-
-
-@app.route("/admin/run/<int:run_id>/status", methods=["GET"])
-@login_required
-@admin_role_required
-def admin_run_status_json(access_token: str, run_id: str) -> Response:
-
-    status = orchestrator.admin_fetch_run_status(access_token=access_token, run_id=run_id)
-
-    if status is None:
-        return Response(
-            response="Unable to fetch runner status. Likely terminated available.",
-            status=HTTPStatus.GONE,
-            mimetype="text/plain",
-        )
-
-    return Response(response=status, status=200, mimetype="application/json")
 
 
 @app.route("/api/procedures", methods=["GET"])
@@ -1240,47 +1149,6 @@ def _build_playlist_info(
     return playlist_info, next_playlist_run_id, current_active_run
 
 
-def _handle_run_status_post(access_token: str, run_id: str) -> str | Response | None:
-    """Dispatch POST actions for the run status page."""
-    action = request.form.get("action")
-    if action == "start":
-        start_result = orchestrator.start_run(access_token, run_id)
-        if not start_result or not start_result.success:
-            return (
-                "Failed to start the test run."
-                if start_result is None or start_result.error_message is None
-                else start_result.error_message
-            )
-        return None
-    elif action == "finalise":
-        if not orchestrator.finalise_run(access_token, run_id):
-            return "Failed to finalise the run."
-        return None
-    elif action == "artifact":
-        artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
-        if artifact_data is None:
-            return "Failed to retrieve artifacts."
-        return send_file(
-            io.BytesIO(artifact_data),
-            as_attachment=True,
-            download_name=download_name,
-            mimetype="application/zip",
-        )
-    elif action == "skip_playlist":
-        orchestrator.finalise_playlist(access_token, run_id)
-        run_response = orchestrator.fetch_individual_run(access_token, run_id)
-        if run_response and run_response.playlist_runs:
-            run_ids = [r.run_id for r in run_response.playlist_runs]
-            first_run_id = run_ids[0]
-            playlist_name = session.get("active_playlist", {}).get("name", "playlist")
-            download_name = f"{playlist_name}_{first_run_id}_artifacts.zip"
-            response = download_playlist_artifacts(access_token, run_ids, download_name)
-            if response:
-                return response
-        return "Failed to download playlist artifacts."
-    return None
-
-
 @app.route("/run/<int:run_id>/html_report", methods=["GET"])
 @login_required
 def run_html_report_page(access_token: str, run_id: int) -> str | Response:
@@ -1290,132 +1158,6 @@ def run_html_report_page(access_token: str, run_id: int) -> str | Response:
         message = error_detail or "Failed to generate HTML report."
         return Response(response=message, status=HTTPStatus.BAD_GATEWAY)
     return Response(html, mimetype="text/html")
-
-
-@app.route("/run/<int:run_id>", methods=["GET", "POST"])
-@login_required
-def run_status_page(access_token: str, run_id: str) -> str | Response:
-    error: str | None = None
-
-    if request.method == "POST":
-        result = _handle_run_status_post(access_token, run_id)
-        if isinstance(result, Response):
-            return result
-        if isinstance(result, str):
-            error = result
-
-    status = orchestrator.fetch_run_status(access_token=access_token, run_id=run_id)
-
-    run_status = None
-    run_test_uri = None
-    run_procedure_id = None
-    run_has_artifacts = None
-
-    run_response = orchestrator.fetch_individual_run(access_token, run_id)
-    if run_response:
-        run_status = run_response.status
-        run_test_uri = run_response.test_url
-        run_procedure_id = run_response.test_procedure_id
-        run_has_artifacts = run_response.has_artifacts
-
-    run_is_live = status is not None or (run_response is not None and run_response.status in _ACTIVE_RUN_STATUSES)
-
-    initial_status_b64 = b64encode(status.encode()).decode() if status is not None else ""
-
-    playlist_info, next_playlist_run_id, current_active_run = (
-        _build_playlist_info(access_token, run_response) if run_response else (None, None, None)
-    )
-
-    return render_template(
-        "run_status.html",
-        run_is_live=run_is_live,
-        run_has_artifacts=run_has_artifacts,
-        run_id=run_id,
-        initial_status_b64=initial_status_b64,
-        run_status=run_status,
-        run_test_uri=run_test_uri,
-        run_procedure_id=run_procedure_id,
-        error=error,
-        playlist_info=playlist_info,
-        next_playlist_run_id=next_playlist_run_id,
-        current_active_run=current_active_run,
-        is_admin_view=False,
-        is_witness_test=is_witness_test(run_response),
-        proceed_uri=url_for("send_proceed", run_id=run_id),
-        cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
-    )
-
-
-@app.route("/run/<int:run_id>/status", methods=["GET"])
-@login_required
-def run_status_json(access_token: str, run_id: str) -> Response:
-
-    status = orchestrator.fetch_run_status(access_token=access_token, run_id=run_id)
-
-    if status is None:
-        return Response(
-            response="Unable to fetch runner status. Likely terminated available.",
-            status=HTTPStatus.GONE,
-            mimetype="text/plain",
-        )
-
-    return Response(response=status, status=200, mimetype="application/json")
-
-
-@app.route("/run/<int:run_id>/requests/<int:request_id>", methods=["GET"])
-@login_required
-def run_request_details(access_token: str, request_id: int, run_id: str) -> Response:
-    """Fetch raw request/response data for a specific request."""
-
-    request_data = orchestrator.fetch_request_details(access_token=access_token, request_id=request_id, run_id=run_id)
-
-    if request_data is None:
-        return Response(
-            response=json.dumps({"error": "Request details not found"}),
-            status=HTTPStatus.NOT_FOUND,
-            mimetype="application/json",
-        )
-
-    return Response(response=request_data, status=HTTPStatus.OK, mimetype="application/json")
-
-
-@app.route("/run/<int:run_id>/proceed", methods=["GET"])
-@login_required
-def send_proceed(access_token: str, run_id: str) -> Response:
-
-    proceed_response = orchestrator.send_proceed(access_token=access_token, run_id=run_id)
-
-    if proceed_response is None:
-        return Response(
-            response="Failed to proceed to next step",
-            status=HTTPStatus.INTERNAL_SERVER_ERROR,
-        )
-
-    return Response(
-        response=proceed_response.to_json(),
-        status=HTTPStatus.OK,
-        mimetype="application/json",
-    )
-
-
-@app.route("/admin/run/<int:run_id>/proceed", methods=["GET"])
-@login_required
-@admin_role_required
-def admin_send_proceed(access_token: str, run_id: str) -> Response:
-
-    proceed_response = orchestrator.admin_send_proceed(access_token=access_token, run_id=run_id)
-
-    if proceed_response is None:
-        return Response(
-            response="Failed to proceed to next step",
-            status=HTTPStatus.INTERNAL_SERVER_ERROR,
-        )
-
-    return Response(
-        response=proceed_response.to_json(),
-        status=HTTPStatus.OK,
-        mimetype="application/json",
-    )
 
 
 # Run status page (React) JSON endpoints. The page shell (metadata + playlist context)

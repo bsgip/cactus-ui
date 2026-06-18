@@ -11,6 +11,7 @@ import { ProcedureYamlPage } from './pages/ProcedureYaml/ProcedureYamlPage';
 import { RunGroupPage } from './pages/RunGroup/RunGroupPage';
 import { RunsPage } from './pages/Runs/RunsPage';
 import { RunsRedirect } from './pages/Runs/RunsRedirect';
+import { RunStatusPage } from './pages/RunStatus/RunStatusPage';
 
 export const routes: RouteObject[] = [
   {
@@ -25,6 +26,8 @@ export const routes: RouteObject[] = [
       { path: 'admin/group/:runGroupId/runs', element: <RunsPage isAdminView={true} /> },
       { path: 'group/:runGroupId', element: <RunGroupPage isAdminView={false} /> },
       { path: 'admin/group/:runGroupId', element: <RunGroupPage isAdminView={true} /> },
+      { path: 'run/:runId', element: <RunStatusPage isAdminView={false} /> },
+      { path: 'admin/run/:runId', element: <RunStatusPage isAdminView={true} /> },
       { path: 'playlists', element: <PlaylistsRedirect /> },
       { path: 'group/:runGroupId/playlists', element: <PlaylistsPage /> },
       { path: 'config', element: <ConfigPage /> },

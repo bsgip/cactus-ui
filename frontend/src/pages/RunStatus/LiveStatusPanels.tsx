@@ -9,6 +9,7 @@ import { MetadataCard } from './MetadataCard';
 import { RequestDetailsModal } from './RequestDetailsModal';
 import { RequestsCard } from './RequestsCard';
 import { activeStep, criteriaWithXsd, formatTimeLabel, isProceedStepActive, stepPhase } from './statusHelpers';
+import { TimelineChart } from './TimelineChart';
 import { XsdErrorsCard } from './XsdErrorsCard';
 
 interface Props {
@@ -33,6 +34,12 @@ export function LiveStatusPanels({ status, runId, runStatus, runProcedureId, isA
       )}
       <CheckTableCard title="Current Criteria" entries={criteriaWithXsd(status)} />
       <StepsCard status={status} runStatus={runStatus} runId={runId} isAdminView={isAdminView} />
+      <TimelineChart
+        timeline={status.timeline}
+        stepStatus={status.step_status}
+        requestHistory={requests}
+        timestampStart={status.timestamp_start}
+      />
       <MetadataCard metadata={status.end_device_metadata} />
       <RequestsCard requests={requests} onShowRequest={setSelectedRequest} />
       <XsdErrorsCard requests={requests} onShowRequest={setSelectedRequest} />

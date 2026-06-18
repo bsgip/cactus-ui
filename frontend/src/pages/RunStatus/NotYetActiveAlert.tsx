@@ -1,5 +1,6 @@
 import { Alert, Button, Text } from '@mantine/core';
 import { IconAlertTriangle, IconPlayerPlay } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
 import type { CurrentActiveRun } from '../../api/types';
 
 interface Props {
@@ -25,8 +26,8 @@ export function NotYetActiveAlert({ currentActiveRun, total, isAdminView }: Prop
       </Text>
       <Button
         color="yellow"
-        component="a"
-        href={`${isAdminView ? '/admin' : ''}/run/${currentActiveRun.run_id}`}
+        component={Link}
+        to={`${isAdminView ? '/admin' : ''}/run/${currentActiveRun.run_id}`}
         leftSection={<IconPlayerPlay size={16} />}
       >
         Go to Active Test

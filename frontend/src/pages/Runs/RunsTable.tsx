@@ -1,5 +1,6 @@
 import { ActionIcon, Anchor, Button, Center, Loader, Table, Text } from '@mantine/core';
 import { IconCheck, IconQuestionMark, IconTrash, IconX } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
 import type { RunResponse } from '../../api/types';
 import { formatDate, formatRelativeDate } from '../../utils/dates';
 
@@ -147,7 +148,9 @@ export function RunsTable({
       return (
         <Table.Tr key={run.run_id} bg={rowBackground(run)}>
           <Table.Td>
-            <Anchor href={`${isAdminView ? '/admin' : ''}/run/${run.run_id}`}>{run.run_id}</Anchor>
+            <Anchor component={Link} to={`${isAdminView ? '/admin' : ''}/run/${run.run_id}`}>
+              {run.run_id}
+            </Anchor>
           </Table.Td>
           <Table.Td>
             {formatDate(created)}

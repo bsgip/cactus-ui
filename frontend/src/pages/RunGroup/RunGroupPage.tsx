@@ -145,8 +145,8 @@ export function RunGroupPage({ isAdminView }: { isAdminView: boolean }) {
                             <Badge
                               key={rs.test_procedure_id}
                               color={color}
-                              component="a"
-                              href={`${isAdminView ? '/admin' : ''}/run/${rs.latest_run_id}`}
+                              component={Link}
+                              to={`${isAdminView ? '/admin' : ''}/run/${rs.latest_run_id}`}
                               style={{ cursor: 'pointer' }}
                               mr={6}
                               mb={8}

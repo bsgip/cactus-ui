@@ -3,6 +3,12 @@ import { cleanup } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import { server } from './msw-server';
 
+// Chart.js renders onto a <canvas>, which jsdom does not implement. Stub react-chartjs-2 so
+// the timeline chart mounts without a 2d context; real rendering is covered by Playwright.
+vi.mock('react-chartjs-2', () => ({
+  Line: () => null,
+}));
+
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
   server.resetHandlers();

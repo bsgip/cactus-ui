@@ -205,6 +205,8 @@ describe('run status live panels', () => {
     // Steps (POST-DERSTATUS only appears in the steps table) + the Envoy log text.
     expect(screen.getByText('POST-DERSTATUS')).toBeInTheDocument();
     expect(screen.getByText(/GET \/edev -> 200/)).toBeInTheDocument();
+    // Timeline card renders (the chart canvas itself is verified in Playwright).
+    expect(screen.getByText('Timeline')).toBeInTheDocument();
   });
 
   it('opens the request details modal from the requests table', async () => {

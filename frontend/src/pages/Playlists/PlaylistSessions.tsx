@@ -1,6 +1,7 @@
 import { Anchor, Button, Card, Code, Group, Menu, Stack, Table, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { IconDownload, IconPlayerPlay, IconPlayerStop } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
 import type { PlaylistSession, PlaylistTestStatus } from '../../api/types';
 import { formatDate, formatRelativeDate } from '../../utils/dates';
 import { StatusDots } from './StatusDots';
@@ -95,7 +96,7 @@ export function PlaylistSessions({ sessions, isFinalising, onFinalise }: Playlis
                 <Card key={s.playlist_execution_id} withBorder padding="xs" style={{ borderColor: 'var(--mantine-color-blue-5)' }}>
                   <Group gap="sm" wrap="wrap">
                     <div>
-                      <Anchor href={`/run/${s.first_run_id}`}>
+                      <Anchor component={Link} to={`/run/${s.first_run_id}`}>
                         <Code>{s.short_id}</Code>
                       </Anchor>
                       <Text component="small" size="xs" c="dimmed" ml={6}>
@@ -110,8 +111,8 @@ export function PlaylistSessions({ sessions, isFinalising, onFinalise }: Playlis
                     </div>
                     <Button
                       size="xs"
-                      component="a"
-                      href={`/run/${goToRunId}`}
+                      component={Link}
+                      to={`/run/${goToRunId}`}
                       leftSection={<IconPlayerPlay size={14} />}
                     >
                       Go to run
@@ -154,7 +155,7 @@ export function PlaylistSessions({ sessions, isFinalising, onFinalise }: Playlis
               return (
                 <Table.Tr key={s.playlist_execution_id}>
                   <Table.Td>
-                    <Anchor href={`/run/${s.first_run_id}`}>
+                    <Anchor component={Link} to={`/run/${s.first_run_id}`}>
                       <Code>{s.short_id}</Code>
                     </Anchor>
                     <br />

@@ -10,6 +10,7 @@ import {
   IconX,
 } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import type { CurrentActiveRun, PlaylistRunDisplay, RunStatusPlaylistInfo } from '../../api/types';
 import { formatDate } from '../../utils/dates';
 
@@ -74,8 +75,8 @@ export function PlaylistBanner({
           {currentActiveRun && currentActiveRun.run_id !== runId && (
             <Button
               size="xs"
-              component="a"
-              href={`${adminPrefix}/run/${currentActiveRun.run_id}`}
+              component={Link}
+              to={`${adminPrefix}/run/${currentActiveRun.run_id}`}
               leftSection={<IconPlayerPlay size={14} />}
             >
               Go to active run ({currentActiveRun.test_procedure_id})
@@ -151,8 +152,8 @@ function PlaylistRunBadge({
       <Group gap={4} wrap="nowrap">
         <Tooltip label={passed ? 'Passed' : 'Failed'} withArrow>
           <Badge
-            component="a"
-            href={href}
+            component={Link}
+            to={href}
             color={passed ? 'green' : 'red'}
             style={{ cursor: 'pointer' }}
             leftSection={passed ? <IconCheck size={12} /> : <IconX size={12} />}
@@ -180,8 +181,8 @@ function PlaylistRunBadge({
     badge = (
       <Tooltip label="Running" withArrow>
         <Badge
-          component="a"
-          href={href}
+          component={Link}
+          to={href}
           color="blue"
           style={{ cursor: 'pointer' }}
           leftSection={<IconPlayerPlay size={12} />}
