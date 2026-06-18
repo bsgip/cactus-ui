@@ -3,6 +3,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ComplianceClass, PlaylistTest } from '../../api/types';
+import accordionClasses from '../../components/categoryAccordion.module.css';
 import { ComplianceFilterModal } from '../Runs/ComplianceFilterModal';
 
 interface TestLibraryProps {
@@ -89,7 +90,11 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
         onChange={setEnabledClasses}
       />
 
-      <Accordion multiple defaultValue={Object.keys(testsByCategory)}>
+      <Accordion
+        multiple
+        defaultValue={Object.keys(testsByCategory)}
+        classNames={{ control: accordionClasses.control }}
+      >
         {categories.map(([category, tests]) => (
           <Accordion.Item key={category} value={category}>
             <Accordion.Control>{category}</Accordion.Control>

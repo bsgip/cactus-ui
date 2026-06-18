@@ -287,7 +287,7 @@ export function AdminStatsPage() {
                 <Text component="code" size="sm">
                   {version}
                 </Text>
-                <Badge color="green" radius="xl">
+                <Badge color="green">
                   {count} run group{count !== 1 ? 's' : ''}
                 </Badge>
               </Box>

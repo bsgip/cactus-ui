@@ -184,18 +184,20 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
 
         <Box style={{ flex: 1 }}>
           <Group justify="space-between" py={5}>
-            <Title order={5}>
-              {selection.kind === 'active' ? (
-                'Active Runs'
-              ) : (
-                <>
+            {selection.kind === 'active' ? (
+              <Title order={4}>Active Runs</Title>
+            ) : (
+              <div>
+                <Title order={4}>
                   <Anchor component={Link} to={`/procedure/${selection.id}`}>
                     {selection.id}
-                  </Anchor>{' '}
+                  </Anchor>
+                </Title>
+                <Text size="sm" c="dimmed" mt={2}>
                   {selection.description}
-                </>
-              )}
-            </Title>
+                </Text>
+              </div>
+            )}
             {selection.kind === 'procedure' && !isAdminView && (
               <Box>
                 <Button

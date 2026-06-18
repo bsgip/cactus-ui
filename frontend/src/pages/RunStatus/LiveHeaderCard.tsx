@@ -34,7 +34,17 @@ export function LiveHeaderCard({
       </Title>
 
       <Text my="sm">
-        <Code style={{ userSelect: 'all' }}>{runTestUri}</Code>
+        <Code
+          style={{
+            userSelect: 'all',
+            backgroundColor: 'var(--mantine-color-blue-0)',
+            color: 'var(--mantine-color-blue-9)',
+            border: '1px solid var(--mantine-color-blue-2)',
+            padding: '2px 8px',
+          }}
+        >
+          {runTestUri}
+        </Code>
       </Text>
 
       {runStatus === 'initialised' &&
@@ -43,7 +53,13 @@ export function LiveHeaderCard({
             <Text mb="sm">
               This run is currently in the pre-start phase. It can be started at any time.
             </Text>
-            <Button onClick={onStart} loading={isStarting} disabled={isAdminView}>
+            <Button
+              size="sm"
+              w="fit-content"
+              onClick={onStart}
+              loading={isStarting}
+              disabled={isAdminView}
+            >
               Start
             </Button>
           </>
@@ -56,7 +72,13 @@ export function LiveHeaderCard({
                 <li key={idx}>{i}</li>
               ))}
             </ul>
-            <Button onClick={onStart} loading={isStarting} disabled={isAdminView}>
+            <Button
+              size="sm"
+              w="fit-content"
+              onClick={onStart}
+              loading={isStarting}
+              disabled={isAdminView}
+            >
               Start
             </Button>
           </Alert>
@@ -72,7 +94,14 @@ export function LiveHeaderCard({
             When you're ready to end the test, press the Finalise button. An artefact will be
             downloaded including a PDF report, request logs, and server logs to help with debugging.
           </Text>
-          <Button color="yellow" onClick={onFinalise} loading={isFinalising} disabled={isAdminView}>
+          <Button
+            color="yellow"
+            size="sm"
+            w="fit-content"
+            onClick={onFinalise}
+            loading={isFinalising}
+            disabled={isAdminView}
+          >
             Finalise
           </Button>
         </>

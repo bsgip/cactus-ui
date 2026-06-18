@@ -1,0 +1,11 @@
+/* Full-green category headers, matching the original runs.html btn-success
+   collapse buttons. Shared by the Runs procedure list and the Playlists test
+   library so the two category accordions stay consistent. */
+.control {
+  background-color: var(--mantine-color-green-8);
+  color: var(--mantine-color-white);
+}
+
+.control:hover {
+  background-color: var(--mantine-color-green-9);
+}

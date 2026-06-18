@@ -3,6 +3,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { useState } from 'react';
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
 import type { ProcedureSummariesResponse, TestProcedureRunSummary } from '../../api/types';
+import accordionClasses from '../../components/categoryAccordion.module.css';
 import { ComplianceFilterModal } from './ComplianceFilterModal';
 import type { RunsSelection } from './RunsPage';
 
@@ -83,7 +84,11 @@ export function ProcedureList({ summaries, selection, onSelect }: ProcedureListP
         onChange={setEnabledClasses}
       />
 
-      <Accordion multiple defaultValue={summaries.grouped_procedures.map((gp) => gp.slug)}>
+      <Accordion
+        multiple
+        defaultValue={summaries.grouped_procedures.map((gp) => gp.slug)}
+        classNames={{ control: accordionClasses.control }}
+      >
         {visibleGroups.map((gp) => (
           <Accordion.Item key={gp.slug} value={gp.slug}>
             <Accordion.Control>{gp.category}</Accordion.Control>
@@ -98,6 +103,12 @@ export function ProcedureList({ summaries, selection, onSelect }: ProcedureListP
                     component="button"
                     label={p.test_procedure_id}
                     active={selection.kind === 'procedure' && selection.id === p.test_procedure_id}
+                    mt={4}
+                    mx={4}
+                    style={{
+                      border: '1px solid var(--mantine-color-gray-3)',
+                      borderRadius: 'var(--mantine-radius-sm)',
+                    }}
                     onClick={() =>
                       onSelect({
                         kind: 'procedure',

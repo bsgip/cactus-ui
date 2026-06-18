@@ -1,4 +1,4 @@
-import { Container } from '@mantine/core';
+import { Box, Container } from '@mantine/core';
 import { Outlet } from 'react-router-dom';
 import { UnauthenticatedError } from '../api/client';
 import type { UnauthenticatedResponse } from '../api/types';
@@ -30,12 +30,12 @@ export function Layout() {
   }
 
   return (
-    <>
+    <Box bg="#fbfcfb" mih="100vh">
       <NavBar session={session} />
       <Container size="lg" py="xl">
         <Outlet />
       </Container>
       <Footer session={session} />
-    </>
+    </Box>
   );
 }

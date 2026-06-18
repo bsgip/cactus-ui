@@ -62,6 +62,8 @@ export interface XyPoint {
 export interface TimelineDataset {
   label: string;
   data: XyPoint[];
+  borderColor: string;
+  backgroundColor: string;
   borderDash?: number[];
   tension: number;
   spanGaps: boolean;
@@ -116,6 +118,11 @@ export function convertDataStreamsToChartJs(
   dataStreams: TimelineDataStreamEntry[],
   basisOffsetSeconds: number
 ): TimelineDataset[] {
+  // Colour each stream deterministically by its label (not array position) so a given series
+  // keeps the same colour across polls regardless of how many streams the runner reports, and
+  // so every visible stream is distinct. Labels are sorted to give a stable palette index.
+  const orderedLabels = [...new Set(dataStreams.map((ds) => ds.label))].sort();
+
   return dataStreams.map((ds) => {
     const sortedData = [...ds.data].sort(
       (a, b) => parseOffsetSeconds(a.offset) - parseOffsetSeconds(b.offset)
@@ -142,9 +149,12 @@ export function convertDataStreamsToChartJs(
       }
     });
 
+    const color = getStepColor(orderedLabels.indexOf(ds.label));
     return {
       label: ds.label,
       data: expandedData,
+      borderColor: color,
+      backgroundColor: color,
       borderDash: ds.dashed ? [5, 5] : undefined,
       tension: 0,
       spanGaps: false,
