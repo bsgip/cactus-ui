@@ -1,13 +1,4 @@
-import {
-  ActionIcon,
-  Accordion,
-  Box,
-  Button,
-  Group,
-  SimpleGrid,
-  Text,
-  Tooltip,
-} from '@mantine/core';
+import { ActionIcon, Accordion, Box, Group, SimpleGrid, Text, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
 import { useState } from 'react';
@@ -35,11 +26,10 @@ function filterSummaryText(enabledNames: string[], totalClasses: number): string
   return `Showing ${enabledNames.length} compliance classes`;
 }
 
-// Port of the playlists.html left panel: witness toggle, compliance class filter, and the
-// per-category test grid. Clicking a test toggles its membership in the playlist queue.
+// Port of the playlists.html left panel: compliance class filter and the per-category test
+// grid. Clicking a test toggles its membership in the playlist queue.
 export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: TestLibraryProps) {
   const [filterOpened, { open: openFilter, close: closeFilter }] = useDisclosure(false);
-  const [witnessOnly, setWitnessOnly] = useState(false);
   const [enabledClasses, setEnabledClasses] = useState<Set<string>>(
     () => new Set(classes.map((c) => c.name))
   );
@@ -49,9 +39,6 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
   const allEnabled = enabledClasses.size === allClassNames.length;
 
   const isVisible = (t: PlaylistTest): boolean => {
-    if (witnessOnly && !t.is_witness) {
-      return false;
-    }
     // Tests with no class membership are always shown.
     if (!allEnabled && t.classes.length > 0 && !t.classes.some((c) => enabledClasses.has(c))) {
       return false;
@@ -69,14 +56,6 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
         <Text fw={500} style={{ flex: 1 }}>
           Test Library
         </Text>
-        <Button
-          size="xs"
-          variant={witnessOnly ? 'filled' : 'outline'}
-          color="gray"
-          onClick={() => setWitnessOnly((v) => !v)}
-        >
-          Witness Only
-        </Button>
         <ActionIcon
           variant="outline"
           size="lg"

@@ -10,9 +10,6 @@ from collections import defaultdict
 import cactus_schema.orchestrator as schema
 from cactus_schema.orchestrator.compliance import fetch_compliance_classes
 
-# Compliance classes whose presence marks a procedure as a "witness" test.
-_WITNESS_CLASSES = frozenset({"DER-A", "DER-G", "DER-L", "DR-D", "DR-G", "DR-L"})
-
 _ACTIVE_RUN_STATUS_INTS = [1, 2, 6]  # initialised, started, provisioning
 _FINALIZED_RUN_STATUS_INTS = [3, 4]  # finalised by user, finalised by timeout
 
@@ -51,7 +48,6 @@ def build_playlist_tests_by_category(
             {
                 "id": str(p.test_procedure_id),
                 "description": p.description,
-                "is_witness": bool(_WITNESS_CLASSES & set(p.classes or [])),
                 "classes": p.classes or [],
             }
         )

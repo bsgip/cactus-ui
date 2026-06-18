@@ -217,7 +217,6 @@ export interface AdminStatsResponse {
 export interface PlaylistTest {
   id: string;
   description: string;
-  is_witness: boolean;
   classes: string[];
 }
 
