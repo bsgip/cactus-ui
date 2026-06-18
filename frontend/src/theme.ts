@@ -33,11 +33,26 @@ const green: MantineColorsTuple = [
   '#266b41',
 ];
 
+// A truer, deeper red for failure states. Mantine's default red (#fa5252 at shade 6) reads as
+// coral/orange; this leans crimson so "Failed" looks unambiguously red.
+const red: MantineColorsTuple = [
+  '#fff0f1',
+  '#ffdde0',
+  '#f9bcc1',
+  '#f0959d',
+  '#e76a76',
+  '#df4856',
+  '#d12d3c',
+  '#b41f2e',
+  '#8c1722',
+  '#6a1019',
+];
+
 export const theme = createTheme({
   primaryColor: 'blue',
   primaryShade: { light: 6 },
   defaultRadius: 'md',
-  colors: { blue, green },
+  colors: { blue, green, red },
   components: {
     // Restore the subtle bordered-card depth the old Bootstrap site had, so
     // content doesn't sit flat on pure white.

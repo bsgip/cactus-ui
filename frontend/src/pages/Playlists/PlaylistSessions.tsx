@@ -1,4 +1,4 @@
-import { Anchor, Button, Card, Code, Group, Menu, Stack, Table, Text } from '@mantine/core';
+import { Anchor, Button, Card, Group, Menu, Stack, Table, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { IconDownload, IconPlayerPlay, IconPlayerStop } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
@@ -38,11 +38,7 @@ function DownloadMenu({ statuses }: { statuses: PlaylistTestStatus[] }) {
       </Menu.Target>
       <Menu.Dropdown>
         {withArtifacts.map((ts) => (
-          <Menu.Item
-            key={ts.run_id}
-            component="a"
-            href={`/run/${ts.run_id}/artifact`}
-          >
+          <Menu.Item key={ts.run_id} component="a" href={`/run/${ts.run_id}/artifact`}>
             #{ts.run_id} – {ts.test_procedure_id}
           </Menu.Item>
         ))}
@@ -93,11 +89,18 @@ export function PlaylistSessions({ sessions, isFinalising, onFinalise }: Playlis
               const { activeRunId } = statusDots(s.test_statuses);
               const goToRunId = activeRunId ?? s.first_run_id;
               return (
-                <Card key={s.playlist_execution_id} withBorder padding="xs" style={{ borderColor: 'var(--mantine-color-blue-5)' }}>
+                <Card
+                  key={s.playlist_execution_id}
+                  withBorder
+                  padding="xs"
+                  style={{ borderColor: 'var(--mantine-color-blue-5)' }}
+                >
                   <Group gap="sm" wrap="wrap">
                     <div>
                       <Anchor component={Link} to={`/run/${s.first_run_id}`}>
-                        <Code>{s.short_id}</Code>
+                        <Text span ff="monospace">
+                          {s.short_id}
+                        </Text>
                       </Anchor>
                       <Text component="small" size="xs" c="dimmed" ml={6}>
                         {testCountLabel(s.test_statuses)}
@@ -156,7 +159,9 @@ export function PlaylistSessions({ sessions, isFinalising, onFinalise }: Playlis
                 <Table.Tr key={s.playlist_execution_id}>
                   <Table.Td>
                     <Anchor component={Link} to={`/run/${s.first_run_id}`}>
-                      <Code>{s.short_id}</Code>
+                      <Text span ff="monospace">
+                        {s.short_id}
+                      </Text>
                     </Anchor>
                     <br />
                     <Text component="small" size="xs" c="dimmed">

@@ -1,4 +1,13 @@
-import { ActionIcon, Accordion, Box, Button, Code, Group, SimpleGrid, Text, Tooltip } from '@mantine/core';
+import {
+  ActionIcon,
+  Accordion,
+  Box,
+  Button,
+  Group,
+  SimpleGrid,
+  Text,
+  Tooltip,
+} from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
 import { useState } from 'react';
@@ -103,7 +112,13 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
                 {tests.map((t) => {
                   const queued = queuedIds.has(t.id);
                   return (
-                    <Tooltip key={t.id} label={t.description} position="right" withArrow openDelay={400}>
+                    <Tooltip
+                      key={t.id}
+                      label={t.description}
+                      position="right"
+                      withArrow
+                      openDelay={400}
+                    >
                       <Box
                         role="button"
                         tabIndex={0}
@@ -132,7 +147,9 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
                         <Text component="span" c={queued ? 'blue' : 'dimmed'}>
                           {queued ? '✓' : '☐'}
                         </Text>
-                        <Code>{t.id}</Code>
+                        <Text span ff="monospace">
+                          {t.id}
+                        </Text>
                       </Box>
                     </Tooltip>
                   );

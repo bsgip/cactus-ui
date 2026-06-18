@@ -30,6 +30,14 @@ export function isProceedStepActive(stepStatus: Record<string, StepEventStatus> 
   );
 }
 
+// True once every step has completed (none pending or in-progress). Used to flip the status
+// banner green. False when there are no steps yet, so the initial state isn't reported as done.
+export function allStepsComplete(stepStatus: Record<string, StepEventStatus> | null): boolean {
+  if (!stepStatus) return false;
+  const steps = Object.values(stepStatus);
+  return steps.length > 0 && steps.every((info) => info.completed_at !== null);
+}
+
 // First active step (started, not completed) and its 1-based position, for the status banner.
 export function activeStep(
   stepStatus: Record<string, StepEventStatus> | null

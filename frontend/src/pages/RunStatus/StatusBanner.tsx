@@ -1,7 +1,7 @@
 import { IconClock } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import type { StepEventStatus } from '../../api/types';
-import { activeStep } from './statusHelpers';
+import { activeStep, allStepsComplete } from './statusHelpers';
 
 interface Props {
   stepStatus: Record<string, StepEventStatus> | null;
@@ -17,6 +17,7 @@ export function StatusBanner({ stepStatus }: Props) {
   }, []);
 
   const active = activeStep(stepStatus);
+  const allComplete = allStepsComplete(stepStatus);
 
   return (
     <div
@@ -26,7 +27,7 @@ export function StatusBanner({ stepStatus }: Props) {
         left: 0,
         right: 0,
         zIndex: 1050,
-        background: '#212529',
+        background: allComplete ? 'var(--mantine-color-green-8)' : '#212529',
         color: '#fff',
         padding: '8px 20px',
         display: 'flex',
@@ -39,9 +40,13 @@ export function StatusBanner({ stepStatus }: Props) {
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
         <IconClock size={16} /> {clock}
       </span>
-      <span style={{ color: '#6c757d' }}>|</span>
-      <span style={{ color: active ? '#fff' : '#adb5bd' }}>
-        {active ? `Step ${active.index}: ${active.name}` : 'No active step'}
+      <span style={{ color: allComplete ? 'rgba(255,255,255,0.6)' : '#6c757d' }}>|</span>
+      <span style={{ color: active || allComplete ? '#fff' : '#adb5bd' }}>
+        {active
+          ? `Step ${active.index}: ${active.name}`
+          : allComplete
+            ? 'All steps complete'
+            : 'No active step'}
       </span>
     </div>
   );
