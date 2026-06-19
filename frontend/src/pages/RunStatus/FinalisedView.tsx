@@ -2,10 +2,14 @@ import { Alert, Anchor, Button, Collapse, Group, Stack, Text, TextInput, Title }
 import { useDisclosure } from '@mantine/hooks';
 import { IconArrowRight, IconCircleCheck } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
-import type { RunStatusShell } from '../../api/types';
+import type { RunStatus } from '../../api/types';
 
 interface Props {
-  shell: RunStatusShell;
+  runId: number;
+  runStatus: RunStatus | null;
+  runHasArtifacts: boolean | null;
+  isImmediateStart: boolean;
+  nextPlaylistRunId: number | null;
   supportEmail: string | undefined;
   isAdminView: boolean;
 }
@@ -13,23 +17,31 @@ interface Props {
 // The non-live ({% else %}) branch of run_status.html: Not Found / Skipped / Finalised.
 // Finalised runs offer an artifact download (browser-native GET route) and, unless this is
 // an immediate-start procedure, an optional Active Power Chart with a video-start offset.
-export function FinalisedView({ shell, supportEmail, isAdminView }: Props) {
+export function FinalisedView({
+  runId,
+  runStatus,
+  runHasArtifacts,
+  isImmediateStart,
+  nextPlaylistRunId,
+  supportEmail,
+  isAdminView,
+}: Props) {
   const adminPrefix = isAdminView ? '/admin' : '';
 
   return (
     <Stack>
-      {shell.run_status == null && (
+      {runStatus == null && (
         <>
-          <Title order={2}>Run {shell.run_id} Not Found</Title>
+          <Title order={2}>Run {runId} Not Found</Title>
           <Alert color="red" role="alert">
-            Run <strong>{shell.run_id}</strong> does not exist.
+            Run <strong>{runId}</strong> does not exist.
           </Alert>
         </>
       )}
 
-      {shell.run_status === 'skipped' && (
+      {runStatus === 'skipped' && (
         <>
-          <Title order={2}>Run {shell.run_id} [Skipped]</Title>
+          <Title order={2}>Run {runId} [Skipped]</Title>
           <Alert color="gray" role="alert">
             <Text>This run was skipped as part of a playlist and was never executed.</Text>
             <Text>No artifacts are available for skipped runs.</Text>
@@ -37,23 +49,21 @@ export function FinalisedView({ shell, supportEmail, isAdminView }: Props) {
         </>
       )}
 
-      {shell.run_status != null && shell.run_status !== 'skipped' && (
+      {runStatus != null && runStatus !== 'skipped' && (
         <>
-          <Title order={2}>Run {shell.run_id} [Finalised]</Title>
-          {shell.run_has_artifacts ? (
+          <Title order={2}>Run {runId} [Finalised]</Title>
+          {runHasArtifacts ? (
             <Alert color="blue" role="alert">
               <Text>This run has been finalised and is no longer active.</Text>
               <Text mb="sm">
                 Click below to download the run's artifacts
-                {!shell.is_immediate_start && ' or view the Active Power Chart'}.
+                {!isImmediateStart && ' or view the Active Power Chart'}.
               </Text>
               <Group align="flex-start">
-                <Button component="a" href={`${adminPrefix}/run/${shell.run_id}/artifact`}>
+                <Button component="a" href={`${adminPrefix}/run/${runId}/artifact`}>
                   Download Artifacts
                 </Button>
-                {!shell.is_immediate_start && (
-                  <ActivePowerChart runId={shell.run_id} adminPrefix={adminPrefix} />
-                )}
+                {!isImmediateStart && <ActivePowerChart runId={runId} adminPrefix={adminPrefix} />}
               </Group>
             </Alert>
           ) : (
@@ -72,7 +82,7 @@ export function FinalisedView({ shell, supportEmail, isAdminView }: Props) {
         </>
       )}
 
-      {shell.next_playlist_run_id && (
+      {nextPlaylistRunId && (
         <Alert color="green" role="alert" icon={<IconCircleCheck size={18} />} title="Test Complete!">
           <Text mb="sm">
             This test has been completed. Click below to proceed to the next test in the playlist.
@@ -80,7 +90,7 @@ export function FinalisedView({ shell, supportEmail, isAdminView }: Props) {
           <Button
             color="green"
             component={Link}
-            to={`${adminPrefix}/run/${shell.next_playlist_run_id}`}
+            to={`${adminPrefix}/run/${nextPlaylistRunId}`}
             rightSection={<IconArrowRight size={16} />}
           >
             Go to Next Test

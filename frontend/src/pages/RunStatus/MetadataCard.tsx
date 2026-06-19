@@ -2,9 +2,9 @@ import { Badge, Button, Card, Group, Modal, Table, Text, Title } from '@mantine/
 import { ScrollCard } from '../../components/ScrollCard';
 import { useDisclosure } from '@mantine/hooks';
 import type {
-  DerCapabilityInfo,
-  DerSettingsInfo,
-  DerStatusInfo,
+  DERCapabilityInfo,
+  DERSettingsInfo,
+  DERStatusInfo,
   EndDeviceMetadata,
 } from '../../api/types';
 
@@ -121,7 +121,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-function DerCapabilityCard({ cap }: { cap: DerCapabilityInfo | null }) {
+function DerCapabilityCard({ cap }: { cap: DERCapabilityInfo | null }) {
   return (
     <SubCard title="DER Capability">
       {cap ? (
@@ -145,7 +145,7 @@ function DerCapabilityCard({ cap }: { cap: DerCapabilityInfo | null }) {
   );
 }
 
-function DerSettingsCard({ set }: { set: DerSettingsInfo | null }) {
+function DerSettingsCard({ set }: { set: DERSettingsInfo | null }) {
   return (
     <SubCard title="DER Settings">
       {set ? (
@@ -167,7 +167,7 @@ function DerSettingsCard({ set }: { set: DerSettingsInfo | null }) {
   );
 }
 
-function DerStatusCard({ sta }: { sta: DerStatusInfo | null }) {
+function DerStatusCard({ sta }: { sta: DERStatusInfo | null }) {
   return (
     <SubCard title="DER Status">
       {sta ? (

@@ -32,6 +32,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.wrappers.response import Response
 
 import cactus_ui.orchestrator as orchestrator
+from cactus_ui.api_models import RunStatusShell
 from cactus_ui.auth import (
     admin_role_required,
     api_admin_role_required,
@@ -836,62 +837,31 @@ def playlist_artifacts_download(access_token: str) -> Response:
     return response
 
 
-def _build_playlist_info(
-    access_token: str, run_response: schema.RunResponse, admin: bool = False
-) -> tuple[dict | None, int | None, dict | None]:
-    """Build playlist template context from a run that belongs to a playlist.
+def _fetch_playlist_runs(
+    access_token: str, run_response: schema.RunResponse | None, admin: bool = False
+) -> tuple[str | None, list[schema.RunResponse] | None]:
+    """Fetch the full RunResponse for every run in this run's playlist.
 
-    Returns (playlist_info, next_playlist_run_id, current_active_run).
+    This is the one join the orchestrator doesn't do for us: RunResponse.playlist_runs only
+    carries summaries (no all_criteria_met / has_artifacts), so the page needs each run's full
+    detail. Returns (playlist_name, runs); the frontend derives ordering/active/next from the
+    authoritative summary list and looks these up by run_id, so a failed fetch just degrades
+    that run's detail rather than breaking the playlist. Returns (None, None) for non-playlist
+    runs.
     """
-    if not run_response.playlist_runs:
-        return None, None, None
+    if run_response is None or not run_response.playlist_runs:
+        return None, None
 
     fetch_run = orchestrator.admin_fetch_individual_run if admin else orchestrator.fetch_individual_run
-    current_order = run_response.playlist_order
-    active_playlist_session = session.get("active_playlist", {})
+    playlist_name = session.get("active_playlist", {}).get("name", "Playlist")
 
-    playlist_runs_full: list[dict] = []
-    first_run_started_at = None
-    for i, r in enumerate(run_response.playlist_runs):
-        full_run = fetch_run(access_token, str(r.run_id))
-        if full_run:
-            if i == 0:
-                first_run_started_at = full_run.created_at.isoformat() if full_run.created_at else None
-            playlist_runs_full.append(build_test_status_dict(full_run))
-        else:
-            playlist_runs_full.append(
-                {
-                    "run_id": r.run_id,
-                    "test_procedure_id": r.test_procedure_id,
-                    "status": (r.status.value if hasattr(r.status, "value") else str(r.status)),
-                    "all_criteria_met": None,
-                    "has_artifacts": False,
-                }
-            )
-
-    playlist_info = {
-        "name": active_playlist_session.get("name", "Playlist"),
-        "started_at": first_run_started_at,
-        "runs": playlist_runs_full,
-        "current_order": current_order,
-        "total": len(run_response.playlist_runs),
-    }
-
-    next_playlist_run_id = None
-    if current_order is not None and current_order + 1 < len(run_response.playlist_runs):
-        next_playlist_run_id = run_response.playlist_runs[current_order + 1].run_id
-
-    current_active_run = None
+    runs: list[schema.RunResponse] = []
     for r in run_response.playlist_runs:
-        if r.status in ["started", "provisioning"]:
-            current_active_run = {
-                "run_id": r.run_id,
-                "test_procedure_id": r.test_procedure_id,
-                "order": run_response.playlist_runs.index(r),
-            }
-            break
+        full_run = fetch_run(access_token, str(r.run_id))
+        if full_run is not None:
+            runs.append(full_run)
 
-    return playlist_info, next_playlist_run_id, current_active_run
+    return playlist_name, runs
 
 
 @app.route("/run/<int:run_id>/html_report", methods=["GET"])
@@ -907,7 +877,7 @@ def run_html_report_page(access_token: str, run_id: int) -> str | Response:
 
 # Run status page (React) JSON endpoints. The page shell (metadata + playlist context)
 # is one endpoint; the polled RunnerStatus, request details, and proceed are separate.
-def _build_run_status_shell(access_token: str, run_id: str, admin: bool) -> dict:
+def _build_run_status_shell(access_token: str, run_id: str, admin: bool) -> RunStatusShell:
     """Assemble the run status page shell: run metadata + playlist context.
 
     Mirrors the non-status context the old run_status.html template received. The polled
@@ -921,35 +891,28 @@ def _build_run_status_shell(access_token: str, run_id: str, admin: bool) -> dict
 
     run_is_live = status is not None or (run_response is not None and run_response.status in _ACTIVE_RUN_STATUSES)
 
-    playlist_info, next_playlist_run_id, current_active_run = (
-        _build_playlist_info(access_token, run_response, admin=admin) if run_response else (None, None, None)
-    )
+    playlist_name, playlist_runs = _fetch_playlist_runs(access_token, run_response, admin=admin)
 
-    return {
-        "run_id": run_id,
-        "run_is_live": run_is_live,
-        "run_status": run_response.status.value if run_response else None,
-        "run_test_uri": run_response.test_url if run_response else None,
-        "run_procedure_id": run_response.test_procedure_id if run_response else None,
-        "run_has_artifacts": run_response.has_artifacts if run_response else None,
-        "is_immediate_start": is_immediate_start(run_response),
-        "playlist_info": playlist_info,
-        "next_playlist_run_id": next_playlist_run_id,
-        "current_active_run": current_active_run,
-    }
+    return RunStatusShell(
+        run=run_response,
+        run_is_live=run_is_live,
+        is_immediate_start=is_immediate_start(run_response),
+        playlist_name=playlist_name,
+        playlist_runs=playlist_runs,
+    )
 
 
 @app.route("/api/run/<int:run_id>", methods=["GET"])
 @api_login_required
 def api_run_status(access_token: str, run_id: str) -> Response:
-    return jsonify(_build_run_status_shell(access_token, run_id, admin=False))
+    return jsonify(_build_run_status_shell(access_token, run_id, admin=False).to_dict())
 
 
 @app.route("/api/admin/run/<int:run_id>", methods=["GET"])
 @api_login_required
 @api_admin_role_required
 def api_admin_run_status(access_token: str, run_id: str) -> Response:
-    return jsonify(_build_run_status_shell(access_token, run_id, admin=True))
+    return jsonify(_build_run_status_shell(access_token, run_id, admin=True).to_dict())
 
 
 @app.route("/api/run/<int:run_id>/status", methods=["GET"])

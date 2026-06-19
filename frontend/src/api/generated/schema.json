@@ -1,0 +1,1230 @@
+{
+  "$defs": {
+    "ClientInteraction": {
+      "properties": {
+        "interaction_type": {
+          "$ref": "#/$defs/ClientInteractionType"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "interaction_type",
+        "timestamp"
+      ],
+      "type": "object"
+    },
+    "ClientInteractionType": {
+      "enum": [
+        "Runner Started",
+        "Test Procedure Initialised",
+        "Test Procedure Started",
+        "Request Proxied",
+        "TEST_PROCEDURE_FINALIZED"
+      ],
+      "type": "string"
+    },
+    "CriteriaEntry": {
+      "properties": {
+        "details": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "details",
+        "success",
+        "type"
+      ],
+      "type": "object"
+    },
+    "DERCapabilityInfo": {
+      "description": "Snapshot of DERCapability for UI display",
+      "properties": {
+        "der_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "doe_modes_supported": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_a": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_charge_rate_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_discharge_rate_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_va": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_var": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_var_neg": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_wh": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "modes_supported": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "der_type",
+        "doe_modes_supported",
+        "max_a",
+        "max_charge_rate_w",
+        "max_discharge_rate_w",
+        "max_va",
+        "max_var",
+        "max_var_neg",
+        "max_w",
+        "max_wh",
+        "modes_supported"
+      ],
+      "type": "object"
+    },
+    "DERSettingsInfo": {
+      "description": "Snapshot of DERSettings for UI display",
+      "properties": {
+        "doe_modes_enabled": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "grad_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_charge_rate_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_discharge_rate_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_va": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_var": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_var_neg": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "modes_enabled": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "doe_modes_enabled",
+        "grad_w",
+        "max_charge_rate_w",
+        "max_discharge_rate_w",
+        "max_va",
+        "max_var",
+        "max_var_neg",
+        "max_w",
+        "modes_enabled"
+      ],
+      "type": "object"
+    },
+    "DERStatusInfo": {
+      "description": "Snapshot of current DER real-time status (from SiteDERStatus / sep2 DERStatus).\nBitmaps/enums resolved to strings.",
+      "properties": {
+        "alarm_status": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "generator_connect_status": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "inverter_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "local_control_mode_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "manufacturer_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "operational_mode_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "state_of_charge_status": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "storage_connect_status": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "storage_mode_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "alarm_status",
+        "generator_connect_status",
+        "inverter_status",
+        "local_control_mode_status",
+        "manufacturer_status",
+        "operational_mode_status",
+        "state_of_charge_status",
+        "storage_connect_status",
+        "storage_mode_status"
+      ],
+      "type": "object"
+    },
+    "DataStreamPoint": {
+      "properties": {
+        "offset": {
+          "type": "string"
+        },
+        "watts": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "offset",
+        "watts"
+      ],
+      "type": "object"
+    },
+    "EndDeviceMetadata": {
+      "properties": {
+        "aggregator_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "der_capability": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DERCapabilityInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "der_settings": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DERSettingsInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "der_status": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DERStatusInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "device_category": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "doe_modes_enabled": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "edevid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "lfdi": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "nmi": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "set_max_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sfdi": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timezone_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "aggregator_id",
+        "der_capability",
+        "der_settings",
+        "der_status",
+        "device_category",
+        "doe_modes_enabled",
+        "edevid",
+        "lfdi",
+        "nmi",
+        "set_max_w",
+        "sfdi",
+        "timezone_id"
+      ],
+      "type": "object"
+    },
+    "HTTPMethod": {
+      "description": "HTTP methods and descriptions\n\nMethods from the following RFCs are all observed:\n\n    * RFC 7231: Hypertext Transfer Protocol (HTTP/1.1), obsoletes 2616\n    * RFC 5789: PATCH Method for HTTP",
+      "enum": [
+        "CONNECT",
+        "DELETE",
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "PATCH",
+        "POST",
+        "PUT",
+        "TRACE"
+      ],
+      "type": "string"
+    },
+    "HTTPStatus": {
+      "description": "HTTP status codes and reason phrases\n\nStatus codes from the following RFCs are all observed:\n\n    * RFC 7231: Hypertext Transfer Protocol (HTTP/1.1), obsoletes 2616\n    * RFC 6585: Additional HTTP Status Codes\n    * RFC 3229: Delta encoding in HTTP\n    * RFC 4918: HTTP Extensions for WebDAV, obsoletes 2518\n    * RFC 5842: Binding Extensions to WebDAV\n    * RFC 7238: Permanent Redirect\n    * RFC 2295: Transparent Content Negotiation in HTTP\n    * RFC 2774: An HTTP Extension Framework\n    * RFC 7725: An HTTP Status Code to Report Legal Obstacles\n    * RFC 7540: Hypertext Transfer Protocol Version 2 (HTTP/2)\n    * RFC 2324: Hyper Text Coffee Pot Control Protocol (HTCPCP/1.0)\n    * RFC 8297: An HTTP Status Code for Indicating Hints\n    * RFC 8470: Using Early Data in HTTP",
+      "enum": [
+        100,
+        101,
+        102,
+        103,
+        200,
+        201,
+        202,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        226,
+        300,
+        301,
+        302,
+        303,
+        304,
+        305,
+        307,
+        308,
+        400,
+        401,
+        402,
+        403,
+        404,
+        405,
+        406,
+        407,
+        408,
+        409,
+        410,
+        411,
+        412,
+        413,
+        414,
+        415,
+        416,
+        417,
+        418,
+        421,
+        422,
+        423,
+        424,
+        425,
+        426,
+        428,
+        429,
+        431,
+        451,
+        500,
+        501,
+        502,
+        503,
+        504,
+        505,
+        506,
+        507,
+        508,
+        510,
+        511
+      ],
+      "type": "integer"
+    },
+    "PlaylistRunInfo": {
+      "description": "Summary info for a run within a playlist",
+      "properties": {
+        "run_id": {
+          "type": "integer"
+        },
+        "status": {
+          "$ref": "#/$defs/RunStatusResponse"
+        },
+        "test_procedure_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "status",
+        "test_procedure_id"
+      ],
+      "type": "object"
+    },
+    "PreconditionCheckEntry": {
+      "properties": {
+        "details": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "details",
+        "success",
+        "type"
+      ],
+      "type": "object"
+    },
+    "ProceedResponse": {
+      "properties": {
+        "handled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "handled"
+      ],
+      "type": "object"
+    },
+    "RequestData": {
+      "properties": {
+        "request": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "request_id": {
+          "type": "integer"
+        },
+        "response": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "request",
+        "request_id",
+        "response"
+      ],
+      "type": "object"
+    },
+    "RequestEntry": {
+      "properties": {
+        "body_xml_errors": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "method": {
+          "$ref": "#/$defs/HTTPMethod"
+        },
+        "path": {
+          "type": "string"
+        },
+        "request_id": {
+          "type": "integer"
+        },
+        "status": {
+          "$ref": "#/$defs/HTTPStatus"
+        },
+        "step_name": {
+          "type": "string"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "body_xml_errors",
+        "method",
+        "path",
+        "request_id",
+        "status",
+        "step_name",
+        "timestamp",
+        "url"
+      ],
+      "type": "object"
+    },
+    "RunResponse": {
+      "properties": {
+        "all_criteria_met": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "classes": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "finalised_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_artifacts": {
+          "type": "boolean"
+        },
+        "is_device_cert": {
+          "type": "boolean"
+        },
+        "playlist_execution_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "playlist_order": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "playlist_runs": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/PlaylistRunInfo"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "run_id": {
+          "type": "integer"
+        },
+        "status": {
+          "$ref": "#/$defs/RunStatusResponse"
+        },
+        "test_procedure_id": {
+          "type": "string"
+        },
+        "test_url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "all_criteria_met",
+        "classes",
+        "created_at",
+        "finalised_at",
+        "has_artifacts",
+        "is_device_cert",
+        "playlist_execution_id",
+        "playlist_order",
+        "playlist_runs",
+        "run_id",
+        "status",
+        "test_procedure_id",
+        "test_url"
+      ],
+      "type": "object"
+    },
+    "RunStatusResponse": {
+      "enum": [
+        "initialised",
+        "started",
+        "finalised",
+        "provisioning",
+        "skipped"
+      ],
+      "type": "string"
+    },
+    "RunStatusShell": {
+      "description": "Run-status page shell: the run plus the few extras the orchestrator doesn't supply.\n\n`run` and `playlist_runs` are canonical `RunResponse`s (no reshaping/renaming) \u2014 the\nfrontend reads their fields directly and derives playlist order / active-run / next-run\nitself. The remaining fields are things only the BFF knows or computes.",
+      "properties": {
+        "is_immediate_start": {
+          "type": "boolean"
+        },
+        "playlist_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "playlist_runs": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/RunResponse"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "run": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunResponse"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "run_is_live": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "is_immediate_start",
+        "playlist_name",
+        "playlist_runs",
+        "run",
+        "run_is_live"
+      ],
+      "type": "object"
+    },
+    "RunnerStatus": {
+      "properties": {
+        "criteria": {
+          "items": {
+            "$ref": "#/$defs/CriteriaEntry"
+          },
+          "type": "array"
+        },
+        "csip_aus_version": {
+          "type": "string"
+        },
+        "end_device_metadata": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EndDeviceMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "instructions": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "last_client_interaction": {
+          "$ref": "#/$defs/ClientInteraction"
+        },
+        "log_envoy": {
+          "type": "string"
+        },
+        "precondition_checks": {
+          "items": {
+            "$ref": "#/$defs/PreconditionCheckEntry"
+          },
+          "type": "array"
+        },
+        "request_history": {
+          "items": {
+            "$ref": "#/$defs/RequestEntry"
+          },
+          "type": "array"
+        },
+        "status_summary": {
+          "type": "string"
+        },
+        "step_status": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/StepEventStatus"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "test_procedure_name": {
+          "default": "-",
+          "type": "string"
+        },
+        "timeline": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineStatus"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timestamp_initialise": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timestamp_start": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timestamp_status": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "criteria",
+        "csip_aus_version",
+        "end_device_metadata",
+        "instructions",
+        "last_client_interaction",
+        "log_envoy",
+        "precondition_checks",
+        "request_history",
+        "status_summary",
+        "step_status",
+        "test_procedure_name",
+        "timeline",
+        "timestamp_initialise",
+        "timestamp_start",
+        "timestamp_status"
+      ],
+      "type": "object"
+    },
+    "StepEventStatus": {
+      "properties": {
+        "completed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "event_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "completed_at",
+        "event_status",
+        "started_at"
+      ],
+      "type": "object"
+    },
+    "TimelineDataStreamEntry": {
+      "properties": {
+        "dashed": {
+          "type": "boolean"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/$defs/DataStreamPoint"
+          },
+          "type": "array"
+        },
+        "label": {
+          "type": "string"
+        },
+        "stepped": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "dashed",
+        "data",
+        "label",
+        "stepped"
+      ],
+      "type": "object"
+    },
+    "TimelineStatus": {
+      "properties": {
+        "data_streams": {
+          "items": {
+            "$ref": "#/$defs/TimelineDataStreamEntry"
+          },
+          "type": "array"
+        },
+        "now_offset": {
+          "type": "string"
+        },
+        "set_max_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "data_streams",
+        "now_offset",
+        "set_max_w"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

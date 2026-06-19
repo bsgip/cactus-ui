@@ -1,7 +1,7 @@
 import { Alert, Button, Text } from '@mantine/core';
 import { IconAlertTriangle, IconPlayerPlay } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
-import type { CurrentActiveRun } from '../../api/types';
+import type { CurrentActiveRun } from './runStatusModel';
 
 interface Props {
   currentActiveRun: CurrentActiveRun;

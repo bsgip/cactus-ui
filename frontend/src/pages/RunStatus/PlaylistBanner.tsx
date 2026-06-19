@@ -11,11 +11,11 @@ import {
 } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import type { CurrentActiveRun, PlaylistRunDisplay, RunStatusPlaylistInfo } from '../../api/types';
 import { formatDate } from '../../utils/dates';
+import type { CurrentActiveRun, PlaylistRunRow, PlaylistView } from './runStatusModel';
 
 interface Props {
-  playlistInfo: RunStatusPlaylistInfo;
+  playlistView: PlaylistView;
   currentActiveRun: CurrentActiveRun | null;
   runId: number;
   runProcedureId: string | null;
@@ -35,7 +35,7 @@ function startedAtLabel(startedAt: string): string {
 // Top playlist banner from run_status.html: per-run status badges (with passed/failed artifact
 // downloads), the currently-viewed test, a jump-to-active-run button and End Playlist.
 export function PlaylistBanner({
-  playlistInfo,
+  playlistView,
   currentActiveRun,
   runId,
   runProcedureId,
@@ -45,10 +45,10 @@ export function PlaylistBanner({
 }: Props) {
   const adminPrefix = isAdminView ? '/admin' : '';
   const isComplete =
-    playlistInfo.runs.filter((r) => TERMINAL_STATUSES.includes(r.status)).length ===
-    playlistInfo.total;
+    playlistView.runs.filter((r) => TERMINAL_STATUSES.includes(r.status)).length ===
+    playlistView.total;
   const isFinalTest =
-    playlistInfo.current_order != null && playlistInfo.current_order >= playlistInfo.total - 1;
+    playlistView.current_order != null && playlistView.current_order >= playlistView.total - 1;
 
   const confirmEndPlaylist = () =>
     modals.openConfirmModal({
@@ -68,7 +68,7 @@ export function PlaylistBanner({
     <Alert color="blue" role="alert">
       <Group justify="space-between" mb="xs" wrap="nowrap">
         <Text fw={700}>
-          Playlist: {playlistInfo.name}
+          Playlist: {playlistView.name}
           {isComplete && ' (Finalised)'}
         </Text>
         <Group gap="xs">
@@ -96,28 +96,28 @@ export function PlaylistBanner({
         </Group>
       </Group>
 
-      {playlistInfo.started_at && (
+      {playlistView.started_at && (
         <Text size="sm" c="dimmed" mb="xs">
-          Started at: {startedAtLabel(playlistInfo.started_at)}
+          Started at: {startedAtLabel(playlistView.started_at)}
         </Text>
       )}
 
       <Divider my="xs" />
 
       <Group gap="xs" align="flex-start" mb="xs">
-        {playlistInfo.runs.map((run, index) => (
+        {playlistView.runs.map((run, index) => (
           <PlaylistRunBadge
             key={run.run_id}
             run={run}
-            isCurrent={index === playlistInfo.current_order}
+            isCurrent={index === playlistView.current_order}
             adminPrefix={adminPrefix}
           />
         ))}
       </Group>
 
-      {playlistInfo.current_order != null && (
+      {playlistView.current_order != null && (
         <Text size="sm" c="dimmed">
-          Viewing: Test {playlistInfo.current_order + 1} of {playlistInfo.total} &mdash;{' '}
+          Viewing: Test {playlistView.current_order + 1} of {playlistView.total} &mdash;{' '}
           {runProcedureId}
         </Text>
       )}
@@ -139,7 +139,7 @@ function PlaylistRunBadge({
   isCurrent,
   adminPrefix,
 }: {
-  run: PlaylistRunDisplay;
+  run: PlaylistRunRow;
   isCurrent: boolean;
   adminPrefix: string;
 }) {

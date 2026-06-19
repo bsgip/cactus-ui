@@ -1,4 +1,4 @@
-// TS mirrors of the Flask /api JSON shapes (snake_case at the boundary, per MIGRATION.md).
+// TS mirrors of the Flask /api JSON shapes (snake_case at the boundary).
 
 // GET /api/session (server.py api_session)
 export interface SessionResponse {
@@ -47,32 +47,12 @@ export interface Pagination<T> {
   items: T[];
 }
 
-// Mirrors cactus_schema.orchestrator.RunStatusResponse (StrEnum)
-export type RunStatus = 'initialised' | 'started' | 'finalised' | 'provisioning' | 'skipped';
-
-// Mirrors cactus_schema.orchestrator.PlaylistRunInfo
-export interface PlaylistRunInfo {
-  run_id: number;
-  test_procedure_id: string;
-  status: RunStatus;
-}
-
-// Mirrors cactus_schema.orchestrator.RunResponse
-export interface RunResponse {
-  run_id: number;
-  test_procedure_id: string;
-  test_url: string;
-  status: RunStatus;
-  all_criteria_met: boolean | null;
-  created_at: string;
-  finalised_at: string | null;
-  is_device_cert: boolean;
-  has_artifacts: boolean;
-  playlist_execution_id: string | null;
-  playlist_order: number | null;
-  playlist_runs: PlaylistRunInfo[] | null;
-  classes: string[] | null;
-}
+// Generated from cactus_schema.orchestrator (see the run-status re-export block below).
+// `RunStatus` is kept as a short alias for the generated `RunStatusResponse` enum, which is
+// used across many pages.
+export type { PlaylistRunInfo, RunResponse, RunStatusResponse } from './generated/types';
+import type { RunStatusResponse } from './generated/types';
+export type RunStatus = RunStatusResponse;
 
 // Mirrors cactus_schema.orchestrator.RunGroupResponse
 export interface RunGroupResponse {
@@ -245,192 +225,16 @@ export interface PlaylistSession {
   is_active: boolean;
 }
 
-// --- Run status page (run_status.html port) ------------------------------------------
+// --- Run status page types ----------------------------------------------------------
+// Generated from the Python dataclasses (cactus_ui.api_models + cactus_schema runner/
+// orchestrator schemas), the single source of truth for these /api wire shapes. Edit the
+// dataclasses and regenerate (npm run generate:types); never hand-edit these.
+export type {
+  ClientInteraction,
+  CriteriaEntry, DataStreamPoint, DERCapabilityInfo,
+  DERSettingsInfo,
+  DERStatusInfo,
+  EndDeviceMetadata, PreconditionCheckEntry, ProceedResponse, RequestData, RequestEntry, RunnerStatus, RunStatusShell, StepEventStatus, TimelineDataStreamEntry,
+  TimelineStatus
+} from './generated/types';
 
-// One run within the playlist banner on the run status page. Built by server.py
-// build_test_status_dict (finalised runs) or a minimal fallback for not-yet-fetched runs.
-export interface PlaylistRunDisplay {
-  test_procedure_id: string;
-  run_id: number;
-  status: RunStatus;
-  all_criteria_met: boolean | null;
-  has_artifacts: boolean;
-}
-
-// playlist_info in the run status shell (server.py _build_playlist_info)
-export interface RunStatusPlaylistInfo {
-  name: string;
-  started_at: string | null;
-  runs: PlaylistRunDisplay[];
-  current_order: number | null;
-  total: number;
-}
-
-// The currently-active run in the playlist, if any (server.py _build_playlist_info)
-export interface CurrentActiveRun {
-  run_id: number;
-  test_procedure_id: string;
-  order: number;
-}
-
-// GET /api/run/<id> and /api/admin/run/<id> (server.py _build_run_status_shell).
-// Page metadata + playlist context; the polled RunnerStatus comes from /status.
-export interface RunStatusShell {
-  run_id: number;
-  run_is_live: boolean;
-  run_status: RunStatus | null;
-  run_test_uri: string | null;
-  run_procedure_id: string | null;
-  run_has_artifacts: boolean | null;
-  // True for immediate_start procedures (no init phase / power timeline) — the finalised
-  // view hides the Active Power Chart when set. See server.py _IMMEDIATE_START_PROCEDURE_IDS.
-  is_immediate_start: boolean;
-  playlist_info: RunStatusPlaylistInfo | null;
-  next_playlist_run_id: number | null;
-  current_active_run: CurrentActiveRun | null;
-}
-
-// The polled runner status. Mirrors cactus_schema.runner.schema.RunnerStatus, serialised
-// by FastAPI with native snake_case field names (NOT dataclass-wizard's camelCase to_json).
-
-// cactus_schema.runner.schema.ClientInteraction
-export interface ClientInteraction {
-  interaction_type: string;
-  timestamp: string;
-}
-
-// cactus_schema.runner.schema.CriteriaEntry / PreconditionCheckEntry
-export interface CriteriaEntry {
-  success: boolean;
-  type: string;
-  details: string;
-}
-
-// cactus_schema.runner.schema.StepEventStatus
-export interface StepEventStatus {
-  started_at: string | null;
-  completed_at: string | null;
-  event_status: string | null;
-}
-
-// cactus_schema.runner.schema.RequestEntry
-export interface RequestEntry {
-  url: string;
-  path: string;
-  method: string;
-  status: number;
-  timestamp: string;
-  step_name: string;
-  body_xml_errors: string[];
-  request_id: number;
-}
-
-// cactus_schema.runner.schema.DataStreamPoint
-export interface DataStreamPoint {
-  watts: number | null;
-  offset: string;
-}
-
-// cactus_schema.runner.schema.TimelineDataStreamEntry
-export interface TimelineDataStreamEntry {
-  label: string;
-  data: DataStreamPoint[];
-  stepped: boolean;
-  dashed: boolean;
-}
-
-// cactus_schema.runner.schema.TimelineStatus
-export interface TimelineStatus {
-  data_streams: TimelineDataStreamEntry[];
-  set_max_w: number | null;
-  now_offset: string;
-}
-
-// cactus_schema.runner.schema.DERCapabilityInfo
-export interface DerCapabilityInfo {
-  der_type: string | null;
-  modes_supported: string[] | null;
-  max_w: number | null;
-  max_va: number | null;
-  max_var: number | null;
-  max_var_neg: number | null;
-  max_a: number | null;
-  max_charge_rate_w: number | null;
-  max_discharge_rate_w: number | null;
-  max_wh: number | null;
-  doe_modes_supported: string[] | null;
-}
-
-// cactus_schema.runner.schema.DERSettingsInfo
-export interface DerSettingsInfo {
-  modes_enabled: string[] | null;
-  max_w: number | null;
-  max_va: number | null;
-  max_var: number | null;
-  max_var_neg: number | null;
-  max_charge_rate_w: number | null;
-  max_discharge_rate_w: number | null;
-  grad_w: number | null;
-  doe_modes_enabled: string[] | null;
-}
-
-// cactus_schema.runner.schema.DERStatusInfo
-export interface DerStatusInfo {
-  alarm_status: string[] | null;
-  inverter_status: string | null;
-  operational_mode_status: string | null;
-  generator_connect_status: string[] | null;
-  storage_connect_status: string[] | null;
-  storage_mode_status: string | null;
-  state_of_charge_status: number | null;
-  local_control_mode_status: string | null;
-  manufacturer_status: string | null;
-}
-
-// cactus_schema.runner.schema.EndDeviceMetadata
-export interface EndDeviceMetadata {
-  edevid: number | null;
-  lfdi: string | null;
-  sfdi: number | null;
-  nmi: string | null;
-  aggregator_id: number | null;
-  set_max_w: number | null;
-  doe_modes_enabled: number | null;
-  device_category: number | null;
-  timezone_id: string | null;
-  der_capability: DerCapabilityInfo | null;
-  der_settings: DerSettingsInfo | null;
-  der_status: DerStatusInfo | null;
-}
-
-// GET /api/run/<id>/status (+ admin). 410 Gone once the runner has terminated.
-export interface RunnerStatus {
-  timestamp_status: string;
-  timestamp_initialise: string | null;
-  timestamp_start: string | null;
-  status_summary: string;
-  last_client_interaction: ClientInteraction;
-  csip_aus_version: string;
-  log_envoy: string;
-  criteria: CriteriaEntry[];
-  // Older runners (v1.3) may omit this; the precondition card is hidden when absent.
-  precondition_checks: CriteriaEntry[] | null;
-  instructions: string[] | null;
-  test_procedure_name: string;
-  step_status: Record<string, StepEventStatus> | null;
-  request_history: RequestEntry[];
-  timeline: TimelineStatus | null;
-  end_device_metadata: EndDeviceMetadata | null;
-}
-
-// GET /api/run/<id>/requests/<request_id> (cactus_schema.runner.schema.RequestData)
-export interface RequestData {
-  request_id: number;
-  request: string | null;
-  response: string | null;
-}
-
-// POST /api/runs/<id>/proceed (+ admin) (cactus_schema.orchestrator.ProceedResponse)
-export interface ProceedResponse {
-  handled: boolean;
-}

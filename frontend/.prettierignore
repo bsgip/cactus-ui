@@ -4,3 +4,4 @@ public/mockServiceWorker.js
 playwright-report
 test-results
 package-lock.json
+src/api/generated

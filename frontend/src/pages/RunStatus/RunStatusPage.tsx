@@ -16,6 +16,11 @@ import { LiveHeaderCard } from './LiveHeaderCard';
 import { LiveStatusPanels } from './LiveStatusPanels';
 import { NotYetActiveAlert } from './NotYetActiveAlert';
 import { PlaylistBanner } from './PlaylistBanner';
+import {
+  deriveCurrentActiveRun,
+  deriveNextPlaylistRunId,
+  derivePlaylistView,
+} from './runStatusModel';
 import { StatusBanner } from './StatusBanner';
 
 const POLL_INTERVAL_MS = 10_000;
@@ -78,7 +83,7 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
   const finaliseMutation = useMutation({
     mutationFn: () => finaliseRun(runId),
     onSuccess: () => {
-      const next = shellQuery.data?.next_playlist_run_id;
+      const next = shellQuery.data ? deriveNextPlaylistRunId(shellQuery.data) : null;
       if (next) {
         window.location.assign(`/run/${next}`);
       } else {
@@ -104,32 +109,35 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
   }
 
   const shell = shellQuery.data;
+  const run = shell.run;
+  const runStatus = run?.status ?? null;
+  const playlistView = derivePlaylistView(shell);
+  const currentActiveRun = deriveCurrentActiveRun(shell);
+  const nextPlaylistRunId = deriveNextPlaylistRunId(shell);
   const showNotYetActive =
-    shell.current_active_run != null &&
-    shell.run_status === 'initialised' &&
-    shell.current_active_run.run_id !== shell.run_id;
+    currentActiveRun != null && runStatus === 'initialised' && currentActiveRun.run_id !== runId;
 
   return (
     <Stack maw={1000} mx="auto">
       <Banner message={session?.banner_message} />
       {actionError && <ErrorAlert message={actionError} />}
 
-      {shell.playlist_info && (
+      {playlistView && (
         <PlaylistBanner
-          playlistInfo={shell.playlist_info}
-          currentActiveRun={shell.current_active_run}
-          runId={shell.run_id}
-          runProcedureId={shell.run_procedure_id}
+          playlistView={playlistView}
+          currentActiveRun={currentActiveRun}
+          runId={runId}
+          runProcedureId={run?.test_procedure_id ?? null}
           isAdminView={isAdminView}
           isEnding={endPlaylistMutation.isPending}
           onEndPlaylist={() => endPlaylistMutation.mutate()}
         />
       )}
 
-      {showNotYetActive && shell.current_active_run && (
+      {showNotYetActive && currentActiveRun && (
         <NotYetActiveAlert
-          currentActiveRun={shell.current_active_run}
-          total={shell.playlist_info?.total ?? 0}
+          currentActiveRun={currentActiveRun}
+          total={playlistView?.total ?? 0}
           isAdminView={isAdminView}
         />
       )}
@@ -137,9 +145,9 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
       {shell.run_is_live ? (
         <>
           <LiveHeaderCard
-            runId={shell.run_id}
-            runStatus={shell.run_status}
-            runTestUri={shell.run_test_uri}
+            runId={runId}
+            runStatus={runStatus}
+            runTestUri={run?.test_url ?? null}
             instructions={statusQuery.data?.instructions ?? []}
             isAdminView={isAdminView}
             isStarting={startMutation.isPending}
@@ -151,9 +159,9 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
           {statusQuery.data ? (
             <LiveStatusPanels
               status={statusQuery.data}
-              runId={shell.run_id}
-              runStatus={shell.run_status}
-              runProcedureId={shell.run_procedure_id}
+              runId={runId}
+              runStatus={runStatus}
+              runProcedureId={run?.test_procedure_id ?? null}
               isAdminView={isAdminView}
             />
           ) : statusError && !(statusError instanceof ApiError && statusError.status === 410) ? (
@@ -170,7 +178,11 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
         </>
       ) : (
         <FinalisedView
-          shell={shell}
+          runId={runId}
+          runStatus={runStatus}
+          runHasArtifacts={run?.has_artifacts ?? null}
+          isImmediateStart={shell.is_immediate_start}
+          nextPlaylistRunId={nextPlaylistRunId}
           supportEmail={session?.support_email}
           isAdminView={isAdminView}
         />

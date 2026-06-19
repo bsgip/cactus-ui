@@ -30,7 +30,7 @@ def login(client, permissions: list[str] | None = None) -> None:
 
 
 def make_run(**overrides) -> schema.RunResponse:
-    # playlist_runs=None keeps _build_playlist_info on its trivial (None, None, None) path.
+    # playlist_runs=None keeps _fetch_playlist_runs on its trivial (None, None) path.
     return generate_class_instance(schema.RunResponse, playlist_runs=None, **overrides)
 
 
@@ -51,16 +51,16 @@ def test_api_run_status_live_run(client, monkeypatch):
 
     assert response.status_code == HTTPStatus.OK
     body = response.get_json()
-    assert body["run_id"] == 1
     assert body["run_is_live"] is True
-    assert body["run_status"] == "started"
-    assert body["run_test_uri"] == run.test_url
-    assert body["run_procedure_id"] == run.test_procedure_id
+    # The run is forwarded as the canonical RunResponse (no reshaping/renaming).
+    assert body["run"]["run_id"] == run.run_id
+    assert body["run"]["status"] == "started"
+    assert body["run"]["test_url"] == run.test_url
+    assert body["run"]["test_procedure_id"] == run.test_procedure_id
     # ALL-08 is not an immediate_start procedure, so the Active Power Chart is shown.
     assert body["is_immediate_start"] is False
-    assert body["playlist_info"] is None
-    assert body["next_playlist_run_id"] is None
-    assert body["current_active_run"] is None
+    assert body["playlist_name"] is None
+    assert body["playlist_runs"] is None
 
 
 def test_api_run_status_immediate_start_procedure(client, monkeypatch):
@@ -82,8 +82,7 @@ def test_api_run_status_not_found(client, monkeypatch):
     assert response.status_code == HTTPStatus.OK
     body = response.get_json()
     assert body["run_is_live"] is False
-    assert body["run_status"] is None
-    assert body["run_has_artifacts"] is None
+    assert body["run"] is None
     assert body["is_immediate_start"] is False
 
 
@@ -96,8 +95,36 @@ def test_api_run_status_finalised_not_live(client, monkeypatch):
     body = client.get("/api/run/3").get_json()
 
     assert body["run_is_live"] is False
-    assert body["run_status"] == "finalised"
-    assert body["run_has_artifacts"] is True
+    assert body["run"]["status"] == "finalised"
+    assert body["run"]["has_artifacts"] is True
+
+
+def test_api_run_status_playlist_join(client, monkeypatch):
+    # The shell joins each playlist run's full RunResponse (the orchestrator only gives
+    # summaries); the frontend derives ordering/active/next from these.
+    login(client)
+    summary = [
+        generate_class_instance(schema.PlaylistRunInfo, run_id=201),
+        generate_class_instance(schema.PlaylistRunInfo, run_id=202),
+    ]
+    main_run = make_run(status=schema.RunStatusResponse.started, playlist_order=0)
+    main_run.playlist_runs = summary
+    runs = {
+        "3": main_run,
+        "201": make_run(run_id=201, status=schema.RunStatusResponse.finalised, has_artifacts=True),
+        "202": make_run(run_id=202, status=schema.RunStatusResponse.started),
+    }
+    monkeypatch.setattr(server.orchestrator, "fetch_run_status", lambda access_token, run_id: None)
+    monkeypatch.setattr(server.orchestrator, "fetch_individual_run", lambda access_token, run_id: runs.get(str(run_id)))
+    with client.session_transaction() as tx:
+        tx["active_playlist"] = {"name": "My Playlist"}
+
+    body = client.get("/api/run/3").get_json()
+
+    assert body["playlist_name"] == "My Playlist"
+    # Forwarded as full RunResponses, in playlist order.
+    assert [r["run_id"] for r in body["playlist_runs"]] == [201, 202]
+    assert body["playlist_runs"][0]["has_artifacts"] is True
 
 
 def test_api_admin_run_status_forbidden_for_non_admin(client):

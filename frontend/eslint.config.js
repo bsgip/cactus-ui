@@ -6,7 +6,13 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'public/mockServiceWorker.js', 'playwright-report', 'test-results'],
+    ignores: [
+      'dist',
+      'public/mockServiceWorker.js',
+      'playwright-report',
+      'test-results',
+      'src/api/generated',
+    ],
   },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],

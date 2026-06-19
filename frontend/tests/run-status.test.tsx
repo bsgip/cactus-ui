@@ -58,7 +58,7 @@ describe('run status page chrome', () => {
   });
 
   it('shows a Start control while initialised', async () => {
-    useShell({ ...shellLive, run_status: 'initialised' });
+    useShell({ ...shellLive, run: { ...shellLive.run, status: 'initialised' } });
     renderRunStatus('/run/123');
     expect(await screen.findByRole('button', { name: 'Start' })).toBeEnabled();
   });
@@ -89,7 +89,7 @@ describe('run status page chrome', () => {
   });
 
   it('points the user at support when a finalised run has no artifacts', async () => {
-    useShell({ ...shellFinalised, run_has_artifacts: false });
+    useShell({ ...shellFinalised, run: { ...shellFinalised.run, has_artifacts: false } });
     renderRunStatus('/run/120');
 
     await screen.findByRole('heading', { name: 'Run 120 [Finalised]' });
@@ -103,11 +103,11 @@ describe('run status page chrome', () => {
 
   it('renders a not-found message for a missing run', async () => {
     useShell({
-      ...shellFinalised,
-      run_id: 999,
+      run: null,
       run_is_live: false,
-      run_status: null,
-      run_has_artifacts: null,
+      is_immediate_start: false,
+      playlist_name: null,
+      playlist_runs: null,
     });
     renderRunStatus('/run/999');
     expect(await screen.findByRole('heading', { name: 'Run 999 Not Found' })).toBeInTheDocument();
@@ -115,7 +115,10 @@ describe('run status page chrome', () => {
   });
 
   it('renders a skipped message for a skipped run', async () => {
-    useShell({ ...shellFinalised, run_status: 'skipped', run_has_artifacts: false });
+    useShell({
+      ...shellFinalised,
+      run: { ...shellFinalised.run, status: 'skipped', has_artifacts: false },
+    });
     renderRunStatus('/run/120');
     expect(await screen.findByRole('heading', { name: 'Run 120 [Skipped]' })).toBeInTheDocument();
     expect(screen.getByText(/never executed/)).toBeInTheDocument();
@@ -171,9 +174,13 @@ describe('run status playlist banner', () => {
   it('warns and links to the active test when viewing a not-yet-active run', async () => {
     useShell({
       ...shellPlaylist,
-      run_id: 203,
-      run_status: 'initialised',
-      playlist_info: { ...shellPlaylist.playlist_info, current_order: 2 },
+      run: {
+        ...shellPlaylist.run,
+        run_id: 203,
+        test_procedure_id: 'ALL-03',
+        status: 'initialised',
+        playlist_order: 2,
+      },
     });
     renderRunStatus('/run/203');
 
@@ -260,7 +267,7 @@ describe('run status live panels', () => {
   });
 
   it('enriches the initialised header card with pre-start instructions', async () => {
-    useShell({ ...shellLive, run_status: 'initialised' });
+    useShell({ ...shellLive, run: { ...shellLive.run, status: 'initialised' } });
     renderRunStatus('/run/123');
 
     expect(
