@@ -21,30 +21,33 @@ export function updateDomain(subscription_domain: string): Promise<Record<string
   });
 }
 
-export function updateStaticUri(is_static_uri: boolean): Promise<Record<string, never>> {
-  return apiFetch('/api/config/static_uri', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ is_static_uri }),
-  });
-}
-
-export function createRunGroup(csip_aus_version: string): Promise<RunGroupResponse> {
+export function createRunGroup(
+  csip_aus_version: string,
+  is_static_uri: boolean
+): Promise<RunGroupResponse> {
   return apiFetch('/api/run_groups', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ csip_aus_version }),
+    body: JSON.stringify({ csip_aus_version, is_static_uri }),
   });
 }
 
-export function updateRunGroupName(
-  run_group_id: number,
-  name: string
-): Promise<RunGroupResponse> {
+export function updateRunGroupName(run_group_id: number, name: string): Promise<RunGroupResponse> {
   return apiFetch(`/api/run_groups/${run_group_id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
+  });
+}
+
+export function updateRunGroupStaticUri(
+  run_group_id: number,
+  is_static_uri: boolean
+): Promise<RunGroupResponse> {
+  return apiFetch(`/api/run_groups/${run_group_id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ is_static_uri }),
   });
 }
 

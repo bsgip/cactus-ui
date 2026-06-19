@@ -80,6 +80,8 @@ export interface RunGroupResponse {
   name: string;
   csip_aus_version: string;
   created_at: string;
+  is_static_uri: boolean;
+  static_uri: string | null;
   is_device_cert: boolean | null;
   certificate_id: number | null;
   certificate_created_at: string | null;
@@ -133,9 +135,7 @@ export interface CsipAusVersionResponse {
 // GET /api/config (server.py api_config)
 export interface UserConfig {
   subscription_domain: string;
-  is_static_uri: boolean;
   pen: number | null; // null when pen === 0 (reserved; display as placeholder)
-  static_uri: string | null;
 }
 
 export interface ConfigResponse {

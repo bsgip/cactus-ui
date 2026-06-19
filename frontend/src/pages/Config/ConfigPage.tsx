@@ -1,7 +1,6 @@
 import {
   Alert,
   Badge,
-  Box,
   Button,
   Card,
   Code,
@@ -38,7 +37,7 @@ import {
   updateDomain,
   updatePen,
   updateRunGroupName,
-  updateStaticUri,
+  updateRunGroupStaticUri,
 } from '../../api/config';
 import type { RunGroupResponse } from '../../api/types';
 import { Banner } from '../../components/Banner';
@@ -78,18 +77,12 @@ function CertModal({
         {hasCert ? `${certType} Certificate` : 'Generate Certificate'}
       </Button>
 
-      <Modal
-        opened={opened}
-        onClose={close}
-        title={`Certificate for ${runGroup.name}`}
-        size="lg"
-      >
+      <Modal opened={opened} onClose={close} title={`Certificate for ${runGroup.name}`} size="lg">
         <Stack>
           {hasCert ? (
             <Text>
               The current <Code>{certType}</Code> certificate (ID{' '}
-              <Code>{runGroup.certificate_id}</Code>) was created{' '}
-              <Code>{certDate}</Code>
+              <Code>{runGroup.certificate_id}</Code>) was created <Code>{certDate}</Code>
               <br />
               <br />
               <strong>Note:</strong> Generating a new certificate will invalidate the current
@@ -259,7 +252,8 @@ export function ConfigPage() {
   });
 
   const staticUriMutation = useMutation({
-    mutationFn: (is_static_uri: boolean) => updateStaticUri(is_static_uri),
+    mutationFn: ({ id, is_static_uri }: { id: number; is_static_uri: boolean }) =>
+      updateRunGroupStaticUri(id, is_static_uri),
     onSuccess: () => {
       setActionError(null);
       invalidateConfig();
@@ -268,7 +262,7 @@ export function ConfigPage() {
   });
 
   const createGroupMutation = useMutation({
-    mutationFn: (version: string) => createRunGroup(version),
+    mutationFn: (version: string) => createRunGroup(version, false),
     onSuccess: () => {
       setActionError(null);
       invalidateConfig();
@@ -300,7 +294,6 @@ export function ConfigPage() {
 
   const runGroups = config?.run_groups ?? [];
   const csipVersions = config?.csip_aus_versions ?? [];
-  const userConfig = config?.config;
 
   return (
     <>
@@ -342,7 +335,9 @@ export function ConfigPage() {
             <Text mb="xs">
               Each run group represents progress towards certification for a single device / client.
             </Text>
-            <Text mb="sm">All certificates will be signed by the CACTUS certificate authority.</Text>
+            <Text mb="sm">
+              All certificates will be signed by the CACTUS certificate authority.
+            </Text>
 
             <Group mb="md">
               <Button
@@ -398,6 +393,39 @@ export function ConfigPage() {
                       </Table.Td>
                       <Table.Td>
                         <Code>{rg.csip_aus_version}</Code>
+                      </Table.Td>
+                      <Table.Td>
+                        <Stack gap={4} align="flex-start">
+                          {rg.is_static_uri ? (
+                            <>
+                              <Badge>Static URI</Badge>
+                              {rg.static_uri && (
+                                <Text component="u" size="xs">
+                                  {rg.static_uri}
+                                </Text>
+                              )}
+                            </>
+                          ) : (
+                            <Badge color="gray">Dynamic URI</Badge>
+                          )}
+                          <Button
+                            size="compact-xs"
+                            variant="subtle"
+                            leftSection={<IconArrowsLeftRight size={12} />}
+                            loading={
+                              staticUriMutation.isPending &&
+                              staticUriMutation.variables?.id === rg.run_group_id
+                            }
+                            onClick={() =>
+                              staticUriMutation.mutate({
+                                id: rg.run_group_id,
+                                is_static_uri: !rg.is_static_uri,
+                              })
+                            }
+                          >
+                            {rg.is_static_uri ? 'Swap to dynamic' : 'Swap to static'}
+                          </Button>
+                        </Stack>
                       </Table.Td>
                       <Table.Td>{rg.total_runs} total run(s)</Table.Td>
                       <Table.Td>
@@ -513,48 +541,23 @@ export function ConfigPage() {
                 DeviceCapability URI
               </Title>
               <Text mb="xs">
-                The DeviceCapability URI can set to be either &quot;static&quot; or
-                &quot;dynamic&quot;.
+                The DeviceCapability URI can be set to be either &quot;static&quot; or
+                &quot;dynamic&quot; on a per run group basis.
               </Text>
               <Text mb="xs">
                 A &quot;static&quot; value results in sharing the same DeviceCapability URI across
-                all test runs. <strong>Note:</strong> when &quot;static&quot; is set only{' '}
-                <em>one</em> test run can be active at any given time. A test must be started before
-                these URIs will be active!
+                all test runs in that run group. <strong>Note:</strong> when &quot;static&quot; is
+                set only <em>one</em> test run can be active at any given time. A test must be
+                started before these URIs will be active!
               </Text>
-              {userConfig && (
-                <Box mb="xs">
-                  {userConfig.is_static_uri ? (
-                    <>
-                      Currently <Badge>Static</Badge>
-                      <br />
-                      <Text component="u" size="sm">
-                        {userConfig.static_uri}
-                      </Text>
-                    </>
-                  ) : (
-                    <>
-                      Currently <Badge>Dynamic</Badge>
-                    </>
-                  )}
-                </Box>
-              )}
-              <Text size="sm" c="dimmed" mb="md">
-                Start a test run from the{' '}
+              <Text size="sm" c="dimmed">
+                Use the <strong>Swap to static / dynamic</strong> control on each run group above to
+                change this setting, then start a test run from the{' '}
                 <Text component={Link} to="/runs" c="blue" inherit>
                   Runs
                 </Text>{' '}
                 page to activate the URI.
               </Text>
-              {userConfig && (
-                <Button
-                  leftSection={<IconArrowsLeftRight size={14} />}
-                  loading={staticUriMutation.isPending}
-                  onClick={() => staticUriMutation.mutate(!userConfig.is_static_uri)}
-                >
-                  {userConfig.is_static_uri ? 'Swap to dynamic URI' : 'Swap to static URI'}
-                </Button>
-              )}
             </Card>
           </SimpleGrid>
         </Stack>
@@ -582,15 +585,20 @@ function SharedCertMenu({ onCertAction }: { onCertAction: () => void }) {
         </Menu.Dropdown>
       </Menu>
 
-      <Modal opened={opened} onClose={close} title="Generate Shared Aggregator Certificate" size="lg">
+      <Modal
+        opened={opened}
+        onClose={close}
+        title="Generate Shared Aggregator Certificate"
+        size="lg"
+      >
         <Stack>
           <Text>
             A new aggregator certificate will be generated and set as the certificate for all run
             groups.
             <br />
             <br />
-            <strong>Note:</strong> Generating a new aggregator certificate will replace{' '}
-            <em>all</em> existing certificates for <em>all</em> run groups.
+            <strong>Note:</strong> Generating a new aggregator certificate will replace <em>all</em>{' '}
+            existing certificates for <em>all</em> run groups.
           </Text>
           <Group justify="flex-end">
             <form
@@ -611,7 +619,11 @@ function SharedCertMenu({ onCertAction }: { onCertAction: () => void }) {
             </form>
           </Group>
         </Stack>
-        <iframe name="hiddenFrame-shared" style={{ display: 'none' }} title="shared-cert-download" />
+        <iframe
+          name="hiddenFrame-shared"
+          style={{ display: 'none' }}
+          title="shared-cert-download"
+        />
       </Modal>
     </>
   );

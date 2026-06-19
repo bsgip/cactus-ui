@@ -641,9 +641,7 @@ def api_config(access_token: str) -> Response | tuple[Response, int]:
         {
             "config": {
                 "subscription_domain": config.subscription_domain,
-                "is_static_uri": config.is_static_uri,
                 "pen": None if config.pen == 0 else config.pen,
-                "static_uri": config.static_uri,
             },
             "run_groups": [rg.to_dict() for rg in run_groups.items],
             "csip_aus_versions": [v.to_dict() for v in csip_aus_versions.items],
@@ -674,16 +672,6 @@ def api_config_domain(access_token: str) -> Response | tuple[Response, int]:
     return jsonify({})
 
 
-@app.route("/api/config/static_uri", methods=["POST"])
-@api_login_required
-def api_config_static_uri(access_token: str) -> Response | tuple[Response, int]:
-    body = request.get_json(silent=True) or {}
-    is_static_uri = bool(body.get("is_static_uri", False))
-    if not orchestrator.update_config(access_token, is_static_uri=is_static_uri):
-        return jsonify({"error": "Failed to update static URI"}), HTTPStatus.BAD_GATEWAY
-    return jsonify({})
-
-
 @app.route("/api/run_groups", methods=["POST"])
 @api_login_required
 def api_create_run_group(access_token: str) -> Response | tuple[Response, int]:
@@ -691,7 +679,8 @@ def api_create_run_group(access_token: str) -> Response | tuple[Response, int]:
     version = body.get("csip_aus_version")
     if not version:
         return jsonify({"error": "csip_aus_version is required."}), HTTPStatus.BAD_REQUEST
-    result = orchestrator.create_run_group(access_token, version)
+    is_static_uri = bool(body.get("is_static_uri", False))
+    result = orchestrator.create_run_group(access_token, version, is_static_uri)
     if result is None:
         return jsonify({"error": "Failed to create run group"}), HTTPStatus.BAD_GATEWAY
     return jsonify(result.to_dict()), HTTPStatus.CREATED
@@ -702,11 +691,12 @@ def api_create_run_group(access_token: str) -> Response | tuple[Response, int]:
 def api_update_run_group(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
     body = request.get_json(silent=True) or {}
     name = body.get("name")
-    if not name:
-        return jsonify({"error": "name is required."}), HTTPStatus.BAD_REQUEST
-    result = orchestrator.update_run_group(access_token, run_group_id, name)
+    is_static_uri = body.get("is_static_uri")
+    if not name and is_static_uri is None:
+        return jsonify({"error": "name or is_static_uri is required."}), HTTPStatus.BAD_REQUEST
+    result = orchestrator.update_run_group(access_token, run_group_id, name=name, is_static_uri=is_static_uri)
     if result is None:
-        return jsonify({"error": "Failed to update name"}), HTTPStatus.BAD_GATEWAY
+        return jsonify({"error": "Failed to update run group"}), HTTPStatus.BAD_GATEWAY
     return jsonify(result.to_dict())
 
 

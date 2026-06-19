@@ -1,9 +1,7 @@
 {
   "config": {
     "subscription_domain": "my.example.com",
-    "is_static_uri": false,
-    "pen": 123456,
-    "static_uri": null
+    "pen": 123456
   },
   "run_groups": [
     {
@@ -11,6 +9,8 @@
       "name": "Battery Mk1",
       "csip_aus_version": "v1.2",
       "created_at": "2026-05-01T00:00:00+00:00",
+      "is_static_uri": true,
+      "static_uri": "https://example.com/dcap/static/1",
       "is_device_cert": true,
       "certificate_id": 11,
       "certificate_created_at": "2026-05-01T00:05:00+00:00",
@@ -21,14 +21,13 @@
       "name": "Battery Mk2",
       "csip_aus_version": "v1.3-beta/storage",
       "created_at": "2026-06-01T00:00:00+00:00",
+      "is_static_uri": false,
+      "static_uri": null,
       "is_device_cert": false,
       "certificate_id": 12,
       "certificate_created_at": "2026-06-01T00:05:00+00:00",
       "total_runs": 0
     }
   ],
-  "csip_aus_versions": [
-    { "version": "v1.2" },
-    { "version": "v1.3-beta/storage" }
-  ]
+  "csip_aus_versions": [{ "version": "v1.2" }, { "version": "v1.3-beta/storage" }]
 }

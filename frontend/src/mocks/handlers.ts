@@ -21,8 +21,9 @@ export const handlers = [
   http.get('/api/config', () => HttpResponse.json(configFixture)),
   http.post('/api/config/pen', () => HttpResponse.json({})),
   http.post('/api/config/domain', () => HttpResponse.json({})),
-  http.post('/api/config/static_uri', () => HttpResponse.json({})),
-  http.post('/api/run_groups', () => HttpResponse.json(configFixture.run_groups[0], { status: 201 })),
+  http.post('/api/run_groups', () =>
+    HttpResponse.json(configFixture.run_groups[0], { status: 201 })
+  ),
   http.patch('/api/run_groups/:runGroupId', ({ params }) =>
     HttpResponse.json({ ...configFixture.run_groups[0], run_group_id: Number(params.runGroupId) })
   ),
@@ -76,7 +77,9 @@ export const handlers = [
   http.get('/api/admin/run/:runId', () => HttpResponse.json(runStatusShellFixture)),
   http.get('/api/run/:runId/status', () => HttpResponse.json(runStatusRunnerFixture)),
   http.get('/api/admin/run/:runId/status', () => HttpResponse.json(runStatusRunnerFixture)),
-  http.get('/api/run/:runId/requests/:requestId', () => HttpResponse.json(runRequestDetailsFixture)),
+  http.get('/api/run/:runId/requests/:requestId', () =>
+    HttpResponse.json(runRequestDetailsFixture)
+  ),
   http.post('/api/runs/:runId/proceed', () => HttpResponse.json({ handled: true })),
   http.post('/api/admin/runs/:runId/proceed', () => HttpResponse.json({ handled: true })),
 ];

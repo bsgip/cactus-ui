@@ -12,7 +12,9 @@ describe('config page', () => {
     expect(await screen.findByRole('heading', { name: 'User Configuration' })).toBeInTheDocument();
     expect(document.title).toBe('Certificate - CACTUS');
     expect(await screen.findByRole('heading', { name: 'Run Groups' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Private Enterprise Number (PEN)' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Private Enterprise Number (PEN)' })
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Subscription Notification Domain (Optional)' })
     ).toBeInTheDocument();
@@ -84,9 +86,7 @@ describe('config page', () => {
 
     renderApp('/config');
 
-    expect(
-      await screen.findByText(/There are no Run Groups configured/)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/There are no Run Groups configured/)).toBeInTheDocument();
   });
 
   it('shows Download SERCA Certificate link', async () => {
@@ -143,34 +143,35 @@ describe('config page', () => {
     expect(await screen.findByDisplayValue('my.example.com')).toBeInTheDocument();
   });
 
-  it('shows Dynamic badge when is_static_uri=false', async () => {
+  it('shows per run group static/dynamic URI badges from fixture', async () => {
     renderApp('/config');
 
-    expect(await screen.findByText('Dynamic')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Swap to static URI/ })).toBeInTheDocument();
+    // Battery Mk1 is static (with a static_uri), Battery Mk2 is dynamic
+    expect(await screen.findByText('Static URI')).toBeInTheDocument();
+    expect(screen.getByText('Dynamic URI')).toBeInTheDocument();
+    expect(screen.getByText('https://example.com/dcap/static/1')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Swap to dynamic/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Swap to static/ })).toBeInTheDocument();
   });
 
-  it('shows Static badge and URI when is_static_uri=true', async () => {
+  it('calls the run group static URI API when swapping', async () => {
+    const user = userEvent.setup();
+    let sent: { is_static_uri?: boolean } | undefined;
+
     server.use(
-      http.get('/api/config', () =>
-        HttpResponse.json({
-          config: {
-            subscription_domain: '',
-            is_static_uri: true,
-            pen: null,
-            static_uri: 'https://cactus.example/dc/1',
-          },
-          run_groups: [],
-          csip_aus_versions: [],
-        })
-      )
+      http.patch('/api/run_groups/:id', async ({ request }) => {
+        sent = (await request.json()) as { is_static_uri: boolean };
+        return HttpResponse.json({});
+      })
     );
 
     renderApp('/config');
 
-    expect(await screen.findByText('Static')).toBeInTheDocument();
-    expect(screen.getByText('https://cactus.example/dc/1')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Swap to dynamic URI/ })).toBeInTheDocument();
+    // Battery Mk2 is dynamic in the fixture, so it offers "Swap to static"
+    const swapBtn = await screen.findByRole('button', { name: /Swap to static/ });
+    await user.click(swapBtn);
+
+    await waitFor(() => expect(sent?.is_static_uri).toBe(true));
   });
 
   it('shows error alert when config fetch fails', async () => {
@@ -180,11 +181,7 @@ describe('config page', () => {
 
     renderApp('/config');
 
-    expect(
-      await screen.findByText(
-        /Unable to communicate with test server/
-      )
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Unable to communicate with test server/)).toBeInTheDocument();
   });
 
   it('calls delete run group API and invalidates config', async () => {
