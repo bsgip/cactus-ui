@@ -32,7 +32,23 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.wrappers.response import Response
 
 import cactus_ui.orchestrator as orchestrator
-from cactus_ui.api_models import RunStatusShell
+from cactus_ui.api_models import (
+    AdminStatsResponse,
+    AdminUserResponse,
+    AdminUsersResponse,
+    ConfigResponse,
+    PlaylistSession,
+    PlaylistTestsResponse,
+    ProceduresResponse,
+    ProcedureStat,
+    ProcedureYamlResponse,
+    RunActionResponse,
+    RunStatusShell,
+    SessionResponse,
+    UserConfig,
+    UserLeaderboardEntry,
+    WeekBar,
+)
 from cactus_ui.auth import (
     admin_role_required,
     api_admin_role_required,
@@ -43,10 +59,10 @@ from cactus_ui.auth import (
     login_required,
 )
 from cactus_ui.presenters import (
-    build_compliance_json,
+    build_compliance,
     build_playlist_tests_by_category,
-    build_procedure_summaries_json,
-    build_test_status_dict,
+    build_procedure_summaries,
+    build_test_status,
     paginated_json,
 )
 
@@ -182,14 +198,14 @@ def api_session() -> Response | tuple[Response, int]:
         )
 
     return jsonify(
-        {
-            "username": get_username_from_session(),
-            "permissions": get_permissions() or [],
-            "version": CACTUS_PLATFORM_VERSION,
-            "support_email": CACTUS_PLATFORM_SUPPORT_EMAIL,
-            "banner_message": BANNER_MESSAGE,
-            "hosted_images": [f"/{path}" for path in get_hosted_images()],
-        }
+        SessionResponse(
+            username=get_username_from_session(),
+            permissions=get_permissions() or [],
+            version=CACTUS_PLATFORM_VERSION,
+            support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
+            banner_message=BANNER_MESSAGE,
+            hosted_images=[f"/{path}" for path in get_hosted_images()],
+        ).to_dict()
     )
 
 
@@ -202,11 +218,11 @@ def api_admin_stats(access_token: str) -> Response | tuple[Response, int]:
         return jsonify({"error": "Failed to retrieve stats."}), HTTPStatus.BAD_GATEWAY
 
     user_leaderboard = [
-        {"name": name, "run_count": count}
+        UserLeaderboardEntry(name=name, run_count=count)
         for name, count in sorted(stats.runs_per_user.items(), key=lambda x: x[1], reverse=True)
     ]
 
-    week_bars: list[dict] = []
+    week_bars: list[WeekBar] = []
     last_month: str | None = None
     last_year: str | None = None
     for week_str, count in sorted(stats.runs_per_week.items()):
@@ -221,30 +237,32 @@ def api_admin_stats(access_token: str) -> Response | tuple[Response, int]:
             month_display = week_str
             year_display = ""
         week_bars.append(
-            {
-                "month": month_display if month_key != last_month else "",
-                "year": year_display if year_display != last_year else "",
-                "count": count,
-            }
+            WeekBar(
+                month=month_display if month_key != last_month else "",
+                year=year_display if year_display != last_year else "",
+                count=count,
+            )
         )
         last_month = month_key
         last_year = year_display
 
-    procedures = sorted(stats.procedures, key=lambda p: p.get("total_runs", 0), reverse=True)
+    procedures = [
+        ProcedureStat.from_dict(p) for p in sorted(stats.procedures, key=lambda p: p.get("total_runs", 0), reverse=True)
+    ]
 
     return jsonify(
-        {
-            "total_users": stats.total_users,
-            "total_run_groups": stats.total_run_groups,
-            "total_runs": stats.total_runs,
-            "total_passed": stats.total_passed,
-            "total_failed": stats.total_failed,
-            "max_run_number": stats.max_run_id,
-            "version_counts": stats.version_counts,
-            "user_leaderboard": user_leaderboard,
-            "procedures": procedures,
-            "runs_per_week": week_bars,
-        }
+        AdminStatsResponse(
+            total_users=stats.total_users,
+            total_run_groups=stats.total_run_groups,
+            total_runs=stats.total_runs,
+            total_passed=stats.total_passed,
+            total_failed=stats.total_failed,
+            max_run_number=stats.max_run_id,
+            version_counts=stats.version_counts,
+            user_leaderboard=user_leaderboard,
+            procedures=procedures,
+            runs_per_week=week_bars,
+        ).to_dict()
     )
 
 
@@ -300,7 +318,7 @@ def api_procedures(access_token: str) -> Response | tuple[Response, int]:
 
         page = procedure_pages.next_page
 
-    return jsonify({"procedures": [p.to_dict() for p in all_procedures]})
+    return jsonify(ProceduresResponse(procedures=all_procedures).to_dict())
 
 
 @app.route("/api/procedure/<test_procedure_id>", methods=["GET"])
@@ -311,7 +329,7 @@ def api_procedure_yaml(access_token: str, test_procedure_id: str) -> Response | 
     if yaml is None:
         return jsonify({"error": f"Failed to fetch YAML for test '{test_procedure_id}'."}), HTTPStatus.BAD_GATEWAY
 
-    return jsonify({"test_procedure_id": test_procedure_id, "yaml": yaml})
+    return jsonify(ProcedureYamlResponse(test_procedure_id=test_procedure_id, yaml=yaml).to_dict())
 
 
 @app.route("/api/run_groups", methods=["GET"])
@@ -334,13 +352,20 @@ def api_admin_users(access_token: str) -> Response | tuple[Response, int]:
     if users is None:
         return jsonify({"error": "Unable to fetch users."}), HTTPStatus.BAD_GATEWAY
 
-    users_json = []
+    users_list = []
     for user in users:
-        raw = user.to_dict()
-        raw["matchable_description"] = orchestrator.get_matchable_description(raw)
-        users_json.append(raw)
+        matchable_description = orchestrator.get_matchable_description(user.to_dict())
+        users_list.append(
+            AdminUserResponse(
+                user_id=user.user_id,
+                subject_id=user.subject_id,
+                name=user.name,
+                run_groups=user.run_groups,
+                matchable_description=matchable_description,
+            )
+        )
 
-    return jsonify({"users": users_json})
+    return jsonify(AdminUsersResponse(users=users_list).to_dict())
 
 
 @app.route("/api/admin/run_groups", methods=["GET"])
@@ -366,7 +391,7 @@ def api_group_procedure_summaries(access_token: str, run_group_id: int) -> Respo
     if procedures is None:
         return jsonify({"error": "Unable to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
 
-    return jsonify(build_procedure_summaries_json(procedures))
+    return jsonify(build_procedure_summaries(procedures).to_dict())
 
 
 @app.route("/api/admin/group/<int:run_group_id>/procedure_summaries", methods=["GET"])
@@ -379,7 +404,7 @@ def api_admin_group_procedure_summaries(access_token: str, run_group_id: int) ->
     if procedures is None:
         return jsonify({"error": "Unable to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
 
-    return jsonify(build_procedure_summaries_json(procedures))
+    return jsonify(build_procedure_summaries(procedures).to_dict())
 
 
 @app.route("/api/group/<int:run_group_id>/compliance", methods=["GET"])
@@ -388,7 +413,7 @@ def api_group_compliance(access_token: str, run_group_id: int) -> Response | tup
     procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
     if procedures is None:
         return jsonify({"error": "Unable to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
-    return jsonify(build_compliance_json(procedures))
+    return jsonify(build_compliance(procedures).to_dict())
 
 
 @app.route("/api/admin/group/<int:run_group_id>/compliance", methods=["GET"])
@@ -400,7 +425,7 @@ def api_admin_group_compliance(access_token: str, run_group_id: int) -> Response
     )
     if procedures is None:
         return jsonify({"error": "Unable to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
-    return jsonify(build_compliance_json(procedures))
+    return jsonify(build_compliance(procedures).to_dict())
 
 
 @app.route("/admin/group/<int:run_group_id>/compliance_pdf", methods=["GET"])
@@ -480,7 +505,7 @@ def api_init_run(access_token: str, run_group_id: int) -> Response | tuple[Respo
 
     init_result = orchestrator.init_run(access_token, run_group_id, test_procedure_id)
     if init_result.response is not None:
-        return jsonify({"run_id": init_result.response.run_id})
+        return jsonify(RunActionResponse(run_id=init_result.response.run_id).to_dict())
     elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
         return (
             jsonify({"error": "Your certificate has expired. Please generate and download a new certificate."}),
@@ -503,7 +528,7 @@ def api_start_run(access_token: str, run_id: int) -> Response | tuple[Response, 
         error = "Failed to start the test run." if start_result.error_message is None else start_result.error_message
         return jsonify({"error": error}), HTTPStatus.BAD_GATEWAY
 
-    return jsonify({"run_id": run_id})
+    return jsonify(RunActionResponse(run_id=run_id).to_dict())
 
 
 @app.route("/api/runs/<int:run_id>/finalise", methods=["POST"])
@@ -512,7 +537,7 @@ def api_finalise_run(access_token: str, run_id: int) -> Response | tuple[Respons
     if not orchestrator.finalise_run(access_token, str(run_id)):
         return jsonify({"error": "Failed to finalise the run."}), HTTPStatus.BAD_GATEWAY
 
-    return jsonify({"run_id": run_id})
+    return jsonify(RunActionResponse(run_id=run_id).to_dict())
 
 
 @app.route("/api/runs/<int:run_id>", methods=["DELETE"])
@@ -521,7 +546,7 @@ def api_delete_run(access_token: str, run_id: int) -> Response | tuple[Response,
     if not orchestrator.delete_individual_run(access_token, str(run_id)):
         return jsonify({"error": "Failed to delete run."}), HTTPStatus.BAD_GATEWAY
 
-    return jsonify({"run_id": run_id})
+    return jsonify(RunActionResponse(run_id=run_id).to_dict())
 
 
 @app.route("/api/group/<int:run_group_id>/playlist_tests", methods=["GET"])
@@ -538,10 +563,10 @@ def api_playlist_tests(access_token: str, run_group_id: int) -> Response | tuple
             all_classes.update(p.classes)
 
     return jsonify(
-        {
-            "tests_by_category": build_playlist_tests_by_category(procedures),
-            "classes": [{"name": c.name, "description": c.description} for c in fetch_compliance_classes(all_classes)],
-        }
+        PlaylistTestsResponse(
+            tests_by_category=build_playlist_tests_by_category(procedures),
+            classes=list(fetch_compliance_classes(all_classes)),
+        ).to_dict()
     )
 
 
@@ -566,7 +591,7 @@ def api_init_playlist(access_token: str, run_group_id: int) -> Response | tuple[
                     for r in init_result.response.playlist_runs
                 ],
             }
-        return jsonify({"run_id": init_result.response.run_id})
+        return jsonify(RunActionResponse(run_id=init_result.response.run_id).to_dict())
     elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
         return (
             jsonify({"error": "Your certificate has expired. Please generate and download a new certificate."}),
@@ -596,7 +621,7 @@ def api_playlist_sessions(access_token: str, run_group_id: int) -> Response:
         if run.playlist_execution_id:
             playlist_executions.setdefault(run.playlist_execution_id, []).append(run)
 
-    result = []
+    result: list[PlaylistSession] = []
     for exec_id, runs in playlist_executions.items():
         runs_sorted = sorted(runs, key=lambda r: r.playlist_order or 0)
         if not runs_sorted:
@@ -606,20 +631,20 @@ def api_playlist_sessions(access_token: str, run_group_id: int) -> Response:
             (r.status.value if hasattr(r.status, "value") else str(r.status)) in active_statuses for r in runs_sorted
         )
         result.append(
-            {
-                "playlist_execution_id": exec_id,
-                "short_id": exec_id[:8],
-                "first_run_id": first_run.run_id,
-                "created_at": first_run.created_at.isoformat(),
-                "test_statuses": [build_test_status_dict(r) for r in runs_sorted],
-                "is_active": is_active,
-            }
+            PlaylistSession(
+                playlist_execution_id=exec_id,
+                short_id=exec_id[:8],
+                first_run_id=first_run.run_id,
+                created_at=first_run.created_at.isoformat(),
+                test_statuses=[build_test_status(r) for r in runs_sorted],
+                is_active=is_active,
+            )
         )
 
-    result.sort(key=lambda x: str(x["created_at"]), reverse=True)
-    result.sort(key=lambda x: not bool(x["is_active"]))
+    result.sort(key=lambda x: x.created_at, reverse=True)
+    result.sort(key=lambda x: not x.is_active)
 
-    return jsonify(result)
+    return jsonify([s.to_dict() for s in result])
 
 
 @app.route("/api/runs/<int:run_id>/finalise_playlist", methods=["POST"])
@@ -627,7 +652,7 @@ def api_playlist_sessions(access_token: str, run_group_id: int) -> Response:
 def api_finalise_playlist(access_token: str, run_id: int) -> Response:
     """Finalise a playlist early: finalises current test and marks remaining as skipped."""
     orchestrator.finalise_playlist(access_token, str(run_id))
-    return jsonify({"run_id": run_id})
+    return jsonify(RunActionResponse(run_id=run_id).to_dict())
 
 
 @app.route("/api/config", methods=["GET"])
@@ -639,14 +664,14 @@ def api_config(access_token: str) -> Response | tuple[Response, int]:
     if config is None or run_groups is None or csip_aus_versions is None:
         return jsonify({"error": "Unable to communicate with test server."}), HTTPStatus.BAD_GATEWAY
     return jsonify(
-        {
-            "config": {
-                "subscription_domain": config.subscription_domain,
-                "pen": None if config.pen == 0 else config.pen,
-            },
-            "run_groups": [rg.to_dict() for rg in run_groups.items],
-            "csip_aus_versions": [v.to_dict() for v in csip_aus_versions.items],
-        }
+        ConfigResponse(
+            config=UserConfig(
+                subscription_domain=config.subscription_domain,
+                pen=None if config.pen == 0 else config.pen,
+            ),
+            run_groups=list(run_groups.items),
+            csip_aus_versions=list(csip_aus_versions.items),
+        ).to_dict()
     )
 
 

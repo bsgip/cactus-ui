@@ -15,6 +15,97 @@ export type ClientInteractionType =
   | 'Request Proxied'
   | 'TEST_PROCEDURE_FINALIZED';
 /**
+ * Per-test compliance state derived from its latest run (compliance page).
+ */
+export type ComplianceStatus = 'active' | 'failed' | 'success' | 'runless' | 'unknown';
+/**
+ * The set of all available test ID's
+ *
+ * This should be kept in sync with the current set of client test procedures loaded from the procedures directory
+ */
+export type TestProcedureId =
+  | 'ALL-01'
+  | 'ALL-02'
+  | 'ALL-03'
+  | 'ALL-03-REJ'
+  | 'ALL-04'
+  | 'ALL-05'
+  | 'ALL-06'
+  | 'ALL-07'
+  | 'ALL-08'
+  | 'ALL-09'
+  | 'ALL-10'
+  | 'ALL-11'
+  | 'ALL-12'
+  | 'ALL-13'
+  | 'ALL-14'
+  | 'ALL-15'
+  | 'ALL-16'
+  | 'ALL-17'
+  | 'ALL-18'
+  | 'ALL-19'
+  | 'ALL-20'
+  | 'ALL-21'
+  | 'ALL-22'
+  | 'ALL-23'
+  | 'ALL-24'
+  | 'ALL-25'
+  | 'ALL-25-EXT'
+  | 'ALL-26'
+  | 'ALL-27'
+  | 'ALL-28'
+  | 'ALL-29'
+  | 'ALL-30'
+  | 'DRA-01'
+  | 'DRA-02'
+  | 'DRD-01'
+  | 'DRL-01'
+  | 'DRG-01'
+  | 'GEN-01'
+  | 'GEN-02'
+  | 'GEN-03'
+  | 'GEN-04'
+  | 'GEN-05'
+  | 'GEN-06'
+  | 'GEN-07'
+  | 'GEN-08'
+  | 'GEN-09'
+  | 'GEN-10'
+  | 'GEN-11'
+  | 'GEN-12'
+  | 'GEN-13'
+  | 'LOA-01'
+  | 'LOA-02'
+  | 'LOA-03'
+  | 'LOA-04'
+  | 'LOA-05'
+  | 'LOA-06'
+  | 'LOA-07'
+  | 'LOA-08'
+  | 'LOA-09'
+  | 'LOA-10'
+  | 'LOA-11'
+  | 'LOA-12'
+  | 'LOA-13'
+  | 'MUL-01'
+  | 'MUL-02'
+  | 'MUL-03'
+  | 'P-01'
+  | 'P-02'
+  | 'ALT-ALL-29'
+  | 'ALT-LOA-13'
+  | 'STO-01'
+  | 'STO-02'
+  | 'STO-03'
+  | 'STO-04'
+  | 'STO-05'
+  | 'STO-06'
+  | 'PRC-01'
+  | 'PRC-02'
+  | 'PRC-03'
+  | 'PRC-04'
+  | 'PRC-05';
+/**
  * HTTP methods and descriptions
  *
  * Methods from the following RFCs are all observed:
@@ -107,9 +198,116 @@ export type HTTPStatus =
   | 511;
 export type RunStatusResponse = 'initialised' | 'started' | 'finalised' | 'provisioning' | 'skipped';
 
+/**
+ * GET /api/admin/stats — the schema's AdminStatsResponse reshaped for the dashboard
+ * (dict counters turned into ordered lists, `max_run_id` surfaced as `max_run_number`).
+ */
+export interface AdminStatsResponse {
+  max_run_number: number;
+  procedures: ProcedureStat[];
+  runs_per_week: WeekBar[];
+  total_failed: number;
+  total_passed: number;
+  total_run_groups: number;
+  total_runs: number;
+  total_users: number;
+  user_leaderboard: UserLeaderboardEntry[];
+  version_counts: {
+    [k: string]: number;
+  };
+}
+export interface ProcedureStat {
+  classes: string[] | null;
+  failed: number;
+  latest_failed: number;
+  latest_passed: number;
+  passed: number;
+  test_procedure_id: string;
+  total_runs: number;
+}
+/**
+ * A weekly runs-per-week bar; month/year blanked when same as the previous bar.
+ */
+export interface WeekBar {
+  count: number;
+  month: string;
+  year: string;
+}
+export interface UserLeaderboardEntry {
+  name: string;
+  run_count: number;
+}
+/**
+ * One user with their run groups, plus a search blob the admin table filters on.
+ */
+export interface AdminUserResponse {
+  matchable_description: string;
+  name: string | null;
+  run_groups: RunGroupResponse[];
+  subject_id: string;
+  user_id: number;
+}
+export interface RunGroupResponse {
+  certificate_created_at: string | null;
+  certificate_id: number | null;
+  created_at: string;
+  csip_aus_version: string;
+  is_device_cert: boolean | null;
+  is_static_uri: boolean;
+  name: string;
+  run_group_id: number;
+  static_uri: string | null;
+  total_runs: number;
+}
+/**
+ * GET /api/admin/users.
+ */
+export interface AdminUsersResponse {
+  users: AdminUserResponse[];
+}
+/**
+ * Represents the various CSIP-Aus versions available for testing
+ */
+export interface CSIPAusVersionResponse {
+  version: string;
+}
 export interface ClientInteraction {
   interaction_type: ClientInteractionType;
   timestamp: string;
+}
+export interface ComplianceClass {
+  description: string;
+  name: string;
+}
+export interface ComplianceClassEntry {
+  class_details: ComplianceClass;
+  class_name: string;
+  compliant: boolean;
+  per_run_status: PerRunStatus[];
+}
+export interface PerRunStatus {
+  description: string;
+  latest_run_id: number | null;
+  status: ComplianceStatus;
+  test_procedure_id: string;
+}
+/**
+ * GET /api/group/<id>/compliance — compliance-by-class for the run group.
+ */
+export interface ComplianceResponse {
+  compliance_by_class: ComplianceClassEntry[];
+}
+/**
+ * GET /api/config — the user's config plus their run groups and selectable versions.
+ */
+export interface ConfigResponse {
+  config: UserConfig;
+  csip_aus_versions: CSIPAusVersionResponse[];
+  run_groups: RunGroupResponse[];
+}
+export interface UserConfig {
+  pen: number | null;
+  subscription_domain: string;
 }
 export interface CriteriaEntry {
   details: string;
@@ -180,6 +378,26 @@ export interface EndDeviceMetadata {
   timezone_id: string | null;
 }
 /**
+ * One category's procedure run summaries, in definition order.
+ */
+export interface GroupedProcedures {
+  category: string;
+  slug: string;
+  summaries: TestProcedureRunSummaryResponse[];
+}
+export interface TestProcedureRunSummaryResponse {
+  category: string;
+  classes: string[] | null;
+  description: string;
+  immediate_start: boolean;
+  latest_all_criteria_met: boolean | null;
+  latest_run_id: number | null;
+  latest_run_status: number | null;
+  latest_run_timestamp: string | null;
+  run_count: number;
+  test_procedure_id: TestProcedureId;
+}
+/**
  * Summary info for a run within a playlist
  */
 export interface PlaylistRunInfo {
@@ -187,10 +405,82 @@ export interface PlaylistRunInfo {
   status: RunStatusResponse;
   test_procedure_id: string;
 }
+/**
+ * One playlist execution (active or completed), grouped from its runs.
+ */
+export interface PlaylistSession {
+  created_at: string;
+  first_run_id: number;
+  is_active: boolean;
+  playlist_execution_id: string;
+  short_id: string;
+  test_statuses: PlaylistTestStatus[];
+}
+/**
+ * One run's status within a playlist session.
+ */
+export interface PlaylistTestStatus {
+  all_criteria_met: boolean | null;
+  has_artifacts: boolean;
+  run_id: number;
+  status: RunStatusResponse;
+  test_procedure_id: string;
+}
+/**
+ * One selectable test in the playlist builder.
+ */
+export interface PlaylistTest {
+  classes: string[];
+  description: string;
+  id: string;
+}
+/**
+ * GET /api/group/<id>/playlist_tests — tests by category plus compliance classes.
+ */
+export interface PlaylistTestsResponse {
+  classes: ComplianceClass[];
+  tests_by_category: {
+    [k: string]: PlaylistTest[];
+  };
+}
 export interface PreconditionCheckEntry {
   details: string;
   success: boolean;
   type: string;
+}
+/**
+ * GET /api/group/<id>/procedure_summaries — summaries grouped by category plus the
+ * compliance-class filter maps the runs table uses.
+ */
+export interface ProcedureSummariesResponse {
+  classes: ComplianceClass[];
+  classes_by_category: {
+    [k: string]: string[];
+  };
+  classes_by_test: {
+    [k: string]: string[];
+  };
+  grouped_procedures: GroupedProcedures[];
+}
+/**
+ * GET /api/procedure/<id> — the raw YAML definition for one procedure.
+ */
+export interface ProcedureYamlResponse {
+  test_procedure_id: string;
+  yaml: string;
+}
+/**
+ * GET /api/procedures — all test procedures (pagination flattened by the BFF).
+ */
+export interface ProceduresResponse {
+  procedures: TestProcedureResponse[];
+}
+export interface TestProcedureResponse {
+  category: string;
+  classes: string[];
+  description: string;
+  target_versions: string[];
+  test_procedure_id: TestProcedureId;
 }
 export interface ProceedResponse {
   handled: boolean;
@@ -209,6 +499,12 @@ export interface RequestEntry {
   step_name: string;
   timestamp: string;
   url: string;
+}
+/**
+ * The `{run_id}` envelope returned by run/playlist mutations (init/start/finalise/delete).
+ */
+export interface RunActionResponse {
+  run_id: number;
 }
 export interface RunResponse {
   all_criteria_met: boolean | null;
@@ -273,4 +569,15 @@ export interface TimelineDataStreamEntry {
   data: DataStreamPoint[];
   label: string;
   stepped: boolean;
+}
+/**
+ * Session/global context for the SPA (GET /api/session).
+ */
+export interface SessionResponse {
+  banner_message: string | null;
+  hosted_images: string[];
+  permissions: string[];
+  support_email: string;
+  username: string | null;
+  version: string;
 }

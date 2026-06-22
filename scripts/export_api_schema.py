@@ -1,12 +1,12 @@
-"""Export a JSON Schema for the `/api` run-status response shapes.
+"""Export a JSON Schema for the `/api` response shapes.
 
-This is the Python half of the type-generation pipeline. It walks a fixed set of
-response dataclasses — the BFF-assembled shapes from `cactus_ui.api_models` plus the
-pass-through cactus-schema dataclasses the run-status page consumes — and emits a single
-JSON Schema (with shared `$defs`) to `frontend/src/api/generated/schema.json`.
+This is the Python half of the type-generation pipeline. It walks every top-level `/api`
+response dataclass — the BFF-assembled shapes from `cactus_ui.api_models` plus the
+pass-through cactus-schema dataclasses the SPA consumes — and emits a single JSON Schema
+(with shared `$defs`) to `frontend/src/api/generated/schema.json`.
 
 The frontend's `npm run generate:types` then converts that schema into TypeScript, so the
-dataclasses are the single source of truth and `types.ts` is never hand-edited.
+dataclasses are the single source of truth and the generated `types.ts` is never hand-edited.
 
 Pydantic is only used here (and in the fixture test), at codegen time — nothing at runtime
 depends on it. Run with `uv run python scripts/export_api_schema.py`; CI regenerates and
@@ -21,12 +21,37 @@ from cactus_schema.runner.schema import RequestData, RunnerStatus
 from pydantic import TypeAdapter
 from pydantic.json_schema import GenerateJsonSchema
 
-from cactus_ui.api_models import RunStatusShell
+from cactus_ui.api_models import (
+    AdminStatsResponse,
+    AdminUsersResponse,
+    ComplianceResponse,
+    ConfigResponse,
+    PlaylistSession,
+    PlaylistTestsResponse,
+    ProceduresResponse,
+    ProcedureSummariesResponse,
+    ProcedureYamlResponse,
+    RunActionResponse,
+    RunStatusShell,
+    SessionResponse,
+)
 
-# Top-level response types the run-status page depends on. Nested types (the embedded
-# RunResponse/PlaylistRunInfo, RunnerStatus's DER*/timeline entries, etc.) are pulled in
-# automatically as shared `$defs`.
+# Top-level response types the SPA depends on. Nested types (the embedded RunResponse,
+# RunGroupResponse, ComplianceClass, RunnerStatus's DER*/timeline entries, etc.) are pulled
+# in automatically as shared `$defs`. RunnerStatus/RequestData come from the runner schema
+# and are fetched directly by the run-status page rather than via a BFF envelope.
 RESPONSE_TYPES = [
+    SessionResponse,
+    ProceduresResponse,
+    ProcedureYamlResponse,
+    RunActionResponse,
+    ProcedureSummariesResponse,
+    ComplianceResponse,
+    ConfigResponse,
+    AdminUsersResponse,
+    AdminStatsResponse,
+    PlaylistTestsResponse,
+    PlaylistSession,
     RunStatusShell,
     RunnerStatus,
     RequestData,

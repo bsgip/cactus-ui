@@ -28,6 +28,7 @@ import cactus_schema.runner.schema as runner_schema  # noqa: E402
 from cactus_schema.orchestrator.compliance import fetch_compliance_classes  # noqa: E402
 from cactus_test_definitions.client import get_all_test_procedures, get_yaml_contents  # noqa: E402
 
+import cactus_ui.api_models as models  # noqa: E402
 import cactus_ui.server as server  # noqa: E402
 
 FIXTURES_DIR = Path(__file__).parent
@@ -166,10 +167,13 @@ def main() -> None:
         )
         for tp_id, tp in get_all_test_procedures().items()
     ]
-    write("procedures.json", {"procedures": [p.to_dict() for p in procedures]})
+    write("procedures.json", models.ProceduresResponse(procedures=procedures).to_dict())
 
     # procedure_yaml.json - ALL-01's raw YAML, as /api/procedure/<id> serves it
-    write("procedure_yaml.json", {"test_procedure_id": "ALL-01", "yaml": get_yaml_contents("ALL-01")})
+    write(
+        "procedure_yaml.json",
+        models.ProcedureYamlResponse(test_procedure_id="ALL-01", yaml=get_yaml_contents("ALL-01")).to_dict(),
+    )
 
     # procedure_summaries.json - real procedures + the synthetic run history above
     summaries = [
@@ -183,7 +187,7 @@ def main() -> None:
         )
         for p in procedures
     ]
-    write("procedure_summaries.json", server.build_procedure_summaries_json(summaries))
+    write("procedure_summaries.json", server.build_procedure_summaries(summaries).to_dict())
 
     # run_groups.json - two groups so the group dropdown renders
     write(
@@ -195,6 +199,8 @@ def main() -> None:
                     name="Battery Mk1",
                     csip_aus_version="v1.2",
                     created_at="2026-05-01T00:00:00+00:00",
+                    is_static_uri=False,
+                    static_uri=None,
                     is_device_cert=True,
                     certificate_id=11,
                     certificate_created_at="2026-05-01T00:05:00+00:00",
@@ -205,6 +211,8 @@ def main() -> None:
                     name="Battery Mk2",
                     csip_aus_version="v1.3-beta/storage",
                     created_at="2026-06-01T00:00:00+00:00",
+                    is_static_uri=True,
+                    static_uri="https://cactus.example/static/2/dcap",
                     is_device_cert=False,
                     certificate_id=12,
                     certificate_created_at="2026-06-01T00:05:00+00:00",
@@ -264,7 +272,7 @@ def main() -> None:
     )
 
     # compliance.json - computed from the same summaries, as /api/group/<id>/compliance serves it
-    write("compliance.json", server.build_compliance_json(summaries))
+    write("compliance.json", server.build_compliance(summaries).to_dict())
 
     # playlist_tests.json - tests-by-category + classes, as /api/group/<id>/playlist_tests serves it
     all_classes: set[str] = set()
@@ -273,51 +281,49 @@ def main() -> None:
             all_classes.update(p.classes)
     write(
         "playlist_tests.json",
-        {
-            "tests_by_category": server.build_playlist_tests_by_category(summaries),
-            "classes": [{"name": c.name, "description": c.description} for c in fetch_compliance_classes(all_classes)],
-        },
+        models.PlaylistTestsResponse(
+            tests_by_category=server.build_playlist_tests_by_category(summaries),
+            classes=list(fetch_compliance_classes(all_classes)),
+        ).to_dict(),
     )
 
     # playlist_sessions.json - one active + one past session, as /api/group/<id>/playlist_sessions serves it
-    def test_status(run_id: int, tp_id: str, st: str, met: bool | None, artifacts: bool) -> dict:
-        return {
-            "test_procedure_id": tp_id,
-            "run_id": run_id,
-            "status": st,
-            "all_criteria_met": met,
-            "has_artifacts": artifacts,
-        }
+    def test_status(run_id: int, tp_id: str, st: str, met: bool | None, artifacts: bool) -> models.PlaylistTestStatus:
+        return models.PlaylistTestStatus(
+            test_procedure_id=tp_id,
+            run_id=run_id,
+            status=schema.RunStatusResponse(st),
+            all_criteria_met=met,
+            has_artifacts=artifacts,
+        )
 
-    write(
-        "playlist_sessions.json",
-        [
-            {
-                "playlist_execution_id": "active-exec-0001-aaaa",
-                "short_id": "active-e",
-                "first_run_id": 201,
-                "created_at": "2026-06-12T02:00:00+00:00",
-                "test_statuses": [
-                    test_status(201, "ALL-01", "finalised", True, True),
-                    test_status(202, "ALL-02", "started", None, False),
-                    test_status(203, "ALL-03", "initialised", None, False),
-                ],
-                "is_active": True,
-            },
-            {
-                "playlist_execution_id": "past-exec-0002-bbbb",
-                "short_id": "past-exe",
-                "first_run_id": 150,
-                "created_at": "2026-06-10T08:00:00+00:00",
-                "test_statuses": [
-                    test_status(150, "ALL-01", "finalised", True, True),
-                    test_status(151, "ALL-02", "finalised", False, True),
-                    test_status(152, "ALL-03", "skipped", None, False),
-                ],
-                "is_active": False,
-            },
-        ],
-    )
+    sessions = [
+        models.PlaylistSession(
+            playlist_execution_id="active-exec-0001-aaaa",
+            short_id="active-e",
+            first_run_id=201,
+            created_at="2026-06-12T02:00:00+00:00",
+            test_statuses=[
+                test_status(201, "ALL-01", "finalised", True, True),
+                test_status(202, "ALL-02", "started", None, False),
+                test_status(203, "ALL-03", "initialised", None, False),
+            ],
+            is_active=True,
+        ),
+        models.PlaylistSession(
+            playlist_execution_id="past-exec-0002-bbbb",
+            short_id="past-exe",
+            first_run_id=150,
+            created_at="2026-06-10T08:00:00+00:00",
+            test_statuses=[
+                test_status(150, "ALL-01", "finalised", True, True),
+                test_status(151, "ALL-02", "finalised", False, True),
+                test_status(152, "ALL-03", "skipped", None, False),
+            ],
+            is_active=False,
+        ),
+    ]
+    write("playlist_sessions.json", [s.to_dict() for s in sessions])
 
     # --- Run status page (run_status.html port) fixtures ---------------------------------
 
@@ -497,82 +503,119 @@ def main() -> None:
     check_runner_status("run_status_runner_initialised.json", runner_initialised)
     write("run_status_runner_initialised.json", runner_initialised)
 
-    # run_status_shell*.json - the page shell (_build_run_status_shell output). One live
-    # standalone run, one finalised, one live run inside a playlist.
+    # run_status_shell*.json - the page shell (_build_run_status_shell output). `run` and
+    # `playlist_runs` are canonical RunResponses; the frontend derives playlist order /
+    # active-run / next-run itself (see runStatusModel.ts). One live standalone run, one
+    # finalised, one live run inside a playlist.
+    def shell_run(
+        run_id: int,
+        tp_id: str,
+        st: schema.RunStatusResponse,
+        all_criteria_met: bool | None,
+        has_artifacts: bool,
+        created_at: str,
+        finalised_at: str | None = None,
+        playlist_execution_id: str | None = None,
+        playlist_order: int | None = None,
+        playlist_runs: list[schema.PlaylistRunInfo] | None = None,
+    ) -> schema.RunResponse:
+        return schema.RunResponse(
+            run_id=run_id,
+            test_procedure_id=tp_id,
+            test_url=f"https://cactus.example/run/{run_id}",
+            status=st,
+            all_criteria_met=all_criteria_met,
+            created_at=created_at,
+            finalised_at=finalised_at,
+            is_device_cert=False,
+            has_artifacts=has_artifacts,
+            playlist_execution_id=playlist_execution_id,
+            playlist_order=playlist_order,
+            playlist_runs=playlist_runs,
+            classes=None,
+        )
+
+    st = schema.RunStatusResponse
     write(
         "run_status_shell.json",
-        {
-            "run_id": 123,
-            "run_is_live": True,
-            "run_status": "started",
-            "run_test_uri": "https://cactus.example/run/123",
-            "run_procedure_id": "ALL-08",
-            "run_has_artifacts": False,
-            "is_immediate_start": False,
-            "playlist_info": None,
-            "next_playlist_run_id": None,
-            "current_active_run": None,
-        },
+        models.RunStatusShell(
+            run=shell_run(123, "ALL-08", st.started, None, False, "2026-06-17T05:00:00+00:00"),
+            run_is_live=True,
+            is_immediate_start=False,
+            playlist_name=None,
+            playlist_runs=None,
+        ).to_dict(),
     )
     # ALL-08 is not an immediate_start procedure, so the finalised view shows the Active
     # Power Chart. (Use an immediate_start id like ALL-01 to exercise the hidden case.)
     write(
         "run_status_shell_finalised.json",
-        {
-            "run_id": 120,
-            "run_is_live": False,
-            "run_status": "finalised",
-            "run_test_uri": "https://cactus.example/run/120",
-            "run_procedure_id": "ALL-08",
-            "run_has_artifacts": True,
-            "is_immediate_start": False,
-            "playlist_info": None,
-            "next_playlist_run_id": None,
-            "current_active_run": None,
-        },
+        models.RunStatusShell(
+            run=shell_run(
+                120, "ALL-08", st.finalised, True, True, "2026-06-17T04:00:00+00:00", "2026-06-17T04:30:00+00:00"
+            ),
+            run_is_live=False,
+            is_immediate_start=False,
+            playlist_name=None,
+            playlist_runs=None,
+        ).to_dict(),
     )
+    playlist_summary = [
+        schema.PlaylistRunInfo(run_id=201, test_procedure_id="ALL-01", status=st.finalised),
+        schema.PlaylistRunInfo(run_id=202, test_procedure_id="ALL-02", status=st.started),
+        schema.PlaylistRunInfo(run_id=203, test_procedure_id="ALL-03", status=st.initialised),
+    ]
     write(
         "run_status_shell_playlist.json",
-        {
-            "run_id": 202,
-            "run_is_live": True,
-            "run_status": "started",
-            "run_test_uri": "https://cactus.example/run/202",
-            "run_procedure_id": "ALL-02",
-            "run_has_artifacts": False,
-            "is_immediate_start": True,
-            "playlist_info": {
-                "name": "Smoke Test Playlist",
-                "started_at": "2026-06-17T04:58:00+00:00",
-                "current_order": 1,
-                "total": 3,
-                "runs": [
-                    {
-                        "test_procedure_id": "ALL-01",
-                        "run_id": 201,
-                        "status": "finalised",
-                        "all_criteria_met": True,
-                        "has_artifacts": True,
-                    },
-                    {
-                        "test_procedure_id": "ALL-02",
-                        "run_id": 202,
-                        "status": "started",
-                        "all_criteria_met": None,
-                        "has_artifacts": False,
-                    },
-                    {
-                        "test_procedure_id": "ALL-03",
-                        "run_id": 203,
-                        "status": "initialised",
-                        "all_criteria_met": None,
-                        "has_artifacts": False,
-                    },
-                ],
-            },
-            "next_playlist_run_id": 203,
-            "current_active_run": {"run_id": 202, "test_procedure_id": "ALL-02", "order": 1},
-        },
+        models.RunStatusShell(
+            run=shell_run(
+                202,
+                "ALL-02",
+                st.started,
+                None,
+                False,
+                "2026-06-17T04:59:00+00:00",
+                playlist_execution_id="smoke-exec-1",
+                playlist_order=1,
+                playlist_runs=playlist_summary,
+            ),
+            run_is_live=True,
+            is_immediate_start=True,
+            playlist_name="Smoke Test Playlist",
+            playlist_runs=[
+                shell_run(
+                    201,
+                    "ALL-01",
+                    st.finalised,
+                    True,
+                    True,
+                    "2026-06-17T04:58:00+00:00",
+                    "2026-06-17T04:58:45+00:00",
+                    playlist_execution_id="smoke-exec-1",
+                    playlist_order=0,
+                ),
+                shell_run(
+                    202,
+                    "ALL-02",
+                    st.started,
+                    None,
+                    False,
+                    "2026-06-17T04:59:00+00:00",
+                    playlist_execution_id="smoke-exec-1",
+                    playlist_order=1,
+                ),
+                shell_run(
+                    203,
+                    "ALL-03",
+                    st.initialised,
+                    None,
+                    False,
+                    "2026-06-17T04:59:30+00:00",
+                    playlist_execution_id="smoke-exec-1",
+                    playlist_order=2,
+                ),
+            ],
+        ).to_dict(),
     )
 
     # run_request_details.json - raw request/response for the request-details modal

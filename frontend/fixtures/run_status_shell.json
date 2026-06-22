@@ -5,7 +5,7 @@
     "test_url": "https://cactus.example/run/123",
     "status": "started",
     "all_criteria_met": null,
-    "created_at": "2026-06-17T05:00:00Z",
+    "created_at": "2026-06-17T05:00:00+00:00",
     "finalised_at": null,
     "is_device_cert": false,
     "has_artifacts": false,

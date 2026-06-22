@@ -14,19 +14,13 @@ function UserRow({ user }: { user: AdminUserResponse }) {
       <Table.Td>{user.user_id}</Table.Td>
       <Table.Td>{user.name ? <strong>{user.name}</strong> : '-'}</Table.Td>
       <Table.Td>
-        {user.run_groups.length === 0 ? (
-          'No run groups found.'
-        ) : (
-          user.run_groups.map((rg) => (
-            <Anchor
-              key={rg.run_group_id}
-              href={`/admin/group/${rg.run_group_id}/runs`}
-              mr="sm"
-            >
-              {rg.name} ({rg.run_group_id})
-            </Anchor>
-          ))
-        )}
+        {user.run_groups.length === 0
+          ? 'No run groups found.'
+          : user.run_groups.map((rg) => (
+              <Anchor key={rg.run_group_id} href={`/admin/group/${rg.run_group_id}/runs`} mr="sm">
+                {rg.name} ({rg.run_group_id})
+              </Anchor>
+            ))}
       </Table.Td>
     </Table.Tr>
   );

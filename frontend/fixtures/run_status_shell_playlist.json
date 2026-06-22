@@ -5,16 +5,28 @@
     "test_url": "https://cactus.example/run/202",
     "status": "started",
     "all_criteria_met": null,
-    "created_at": "2026-06-17T04:59:00Z",
+    "created_at": "2026-06-17T04:59:00+00:00",
     "finalised_at": null,
     "is_device_cert": false,
     "has_artifacts": false,
     "playlist_execution_id": "smoke-exec-1",
     "playlist_order": 1,
     "playlist_runs": [
-      { "run_id": 201, "test_procedure_id": "ALL-01", "status": "finalised" },
-      { "run_id": 202, "test_procedure_id": "ALL-02", "status": "started" },
-      { "run_id": 203, "test_procedure_id": "ALL-03", "status": "initialised" }
+      {
+        "run_id": 201,
+        "test_procedure_id": "ALL-01",
+        "status": "finalised"
+      },
+      {
+        "run_id": 202,
+        "test_procedure_id": "ALL-02",
+        "status": "started"
+      },
+      {
+        "run_id": 203,
+        "test_procedure_id": "ALL-03",
+        "status": "initialised"
+      }
     ],
     "classes": null
   },
@@ -28,8 +40,8 @@
       "test_url": "https://cactus.example/run/201",
       "status": "finalised",
       "all_criteria_met": true,
-      "created_at": "2026-06-17T04:58:00Z",
-      "finalised_at": "2026-06-17T04:58:45Z",
+      "created_at": "2026-06-17T04:58:00+00:00",
+      "finalised_at": "2026-06-17T04:58:45+00:00",
       "is_device_cert": false,
       "has_artifacts": true,
       "playlist_execution_id": "smoke-exec-1",
@@ -43,7 +55,7 @@
       "test_url": "https://cactus.example/run/202",
       "status": "started",
       "all_criteria_met": null,
-      "created_at": "2026-06-17T04:59:00Z",
+      "created_at": "2026-06-17T04:59:00+00:00",
       "finalised_at": null,
       "is_device_cert": false,
       "has_artifacts": false,
@@ -58,7 +70,7 @@
       "test_url": "https://cactus.example/run/203",
       "status": "initialised",
       "all_criteria_met": null,
-      "created_at": "2026-06-17T04:59:30Z",
+      "created_at": "2026-06-17T04:59:30+00:00",
       "finalised_at": null,
       "is_device_cert": false,
       "has_artifacts": false,
