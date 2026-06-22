@@ -680,8 +680,7 @@ def api_create_run_group(access_token: str) -> Response | tuple[Response, int]:
     version = body.get("csip_aus_version")
     if not version:
         return jsonify({"error": "csip_aus_version is required."}), HTTPStatus.BAD_REQUEST
-    is_static_uri = bool(body.get("is_static_uri", False))
-    result = orchestrator.create_run_group(access_token, version, is_static_uri)
+    result = orchestrator.create_run_group(access_token, version)
     if result is None:
         return jsonify({"error": "Failed to create run group"}), HTTPStatus.BAD_GATEWAY
     return jsonify(result.to_dict()), HTTPStatus.CREATED
@@ -692,10 +691,9 @@ def api_create_run_group(access_token: str) -> Response | tuple[Response, int]:
 def api_update_run_group(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
     body = request.get_json(silent=True) or {}
     name = body.get("name")
-    is_static_uri = body.get("is_static_uri")
-    if not name and is_static_uri is None:
-        return jsonify({"error": "name or is_static_uri is required."}), HTTPStatus.BAD_REQUEST
-    result = orchestrator.update_run_group(access_token, run_group_id, name=name, is_static_uri=is_static_uri)
+    if not name:
+        return jsonify({"error": "name is required."}), HTTPStatus.BAD_REQUEST
+    result = orchestrator.update_run_group(access_token, run_group_id, name=name)
     if result is None:
         return jsonify({"error": "Failed to update run group"}), HTTPStatus.BAD_GATEWAY
     return jsonify(result.to_dict())

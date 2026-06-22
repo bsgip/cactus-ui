@@ -517,9 +517,7 @@ def fetch_request_details(access_token: str, request_id: int, run_id: str) -> st
     return response.text
 
 
-def create_run_group(
-    access_token: str, csip_aus_version: str, is_static_uri: bool
-) -> orchestrator.RunGroupResponse | None:
+def create_run_group(access_token: str, csip_aus_version: str) -> orchestrator.RunGroupResponse | None:
     """Creates a new run group with the specified csip aus version - returns the created"""
     uri = generate_uri(orchestrator.uri.RunGroupList)
     response = safe_request(
@@ -527,7 +525,7 @@ def create_run_group(
         uri,
         generate_headers(access_token),
         CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
-        json=orchestrator.RunGroupRequest(csip_aus_version=csip_aus_version, is_static_uri=is_static_uri).to_dict(),
+        json=orchestrator.RunGroupRequest(csip_aus_version=csip_aus_version, is_static_uri=True).to_dict(),
     )
     if response is None or not is_success_response(response):
         return None
@@ -543,7 +541,6 @@ def update_run_group(
     access_token: str,
     run_group_id: int,
     name: str | None = None,
-    is_static_uri: bool | None = None,
 ) -> orchestrator.RunGroupResponse | None:
     """updates an existing run group with the specified id - returns the updated version of the RunGroup"""
     uri = generate_uri(orchestrator.uri.RunGroup.format(run_group_id=run_group_id))
@@ -552,7 +549,7 @@ def update_run_group(
         uri,
         generate_headers(access_token),
         CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
-        json=orchestrator.RunGroupUpdateRequest(name=name, is_static_uri=is_static_uri).to_dict(),
+        json=orchestrator.RunGroupUpdateRequest(name=name, is_static_uri=None).to_dict(),
     )
     if response is None or not is_success_response(response):
         return None

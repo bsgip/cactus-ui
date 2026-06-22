@@ -60,7 +60,6 @@ export interface RunGroupResponse {
   name: string;
   csip_aus_version: string;
   created_at: string;
-  is_static_uri: boolean;
   static_uri: string | null;
   is_device_cert: boolean | null;
   certificate_id: number | null;

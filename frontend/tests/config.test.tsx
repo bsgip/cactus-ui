@@ -50,7 +50,7 @@ describe('config page', () => {
     server.use(
       http.get('/api/config', () =>
         HttpResponse.json({
-          config: { subscription_domain: '', is_static_uri: false, pen: null, static_uri: null },
+          config: { subscription_domain: '', pen: null },
           run_groups: [
             {
               run_group_id: 3,
@@ -77,7 +77,7 @@ describe('config page', () => {
     server.use(
       http.get('/api/config', () =>
         HttpResponse.json({
-          config: { subscription_domain: '', is_static_uri: false, pen: null, static_uri: null },
+          config: { subscription_domain: '', pen: null },
           run_groups: [],
           csip_aus_versions: [{ version: 'v1.2' }],
         })
@@ -106,7 +106,7 @@ describe('config page', () => {
     server.use(
       http.get('/api/config', () =>
         HttpResponse.json({
-          config: { subscription_domain: '', is_static_uri: false, pen: null, static_uri: null },
+          config: { subscription_domain: '', pen: null },
           run_groups: [
             {
               run_group_id: 1,
@@ -143,35 +143,14 @@ describe('config page', () => {
     expect(await screen.findByDisplayValue('my.example.com')).toBeInTheDocument();
   });
 
-  it('shows per run group static/dynamic URI badges from fixture', async () => {
+  it('shows each run group DeviceCapability URI from fixture', async () => {
     renderApp('/config');
 
-    // Battery Mk1 is static (with a static_uri), Battery Mk2 is dynamic
-    expect(await screen.findByText('Static URI')).toBeInTheDocument();
-    expect(screen.getByText('Dynamic URI')).toBeInTheDocument();
-    expect(screen.getByText('https://example.com/dcap/static/1')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Swap to dynamic/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Swap to static/ })).toBeInTheDocument();
-  });
-
-  it('calls the run group static URI API when swapping', async () => {
-    const user = userEvent.setup();
-    let sent: { is_static_uri?: boolean } | undefined;
-
-    server.use(
-      http.patch('/api/run_groups/:id', async ({ request }) => {
-        sent = (await request.json()) as { is_static_uri: boolean };
-        return HttpResponse.json({});
-      })
-    );
-
-    renderApp('/config');
-
-    // Battery Mk2 is dynamic in the fixture, so it offers "Swap to static"
-    const swapBtn = await screen.findByRole('button', { name: /Swap to static/ });
-    await user.click(swapBtn);
-
-    await waitFor(() => expect(sent?.is_static_uri).toBe(true));
+    // Battery Mk1 has a static_uri; Battery Mk2 has none yet ("URI pending")
+    expect(await screen.findByText('https://example.com/dcap/static/1')).toBeInTheDocument();
+    expect(screen.getByText('URI pending')).toBeInTheDocument();
+    expect(screen.queryByText('Dynamic URI')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Swap to/ })).not.toBeInTheDocument();
   });
 
   it('shows error alert when config fetch fails', async () => {

@@ -1,6 +1,5 @@
 import {
   Alert,
-  Badge,
   Button,
   Card,
   Code,
@@ -20,7 +19,6 @@ import {
 import { useDisclosure, useDocumentTitle } from '@mantine/hooks';
 import {
   IconAlertTriangle,
-  IconArrowsLeftRight,
   IconDownload,
   IconPencil,
   IconPlus,
@@ -37,7 +35,6 @@ import {
   updateDomain,
   updatePen,
   updateRunGroupName,
-  updateRunGroupStaticUri,
 } from '../../api/config';
 import type { RunGroupResponse } from '../../api/types';
 import { Banner } from '../../components/Banner';
@@ -251,18 +248,8 @@ export function ConfigPage() {
     onError,
   });
 
-  const staticUriMutation = useMutation({
-    mutationFn: ({ id, is_static_uri }: { id: number; is_static_uri: boolean }) =>
-      updateRunGroupStaticUri(id, is_static_uri),
-    onSuccess: () => {
-      setActionError(null);
-      invalidateConfig();
-    },
-    onError,
-  });
-
   const createGroupMutation = useMutation({
-    mutationFn: (version: string) => createRunGroup(version, false),
+    mutationFn: (version: string) => createRunGroup(version),
     onSuccess: () => {
       setActionError(null);
       invalidateConfig();
@@ -395,37 +382,15 @@ export function ConfigPage() {
                         <Code>{rg.csip_aus_version}</Code>
                       </Table.Td>
                       <Table.Td>
-                        <Stack gap={4} align="flex-start">
-                          {rg.is_static_uri ? (
-                            <>
-                              <Badge>Static URI</Badge>
-                              {rg.static_uri && (
-                                <Text component="u" size="xs">
-                                  {rg.static_uri}
-                                </Text>
-                              )}
-                            </>
-                          ) : (
-                            <Badge color="gray">Dynamic URI</Badge>
-                          )}
-                          <Button
-                            size="compact-xs"
-                            variant="subtle"
-                            leftSection={<IconArrowsLeftRight size={12} />}
-                            loading={
-                              staticUriMutation.isPending &&
-                              staticUriMutation.variables?.id === rg.run_group_id
-                            }
-                            onClick={() =>
-                              staticUriMutation.mutate({
-                                id: rg.run_group_id,
-                                is_static_uri: !rg.is_static_uri,
-                              })
-                            }
-                          >
-                            {rg.is_static_uri ? 'Swap to dynamic' : 'Swap to static'}
-                          </Button>
-                        </Stack>
+                        {rg.static_uri ? (
+                          <Text component="u" size="xs">
+                            {rg.static_uri}
+                          </Text>
+                        ) : (
+                          <Text size="xs" c="dimmed">
+                            URI pending
+                          </Text>
+                        )}
                       </Table.Td>
                       <Table.Td>{rg.total_runs} total run(s)</Table.Td>
                       <Table.Td>
@@ -541,22 +506,16 @@ export function ConfigPage() {
                 DeviceCapability URI
               </Title>
               <Text mb="xs">
-                The DeviceCapability URI can be set to be either &quot;static&quot; or
-                &quot;dynamic&quot; on a per run group basis.
-              </Text>
-              <Text mb="xs">
-                A &quot;static&quot; value results in sharing the same DeviceCapability URI across
-                all test runs in that run group. <strong>Note:</strong> when &quot;static&quot; is
-                set only <em>one</em> test run can be active at any given time. A test must be
-                started before these URIs will be active!
+                Each run group has a single DeviceCapability URI that is shared across all of its
+                test runs, shown alongside the run group above.
               </Text>
               <Text size="sm" c="dimmed">
-                Use the <strong>Swap to static / dynamic</strong> control on each run group above to
-                change this setting, then start a test run from the{' '}
+                <strong>Note:</strong> only <em>one</em> test run can be active at any given time,
+                and a test must be started from the{' '}
                 <Text component={Link} to="/runs" c="blue" inherit>
                   Runs
                 </Text>{' '}
-                page to activate the URI.
+                page before the URI becomes active.
               </Text>
             </Card>
           </SimpleGrid>

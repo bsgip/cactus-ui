@@ -165,31 +165,14 @@ def test_api_create_run_group_success(client, monkeypatch):
     monkeypatch.setattr(
         server.orchestrator,
         "create_run_group",
-        lambda at, ver, isu: calls.update({"ver": ver, "isu": isu}) or rg,
-    )
-
-    response = client.post("/api/run_groups", json={"csip_aus_version": "v1.2", "is_static_uri": True})
-
-    assert response.status_code == HTTPStatus.CREATED
-    assert response.get_json()["run_group_id"] == rg.run_group_id
-    assert calls["ver"] == "v1.2"
-    assert calls["isu"] is True
-
-
-def test_api_create_run_group_defaults_dynamic(client, monkeypatch):
-    login(client)
-    rg = generate_class_instance(schema.RunGroupResponse, seed=0)
-    calls = {}
-    monkeypatch.setattr(
-        server.orchestrator,
-        "create_run_group",
-        lambda at, ver, isu: calls.update({"isu": isu}) or rg,
+        lambda at, ver: calls.update({"ver": ver}) or rg,
     )
 
     response = client.post("/api/run_groups", json={"csip_aus_version": "v1.2"})
 
     assert response.status_code == HTTPStatus.CREATED
-    assert calls["isu"] is False
+    assert response.get_json()["run_group_id"] == rg.run_group_id
+    assert calls["ver"] == "v1.2"
 
 
 def test_api_create_run_group_missing_version(client):
@@ -202,7 +185,7 @@ def test_api_create_run_group_missing_version(client):
 
 def test_api_create_run_group_orchestrator_failure(client, monkeypatch):
     login(client)
-    monkeypatch.setattr(server.orchestrator, "create_run_group", lambda at, ver, isu: None)
+    monkeypatch.setattr(server.orchestrator, "create_run_group", lambda at, ver: None)
 
     response = client.post("/api/run_groups", json={"csip_aus_version": "v1.2"})
 
@@ -225,21 +208,6 @@ def test_api_update_run_group_success(client, monkeypatch):
     assert response.status_code == HTTPStatus.OK
     assert calls["rid"] == 5
     assert calls["name"] == "New Name"
-
-
-def test_api_update_run_group_static_uri(client, monkeypatch):
-    login(client)
-    rg = generate_class_instance(schema.RunGroupResponse, seed=1)
-    calls = {}
-    monkeypatch.setattr(
-        server.orchestrator, "update_run_group", lambda at, rid, **kw: calls.update({"rid": rid, **kw}) or rg
-    )
-
-    response = client.patch("/api/run_groups/5", json={"is_static_uri": True})
-
-    assert response.status_code == HTTPStatus.OK
-    assert calls["rid"] == 5
-    assert calls["is_static_uri"] is True
 
 
 def test_api_update_run_group_missing_fields(client):
