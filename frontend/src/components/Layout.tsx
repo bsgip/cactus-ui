@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { UnauthenticatedError } from '../api/client';
 import type { UnauthenticatedResponse } from '../api/types';
 import { useSession } from '../hooks/useSession';
-import { LoginPage } from '../pages/Login/LoginPage';
+import { LoginPage } from '../pages/LoginPage';
 import { ErrorAlert } from './ErrorAlert';
 import { Footer } from './Footer';
 import { NavBar } from './NavBar';

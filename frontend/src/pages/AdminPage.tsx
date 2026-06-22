@@ -2,11 +2,11 @@ import { Anchor, Button, Group, Table, Text, TextInput, Title } from '@mantine/c
 import { useDocumentTitle } from '@mantine/hooks';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { fetchAdminUsers } from '../../api/admin';
-import { ApiError } from '../../api/client';
-import type { AdminUserResponse } from '../../api/types';
-import { ErrorAlert } from '../../components/ErrorAlert';
-import { PageSpinner } from '../../components/PageSpinner';
+import { fetchAdminUsers } from '../api/admin';
+import { ApiError } from '../api/client';
+import type { AdminUserResponse } from '../api/types';
+import { ErrorAlert } from '../components/ErrorAlert';
+import { PageSpinner } from '../components/PageSpinner';
 
 function UserRow({ user }: { user: AdminUserResponse }) {
   return (

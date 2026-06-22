@@ -6,9 +6,7 @@ handful of fields the orchestrator doesn't provide (derived/joined data). Defini
 (rather than re-typing pass-through fields) keeps it a thin envelope, not a translation layer.
 
 `server.py` constructs and `.to_dict()`s these; `scripts/export_api_schema.py` reads them (with
-the embedded cactus-schema types) to generate the frontend's TypeScript. Extending
-`FastAPICompatibleWizard` means nested cactus-schema types serialise exactly as the orchestrator
-serialises them (snake_case keys, ISO datetimes).
+the embedded cactus-schema types) to generate the frontend's TypeScript.
 """
 
 from dataclasses import dataclass

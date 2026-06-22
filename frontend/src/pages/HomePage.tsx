@@ -1,6 +1,6 @@
 import { Alert, Anchor, Box, Card, Divider, Grid, List, Text, Title } from '@mantine/core';
-import { Banner } from '../../components/Banner';
-import { useSession } from '../../hooks/useSession';
+import { Banner } from '../components/Banner';
+import { useSession } from '../hooks/useSession';
 
 // Port of home.html.
 export function HomePage() {

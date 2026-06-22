@@ -2,11 +2,11 @@ import { Anchor, Table, Title } from '@mantine/core';
 import { useDocumentTitle } from '@mantine/hooks';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { fetchProcedures } from '../../api/procedures';
-import { Banner } from '../../components/Banner';
-import { ErrorAlert } from '../../components/ErrorAlert';
-import { PageSpinner } from '../../components/PageSpinner';
-import { useSession } from '../../hooks/useSession';
+import { fetchProcedures } from '../api/procedures';
+import { Banner } from '../components/Banner';
+import { ErrorAlert } from '../components/ErrorAlert';
+import { PageSpinner } from '../components/PageSpinner';
+import { useSession } from '../hooks/useSession';
 
 // Port of procedures.html.
 export function ProceduresPage() {

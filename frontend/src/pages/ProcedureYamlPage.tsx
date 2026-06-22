@@ -4,11 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import hljs from 'highlight.js/lib/core';
 import yamlLanguage from 'highlight.js/lib/languages/yaml';
 import { useParams } from 'react-router-dom';
-import { fetchProcedureYaml } from '../../api/procedures';
-import { Banner } from '../../components/Banner';
-import { ErrorAlert } from '../../components/ErrorAlert';
-import { PageSpinner } from '../../components/PageSpinner';
-import { useSession } from '../../hooks/useSession';
+import { fetchProcedureYaml } from '../api/procedures';
+import { Banner } from '../components/Banner';
+import { ErrorAlert } from '../components/ErrorAlert';
+import { PageSpinner } from '../components/PageSpinner';
+import { useSession } from '../hooks/useSession';
 import 'highlight.js/styles/default.css';
 
 hljs.registerLanguage('yaml', yamlLanguage);

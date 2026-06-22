@@ -35,11 +35,11 @@ import {
   updateDomain,
   updatePen,
   updateRunGroupName,
-} from '../../api/config';
-import type { RunGroupResponse } from '../../api/types';
-import { Banner } from '../../components/Banner';
-import { ErrorAlert } from '../../components/ErrorAlert';
-import { useSession } from '../../hooks/useSession';
+} from '../api/config';
+import type { RunGroupResponse } from '../api/types';
+import { Banner } from '../components/Banner';
+import { ErrorAlert } from '../components/ErrorAlert';
+import { useSession } from '../hooks/useSession';
 
 // After a cert form submission (which downloads a file via iframe/form), wait 1.5 s
 // then invalidate so the run group list reflects any cert changes.

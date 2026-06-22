@@ -16,11 +16,11 @@ import { IconArrowLeft } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchAdminStats } from '../../api/admin';
-import { ApiError } from '../../api/client';
-import type { ProcedureStat, UserLeaderboardEntry, WeekBar } from '../../api/types';
-import { ErrorAlert } from '../../components/ErrorAlert';
-import { PageSpinner } from '../../components/PageSpinner';
+import { fetchAdminStats } from '../api/admin';
+import { ApiError } from '../api/client';
+import type { ProcedureStat, UserLeaderboardEntry, WeekBar } from '../api/types';
+import { ErrorAlert } from '../components/ErrorAlert';
+import { PageSpinner } from '../components/PageSpinner';
 
 function SummaryCard({
   value,

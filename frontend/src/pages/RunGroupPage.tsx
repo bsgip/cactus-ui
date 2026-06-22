@@ -14,13 +14,13 @@ import { useDocumentTitle } from '@mantine/hooks';
 import { IconChevronDown } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { fetchCompliance } from '../../api/runGroup';
-import { fetchRunGroups } from '../../api/runs';
-import type { ComplianceStatus } from '../../api/types';
-import { Banner } from '../../components/Banner';
-import { ErrorAlert } from '../../components/ErrorAlert';
-import { PageSpinner } from '../../components/PageSpinner';
-import { useSession } from '../../hooks/useSession';
+import { fetchCompliance } from '../api/runGroup';
+import { fetchRunGroups } from '../api/runs';
+import type { ComplianceStatus } from '../api/types';
+import { Banner } from '../components/Banner';
+import { ErrorAlert } from '../components/ErrorAlert';
+import { PageSpinner } from '../components/PageSpinner';
+import { useSession } from '../hooks/useSession';
 
 const STATUS_COLOR: Record<ComplianceStatus, string> = {
   success: 'green',
