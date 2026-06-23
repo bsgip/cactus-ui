@@ -13,26 +13,15 @@ import { theme } from './theme';
 
 const queryClient = new QueryClient();
 
-async function enableMocking() {
-  // `npm run dev:mock` serves the SPA against checked-in fixtures with no backend at all
-  if (import.meta.env.MODE !== 'mock') {
-    return;
-  }
-  const { worker } = await import('./mocks/browser');
-  await worker.start({ onUnhandledRequest: 'bypass' });
-}
-
-enableMocking().then(() => {
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <MantineProvider theme={theme}>
-        <ModalsProvider>
-          <Notifications />
-          <QueryClientProvider client={queryClient}>
-            <RouterProvider router={router} />
-          </QueryClientProvider>
-        </ModalsProvider>
-      </MantineProvider>
-    </StrictMode>
-  );
-});
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <MantineProvider theme={theme}>
+      <ModalsProvider>
+        <Notifications />
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </ModalsProvider>
+    </MantineProvider>
+  </StrictMode>
+);

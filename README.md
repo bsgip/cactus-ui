@@ -18,9 +18,6 @@ npm install            # first time, and after package.json changes
 ### Look at the UI locally
 
 ```bash
-# No backend needed — MSW serves checked-in fixtures
-npm run dev:mock       # http://localhost:5173
-
 # Against the real Flask BFF — needs the cactus-ui-dev service + orchestrator tunnel up.
 npm run dev            # http://localhost:5173, proxies /api etc. to Flask :3000
 ```

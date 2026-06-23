@@ -1,8 +1,7 @@
 # Fixtures
 
-Recorded JSON responses from the Flask BFF `/api` endpoints, served by MSW in Vitest,
-Playwright, and `npm run dev:mock`. One file per endpoint (plus variants, e.g.
-`session_admin.json`).
+Recorded JSON responses from the Flask BFF `/api` endpoints, served by MSW in Vitest.
+One file per endpoint (plus variants, e.g. `session_admin.json`).
 
 When an endpoint's response shape changes, update its fixture in the same PR.
 
