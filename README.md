@@ -30,7 +30,6 @@ npm run dev            # http://localhost:5173, proxies /api etc. to Flask :3000
 ```bash
 npm run test           # Vitest component tests (one-shot)
 npm run test:watch     # Vitest in watch mode while developing
-npm run test:e2e       # Playwright end-to-end (real browser)
 ```
 
 ### Checks before pushing

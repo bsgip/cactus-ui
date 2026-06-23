@@ -9,8 +9,6 @@ export default tseslint.config(
     ignores: [
       'dist',
       'public/mockServiceWorker.js',
-      'playwright-report',
-      'test-results',
       'src/api/generated',
     ],
   },
