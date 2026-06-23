@@ -18,20 +18,25 @@ from cactus_schema.runner.schema import RequestData, RunnerStatus
 from pydantic import TypeAdapter
 
 from cactus_ui.api_models import (
+    AdminStatsResponse,
+    AdminUsersResponse,
     ComplianceResponse,
+    ConfigResponse,
     PlaylistSession,
     PlaylistTestsResponse,
     ProceduresResponse,
     ProcedureSummariesResponse,
     ProcedureYamlResponse,
     RunStatusShell,
+    SessionResponse,
 )
 
 FIXTURES_DIR = Path(__file__).resolve().parents[3] / "frontend" / "fixtures"
 
-# (fixture filename, type the /api endpoint serialises). Only fixtures produced by
-# generate.py from these dataclasses are listed — the hand-captured session*/config/admin
-# fixtures aren't tied to a single serialiser.
+# (fixture filename, type the /api endpoint serialises). Covers every fixture tied to a
+# dataclass — both the generate.py-produced ones and the hand-captured session*/admin_stats
+# fixtures. Only session_unauthenticated.json is excluded: it's the 401 error envelope, not a
+# serialised dataclass (see UnauthenticatedResponse in frontend/src/api/types.ts).
 FIXTURE_MODELS = [
     ("procedures.json", ProceduresResponse),
     ("procedure_yaml.json", ProcedureYamlResponse),
@@ -42,6 +47,11 @@ FIXTURE_MODELS = [
     ("run_groups.json", Pagination[RunGroupResponse]),
     ("procedure_runs.json", Pagination[RunResponse]),
     ("active_runs.json", Pagination[RunResponse]),
+    ("config.json", ConfigResponse),
+    ("admin_users.json", AdminUsersResponse),
+    ("admin_stats.json", AdminStatsResponse),
+    ("session.json", SessionResponse),
+    ("session_admin.json", SessionResponse),
     ("run_status_shell.json", RunStatusShell),
     ("run_status_shell_finalised.json", RunStatusShell),
     ("run_status_shell_playlist.json", RunStatusShell),

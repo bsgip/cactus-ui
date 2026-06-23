@@ -29,6 +29,7 @@ from cactus_schema.orchestrator.compliance import fetch_compliance_classes  # no
 from cactus_test_definitions.client import get_all_test_procedures, get_yaml_contents  # noqa: E402
 
 import cactus_ui.api_models as models  # noqa: E402
+import cactus_ui.orchestrator as orchestrator  # noqa: E402
 import cactus_ui.server as server  # noqa: E402
 
 FIXTURES_DIR = Path(__file__).parent
@@ -155,6 +156,47 @@ def run(
     )
 
 
+def run_group(
+    run_group_id: int,
+    name: str,
+    csip_aus_version: str,
+    *,
+    created_at: str,
+    is_static_uri: bool = False,
+    static_uri: str | None = None,
+    is_device_cert: bool = True,
+    certificate_id: int | None = None,
+    certificate_created_at: str | None = None,
+    total_runs: int = 0,
+) -> schema.RunGroupResponse:
+    return schema.RunGroupResponse(
+        run_group_id=run_group_id,
+        name=name,
+        csip_aus_version=csip_aus_version,
+        created_at=created_at,
+        is_static_uri=is_static_uri,
+        static_uri=static_uri,
+        is_device_cert=is_device_cert,
+        certificate_id=certificate_id,
+        certificate_created_at=certificate_created_at,
+        total_runs=total_runs,
+    )
+
+
+def admin_user(
+    user_id: int, subject_id: str, name: str | None, run_groups: list[schema.RunGroupResponse]
+) -> models.AdminUserResponse:
+    # matchable_description via the same orchestrator helper /api/admin/users uses, so it can't drift
+    user_dict = {"user_id": user_id, "name": name, "run_groups": [rg.to_dict() for rg in run_groups]}
+    return models.AdminUserResponse(
+        user_id=user_id,
+        subject_id=subject_id,
+        name=name,
+        run_groups=run_groups,
+        matchable_description=orchestrator.get_matchable_description(user_dict),
+    )
+
+
 def main() -> None:
     # procedures.json - the real procedure definitions, as /api/procedures serves them
     procedures = [
@@ -194,22 +236,20 @@ def main() -> None:
         "run_groups.json",
         single_page(
             [
-                schema.RunGroupResponse(
-                    run_group_id=1,
-                    name="Battery Mk1",
-                    csip_aus_version="v1.2",
+                run_group(
+                    1,
+                    "Battery Mk1",
+                    "v1.2",
                     created_at="2026-05-01T00:00:00+00:00",
-                    is_static_uri=False,
-                    static_uri=None,
                     is_device_cert=True,
                     certificate_id=11,
                     certificate_created_at="2026-05-01T00:05:00+00:00",
                     total_runs=6,
                 ),
-                schema.RunGroupResponse(
-                    run_group_id=2,
-                    name="Battery Mk2",
-                    csip_aus_version="v1.3-beta/storage",
+                run_group(
+                    2,
+                    "Battery Mk2",
+                    "v1.3-beta/storage",
                     created_at="2026-06-01T00:00:00+00:00",
                     is_static_uri=True,
                     static_uri="https://cactus.example/static/2/dcap",
@@ -324,6 +364,77 @@ def main() -> None:
         ),
     ]
     write("playlist_sessions.json", [s.to_dict() for s in sessions])
+
+    # config.json - user config + their run groups + selectable versions, as /api/config serves it
+    write(
+        "config.json",
+        models.ConfigResponse(
+            config=models.UserConfig(subscription_domain="my.example.com", pen=123456),
+            run_groups=[
+                run_group(
+                    1,
+                    "Battery Mk1",
+                    "v1.2",
+                    created_at="2026-05-01T00:00:00+00:00",
+                    is_static_uri=True,
+                    static_uri="https://example.com/dcap/static/1",
+                    is_device_cert=True,
+                    certificate_id=11,
+                    certificate_created_at="2026-05-01T00:05:00+00:00",
+                    total_runs=6,
+                ),
+                run_group(
+                    2,
+                    "Battery Mk2",
+                    "v1.3-beta/storage",
+                    created_at="2026-06-01T00:00:00+00:00",
+                    is_device_cert=False,
+                    certificate_id=12,
+                    certificate_created_at="2026-06-01T00:05:00+00:00",
+                    total_runs=0,
+                ),
+            ],
+            csip_aus_versions=[
+                schema.CSIPAusVersionResponse(version="v1.2"),
+                schema.CSIPAusVersionResponse(version="v1.3-beta/storage"),
+            ],
+        ).to_dict(),
+    )
+
+    # admin_users.json - two users (one with run groups, one without), as /api/admin/users serves it
+    write(
+        "admin_users.json",
+        models.AdminUsersResponse(
+            users=[
+                admin_user(
+                    1,
+                    "auth0|abc123",
+                    "Alice Example",
+                    [
+                        run_group(
+                            10,
+                            "Battery Mk1",
+                            "1.0",
+                            created_at="2024-01-15T10:00:00+00:00",
+                            is_device_cert=True,
+                            certificate_id=5,
+                            certificate_created_at="2024-01-15T10:05:00+00:00",
+                            total_runs=12,
+                        ),
+                        run_group(
+                            11,
+                            "Battery Mk2",
+                            "1.0",
+                            created_at="2024-02-01T09:00:00+00:00",
+                            is_device_cert=False,
+                            total_runs=3,
+                        ),
+                    ],
+                ),
+                admin_user(2, "auth0|def456", None, []),
+            ]
+        ).to_dict(),
+    )
 
     # --- Run status page (run_status.html port) fixtures ---------------------------------
 
