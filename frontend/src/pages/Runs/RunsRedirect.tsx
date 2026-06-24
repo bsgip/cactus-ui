@@ -5,8 +5,8 @@ import { fetchRunGroups } from '../../api/runs';
 import { ErrorAlert } from '../../components/ErrorAlert';
 import { PageSpinner } from '../../components/PageSpinner';
 
-// Port of the runs_page Flask route: /runs redirects to the first run group's runs
-// page, or to the (still Flask-rendered) config page when there are no run groups.
+// /runs redirects to the first run group's runs page, or to the config page when the
+// user has no run groups yet.
 export function RunsRedirect() {
   const navigate = useNavigate();
   const { data, error } = useQuery({
@@ -18,11 +18,9 @@ export function RunsRedirect() {
     if (!data) {
       return;
     }
-    if (data.items.length > 0) {
-      void navigate(`/group/${data.items[0].run_group_id}/runs`, { replace: true });
-    } else {
-      window.location.assign('/config');
-    }
+    const target =
+      data.items.length > 0 ? `/group/${data.items[0].run_group_id}/runs` : '/config';
+    void navigate(target, { replace: true });
   }, [data, navigate]);
 
   if (error) {

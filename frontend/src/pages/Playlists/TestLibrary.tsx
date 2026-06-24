@@ -1,10 +1,10 @@
 import { ActionIcon, Accordion, Box, Group, SimpleGrid, Text, Tooltip } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ComplianceClass, PlaylistTest } from '../../api/types';
 import accordionClasses from '../../components/categoryAccordion.module.css';
-import { ComplianceFilterModal } from '../Runs/ComplianceFilterModal';
+import { ModalButton } from '../../components/ModalButton';
+import { ComplianceFilter } from '../Runs/ComplianceFilter';
 
 interface TestLibraryProps {
   testsByCategory: Record<string, PlaylistTest[]>;
@@ -29,7 +29,6 @@ function filterSummaryText(enabledNames: string[], totalClasses: number): string
 // Port of the playlists.html left panel: compliance class filter and the per-category test
 // grid. Clicking a test toggles its membership in the playlist queue.
 export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: TestLibraryProps) {
-  const [filterOpened, { open: openFilter, close: closeFilter }] = useDisclosure(false);
   const [enabledClasses, setEnabledClasses] = useState<Set<string>>(
     () => new Set(classes.map((c) => c.name))
   );
@@ -53,30 +52,37 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
   return (
     <>
       <Group gap="xs" wrap="nowrap" mb={4}>
-        <Text fw={500} style={{ flex: 1 }}>
+        <Text fw={500} flex={1}>
           Test Library
         </Text>
-        <ActionIcon
-          variant="outline"
+        <ModalButton
+          title="Filter Compliance Classes"
           size="lg"
-          onClick={openFilter}
-          aria-label="Filter compliance classes"
+          trigger={(open) => (
+            <ActionIcon
+              variant="outline"
+              size="lg"
+              onClick={open}
+              aria-label="Filter compliance classes"
+            >
+              <IconAdjustmentsHorizontal size={18} />
+            </ActionIcon>
+          )}
         >
-          <IconAdjustmentsHorizontal size={18} />
-        </ActionIcon>
+          {(close) => (
+            <ComplianceFilter
+              classes={classes}
+              enabled={enabledClasses}
+              onChange={setEnabledClasses}
+              close={close}
+            />
+          )}
+        </ModalButton>
       </Group>
 
       <Text size="sm" c="dimmed" mb={4}>
         {filterSummaryText(enabledNames, allClassNames.length)}
       </Text>
-
-      <ComplianceFilterModal
-        opened={filterOpened}
-        onClose={closeFilter}
-        classes={classes}
-        enabled={enabledClasses}
-        onChange={setEnabledClasses}
-      />
 
       <Accordion
         multiple

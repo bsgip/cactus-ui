@@ -1,22 +1,15 @@
-import { Button, Checkbox, Group, Modal, Stack, Text } from '@mantine/core';
+import { Button, Checkbox, Group, Stack, Text } from '@mantine/core';
 import type { ComplianceClass } from '../../api/types';
 
-interface ComplianceFilterModalProps {
-  opened: boolean;
-  onClose: () => void;
+interface ComplianceFilterProps {
   classes: ComplianceClass[];
   enabled: Set<string>;
   onChange: (enabled: Set<string>) => void;
+  close: () => void;
 }
 
-// Port of the runs.html filter modal (compliance classes from TS 5573:2025 Table 12.5).
-export function ComplianceFilterModal({
-  opened,
-  onClose,
-  classes,
-  enabled,
-  onChange,
-}: ComplianceFilterModalProps) {
+// Compliance classes are defined in TS 5573:2025 (Table 12.5).
+export function ComplianceFilter({ classes, enabled, onChange, close }: ComplianceFilterProps) {
   const allEnabled = enabled.size === classes.length;
 
   const toggle = (name: string, checked: boolean) => {
@@ -30,7 +23,7 @@ export function ComplianceFilterModal({
   };
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Filter Compliance Classes" size="lg">
+    <>
       <Text mb="sm">The following compliance classes are defined in TS 5573:2025 (Table 12.5)</Text>
       <Stack gap="xs">
         {classes.map((c) => (
@@ -53,8 +46,8 @@ export function ComplianceFilterModal({
         >
           {allEnabled ? 'Select NONE' : 'Select ALL'}
         </Button>
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={close}>Close</Button>
       </Group>
-    </Modal>
+    </>
   );
 }

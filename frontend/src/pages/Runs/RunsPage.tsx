@@ -3,7 +3,7 @@ import { useDocumentTitle } from '@mantine/hooks';
 import { IconChevronDown } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   deleteRun,
   fetchActiveRuns,
@@ -28,12 +28,13 @@ export type RunsSelection =
 const POLL_INTERVAL_MS = 10_000;
 const LIVE_STATUSES = new Set(['initialised', 'started', 'provisioning']);
 
-// Port of runs.html / group_runs_page + admin_group_runs_page. One component for both
-// views: isAdminView selects /api vs /api/admin paths and gates the run lifecycle controls.
+// One component for both the user and admin views: isAdminView selects /api vs /api/admin
+// paths and gates the run lifecycle controls.
 export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
   useDocumentTitle('Runs - CACTUS');
   const { runGroupId: runGroupIdParam } = useParams();
   const runGroupId = Number(runGroupIdParam);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
 
@@ -84,16 +85,15 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
 
   const onActionError = (error: Error) => setActionError(error.message);
 
-  // Initialise and start both hand over to the run status page (still Flask-rendered,
-  // hence the full-page navigation).
+  // Initialise and start both hand over to the run status page for the new run.
   const initMutation = useMutation({
     mutationFn: (testProcedureId: string) => initRun(runGroupId, testProcedureId),
-    onSuccess: ({ run_id }) => window.location.assign(`/run/${run_id}`),
+    onSuccess: ({ run_id }) => void navigate(`/run/${run_id}`),
     onError: onActionError,
   });
   const startMutation = useMutation({
     mutationFn: startRun,
-    onSuccess: ({ run_id }) => window.location.assign(`/run/${run_id}`),
+    onSuccess: ({ run_id }) => void navigate(`/run/${run_id}`),
     onError: onActionError,
   });
   const finaliseMutation = useMutation({
@@ -165,7 +165,7 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
       <Divider mb="md" />
 
       <Flex gap="md" align="flex-start">
-        <Box w={400} miw={200} style={{ maxHeight: '70vh', overflow: 'auto' }}>
+        <Box w={400} miw={200} mah="70vh" style={{ overflow: 'auto' }}>
           <Title order={5} mb="xs">
             Procedures
           </Title>
@@ -182,7 +182,7 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
           )}
         </Box>
 
-        <Box style={{ flex: 1 }}>
+        <Box flex={1}>
           <Group justify="space-between" py={5}>
             {selection.kind === 'active' ? (
               <Title order={4}>Active Runs</Title>
@@ -212,7 +212,7 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
               </Box>
             )}
           </Group>
-          <Box style={{ maxHeight: '70vh', overflow: 'auto' }}>
+          <Box mah="70vh" style={{ overflow: 'auto' }}>
             <RunsTable
               runs={runsQuery.data?.items}
               isPending={runsQuery.isPending}

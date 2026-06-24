@@ -1,10 +1,10 @@
 import { Accordion, ActionIcon, Badge, Group, NavLink, Stack, Text } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
 import { useState } from 'react';
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
 import type { ProcedureSummariesResponse, TestProcedureRunSummary } from '../../api/types';
 import accordionClasses from '../../components/categoryAccordion.module.css';
-import { ComplianceFilterModal } from './ComplianceFilterModal';
+import { ModalButton } from '../../components/ModalButton';
+import { ComplianceFilter } from './ComplianceFilter';
 import type { RunsSelection } from './RunsPage';
 
 interface ProcedureListProps {
@@ -40,10 +40,7 @@ function filterSummaryText(enabledNames: string[], totalClasses: number): string
   return `Showing ${enabledNames.length} compliance classes`;
 }
 
-// Port of the runs.html left column: Active Runs button, compliance class filter,
-// and the per-category collapsible procedure list with run-count badges.
 export function ProcedureList({ summaries, selection, onSelect }: ProcedureListProps) {
-  const [filterOpened, { open: openFilter, close: closeFilter }] = useDisclosure(false);
   const [enabledClasses, setEnabledClasses] = useState<Set<string>>(
     () => new Set(summaries.classes.map((c) => c.name))
   );
@@ -63,26 +60,33 @@ export function ProcedureList({ summaries, selection, onSelect }: ProcedureListP
       />
 
       <Group gap="xs" wrap="nowrap">
-        <Text size="sm" style={{ flex: 1 }}>
+        <Text size="sm" flex={1}>
           {filterSummaryText(enabledNames, summaries.classes.length)}
         </Text>
-        <ActionIcon
-          variant="outline"
+        <ModalButton
+          title="Filter Compliance Classes"
           size="lg"
-          onClick={openFilter}
-          aria-label="Filter compliance classes"
+          trigger={(open) => (
+            <ActionIcon
+              variant="outline"
+              size="lg"
+              onClick={open}
+              aria-label="Filter compliance classes"
+            >
+              <IconAdjustmentsHorizontal size={18} />
+            </ActionIcon>
+          )}
         >
-          <IconAdjustmentsHorizontal size={18} />
-        </ActionIcon>
+          {(close) => (
+            <ComplianceFilter
+              classes={summaries.classes}
+              enabled={enabledClasses}
+              onChange={setEnabledClasses}
+              close={close}
+            />
+          )}
+        </ModalButton>
       </Group>
-
-      <ComplianceFilterModal
-        opened={filterOpened}
-        onClose={closeFilter}
-        classes={summaries.classes}
-        enabled={enabledClasses}
-        onChange={setEnabledClasses}
-      />
 
       <Accordion
         multiple

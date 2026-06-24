@@ -108,7 +108,6 @@ function ActionButton({
   return null;
 }
 
-// Port of the runs.html runs table (handleNewRuns/statusToBtn).
 export function RunsTable({
   runs,
   isPending,
