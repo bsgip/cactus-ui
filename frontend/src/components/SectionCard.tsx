@@ -9,11 +9,16 @@ interface SectionCardProps {
   children: ReactNode;
   // Card height — e.g. "100%" to equalise cards sharing a Grid row.
   h?: string | number;
+  // When true, the body scrolls internally (up to SCROLL_MAX_HEIGHT) while the header stays
+  // pinned above it — used by the long, frequently-polled run-status tables.
+  scroll?: boolean;
 }
+
+const SCROLL_MAX_HEIGHT = 600;
 
 // A bordered card with a titled header strip, built from Mantine's native Card.Section
 // (no hand-rolled border CSS). Replaces the repeated "panel with a heading bar" pattern.
-export function SectionCard({ title, action, children, h }: SectionCardProps) {
+export function SectionCard({ title, action, children, h, scroll }: SectionCardProps) {
   return (
     <Card padding="md" h={h}>
       <Card.Section withBorder inheritPadding py="xs">
@@ -22,7 +27,12 @@ export function SectionCard({ title, action, children, h }: SectionCardProps) {
           {action}
         </Group>
       </Card.Section>
-      <Card.Section inheritPadding py="md">
+      <Card.Section
+        inheritPadding
+        py="md"
+        mah={scroll ? SCROLL_MAX_HEIGHT : undefined}
+        style={scroll ? { overflowY: 'auto' } : undefined}
+      >
         {children}
       </Card.Section>
     </Card>

@@ -8,9 +8,8 @@ interface Props {
   onClose: () => void;
 }
 
-// Shared request/response detail modal (run_status.html showRequestDetails). Opened from both
-// the CSIP-Aus Requests table and the XSD Validation Errors panel. Uses the user-path endpoint
-// in both views, preserving the old template's behaviour (see 9a notes).
+// Shared request/response detail modal, opened from both the CSIP-Aus Requests table and the
+// XSD Validation Errors panel. Uses the user-path endpoint even in the admin view.
 export function RequestDetailsModal({ runId, requestId, onClose }: Props) {
   const query = useQuery({
     queryKey: ['run_request_details', runId, requestId],

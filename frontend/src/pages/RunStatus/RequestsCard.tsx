@@ -1,5 +1,5 @@
-import { Badge, Button, Table, Title } from '@mantine/core';
-import { ScrollCard } from '../../components/ScrollCard';
+import { Badge, Button, Table } from '@mantine/core';
+import { SectionCard } from '../../components/SectionCard';
 import type { RequestEntry } from '../../api/types';
 import { formatDate } from '../../utils/dates';
 
@@ -15,12 +15,11 @@ function statusColor(status: number) {
 }
 
 // "CSIP-Aus Requests" card: the last 50 proxied requests, each opening a details modal.
-// Ported from run_status.html requestsTableBody.
 export function RequestsCard({ requests, onShowRequest }: Props) {
   const recent = requests.slice(-MAX_VISIBLE_REQUESTS);
 
   return (
-    <ScrollCard header={<Title order={5}>CSIP-Aus Requests</Title>}>
+    <SectionCard scroll title="CSIP-Aus Requests">
       <Table>
         <Table.Tbody>
           {requests.length === 0 ? (
@@ -70,6 +69,6 @@ export function RequestsCard({ requests, onShowRequest }: Props) {
           )}
         </Table.Tbody>
       </Table>
-    </ScrollCard>
+    </SectionCard>
   );
 }

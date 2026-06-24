@@ -57,14 +57,13 @@ function activityLegendOnClick(
   chart.update('none');
 }
 
-// The Timeline card from run_status.html: the main power-vs-time line chart with a "Now"
-// marker and max/min watt annotations, plus a thin activity strip below marking request
-// times and step completions. Recomputed from the polled RunnerStatus each render (10s);
-// crop/now logic ported as-is (see timelineChart.ts).
+// The Timeline card: the main power-vs-time line chart with a "Now" marker and max/min watt
+// annotations, plus a thin activity strip below marking request times and step completions.
+// Recomputed from the polled RunnerStatus each render (10s); crop/now logic in timelineChart.ts.
 export function TimelineChart({ timeline, stepStatus, requestHistory, timestampStart }: Props) {
   const mainRef = useRef<ChartJS<'line'> | null>(null);
   const activityRef = useRef<ChartJS<'line'> | null>(null);
-  // Persisted x-axis max, mirroring the old chartState so the axis doesn't jitter each poll.
+  // Persisted x-axis max so the axis doesn't jitter each poll.
   const chartState = useRef<ChartState>({ currentMaxTime: null });
 
   // Sync the activity strip's left/right padding to the main chart's plot area so the two

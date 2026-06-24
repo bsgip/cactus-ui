@@ -14,7 +14,7 @@ interface Props {
   isAdminView: boolean;
 }
 
-// The non-live ({% else %}) branch of run_status.html: Not Found / Skipped / Finalised.
+// The non-live run view: Not Found / Skipped / Finalised.
 // Finalised runs offer an artifact download (browser-native GET route) and, unless this is
 // an immediate-start procedure, an optional Active Power Chart with a video-start offset.
 export function FinalisedView({

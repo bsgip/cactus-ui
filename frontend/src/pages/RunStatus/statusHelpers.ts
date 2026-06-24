@@ -12,7 +12,7 @@ export function stepPhase(info: StepEventStatus): StepPhase {
   return 'pending';
 }
 
-// `Nm Ns` / `Ns` elapsed label, matching the old formatTimeLabel.
+// `Nm Ns` / `Ns` elapsed label.
 export function formatTimeLabel(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
@@ -51,8 +51,7 @@ export function activeStep(
   return null;
 }
 
-// Criteria list with the synthetic all-xsd-valid criterion appended (only when requests
-// exist), mirroring the old handleNewStatus criteria assembly.
+// Criteria list with the synthetic all-xsd-valid criterion appended (only when requests exist).
 export function criteriaWithXsd(status: RunnerStatus): CriteriaEntry[] {
   const criteria = [...(status.criteria ?? [])];
   const requests = status.request_history ?? [];

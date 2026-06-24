@@ -10,7 +10,7 @@ interface Props {
 }
 
 // Shown when an initialised run is queued behind the currently-active playlist run. Points the
-// user at the run that is actually live (run_status.html, the "This Test is Not Yet Active" alert).
+// user at the run that is actually live.
 export function NotYetActiveAlert({ currentActiveRun, total, isAdminView }: Props) {
   return (
     <Alert

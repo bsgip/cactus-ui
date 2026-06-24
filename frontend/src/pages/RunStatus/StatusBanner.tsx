@@ -7,7 +7,7 @@ interface Props {
   stepStatus: Record<string, StepEventStatus> | null;
 }
 
-// Fixed bottom bar from run_status.html: a live wall clock and the currently-active step.
+// Fixed bottom bar: a live wall clock and the currently-active step.
 export function StatusBanner({ stepStatus }: Props) {
   const [clock, setClock] = useState(() => new Date().toTimeString().slice(0, 8));
 

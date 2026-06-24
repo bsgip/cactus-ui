@@ -32,8 +32,8 @@ function startedAtLabel(startedAt: string): string {
   return `${formatDate(start)} (${diffMins} minute${diffMins !== 1 ? 's' : ''} ago)`;
 }
 
-// Top playlist banner from run_status.html: per-run status badges (with passed/failed artifact
-// downloads), the currently-viewed test, a jump-to-active-run button and End Playlist.
+// Top playlist banner: per-run status badges (with passed/failed artifact downloads), the
+// currently-viewed test, a jump-to-active-run button and End Playlist.
 export function PlaylistBanner({
   playlistView,
   currentActiveRun,

@@ -5,9 +5,9 @@ import type {
   RequestEntry,
 } from '../../api/types';
 
-// Direct port of the run_status.html timeline chart logic. The crop/now handling and the
-// three timeline-crop fixes (parseOffsetSeconds regexes, basisOffsetSeconds applied to all
-// data x positions including nextStartX) are preserved exactly — see the migration notes.
+// Timeline chart geometry. Note the crop/now handling: parseOffsetSeconds parses the offset
+// regexes and basisOffsetSeconds is applied to all data x positions (including nextStartX) so
+// long-running tests with a crop stay aligned.
 
 export const CHART_CONFIG = {
   RIGHT_BUFFER_SECONDS: 90, // How much empty space on the right
@@ -69,8 +69,8 @@ export interface TimelineDataset {
   spanGaps: boolean;
 }
 
-// Persisted across polls (a useRef), mirroring the old `chartState`. Lets the x-axis max stay
-// stable between updates and only jump ahead when 'now' nears the right edge or data overruns.
+// Persisted across polls (a useRef). Lets the x-axis max stay stable between updates and only
+// jump ahead when 'now' nears the right edge or data overruns.
 export interface ChartState {
   currentMaxTime: number | null;
 }

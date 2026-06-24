@@ -15,7 +15,7 @@ interface Props {
 
 // Top card of the live run view: run id/status, the test URI, and the lifecycle button for
 // the current phase (Start while initialised, Finalise while started). Both buttons are
-// disabled in the admin view, mirroring the old user_buttons_state="disabled".
+// disabled in the admin view.
 export function LiveHeaderCard({
   runId,
   runStatus,

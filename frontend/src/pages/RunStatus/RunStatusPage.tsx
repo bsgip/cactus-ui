@@ -2,7 +2,7 @@ import { Center, Loader, Stack } from '@mantine/core';
 import { useDocumentTitle } from '@mantine/hooks';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../../api/client';
 import { fetchRunnerStatus, fetchRunStatusShell } from '../../api/runStatus';
 import { finalisePlaylist } from '../../api/playlists';
@@ -25,17 +25,14 @@ import { StatusBanner } from './StatusBanner';
 
 const POLL_INTERVAL_MS = 10_000;
 
-// Port of run_status.html / run_status_page + admin_run_status_page. One component for
-// both views: isAdminView selects /api vs /api/admin paths and gates the lifecycle
-// controls (Start/Finalise are admin-disabled, mirroring the old user_buttons_state).
-//
-// 9b scope: page chrome — playlist banner, not-yet-active warning, live header card, and
-// the non-live (Not Found / Skipped / Finalised) view. The live status panels and the
-// timeline charts are added in 9c/9d.
+// One component for both the user and admin views: isAdminView selects /api vs /api/admin
+// paths and gates the lifecycle controls (Start/Finalise are disabled in the admin view).
 export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
   const { runId: runIdParam } = useParams();
   const runId = Number(runIdParam);
   useDocumentTitle(`Run Status ${runId} - CACTUS`);
+  const navigate = useNavigate();
+  const adminPrefix = isAdminView ? '/admin' : '';
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const [actionError, setActionError] = useState<string | null>(null);
@@ -48,8 +45,7 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
   const invalidateShell = () =>
     queryClient.invalidateQueries({ queryKey: ['run_status_shell', runId, isAdminView] });
 
-  // Polled RunnerStatus, only while the run is live. Stops polling once the runner is gone
-  // (410), mirroring the old page's "reload on HTTP GONE" behaviour.
+  // Polled RunnerStatus, only while the run is live. Stops polling once the runner is gone (410).
   const statusQuery = useQuery({
     queryKey: ['run_status_runner', runId, isAdminView],
     queryFn: () => fetchRunnerStatus(runId, isAdminView),
@@ -79,13 +75,13 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
   });
 
   // Finalise hands over to the next playlist run if there is one, otherwise refetches the
-  // shell so the page flips to the finalised view (the live status query 410s in 9c).
+  // shell so the page flips to the finalised view.
   const finaliseMutation = useMutation({
     mutationFn: () => finaliseRun(runId),
     onSuccess: () => {
       const next = shellQuery.data ? deriveNextPlaylistRunId(shellQuery.data) : null;
       if (next) {
-        window.location.assign(`/run/${next}`);
+        void navigate(`${adminPrefix}/run/${next}`);
       } else {
         void invalidateShell();
       }
@@ -94,10 +90,10 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
   });
 
   // End Playlist finalises the current run and skips the rest, then returns to /playlists.
-  // Pure mutation — the ZIP download lives on the Past Sessions list (page 8 decision).
+  // Pure mutation — the ZIP download lives on the Past Sessions list.
   const endPlaylistMutation = useMutation({
     mutationFn: () => finalisePlaylist(runId),
-    onSuccess: () => window.location.assign('/playlists'),
+    onSuccess: () => void navigate('/playlists'),
     onError: onActionError,
   });
 

@@ -1,8 +1,8 @@
-import { Alert, Anchor, Button, Table, Text, Title } from '@mantine/core';
+import { Alert, Anchor, Button, Table, Text } from '@mantine/core';
 import { useMutation } from '@tanstack/react-query';
 import { IconCheck, IconMinus, IconPlayerPlay, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
-import { ScrollCard } from '../../components/ScrollCard';
+import { SectionCard } from '../../components/SectionCard';
 import { sendProceed } from '../../api/runStatus';
 import type { CriteriaEntry, RunStatus, RunnerStatus, StepEventStatus } from '../../api/types';
 import { formatDate, formatRelativeDate } from '../../utils/dates';
@@ -27,8 +27,7 @@ interface Props {
   isAdminView: boolean;
 }
 
-// The live status panels of run_status.html (everything below the header card except the
-// timeline charts, which land in 9d). Driven by the polled RunnerStatus.
+// The live status panels below the header card, driven by the polled RunnerStatus.
 export function LiveStatusPanels({ status, runId, runStatus, runProcedureId, isAdminView }: Props) {
   const [selectedRequest, setSelectedRequest] = useState<number | null>(null);
   const requests = status.request_history ?? [];
@@ -76,11 +75,12 @@ function GeneralCard({
 }) {
   const interaction = status.last_client_interaction?.timestamp ?? null;
   return (
-    <ScrollCard
-      header={
-        <Title order={5}>
-          <Anchor href={`/procedure/${runProcedureId}`}>{runProcedureId}</Anchor>
-        </Title>
+    <SectionCard
+      scroll
+      title={
+        <Anchor href={`/procedure/${runProcedureId}`} fw={700}>
+          {runProcedureId}
+        </Anchor>
       }
     >
       <Table>
@@ -109,14 +109,14 @@ function GeneralCard({
           </Table.Tr>
         </Table.Tbody>
       </Table>
-    </ScrollCard>
+    </SectionCard>
   );
 }
 
 // Shared layout for the Precondition Checks and Current Criteria tables (type / icon / details).
 function CheckTableCard({ title, entries }: { title: string; entries: CriteriaEntry[] }) {
   return (
-    <ScrollCard header={<Title order={5}>{title}</Title>}>
+    <SectionCard scroll title={title}>
       <Table>
         <Table.Tbody>
           {entries.map((c) => (
@@ -134,7 +134,7 @@ function CheckTableCard({ title, entries }: { title: string; entries: CriteriaEn
           ))}
         </Table.Tbody>
       </Table>
-    </ScrollCard>
+    </SectionCard>
   );
 }
 
@@ -184,7 +184,7 @@ function StepsCard({
     isProceedStepActive(status.step_status) && active != null && active.name !== proceededStep;
 
   return (
-    <ScrollCard header={<Title order={5}>Steps</Title>}>
+    <SectionCard scroll title="Steps">
       {showInstructions && (
         <Alert color="blue" mb="md">
           <ul>
@@ -223,14 +223,14 @@ function StepsCard({
           ))}
         </Table.Tbody>
       </Table>
-    </ScrollCard>
+    </SectionCard>
   );
 }
 
 function EnvoyLogsCard({ log }: { log: string }) {
   return (
-    <ScrollCard header={<Title order={5}>Envoy Logs</Title>}>
+    <SectionCard scroll title="Envoy Logs">
       <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{log || 'No logs recorded'}</pre>
-    </ScrollCard>
+    </SectionCard>
   );
 }

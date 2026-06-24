@@ -1,5 +1,5 @@
-import { Badge, Button, Card, Group, Modal, Table, Text, Title } from '@mantine/core';
-import { ScrollCard } from '../../components/ScrollCard';
+import { Badge, Button, Card, Modal, Table, Text } from '@mantine/core';
+import { SectionCard } from '../../components/SectionCard';
 import { useDisclosure } from '@mantine/hooks';
 import type {
   DERCapabilityInfo,
@@ -54,19 +54,17 @@ function badges(items: string[] | null | undefined) {
 }
 
 // "Active Device Metadata" card plus the DER Details modal (capability / settings / status).
-// Ported from run_status.html metadataTableBody + derDetailsModalBody.
 export function MetadataCard({ metadata }: Props) {
   const [opened, { open, close }] = useDisclosure(false);
 
   return (
-    <ScrollCard
-      header={
-        <Group justify="space-between">
-          <Title order={5}>Active Device Metadata</Title>
-          <Button size="xs" variant="outline" color="gray" onClick={open}>
-            Device Details
-          </Button>
-        </Group>
+    <SectionCard
+      scroll
+      title="Active Device Metadata"
+      action={
+        <Button size="xs" variant="outline" color="gray" onClick={open}>
+          Device Details
+        </Button>
       }
     >
       <Table>
@@ -95,7 +93,7 @@ export function MetadataCard({ metadata }: Props) {
         <DerSettingsCard set={metadata?.der_settings ?? null} />
         <DerStatusCard sta={metadata?.der_status ?? null} />
       </Modal>
-    </ScrollCard>
+    </SectionCard>
   );
 }
 
