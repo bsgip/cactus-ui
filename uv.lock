@@ -41,15 +41,15 @@ wheels = [
 
 [[package]]
 name = "cactus-schema"
-version = "0.0.23"
+version = "0.0.24"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cactus-test-definitions" },
     { name = "dataclass-wizard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/24/ea/ba86486f93571effc23037885dd4cb3e27ff3670cb6f64dd1230082ac69f/cactus_schema-0.0.23.tar.gz", hash = "sha256:327c3d3a6d79a0f11c7a30c01276d9dd9a041120d324e6debcf246acdc98e374", size = 11052, upload-time = "2026-05-27T01:18:23.516Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/29/f8a02d984a90c1634e7902a89367b5f8f6d73f857facfc8034cbd509181d/cactus_schema-0.0.24.tar.gz", hash = "sha256:f278c81fc2d6fe36675d7c1ea3572b47fdfb108054aa50bb1ddb120d97bf44f7", size = 11084, upload-time = "2026-06-17T04:19:16.992Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8f/c4/4e90ffe68c15812f361e04b73ec279d1d5b31164f5110d94cac7450d338b/cactus_schema-0.0.23-py3-none-any.whl", hash = "sha256:d9a2e3505ed83401f53ad026af94ff9bb46a08e4554a69102ad0ff1edf2022d7", size = 12729, upload-time = "2026-05-27T01:18:21.999Z" },
+    { url = "https://files.pythonhosted.org/packages/39/7c/201c5231838a3e266bd7c9b68bcda46649782333837a6a91deb1c71550f4/cactus_schema-0.0.24-py3-none-any.whl", hash = "sha256:e71cd23a920f19c8ba5e88ecb2264b488ac934b903629c16af17ddf4c5df1e47", size = 12742, upload-time = "2026-06-17T04:19:15.688Z" },
 ]
 
 [[package]]
