@@ -526,7 +526,7 @@
 
         // ... user buttons
         const submitButton = document.getElementById("wizard-nav-submit");
-        submitButton.style.display = (currentTab == NUMTABS-1 && !isAdminView && wizardMode != 'edit') ? "inline-block": "none";
+        submitButton.style.display = (currentTab == NUMTABS-1 && !isAdminView && wizardMode == 'edit') ? "inline-block": "none";
         const updateButton = document.getElementById("wizard-nav-update");
         updateButton.style.display = (currentTab == NUMTABS-1 && !isAdminView && wizardMode == 'edit') ? "inline-block": "none";
 
@@ -674,6 +674,7 @@
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 
         if (wizardMode=="view") {
+            console.log("Disabling form controls")
             disableForm();
         }
     });

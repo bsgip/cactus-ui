@@ -1480,8 +1480,7 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
         ).decode(),
         prefill_classes=prefill_classes,
         prefill_runs=prefill_runs,
-        # mode=mode,
-        mode="edit",
+        mode=mode,
         is_admin_view=False,
         error=error,
     )
