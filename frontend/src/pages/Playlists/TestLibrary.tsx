@@ -1,4 +1,12 @@
-import { ActionIcon, Accordion, Box, Group, SimpleGrid, Text, Tooltip } from '@mantine/core';
+import {
+  ActionIcon,
+  Accordion,
+  Group,
+  SimpleGrid,
+  Text,
+  Tooltip,
+  UnstyledButton,
+} from '@mantine/core';
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ComplianceClass, PlaylistTest } from '../../api/types';
@@ -26,8 +34,8 @@ function filterSummaryText(enabledNames: string[], totalClasses: number): string
   return `Showing ${enabledNames.length} compliance classes`;
 }
 
-// Port of the playlists.html left panel: compliance class filter and the per-category test
-// grid. Clicking a test toggles its membership in the playlist queue.
+// Compliance-class filter plus the per-category test grid; clicking a test toggles its
+// membership in the playlist queue.
 export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: TestLibraryProps) {
   const [enabledClasses, setEnabledClasses] = useState<Set<string>>(
     () => new Set(classes.map((c) => c.name))
@@ -104,38 +112,26 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
                       withArrow
                       openDelay={400}
                     >
-                      <Box
-                        role="button"
-                        tabIndex={0}
+                      <UnstyledButton
                         onClick={() => onToggle(t)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            onToggle(t);
-                          }
-                        }}
                         p="4px 8px"
+                        w="100%"
+                        bg={queued ? 'blue.1' : undefined}
+                        fw={queued ? 500 : undefined}
                         style={{
-                          cursor: 'pointer',
                           border: '1px solid var(--mantine-color-gray-3)',
-                          fontSize: '0.85rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 5,
-                          backgroundColor: queued ? 'var(--mantine-color-blue-1)' : undefined,
-                          fontWeight: queued ? 500 : undefined,
-                          overflow: 'hidden',
-                          whiteSpace: 'nowrap',
-                          textOverflow: 'ellipsis',
+                          display: 'block',
                         }}
                       >
-                        <Text component="span" c={queued ? 'blue' : 'dimmed'}>
-                          {queued ? '✓' : '☐'}
-                        </Text>
-                        <Text span ff="monospace">
-                          {t.id}
-                        </Text>
-                      </Box>
+                        <Group gap={5} wrap="nowrap">
+                          <Text component="span" c={queued ? 'blue' : 'dimmed'}>
+                            {queued ? '✓' : '☐'}
+                          </Text>
+                          <Text span ff="monospace" size="sm" truncate>
+                            {t.id}
+                          </Text>
+                        </Group>
+                      </UnstyledButton>
                     </Tooltip>
                   );
                 })}

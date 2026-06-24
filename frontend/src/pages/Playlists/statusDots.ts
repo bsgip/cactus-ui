@@ -10,8 +10,8 @@ export const DOT_COLOR: Record<DotKind, string> = {
   skipped: 'var(--mantine-color-gray-6)',
 };
 
-// Port of buildStatusDots() from playlists.html. Returns the ordered dots plus the run
-// the playlist is currently sitting on (first active/initialised run), used for "Go to run".
+// Returns the ordered status dots plus the run the playlist is currently sitting on
+// (first active/initialised run), used for "Go to run".
 export function statusDots(testStatuses: PlaylistTestStatus[]): {
   dots: { kind: DotKind; title: string }[];
   activeRunId: number | null;

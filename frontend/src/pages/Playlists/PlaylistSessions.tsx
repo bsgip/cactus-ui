@@ -1,4 +1,4 @@
-import { Anchor, Button, Card, Group, Menu, Stack, Table, Text } from '@mantine/core';
+import { Anchor, Box, Button, Card, Group, Menu, Stack, Table, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { IconDownload, IconPlayerPlay, IconPlayerStop } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
@@ -59,7 +59,6 @@ function DownloadMenu({ statuses }: { statuses: PlaylistTestStatus[] }) {
   );
 }
 
-// Port of the playlists.html renderActivePlaylist + the past sessions table.
 export function PlaylistSessions({ sessions, isFinalising, onFinalise }: PlaylistSessionsProps) {
   const active = sessions.filter((s) => s.is_active);
   const past = sessions.filter((s) => !s.is_active);
@@ -89,12 +88,7 @@ export function PlaylistSessions({ sessions, isFinalising, onFinalise }: Playlis
               const { activeRunId } = statusDots(s.test_statuses);
               const goToRunId = activeRunId ?? s.first_run_id;
               return (
-                <Card
-                  key={s.playlist_execution_id}
-                  withBorder
-                  padding="xs"
-                  style={{ borderColor: 'var(--mantine-color-blue-5)' }}
-                >
+                <Card key={s.playlist_execution_id} padding="xs" bd="1px solid blue.5">
                   <Group gap="sm" wrap="wrap">
                     <div>
                       <Anchor component={Link} to={`/run/${s.first_run_id}`}>
@@ -109,9 +103,9 @@ export function PlaylistSessions({ sessions, isFinalising, onFinalise }: Playlis
                     <Text size="sm" c="dimmed">
                       {formatDate(new Date(s.created_at))}
                     </Text>
-                    <div style={{ flex: 1 }}>
+                    <Box flex={1}>
                       <StatusDots testStatuses={s.test_statuses} />
-                    </div>
+                    </Box>
                     <Button
                       size="xs"
                       component={Link}

@@ -3,7 +3,7 @@ import { useDocumentTitle } from '@mantine/hooks';
 import { IconChevronDown } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   fetchPlaylistSessions,
   fetchPlaylistTests,
@@ -22,12 +22,13 @@ import { TestLibrary } from './TestLibrary';
 
 const POLL_INTERVAL_MS = 10_000;
 
-// Port of playlists.html / group_playlists_page. Builds a playlist from the test library
-// and starts it; shows active + past playlist sessions for the run group.
+// Builds a playlist from the test library and starts it; shows active + past playlist
+// sessions for the run group.
 export function PlaylistsPage() {
   useDocumentTitle('Playlists - CACTUS');
   const { runGroupId: runGroupIdParam } = useParams();
   const runGroupId = Number(runGroupIdParam);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
 
@@ -61,7 +62,7 @@ export function PlaylistsPage() {
 
   const initMutation = useMutation({
     mutationFn: (procedures: string[]) => initPlaylist(runGroupId, procedures),
-    onSuccess: ({ run_id }) => window.location.assign(`/run/${run_id}`),
+    onSuccess: ({ run_id }) => void navigate(`/run/${run_id}`),
     onError: onActionError,
   });
 
