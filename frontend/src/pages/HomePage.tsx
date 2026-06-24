@@ -1,8 +1,8 @@
-import { Alert, Anchor, Box, Card, Divider, Grid, List, Text, Title } from '@mantine/core';
+import { Alert, Anchor, Box, Divider, Grid, List, Text, Title } from '@mantine/core';
 import { Banner } from '../components/Banner';
+import { SectionCard } from '../components/SectionCard';
 import { useSession } from '../hooks/useSession';
 
-// Port of home.html.
 export function HomePage() {
   const { data: session } = useSession();
   if (!session) {
@@ -54,10 +54,7 @@ export function HomePage() {
 
       <Grid mb="xl">
         <Grid.Col span={{ base: 12, md: 6 }}>
-          <Card withBorder h="100%">
-            <Title order={3} fz="h5" mb="sm">
-              📚 Documentation
-            </Title>
+          <SectionCard title="📚 Documentation" h="100%">
             <Text mb="xs">
               <Anchor href="https://www.csipaus.org/documents" target="_blank">
                 csipaus.org/documents
@@ -87,13 +84,10 @@ export function HomePage() {
                 </Text>
               </List.Item>
             </List>
-          </Card>
+          </SectionCard>
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 6 }}>
-          <Card withBorder h="100%">
-            <Title order={3} fz="h5" mb="sm">
-              📦 Your Test Results
-            </Title>
+          <SectionCard title="📦 Your Test Results" h="100%">
             <Text mb="xs">When you finalize a test run, you'll receive:</Text>
             <List spacing="xs" mb="xs">
               <List.Item>PDF test summary with pass/fail results</List.Item>
@@ -103,7 +97,7 @@ export function HomePage() {
             <Text size="sm" c="dimmed">
               Use these artifacts to troubleshoot any test failures.
             </Text>
-          </Card>
+          </SectionCard>
         </Grid.Col>
       </Grid>
 
@@ -139,36 +133,21 @@ export function HomePage() {
             </Title>
             <Grid>
               <Grid.Col span={{ base: 12, md: 4 }}>
-                <Card withBorder h="100%">
-                  <Title order={5} mb="xs">
-                    🐛 Report a Bug
-                  </Title>
-                  <Text>
-                    <Anchor href="https://tinyurl.com/mrbu8cwt" target="_blank">
-                      tinyurl.com/mrbu8cwt
-                    </Anchor>
-                  </Text>
-                </Card>
+                <SectionCard title="🐛 Report a Bug" h="100%">
+                  <Anchor href="https://tinyurl.com/mrbu8cwt" target="_blank">
+                    tinyurl.com/mrbu8cwt
+                  </Anchor>
+                </SectionCard>
               </Grid.Col>
               <Grid.Col span={{ base: 12, md: 4 }}>
-                <Card withBorder h="100%">
-                  <Title order={5} mb="xs">
-                    📋 Standards Help
-                  </Title>
-                  <Text>
-                    <Anchor href="mailto:csipaus-cert@anu.edu.au">csipaus-cert@anu.edu.au</Anchor>
-                  </Text>
-                </Card>
+                <SectionCard title="📋 Standards Help" h="100%">
+                  <Anchor href="mailto:csipaus-cert@anu.edu.au">csipaus-cert@anu.edu.au</Anchor>
+                </SectionCard>
               </Grid.Col>
               <Grid.Col span={{ base: 12, md: 4 }}>
-                <Card withBorder h="100%">
-                  <Title order={5} mb="xs">
-                    💬 Software Questions
-                  </Title>
-                  <Text>
-                    <Anchor href="mailto:support@bsgip.com">support@bsgip.com</Anchor>
-                  </Text>
-                </Card>
+                <SectionCard title="💬 Software Questions" h="100%">
+                  <Anchor href="mailto:support@bsgip.com">support@bsgip.com</Anchor>
+                </SectionCard>
               </Grid.Col>
             </Grid>
           </Box>
