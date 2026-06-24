@@ -1,7 +1,7 @@
 import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { AdminPage } from './pages/AdminPage';
-import { AdminStatsPage } from './pages/AdminStatsPage';
+import { AdminStatsPage } from './pages/AdminStats/AdminStatsPage';
 import { ConfigPage } from './pages/ConfigPage';
 import { HomePage } from './pages/HomePage';
 import { ProceduresPage } from './pages/ProceduresPage';
