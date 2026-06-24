@@ -1135,6 +1135,8 @@ def compliance_page(access_token: str) -> str | Response:
 
     page = "compliance.html"
 
+    msg = None
+    msg_type = None
     if request.method == "POST":
         action = request.form.get("action")
         raw_compliance_request_id = request.form.get("compliance_request_id")
@@ -1157,7 +1159,8 @@ def compliance_page(access_token: str) -> str | Response:
                     access_token=access_token, compliance_request_id=compliance_request_id
                 )
                 if not success:
-                    error = f"Failed to delete compliance request (id={compliance_request_id})"
+                    msg = f"Failed to delete compliance request (id={compliance_request_id})"
+                    msg_type = "error"
             elif action == "view":
                 url = (
                     url_for("compliance_request_page")
@@ -1171,9 +1174,8 @@ def compliance_page(access_token: str) -> str | Response:
                     )
                 )
                 if compliance_report is None:
-                    error = "Failed to finalise the compliance request or retrieve the compliance report."
-                    p = {"msg": error, "msg_type": "error"}
-                    query_params = "?" + urlencode(p)
+                    msg = "Failed to finalise the compliance request or retrieve the compliance report."
+                    msg_type = "error"
                 else:
                     return send_file(
                         io.BytesIO(compliance_report),
@@ -1201,8 +1203,8 @@ def compliance_page(access_token: str) -> str | Response:
         error=error,
         requests=requests,
         requests_b64=b64encode(json.dumps(requests, default=custom_serializer).encode()).decode(),
-        msg=request.args.get("msg"),
-        msg_type=request.args.get("msg_type"),
+        msg=msg if msg else request.args.get("msg"),
+        msg_type=msg_type if msg_type else request.args.get("msg_type"),
         is_admin_view=False,
     )
 
@@ -1215,6 +1217,8 @@ def admin_compliance_page(access_token: str) -> str | Response:
 
     page = "compliance.html"
 
+    msg = None
+    msg_type = None
     if request.method == "POST":
         action = request.form.get("action")
         raw_compliance_request_id = request.form.get("compliance_request_id")
@@ -1248,7 +1252,8 @@ def admin_compliance_page(access_token: str) -> str | Response:
                     access_token=access_token, compliance_request_id=compliance_request_id
                 )
                 if not success:
-                    error = f"Failed to delete compliance request (id={compliance_request_id})"
+                    msg = f"Failed to delete compliance request (id={compliance_request_id})"
+                    msg_type = "error"
             elif action == "view":
                 # Redirect to compliance request page (view only mode)
                 url = (
@@ -1263,9 +1268,8 @@ def admin_compliance_page(access_token: str) -> str | Response:
                     )
                 )
                 if compliance_report is None:
-                    error = "Failed to finalise the compliance request or retrieve the compliance report."
-                    p = {"msg": error, "msg_type": "error"}
-                    query_params = "?" + urlencode(p)
+                    msg = "Failed to finalise the compliance request or retrieve the compliance report."
+                    msg_type = "error"
                 else:
                     return send_file(
                         io.BytesIO(compliance_report),
@@ -1296,8 +1300,8 @@ def admin_compliance_page(access_token: str) -> str | Response:
         page,
         requests=requests,
         requests_b64=b64encode(json.dumps(requests, default=custom_serializer).encode()).decode(),
-        msg=request.args.get("msg"),
-        msg_type=request.args.get("msg_type"),
+        msg=msg if msg else request.args.get("msg"),
+        msg_type=msg_type if msg_type else request.args.get("msg_type"),
         is_admin_view=True,
     )
 
@@ -1351,6 +1355,8 @@ def get_compliance_request_id(request: Request) -> int | None:
 def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
     error: str | None = None
 
+    query_params = ""
+
     if request.method == "POST":
         # User compliance request (new)
         if request.form.get("action") == "new-request":
@@ -1376,7 +1382,6 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
 
             form_data, classes, runs, witnessed_at, error = get_form_data(request)
             compliance_request_id = get_compliance_request_id(request)
-
             if compliance_request_id and not error:
                 try:
                     _ = orchestrator.update_compliance_request(
@@ -1490,6 +1495,8 @@ def compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
 @login_required
 def admin_compliance_request_page(access_token: str) -> str | Response:  # noqa: C901
     error: str | None = None
+
+    query_params = ""
 
     if request.method == "POST":
         if request.form.get("action") == "update-request":

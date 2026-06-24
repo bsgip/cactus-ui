@@ -525,8 +525,9 @@
         nextButton.style.display = (currentTab == NUMTABS-1) ? "none": "inline-block";
 
         // ... user buttons
+        console.log(`wizardMode=${wizardMode}`);
         const submitButton = document.getElementById("wizard-nav-submit");
-        submitButton.style.display = (currentTab == NUMTABS-1 && !isAdminView && wizardMode == 'edit') ? "inline-block": "none";
+        submitButton.style.display = (currentTab == NUMTABS-1 && !isAdminView && wizardMode == 'prefill-only') ? "inline-block": "none";
         const updateButton = document.getElementById("wizard-nav-update");
         updateButton.style.display = (currentTab == NUMTABS-1 && !isAdminView && wizardMode == 'edit') ? "inline-block": "none";
 
