@@ -880,6 +880,29 @@ def update_compliance_request(
         return body_data
 
 
+def admin_update_compliance_request(
+    access_token: str, compliance_request_id: int, body: orchestrator.ComplianceRequestUpdateRequest
+) -> orchestrator.ComplianceRequestResponse | None:
+    uri = generate_uri(orchestrator.uri.AdminComplianceRequest.format(compliance_request_id=compliance_request_id))
+
+    response = safe_request(
+        "PUT",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+        json=body.to_dict(),
+    )
+
+    if response is None or not is_success_response(response):
+        return None
+
+    body_data = orchestrator.ComplianceRequestResponse.from_json(response.text)
+    if isinstance(body_data, list):
+        return body_data[0]
+    else:
+        return body_data
+
+
 def delete_compliance_request(access_token: str, compliance_request_id: int) -> bool:
     uri = generate_uri(orchestrator.uri.ComplianceRequest.format(compliance_request_id=compliance_request_id))
 
@@ -896,8 +919,75 @@ def delete_compliance_request(access_token: str, compliance_request_id: int) -> 
     return True
 
 
-def finalise_compliance_request(access_token: str, compliance_request_id: int) -> tuple[bytes | None, str]:
-    return None, ""
+def admin_delete_compliance_request(access_token: str, compliance_request_id: int) -> bool:
+    uri = generate_uri(orchestrator.uri.AdminComplianceRequest.format(compliance_request_id=compliance_request_id))
+
+    response = safe_request(
+        "DELETE",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+    )
+
+    if response is None or not is_success_response(response):
+        return False
+
+    return True
+
+
+def fetch_compliance_artifact_for_compliance_request(
+    access_token: str, compliance_request_id: int
+) -> tuple[bytes | None, str | None]:
+    uri = generate_uri(orchestrator.uri.ComplianceRequestArtifact.format(compliance_request_id=compliance_request_id))
+
+    response = safe_request(
+        "GET",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+    )
+
+    if response is None or not is_success_response(response):
+        return None, None
+
+    return (response.content, try_read_file_name(response, f"ComplianceReport_RequestID_{compliance_request_id}.pdf"))
+
+
+def admin_fetch_compliance_artifact_for_compliance_request(
+    access_token: str, compliance_request_id: int
+) -> tuple[bytes | None, str | None]:
+    uri = generate_uri(
+        orchestrator.uri.AdminComplianceRequestArtifact.format(compliance_request_id=compliance_request_id)
+    )
+
+    response = safe_request(
+        "GET",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+    )
+
+    if response is None or not is_success_response(response):
+        return None, None
+
+    return (response.content, try_read_file_name(response, f"ComplianceReport_RequestID_{compliance_request_id}.pdf"))
+
+
+def admin_finalise_compliance_request(access_token: str, compliance_request_id: int) -> tuple[bytes | None, str | None]:
+    uri = generate_uri(
+        orchestrator.uri.AdminComplianceRequestArtifact.format(compliance_request_id=compliance_request_id)
+    )
+
+    response = safe_request(
+        "POST",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+    )
+    if response is None or not is_success_response(response):
+        return None, None
+
+    return (response.content, try_read_file_name(response, f"ComplianceReport_RequestID_{compliance_request_id}.pdf"))
 
 
 # def create_run_group(access_token: str, csip_aus_version: str) -> orchestrator.RunGroupResponse | None:

@@ -1165,7 +1165,22 @@ def compliance_page(access_token: str) -> str | Response:
                 )
                 return redirect(url)
             elif action == "download":
-                pass
+                compliance_report, compliance_report_name = (
+                    orchestrator.fetch_compliance_artifact_for_compliance_request(
+                        access_token=access_token, compliance_request_id=compliance_request_id
+                    )
+                )
+                if compliance_report is None:
+                    error = "Failed to finalise the compliance request or retrieve the compliance report."
+                    p = {"msg": error, "msg_type": "error"}
+                    query_params = "?" + urlencode(p)
+                else:
+                    return send_file(
+                        io.BytesIO(compliance_report),
+                        as_attachment=True,
+                        download_name=compliance_report_name,
+                        mimetype="application/pdf",
+                    )
 
     paged_requests = orchestrator.fetch_compliance_requests(access_token=access_token, page=1)
     if paged_requests is None:
@@ -1213,7 +1228,7 @@ def admin_compliance_page(access_token: str) -> str | Response:
         if not error:
             if action == "edit":
                 # Set status to under review
-                _ = orchestrator.update_compliance_request(
+                _ = orchestrator.admin_update_compliance_request(
                     access_token=access_token,
                     compliance_request_id=compliance_request_id,
                     body=schema.ComplianceRequestUpdateRequest(
@@ -1229,7 +1244,7 @@ def admin_compliance_page(access_token: str) -> str | Response:
                 return redirect(url)
 
             elif action == "delete":
-                success = orchestrator.delete_compliance_request(
+                success = orchestrator.admin_delete_compliance_request(
                     access_token=access_token, compliance_request_id=compliance_request_id
                 )
                 if not success:
@@ -1242,8 +1257,22 @@ def admin_compliance_page(access_token: str) -> str | Response:
                 )
                 return redirect(url)
             elif action == "download":
-                # TODO
-                pass
+                compliance_report, compliance_report_name = (
+                    orchestrator.admin_fetch_compliance_artifact_for_compliance_request(
+                        access_token=access_token, compliance_request_id=compliance_request_id
+                    )
+                )
+                if compliance_report is None:
+                    error = "Failed to finalise the compliance request or retrieve the compliance report."
+                    p = {"msg": error, "msg_type": "error"}
+                    query_params = "?" + urlencode(p)
+                else:
+                    return send_file(
+                        io.BytesIO(compliance_report),
+                        as_attachment=True,
+                        download_name=compliance_report_name,
+                        mimetype="application/pdf",
+                    )
     page = "compliance.html"
 
     paged_requests = orchestrator.admin_fetch_compliance_requests(access_token=access_token, page=1)
@@ -1514,12 +1543,11 @@ def admin_compliance_request_page(access_token: str) -> str | Response:  # noqa:
             return redirect(url_for("admin_compliance_page") + query_params)
 
         elif request.form.get("action") == "finalise":
-            print("FINALISING request for admin")
             compliance_request_id = get_compliance_request_id(request)
 
             query_params = ""
             if compliance_request_id:
-                compliance_report, compliance_report_name = orchestrator.finalise_compliance_request(
+                compliance_report, compliance_report_name = orchestrator.admin_finalise_compliance_request(
                     access_token=access_token, compliance_request_id=compliance_request_id
                 )
                 if compliance_report is None:
