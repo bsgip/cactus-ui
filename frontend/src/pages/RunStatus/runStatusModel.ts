@@ -5,8 +5,7 @@
 // orchestrator doesn't do, since RunResponse.playlist_runs only carries summaries). Playlist
 // ordering comes from the authoritative summary list (`shell.run.playlist_runs`); per-run
 // detail (pass/fail, artifacts) is looked up from `shell.playlist_runs` by id, so the view
-// still renders if a detail fetch failed. This logic used to live in server.py
-// `_build_playlist_info`; it's a pure presentation concern, so it belongs on the client.
+// still renders if a detail fetch failed.
 
 import type { RunStatusResponse, RunStatusShell } from '../../api/types';
 

@@ -1,8 +1,8 @@
 import { Alert } from '@mantine/core';
 import { useState } from 'react';
 
-// Port of banner.html: dismissible warning alert. The message comes from the
-// BANNER_MESSAGE envvar and was rendered with `| safe` in Jinja, so it may contain HTML.
+// Dismissible warning alert. The message comes from the BANNER_MESSAGE envvar and
+// may contain HTML, so it's rendered via dangerouslySetInnerHTML.
 export function Banner({ message }: { message: string | null | undefined }) {
   const [dismissed, setDismissed] = useState(false);
 

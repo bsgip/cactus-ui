@@ -8,7 +8,6 @@ import { ErrorAlert } from '../components/ErrorAlert';
 import { PageSpinner } from '../components/PageSpinner';
 import { useSession } from '../hooks/useSession';
 
-// Port of procedures.html.
 export function ProceduresPage() {
   useDocumentTitle('Procedures - CACTUS');
   const { data: session } = useSession();

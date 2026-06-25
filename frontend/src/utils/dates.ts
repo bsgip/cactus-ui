@@ -1,5 +1,3 @@
-// Ported from src/cactus_ui/static/js/index.js — keep output identical.
-
 const RELATIVE_FORMATTER = new Intl.RelativeTimeFormat('en', { numeric: 'auto', style: 'short' });
 
 export function formatRelativeDate(d: Date): string {

@@ -1,7 +1,7 @@
 import { Alert, Box, Button, Stack, Text, Title } from '@mantine/core';
 
-// Port of login.html: shown when /api/session returns 401. The login banner message
-// comes from the LOGIN_BANNER_MESSAGE envvar and was rendered with `| safe` in Jinja.
+// Shown when /api/session returns 401. The login banner message comes from the
+// LOGIN_BANNER_MESSAGE envvar and may contain HTML (rendered via dangerouslySetInnerHTML).
 export function LoginPage({ loginBannerMessage }: { loginBannerMessage: string | null }) {
   return (
     <Box bg="gray.0" mih="100vh" display="flex" style={{ flexDirection: 'column' }}>

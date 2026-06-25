@@ -13,7 +13,6 @@ import 'highlight.js/styles/default.css';
 
 hljs.registerLanguage('yaml', yamlLanguage);
 
-// Port of procedure_yaml.html.
 export function ProcedureYamlPage() {
   useDocumentTitle('Procedures - CACTUS');
   const { testProcedureId = '' } = useParams();

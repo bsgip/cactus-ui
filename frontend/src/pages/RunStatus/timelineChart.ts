@@ -163,7 +163,7 @@ export function convertDataStreamsToChartJs(
 }
 
 // chartjs-plugin-annotation annotation objects. Loosely typed because the plugin's option
-// shape is broad; we build the same structure the template did.
+// shape is broad.
 export function createChartAnnotations(
   timeline: TimelineStatus | null,
   nowSeconds: number

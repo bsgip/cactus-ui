@@ -30,7 +30,7 @@ export function Layout() {
   }
 
   return (
-    <Box bg="#fbfcfb" mih="100vh">
+    <Box mih="100vh">
       <NavBar session={session} />
       <Container size="lg" py="xl">
         <Outlet />

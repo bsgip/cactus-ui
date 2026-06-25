@@ -3,8 +3,6 @@ import { IconLogout } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import type { SessionResponse } from '../api/types';
 
-// Nav links are plain anchors (full page loads) while their targets are still
-// Flask-rendered pages. Convert each to <Link> as its page migrates to the SPA.
 export function NavBar({ session }: { session: SessionResponse }) {
   const isAdmin = session.permissions.includes('admin:all');
 

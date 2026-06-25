@@ -1,9 +1,7 @@
-import { createTheme, type MantineColorsTuple } from '@mantine/core';
+import { createTheme, type CSSVariablesResolver, type MantineColorsTuple } from '@mantine/core';
 
-// Blue stays the primary action colour, as it was in the old Bootstrap site
-// (btn-primary, links). This is Bootstrap 5's own blue ramp — deeper and less
-// washed-out than Mantine's default cyan-leaning blue. Shade 6 (#0d6efd) is the
-// familiar btn-primary; shade 7 (#0a58ca) is its hover.
+// Primary action colour (buttons, links). A deeper, less cyan-leaning blue than
+// Mantine's default. Shade 6 (#0d6efd) is the primary; shade 7 (#0a58ca) its hover.
 const blue: MantineColorsTuple = [
   '#e7f1ff',
   '#cfe2ff',
@@ -17,9 +15,8 @@ const blue: MantineColorsTuple = [
   '#052c65',
 ];
 
-// Deep, muted "forest" green for the navbar (which has always been green) and
-// green semantics. Lower glare than Mantine's default green. The navbar uses
-// shade 8.
+// Deep, muted "forest" green for the navbar and green semantics. Lower glare
+// than Mantine's default green. The navbar uses shade 8.
 const green: MantineColorsTuple = [
   '#f2f8f4',
   '#e2f0e7',
@@ -54,8 +51,7 @@ export const theme = createTheme({
   defaultRadius: 'md',
   colors: { blue, green, red },
   components: {
-    // Restore the subtle bordered-card depth the old Bootstrap site had, so
-    // content doesn't sit flat on pure white.
+    // Subtle bordered-card depth so content doesn't sit flat on pure white.
     Card: {
       defaultProps: {
         withBorder: true,
@@ -70,4 +66,11 @@ export const theme = createTheme({
       },
     },
   },
+});
+
+// Faintly off-white page background so content cards read against it.
+export const cssVariablesResolver: CSSVariablesResolver = () => ({
+  variables: {},
+  light: { '--mantine-color-body': '#fbfcfb' },
+  dark: {},
 });
