@@ -1,11 +1,23 @@
-/* Full-green category headers, matching the original runs.html btn-success
-   collapse buttons. Shared by the Runs procedure list and the Playlists test
-   library so the two category accordions stay consistent. */
+/* Full-green category headers for native <details>/<summary> accordions, matching the
+   original runs.html btn-success collapse buttons. Shared by the Runs procedure list and
+   the Playlists test library so the two category accordions stay consistent. */
+.item {
+  margin-bottom: 4px;
+}
+
 .control {
-  background-color: var(--mantine-color-green-8);
-  color: var(--mantine-color-white);
+  background-color: var(--green-9);
+  color: white;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 500;
+  list-style: none;
+}
+
+.control::-webkit-details-marker {
+  display: none;
 }
 
 .control:hover {
-  background-color: var(--mantine-color-green-9);
+  background-color: var(--green-10);
 }

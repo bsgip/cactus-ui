@@ -1,4 +1,4 @@
-import { Accordion, ActionIcon, Badge, Group, NavLink, Stack, Text } from '@mantine/core';
+import { ActionIcon, Badge, Group, NavLink, Stack, Text } from '@mantine/core';
 import { useState } from 'react';
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
 import type { ProcedureSummariesResponse, TestProcedureRunSummary } from '../../api/types';
@@ -88,49 +88,43 @@ export function ProcedureList({ summaries, selection, onSelect }: ProcedureListP
         </ModalButton>
       </Group>
 
-      <Accordion
-        multiple
-        defaultValue={summaries.grouped_procedures.map((gp) => gp.slug)}
-        classNames={{ control: accordionClasses.control }}
-      >
+      <div>
         {visibleGroups.map((gp) => (
-          <Accordion.Item key={gp.slug} value={gp.slug}>
-            <Accordion.Control>{gp.category}</Accordion.Control>
-            <Accordion.Panel p={0}>
-              {gp.summaries
-                .filter((p) =>
-                  matchesFilter(summaries.classes_by_test[p.test_procedure_id], enabledClasses)
-                )
-                .map((p) => (
-                  <NavLink
-                    key={p.test_procedure_id}
-                    component="button"
-                    label={p.test_procedure_id}
-                    active={selection.kind === 'procedure' && selection.id === p.test_procedure_id}
-                    mt={4}
-                    mx={4}
-                    style={{
-                      border: '1px solid var(--mantine-color-gray-3)',
-                      borderRadius: 'var(--mantine-radius-sm)',
-                    }}
-                    onClick={() =>
-                      onSelect({
-                        kind: 'procedure',
-                        id: p.test_procedure_id,
-                        description: p.description,
-                      })
-                    }
-                    rightSection={
-                      p.run_count > 0 ? (
-                        <Badge color={badgeColor(p)}>{p.run_count}</Badge>
-                      ) : undefined
-                    }
-                  />
-                ))}
-            </Accordion.Panel>
-          </Accordion.Item>
+          <details key={gp.slug} open className={accordionClasses.item}>
+            <summary className={accordionClasses.control}>{gp.category}</summary>
+            {gp.summaries
+              .filter((p) =>
+                matchesFilter(summaries.classes_by_test[p.test_procedure_id], enabledClasses)
+              )
+              .map((p) => (
+                <NavLink
+                  key={p.test_procedure_id}
+                  component="button"
+                  label={p.test_procedure_id}
+                  active={selection.kind === 'procedure' && selection.id === p.test_procedure_id}
+                  mt={4}
+                  mx={4}
+                  style={{
+                    border: '1px solid var(--mantine-color-gray-3)',
+                    borderRadius: 'var(--mantine-radius-sm)',
+                  }}
+                  onClick={() =>
+                    onSelect({
+                      kind: 'procedure',
+                      id: p.test_procedure_id,
+                      description: p.description,
+                    })
+                  }
+                  rightSection={
+                    p.run_count > 0 ? (
+                      <Badge color={badgeColor(p)}>{p.run_count}</Badge>
+                    ) : undefined
+                  }
+                />
+              ))}
+          </details>
         ))}
-      </Accordion>
+      </div>
     </Stack>
   );
 }

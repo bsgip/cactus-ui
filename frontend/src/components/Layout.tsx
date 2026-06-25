@@ -1,4 +1,4 @@
-import { Box, Container } from '@mantine/core';
+import { Box, Container } from '@radix-ui/themes';
 import { Outlet } from 'react-router-dom';
 import { UnauthenticatedError } from '../api/client';
 import type { UnauthenticatedResponse } from '../api/types';
@@ -23,17 +23,21 @@ export function Layout() {
 
   if (error || !session) {
     return (
-      <Container size="lg" py="xl">
-        <ErrorAlert message="Unable to communicate with test server. Please try refreshing the page or re-logging in." />
+      <Container size="4">
+        <Box px="4" py="6">
+          <ErrorAlert message="Unable to communicate with test server. Please try refreshing the page or re-logging in." />
+        </Box>
       </Container>
     );
   }
 
   return (
-    <Box mih="100vh">
+    <Box style={{ minHeight: '100vh' }}>
       <NavBar session={session} />
-      <Container size="lg" py="xl">
-        <Outlet />
+      <Container size="4">
+        <Box px="4" py="6">
+          <Outlet />
+        </Box>
       </Container>
       <Footer session={session} />
     </Box>

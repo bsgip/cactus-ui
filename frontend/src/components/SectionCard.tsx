@@ -1,4 +1,4 @@
-import { Card, Group, Text } from '@mantine/core';
+import { Box, Flex, Separator, Text } from '@radix-ui/themes';
 import type { ReactNode } from 'react';
 
 interface SectionCardProps {
@@ -16,25 +16,27 @@ interface SectionCardProps {
 
 const SCROLL_MAX_HEIGHT = 600;
 
-// A bordered card with a titled header strip, built from Mantine's native Card.Section
-// (no hand-rolled border CSS). Replaces the repeated "panel with a heading bar" pattern.
+// A bordered card with a titled header strip and a full-width separator. Replaces the repeated
+// "panel with a heading bar" pattern (was Mantine's Card.Section).
 export function SectionCard({ title, action, children, h, scroll }: SectionCardProps) {
   return (
-    <Card padding="md" h={h}>
-      <Card.Section withBorder inheritPadding py="xs">
-        <Group justify="space-between">
-          {typeof title === 'string' ? <Text fw={700}>{title}</Text> : title}
-          {action}
-        </Group>
-      </Card.Section>
-      <Card.Section
-        inheritPadding
-        py="md"
-        mah={scroll ? SCROLL_MAX_HEIGHT : undefined}
-        style={scroll ? { overflowY: 'auto' } : undefined}
-      >
+    <Box
+      style={{
+        height: h,
+        border: '1px solid var(--gray-5)',
+        borderRadius: 'var(--radius-3)',
+        overflow: 'hidden',
+        backgroundColor: 'var(--color-panel-solid)',
+      }}
+    >
+      <Flex justify="between" align="center" px="3" py="2">
+        {typeof title === 'string' ? <Text weight="bold">{title}</Text> : title}
+        {action}
+      </Flex>
+      <Separator size="4" />
+      <Box px="3" py="3" style={scroll ? { maxHeight: SCROLL_MAX_HEIGHT, overflowY: 'auto' } : undefined}>
         {children}
-      </Card.Section>
-    </Card>
+      </Box>
+    </Box>
   );
 }

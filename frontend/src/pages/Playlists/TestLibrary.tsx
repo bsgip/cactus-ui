@@ -1,12 +1,4 @@
-import {
-  ActionIcon,
-  Accordion,
-  Group,
-  SimpleGrid,
-  Text,
-  Tooltip,
-  UnstyledButton,
-} from '@mantine/core';
+import { ActionIcon, Group, SimpleGrid, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ComplianceClass, PlaylistTest } from '../../api/types';
@@ -92,17 +84,12 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
         {filterSummaryText(enabledNames, allClassNames.length)}
       </Text>
 
-      <Accordion
-        multiple
-        defaultValue={Object.keys(testsByCategory)}
-        classNames={{ control: accordionClasses.control }}
-      >
+      <div>
         {categories.map(([category, tests]) => (
-          <Accordion.Item key={category} value={category}>
-            <Accordion.Control>{category}</Accordion.Control>
-            <Accordion.Panel p={0}>
-              <SimpleGrid cols={2} spacing={0} verticalSpacing={0}>
-                {tests.map((t) => {
+          <details key={category} open className={accordionClasses.item}>
+            <summary className={accordionClasses.control}>{category}</summary>
+            <SimpleGrid cols={2} spacing={0} verticalSpacing={0}>
+              {tests.map((t) => {
                   const queued = queuedIds.has(t.id);
                   return (
                     <Tooltip
@@ -135,11 +122,10 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
                     </Tooltip>
                   );
                 })}
-              </SimpleGrid>
-            </Accordion.Panel>
-          </Accordion.Item>
+            </SimpleGrid>
+          </details>
         ))}
-      </Accordion>
+      </div>
     </>
   );
 }

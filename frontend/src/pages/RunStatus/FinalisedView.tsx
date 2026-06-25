@@ -1,5 +1,5 @@
-import { Alert, Anchor, Button, Collapse, Group, Stack, Text, TextInput, Title } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { Alert, Anchor, Button, Group, Stack, Text, TextInput, Title } from '@mantine/core';
+import { useDisclosure } from '../../hooks/useDisclosure';
 import { IconArrowRight, IconCircleCheck } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import type { RunStatus } from '../../api/types';
@@ -110,7 +110,7 @@ function ActivePowerChart({ runId, adminPrefix }: { runId: number; adminPrefix: 
       <Button variant="outline" color="gray" onClick={toggle}>
         Active Power Chart
       </Button>
-      <Collapse in={opened}>
+      {opened && (
         <form
           action={`${adminPrefix}/run/${runId}/html_report`}
           method="GET"
@@ -144,7 +144,7 @@ function ActivePowerChart({ runId, adminPrefix }: { runId: number; adminPrefix: 
             </Button>
           </Stack>
         </form>
-      </Collapse>
+      )}
     </div>
   );
 }

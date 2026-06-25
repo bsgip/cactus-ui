@@ -1,36 +1,38 @@
-import { Anchor, Box, Group, Text } from '@mantine/core';
+import { Flex, Link, Text } from '@radix-ui/themes';
 import type { SessionResponse } from '../api/types';
 
 export function Footer({ session }: { session: SessionResponse }) {
   return (
-    <Box
-      component="footer"
-      mt="xl"
-      py="md"
-      ta="center"
-      c="dimmed"
-      style={{ borderTop: '1px solid var(--mantine-color-gray-3)' }}
+    <footer
+      style={{
+        marginTop: 32,
+        padding: '16px 0',
+        textAlign: 'center',
+        borderTop: '1px solid var(--gray-5)',
+      }}
     >
       {session.hosted_images.length > 0 && (
         <>
-          <Text size="sm">Hosted by</Text>
-          <Group justify="center" mt="xs" gap="md" wrap="wrap">
+          <Text as="div" size="2" color="gray">
+            Hosted by
+          </Text>
+          <Flex justify="center" align="center" mt="1" gap="3" wrap="wrap">
             {session.hosted_images.map((src) => (
               <img key={src} src={src} alt="Host Logo" style={{ height: 40 }} />
             ))}
-          </Group>
+          </Flex>
         </>
       )}
       {session.version && (
-        <Text size="xs" mt="xs">
-          <Anchor
+        <Text as="div" size="1" mt="1" color="gray">
+          <Link
             href={`https://github.com/bsgip/cactus-deploy/releases/tag/${session.version}`}
             target="_blank"
           >
             {session.version}
-          </Anchor>
+          </Link>
         </Text>
       )}
-    </Box>
+    </footer>
   );
 }

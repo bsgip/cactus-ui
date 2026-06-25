@@ -1,13 +1,15 @@
-import { Group, Title } from '@mantine/core';
+import { Flex, Heading } from '@radix-ui/themes';
 import type { ReactNode } from 'react';
 
 // Standard page heading row: an <h2> title with optional right-aligned actions.
-// Carries no outer margin — the page lays out spacing (usually a <Stack>).
+// Carries no outer margin — the page lays out spacing (usually a column Flex).
 export function PageHeader({ title, children }: { title: ReactNode; children?: ReactNode }) {
   return (
-    <Group justify="space-between" align="center">
-      <Title order={2}>{title}</Title>
+    <Flex justify="between" align="center">
+      <Heading as="h2" size="6">
+        {title}
+      </Heading>
       {children}
-    </Group>
+    </Flex>
   );
 }

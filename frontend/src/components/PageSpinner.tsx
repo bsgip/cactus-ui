@@ -1,9 +1,9 @@
-import { Center, Loader } from '@mantine/core';
+import { Flex, Spinner } from '@radix-ui/themes';
 
 export function PageSpinner() {
   return (
-    <Center py="xl">
-      <Loader color="green" />
-    </Center>
+    <Flex justify="center" py="6">
+      <Spinner size="3" />
+    </Flex>
   );
 }
