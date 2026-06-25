@@ -12,7 +12,9 @@ export default defineConfig({
     proxy: Object.fromEntries(FLASK_PATHS.map((path) => [path, 'http://localhost:3000'])),
   },
   test: {
-    environment: 'jsdom',
+    // Custom jsdom env that restores native AbortController/AbortSignal so undici (msw +
+    // react-router) accepts navigation Request signals. See tests/jsdom-undici.ts.
+    environment: './tests/jsdom-undici.ts',
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/**/*.test.{ts,tsx}'],
     // The first test in a file pays jsdom + Mantine setup costs; on a loaded VM
