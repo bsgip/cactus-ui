@@ -1,10 +1,7 @@
-import { Badge, Button, Flex, IconButton, Text } from '@radix-ui/themes';
-import { useState } from 'react';
-import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
+import { Badge, Text } from '@radix-ui/themes';
 import type { ProcedureSummariesResponse, TestProcedureRunSummary } from '../../api/types';
-import { CategoryAccordion } from '../../components/CategoryAccordion';
-import { ModalButton } from '../../components/ModalButton';
-import { ComplianceFilter } from './ComplianceFilter';
+import { ComplianceLibrary, type LibraryItem } from '../../components/ComplianceLibrary';
+import styles from '../../components/complianceLibrary.module.css';
 import type { RunsSelection } from './RunsPage';
 
 interface ProcedureListProps {
@@ -23,108 +20,45 @@ function badgeColor(summary: TestProcedureRunSummary): 'green' | 'red' | 'gray' 
   return 'gray';
 }
 
-function matchesFilter(classes: string[] | undefined, enabled: Set<string>): boolean {
-  return (classes ?? []).some((c) => enabled.has(c));
-}
-
-function filterSummaryText(enabledNames: string[], totalClasses: number): string {
-  if (enabledNames.length === totalClasses) {
-    return 'Showing ALL compliance classes';
-  }
-  if (enabledNames.length === 0) {
-    return 'Showing NO compliance classes';
-  }
-  if (enabledNames.length < 5) {
-    return `Showing ${enabledNames.join(', ')}`;
-  }
-  return `Showing ${enabledNames.length} compliance classes`;
-}
-
 export function ProcedureList({ summaries, selection, onSelect }: ProcedureListProps) {
-  const [enabledClasses, setEnabledClasses] = useState<Set<string>>(
-    () => new Set(summaries.classes.map((c) => c.name))
-  );
+  const itemsByCategory: Record<string, LibraryItem[]> = {};
+  const descriptions = new Map<string, string>();
+  for (const gp of summaries.grouped_procedures) {
+    itemsByCategory[gp.category] = gp.summaries.map((p) => {
+      descriptions.set(p.test_procedure_id, p.description);
+      return {
+        id: p.test_procedure_id,
+        description: p.description,
+        classes: p.classes ?? [],
+        badge: p.run_count > 0 ? <Badge color={badgeColor(p)}>{p.run_count}</Badge> : undefined,
+      };
+    });
+  }
 
-  const enabledNames = summaries.classes.map((c) => c.name).filter((n) => enabledClasses.has(n));
-  const visibleGroups = summaries.grouped_procedures.filter((gp) =>
-    matchesFilter(summaries.classes_by_category[gp.slug], enabledClasses)
-  );
+  const activeSelected = selection.kind === 'active';
 
   return (
-    <Flex direction="column" gap="2">
-      <Button
-        variant={selection.kind === 'active' ? 'solid' : 'soft'}
-        color={selection.kind === 'active' ? undefined : 'gray'}
-        onClick={() => onSelect({ kind: 'active' })}
-        style={{ justifyContent: 'flex-start', width: '100%' }}
-      >
-        Active Runs
-      </Button>
-
-      <Flex gap="2" align="center">
-        <Text size="2" style={{ flex: 1 }}>
-          {filterSummaryText(enabledNames, summaries.classes.length)}
-        </Text>
-        <ModalButton
-          title="Filter Compliance Classes"
-          size="lg"
-          trigger={(open) => (
-            <IconButton
-              variant="outline"
-              size="2"
-              onClick={open}
-              aria-label="Filter compliance classes"
-            >
-              <IconAdjustmentsHorizontal size={18} />
-            </IconButton>
-          )}
+    <ComplianceLibrary
+      title="Procedures"
+      itemsByCategory={itemsByCategory}
+      complianceClasses={summaries.classes}
+      selectedIds={selection.kind === 'procedure' ? new Set([selection.id]) : new Set()}
+      onSelect={(id) =>
+        onSelect({ kind: 'procedure', id, description: descriptions.get(id) ?? '' })
+      }
+      topContent={
+        <button
+          type="button"
+          aria-pressed={activeSelected}
+          onClick={() => onSelect({ kind: 'active' })}
+          className={`${styles.cell} ${activeSelected ? styles.cellSelected : ''}`}
+          style={{ marginBottom: 8 }}
         >
-          {(close) => (
-            <ComplianceFilter
-              classes={summaries.classes}
-              enabled={enabledClasses}
-              onChange={setEnabledClasses}
-              close={close}
-            />
-          )}
-        </ModalButton>
-      </Flex>
-
-      <div>
-        {visibleGroups.map((gp) => {
-          const visible = gp.summaries.filter((p) =>
-            matchesFilter(summaries.classes_by_test[p.test_procedure_id], enabledClasses)
-          );
-          return (
-            <CategoryAccordion key={gp.slug} title={gp.category} count={visible.length}>
-              <Flex direction="column" gap="1" p="1">
-                {visible.map((p) => {
-                  const isActive =
-                    selection.kind === 'procedure' && selection.id === p.test_procedure_id;
-                  return (
-                    <Button
-                      key={p.test_procedure_id}
-                      variant={isActive ? 'solid' : 'soft'}
-                      color={isActive ? undefined : 'gray'}
-                      onClick={() =>
-                        onSelect({
-                          kind: 'procedure',
-                          id: p.test_procedure_id,
-                          description: p.description,
-                        })
-                      }
-                      style={{ justifyContent: 'space-between', width: '100%' }}
-                    >
-                      <span>{p.test_procedure_id}</span>
-                      {p.run_count > 0 && <Badge color={badgeColor(p)}>{p.run_count}</Badge>}
-                    </Button>
-                  );
-                })}
-              </Flex>
-            </CategoryAccordion>
-          );
-        })}
-      </div>
-    </Flex>
+          <Text as="span" size="2" weight={activeSelected ? 'medium' : 'regular'}>
+            Active Runs
+          </Text>
+        </button>
+      }
+    />
   );
 }

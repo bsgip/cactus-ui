@@ -1,3 +1,6 @@
+/* Soft selectable cells for the shared compliance library sidebar (Runs procedure list and
+   Playlists test library). Transparent by default with a subtle gray border; accent-tinted
+   when selected. */
 .cell {
   display: block;
   width: 100%;

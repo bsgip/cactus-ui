@@ -89,7 +89,7 @@ function ActionButton({
   if (run.status === 'started') {
     return (
       <Button
-        color="yellow"
+        color="amber"
         onClick={() => onFinalise(run.run_id)}
         loading={pendingAction?.kind === 'finalise' && pendingAction.runId === run.run_id}
       >

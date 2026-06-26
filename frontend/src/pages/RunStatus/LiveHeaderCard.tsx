@@ -102,7 +102,7 @@ export function LiveHeaderCard({
             downloaded including a PDF report, request logs, and server logs to help with debugging.
           </Text>
           <Button
-            color="yellow"
+            color="amber"
             onClick={onFinalise}
             loading={isFinalising}
             disabled={isAdminView}

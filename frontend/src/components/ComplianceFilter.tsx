@@ -1,5 +1,5 @@
 import { Button, Checkbox, Flex, Text } from '@radix-ui/themes';
-import type { ComplianceClass } from '../../api/types';
+import type { ComplianceClass } from '../api/types';
 
 interface ComplianceFilterProps {
   classes: ComplianceClass[];

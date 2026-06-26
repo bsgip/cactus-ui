@@ -140,7 +140,7 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
           ) : (
             <DropdownMenu.Root>
               <DropdownMenu.Trigger>
-                <Button>
+                <Button color="blue">
                   {activeRunGroup?.name}
                   <IconChevronDown size={16} />
                 </Button>
@@ -161,7 +161,7 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
           )}
         </Flex>
         {activeRunGroup && (
-          <Link asChild>
+          <Link asChild color="blue">
             <RouterLink to={`${isAdminView ? '/admin' : ''}/group/${runGroupId}`}>
               Compliance for <b>{activeRunGroup.name}</b> →
             </RouterLink>
@@ -173,9 +173,6 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
 
       <Flex gap="3" align="start">
         <Box style={{ width: 400, minWidth: 200, maxHeight: '70vh', overflow: 'auto' }}>
-          <Heading as="h3" size="3" mb="1">
-            Procedures
-          </Heading>
           {summariesQuery.isPending ? (
             <PageSpinner />
           ) : summariesQuery.error ? (
