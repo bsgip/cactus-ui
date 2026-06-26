@@ -15,9 +15,12 @@ import runRequestDetailsFixture from '../../fixtures/run_request_details.json';
 import runStatusRunnerFixture from '../../fixtures/run_status_runner.json';
 import runStatusShellFixture from '../../fixtures/run_status_shell.json';
 import sessionFixture from '../../fixtures/session.json';
+import sessionAdminFixture from '../../fixtures/session_admin.json';
+
+const session = import.meta.env.VITE_MOCK_ADMIN === 'true' ? sessionAdminFixture : sessionFixture;
 
 export const handlers = [
-  http.get('/api/session', () => HttpResponse.json(sessionFixture)),
+  http.get('/api/session', () => HttpResponse.json(session)),
   http.get('/api/config', () => HttpResponse.json(configFixture)),
   http.post('/api/config/pen', () => HttpResponse.json({})),
   http.post('/api/config/domain', () => HttpResponse.json({})),

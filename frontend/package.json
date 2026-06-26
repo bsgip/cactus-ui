@@ -3,9 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.19"
+  },
   "scripts": {
     "dev": "vite",
     "dev:mock": "VITE_USE_MOCKS=true vite",
+    "dev:mock:admin": "VITE_USE_MOCKS=true VITE_MOCK_ADMIN=true vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",

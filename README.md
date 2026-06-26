@@ -1,58 +1,99 @@
 # cactus-ui
 
 User interface for the CSIP-Aus test harness.
+A Vite + React 19 + TypeScript SPA (`frontend/`) served by a Flask backend-for-frontend (BFF) (`src/cactus_ui/`).
 
-A Vite + React 19 + TypeScript SPA (`frontend/`) served by a Flask backend-for-frontend
-(`src/cactus_ui/`). Flask owns auth/session and exposes JSON under `/api/...`; React
-handles everything the user sees.
+## Running locally
 
-## Frontend
+Ensure you have the correct version of Node.js:
 
-All commands run from `frontend/`.
+```bash
+node -v          # should be 22.x+
+# If not:
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
+
+Install dependencies after any `package.json` / `pyproject.toml` change:
+
+```bash
+npm install      # frontend deps (from /frontend)
+uv sync --all-extras            # backend deps (from repo root)
+```
+
+The backend reads config from a `.env` file in the repo root. Copy the sample and fill it
+in:
+
+```bash
+cp .sampleenv .env              # keep CACTUS_UI_LOCALDEV=true for local runs
+```
+
+There are 3 ways to get the UI up.
+
+### 1. Frontend only, no backend (mock mode)
+
+The fastest way to look at and iterate on the UI. MSW intercepts every `/api` call and answers from fixtures.
 
 ```bash
 cd frontend
-npm install            # first time, and after package.json changes
+npm run dev:mock                # http://localhost:5173, served from fixtures
+npm run dev:mock:admin          # same, but signed in as an admin-scoped user
 ```
 
-### Look at the UI locally
+Fixtures live in `frontend/src/mocks/` (`handlers.ts`).
+
+### 2. Full stack (Point at a real orchestrator backend)
+
+Requires: 
+CACTUS_ORCHESTRATOR_BASEURL set in the env file to a port forwarded tunnel to the orchestrator.
+Valid Auth0 settings in `.env` (see sample.env).
 
 ```bash
-# Against the real Flask BFF — needs the cactus-ui-dev service + orchestrator tunnel up.
-npm run dev            # http://localhost:5173, proxies /api etc. to Flask :3000
+cd frontend && npm run build
+uv run python src/cactus_ui/server.py   # http://localhost:3000
 ```
 
-### Run tests
+### 3. Frontend hot-reload against the real backend
+
+If you want live reload *and* real data, run Flask (as above) and Vite side by side. Vite proxies the Flask-owned paths to `:3000`:
 
 ```bash
-npm run test           # Vitest component tests (one-shot)
-npm run test:watch     # Vitest in watch mode while developing
+uv run python src/cactus_ui/server.py   # terminal 1 — Flask on :3000
+cd frontend && npm run dev              # terminal 2 — http://localhost:5173
 ```
 
-### Checks before pushing
+Log in via Flask first, then switch to Vite: open http://localhost:3000 and complete the
+Auth0 login there, then open http://localhost:5173. The Flask session cookie is host-only on
+`localhost`, so it's shared across ports and the hot-reload tab is authenticated. Logging in
+directly from :5173 fails (`access_denied: Service not found`) because the OAuth callback
+would run on the :5173 origin, which Auth0 isn't configured for.
+
+## Tests
+
+### Frontend
 
 ```bash
-npm run typecheck      # tsc -b
-npm run lint           # eslint
+cd frontend
+npm run test                    # Vitest component tests (one-shot)
+npm run test:watch              # watch mode while developing
+```
+
+### Backend
+
+```bash
+uv run pytest # From /src
+```
+
+### Linting/Formatting
+
+```bash
+# frontend (from frontend/)
+npm run typecheck               # tsc -b
+npm run lint                    # eslint
 npm run test
-```
 
-### Production build
-
-Outputs static files to `frontend/dist/`, which Flask serves (this is what the Dockerfile
-runs):
-
-```bash
-npm run build          # tsc -b && vite build
-npm run preview        # optional: serve the built dist/ to sanity-check it
-```
-
-## Backend
-In normal use the Flask app runs as the `cactus-ui-dev` systemd service — you don't need
-to start it by hand. For Python work:
-
-```bash
-uv sync --all-extras                 # from the repo root
-uv run pytest tests/unit/...         # run only the relevant test files
-uv run ruff check && uv run ty check
+# backend (from repo root)
+uv run ruff check
+uv run ruff format
+uv run ty check
 ```
