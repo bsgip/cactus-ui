@@ -44,10 +44,11 @@ export function AdminStatsPage() {
           value={data.max_run_number}
           label="Total Runs"
           sub={`incl. ${data.max_run_number - data.total_runs} deleted`}
+          accent="green"
         />
-        <SummaryCard value={data.total_users} label="Total Users" />
-        <SummaryCard value={data.total_run_groups} label="Run Groups" />
-        <SummaryCard value={avgRunsPerUser ?? '—'} label="Avg Runs per User" />
+        <SummaryCard value={data.total_users} label="Total Users" accent="blue" />
+        <SummaryCard value={data.total_run_groups} label="Run Groups" accent="violet" />
+        <SummaryCard value={avgRunsPerUser ?? '—'} label="Avg Runs per User" accent="amber" />
       </Grid>
 
       <Overview
