@@ -3,6 +3,7 @@ import { IconCheck, IconQuestionMark, IconTrash, IconX } from '@tabler/icons-rea
 import { Link as RouterLink } from 'react-router-dom';
 import type { RunResponse } from '../../api/types';
 import { formatDate, formatRelativeDate } from '../../utils/dates';
+import { RESULT_COLOR, RESULT_TINT, type ResultKind } from '../../utils/status';
 
 export interface PendingRunAction {
   kind: 'start' | 'finalise' | 'delete';
@@ -24,25 +25,25 @@ function isLiveStatus(run: RunResponse): boolean {
   return run.status === 'initialised' || run.status === 'started';
 }
 
-function rowBackground(run: RunResponse): string | undefined {
+function runResultKind(run: RunResponse): ResultKind {
   if (run.all_criteria_met === true) {
-    return 'var(--green-2)';
+    return 'pass';
   }
   if (run.all_criteria_met === false) {
-    return 'var(--red-2)';
+    return 'fail';
   }
-  return isLiveStatus(run) ? 'var(--blue-2)' : undefined;
+  return isLiveStatus(run) ? 'active' : 'skipped';
 }
 
 function ResultIcon({ run }: { run: RunResponse }) {
   if (run.all_criteria_met === true) {
-    return <IconCheck size={16} color="var(--green-9)" aria-label="criteria met" />;
+    return <IconCheck size={16} color={RESULT_COLOR.pass} aria-label="criteria met" />;
   }
   if (run.all_criteria_met === false) {
-    return <IconX size={16} color="var(--red-9)" aria-label="criteria not met" />;
+    return <IconX size={16} color={RESULT_COLOR.fail} aria-label="criteria not met" />;
   }
   if (!isLiveStatus(run)) {
-    return <IconQuestionMark size={16} color="var(--gray-9)" aria-label="result unknown" />;
+    return <IconQuestionMark size={16} color={RESULT_COLOR.skipped} aria-label="result unknown" />;
   }
   return null;
 }
@@ -129,7 +130,7 @@ export function RunsTable({
     );
   } else if (error) {
     body = (
-      <Table.Row style={{ backgroundColor: 'var(--red-2)' }}>
+      <Table.Row style={{ backgroundColor: RESULT_TINT.fail }}>
         <Table.Cell colSpan={6}>{error.message}</Table.Cell>
       </Table.Row>
     );
@@ -143,7 +144,7 @@ export function RunsTable({
     body = runs.map((run) => {
       const created = new Date(run.created_at);
       return (
-        <Table.Row key={run.run_id} style={{ backgroundColor: rowBackground(run) }}>
+        <Table.Row key={run.run_id} style={{ backgroundColor: RESULT_TINT[runResultKind(run)] }}>
           <Table.Cell>
             <Link asChild>
               <RouterLink to={`${isAdminView ? '/admin' : ''}/run/${run.run_id}`}>

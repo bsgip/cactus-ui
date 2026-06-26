@@ -27,8 +27,8 @@ export function StatusBanner({ stepStatus }: Props) {
         left: 0,
         right: 0,
         zIndex: 1050,
-        background: allComplete ? 'var(--green-9)' : '#212529',
-        color: '#fff',
+        background: allComplete ? 'var(--green-9)' : 'var(--gray-12)',
+        color: 'white',
         padding: '8px 20px',
         display: 'flex',
         alignItems: 'center',
@@ -40,8 +40,8 @@ export function StatusBanner({ stepStatus }: Props) {
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
         <IconClock size={16} /> {clock}
       </span>
-      <span style={{ color: allComplete ? 'rgba(255,255,255,0.6)' : '#6c757d' }}>|</span>
-      <span style={{ color: active || allComplete ? '#fff' : '#adb5bd' }}>
+      <span style={{ color: 'rgba(255,255,255,0.5)' }}>|</span>
+      <span style={{ color: active || allComplete ? 'white' : 'rgba(255,255,255,0.6)' }}>
         {active
           ? `Step ${active.index}: ${active.name}`
           : allComplete

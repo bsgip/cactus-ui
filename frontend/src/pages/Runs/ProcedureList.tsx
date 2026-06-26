@@ -2,7 +2,7 @@ import { Badge, Button, Flex, IconButton, Text } from '@radix-ui/themes';
 import { useState } from 'react';
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
 import type { ProcedureSummariesResponse, TestProcedureRunSummary } from '../../api/types';
-import accordionClasses from '../../components/categoryAccordion.module.css';
+import { CategoryAccordion } from '../../components/CategoryAccordion';
 import { ModalButton } from '../../components/ModalButton';
 import { ComplianceFilter } from './ComplianceFilter';
 import type { RunsSelection } from './RunsPage';
@@ -92,8 +92,7 @@ export function ProcedureList({ summaries, selection, onSelect }: ProcedureListP
 
       <div>
         {visibleGroups.map((gp) => (
-          <details key={gp.slug} open className={accordionClasses.item}>
-            <summary className={accordionClasses.control}>{gp.category}</summary>
+          <CategoryAccordion key={gp.slug} title={gp.category}>
             <Flex direction="column" gap="1" p="1">
               {gp.summaries
                 .filter((p) =>
@@ -122,7 +121,7 @@ export function ProcedureList({ summaries, selection, onSelect }: ProcedureListP
                   );
                 })}
             </Flex>
-          </details>
+          </CategoryAccordion>
         ))}
       </div>
     </Flex>

@@ -2,7 +2,7 @@ import { Flex, Grid, IconButton, Text, Tooltip } from '@radix-ui/themes';
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ComplianceClass, PlaylistTest } from '../../api/types';
-import accordionClasses from '../../components/categoryAccordion.module.css';
+import { CategoryAccordion } from '../../components/CategoryAccordion';
 import { ModalButton } from '../../components/ModalButton';
 import { ComplianceFilter } from '../Runs/ComplianceFilter';
 
@@ -86,8 +86,7 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
 
       <div>
         {categories.map(([category, tests]) => (
-          <details key={category} open className={accordionClasses.item}>
-            <summary className={accordionClasses.control}>{category}</summary>
+          <CategoryAccordion key={category} title={category}>
             <Grid columns="2" gap="0">
               {tests.map((t) => {
                 const queued = queuedIds.has(t.id);
@@ -125,7 +124,7 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
                 );
               })}
             </Grid>
-          </details>
+          </CategoryAccordion>
         ))}
       </div>
     </>

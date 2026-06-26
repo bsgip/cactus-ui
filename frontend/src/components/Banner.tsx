@@ -1,5 +1,5 @@
-import { Box, Flex, IconButton, Text } from '@radix-ui/themes';
-import { IconX } from '@tabler/icons-react';
+import { Callout, Flex, IconButton } from '@radix-ui/themes';
+import { IconAlertTriangle, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
 
 // Dismissible warning alert. The message comes from the BANNER_MESSAGE envvar and
@@ -12,20 +12,16 @@ export function Banner({ message }: { message: string | null | undefined }) {
   }
 
   return (
-    <Box
-      role="alert"
-      mb="3"
-      style={{
-        backgroundColor: 'var(--yellow-3)',
-        border: '1px solid var(--yellow-6)',
-        borderRadius: 'var(--radius-3)',
-        padding: 'var(--space-3)',
-      }}
-    >
+    <Callout.Root color="yellow" role="alert" mb="3">
       <Flex justify="between" align="center" gap="3">
-        <Text size="2">
-          <span dangerouslySetInnerHTML={{ __html: message }} />
-        </Text>
+        <Flex gap="2" align="center">
+          <Callout.Icon>
+            <IconAlertTriangle size={16} />
+          </Callout.Icon>
+          <Callout.Text>
+            <span dangerouslySetInnerHTML={{ __html: message }} />
+          </Callout.Text>
+        </Flex>
         <IconButton
           variant="ghost"
           color="gray"
@@ -36,6 +32,6 @@ export function Banner({ message }: { message: string | null | undefined }) {
           <IconX size={16} />
         </IconButton>
       </Flex>
-    </Box>
+    </Callout.Root>
   );
 }

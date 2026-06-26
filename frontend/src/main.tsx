@@ -11,7 +11,7 @@ const queryClient = new QueryClient();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Theme accentColor="blue" grayColor="slate" radius="medium">
+    <Theme accentColor="green" grayColor="slate" radius="medium">
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
       </QueryClientProvider>

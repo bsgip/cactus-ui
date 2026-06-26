@@ -1,15 +1,29 @@
 import { Button, Container, Flex, Link, Text } from '@radix-ui/themes';
 import { IconLogout } from '@tabler/icons-react';
+import { Fragment } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import type { SessionResponse } from '../api/types';
 
 const white = { color: 'white' };
 
+const NAV_LINKS = [
+  { to: '/procedures', label: 'Procedures' },
+  { to: '/runs', label: 'Runs' },
+  { to: '/playlists', label: 'Playlists' },
+  { to: '/config', label: 'Config' },
+];
+
+const ADMIN_LINKS = [
+  { to: '/admin', label: 'Admin' },
+  { to: '/admin/stats', label: 'Stats' },
+];
+
 export function NavBar({ session }: { session: SessionResponse }) {
   const isAdmin = session.permissions.includes('admin:all');
+  const links = isAdmin ? [...ADMIN_LINKS, ...NAV_LINKS] : NAV_LINKS;
 
   return (
-    <nav style={{ backgroundColor: 'var(--green-9)', padding: '8px 0' }}>
+    <nav style={{ backgroundColor: 'var(--accent-9)', padding: '8px 0' }}>
       <Container size="4">
         <Flex justify="between" align="center" px="4">
           <Flex gap="3" align="center">
@@ -19,33 +33,14 @@ export function NavBar({ session }: { session: SessionResponse }) {
             {session.username && <Text style={white}>User: {session.username}</Text>}
           </Flex>
           <Flex gap="3" align="center">
-            {isAdmin && (
-              <>
+            {links.map((link, i) => (
+              <Fragment key={link.to}>
+                {i > 0 && <Text style={white}>|</Text>}
                 <Link asChild style={white}>
-                  <RouterLink to="/admin">Admin</RouterLink>
+                  <RouterLink to={link.to}>{link.label}</RouterLink>
                 </Link>
-                <Text style={white}>|</Text>
-                <Link asChild style={white}>
-                  <RouterLink to="/admin/stats">Stats</RouterLink>
-                </Link>
-                <Text style={white}>|</Text>
-              </>
-            )}
-            <Link asChild style={white}>
-              <RouterLink to="/procedures">Procedures</RouterLink>
-            </Link>
-            <Text style={white}>|</Text>
-            <Link asChild style={white}>
-              <RouterLink to="/runs">Runs</RouterLink>
-            </Link>
-            <Text style={white}>|</Text>
-            <Link asChild style={white}>
-              <RouterLink to="/playlists">Playlists</RouterLink>
-            </Link>
-            <Text style={white}>|</Text>
-            <Link asChild style={white}>
-              <RouterLink to="/config">Config</RouterLink>
-            </Link>
+              </Fragment>
+            ))}
             <Button asChild variant="outline" size="1" style={white}>
               <a href="/logout">
                 <IconLogout size={14} />

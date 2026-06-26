@@ -1,4 +1,5 @@
-import { Box, Grid, Heading, Link, Separator, Text } from '@radix-ui/themes';
+import { Box, Callout, Grid, Heading, Link, Separator, Text } from '@radix-ui/themes';
+import { IconAlertTriangle } from '@tabler/icons-react';
 import { Banner } from '../components/Banner';
 import { SectionCard } from '../components/SectionCard';
 import { useSession } from '../hooks/useSession';
@@ -104,15 +105,10 @@ export function HomePage() {
         <Heading as="h2" size="6" mb="3">
           Common Issues
         </Heading>
-        <Box
-          role="alert"
-          style={{
-            backgroundColor: 'var(--yellow-3)',
-            border: '1px solid var(--yellow-6)',
-            borderRadius: 'var(--radius-3)',
-            padding: 'var(--space-3)',
-          }}
-        >
+        <Callout.Root color="yellow" role="alert">
+          <Callout.Icon>
+            <IconAlertTriangle size={16} />
+          </Callout.Icon>
           <ul style={{ paddingLeft: 20, margin: 0 }}>
             <li style={{ marginBottom: 8 }}>
               <strong>XSD validation is strict</strong> – Element ordering must be correct
@@ -126,7 +122,7 @@ export function HomePage() {
               refer to SA TS 5573:2025, Table 8.1
             </li>
           </ul>
-        </Box>
+        </Callout.Root>
       </Box>
 
       {session.support_email && (
