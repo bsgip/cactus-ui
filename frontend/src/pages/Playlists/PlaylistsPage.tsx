@@ -17,7 +17,8 @@ import { PageSpinner } from '../../components/PageSpinner';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useSession } from '../../hooks/useSession';
 import { PlaylistQueue } from './PlaylistQueue';
-import { PlaylistSessions } from './PlaylistSessions';
+import { PlaylistsIntro } from './PlaylistsIntro';
+import { ActivePlaylists, PastSessions } from './PlaylistSessions';
 import { TestLibrary } from './TestLibrary';
 
 const POLL_INTERVAL_MS = 10_000;
@@ -78,14 +79,21 @@ export function PlaylistsPage() {
     setQueue((q) =>
       q.some((t) => t.id === test.id) ? q.filter((t) => t.id !== test.id) : [...q, test]
     );
-  const moveUp = (i: number) =>
-    setQueue((q) => (i <= 0 ? q : swap(q, i - 1, i)));
-  const moveDown = (i: number) =>
-    setQueue((q) => (i >= q.length - 1 ? q : swap(q, i, i + 1)));
+  const reorder = (from: number, to: number) =>
+    setQueue((q) => {
+      const next = q.slice();
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
   const removeAt = (i: number) => setQueue((q) => q.filter((_, idx) => idx !== i));
 
   const runGroups = groupsQuery.data?.items ?? [];
   const activeRunGroup = runGroups.find((rg) => rg.run_group_id === runGroupId);
+
+  const sessions = sessionsQuery.data ?? [];
+  const activeSessions = sessions.filter((s) => s.is_active);
+  const pastSessions = sessions.filter((s) => !s.is_active);
 
   if (testsQuery.isPending || groupsQuery.isPending) {
     return <PageSpinner />;
@@ -112,7 +120,7 @@ export function PlaylistsPage() {
             </Heading>
             <DropdownMenu.Root>
               <DropdownMenu.Trigger>
-                <Button>
+                <Button color="blue">
                   {activeRunGroup?.name}
                   <IconChevronDown size={16} />
                 </Button>
@@ -136,6 +144,18 @@ export function PlaylistsPage() {
 
       <Separator size="4" mb="3" />
 
+      <PlaylistsIntro />
+
+      {activeSessions.length > 0 && (
+        <Box mb="4">
+          <ActivePlaylists
+            sessions={activeSessions}
+            isFinalising={finaliseMutation.isPending}
+            onFinalise={(runId) => finaliseMutation.mutate(runId)}
+          />
+        </Box>
+      )}
+
       {testsQuery.data && (
         <Grid columns={{ initial: '1', md: '3' }} gap="3">
           <TestLibrary
@@ -148,8 +168,7 @@ export function PlaylistsPage() {
             <PlaylistQueue
               queue={queue}
               isStarting={initMutation.isPending}
-              onMoveUp={moveUp}
-              onMoveDown={moveDown}
+              onReorder={reorder}
               onRemove={removeAt}
               onStart={() => initMutation.mutate(queue.map((t) => t.id))}
             />
@@ -157,21 +176,11 @@ export function PlaylistsPage() {
             {sessionsQuery.error ? (
               <ErrorAlert message="Failed to load session history." />
             ) : (
-              <PlaylistSessions
-                sessions={sessionsQuery.data ?? []}
-                isFinalising={finaliseMutation.isPending}
-                onFinalise={(runId) => finaliseMutation.mutate(runId)}
-              />
+              <PastSessions sessions={pastSessions} />
             )}
           </Box>
         </Grid>
       )}
     </>
   );
-}
-
-function swap<T>(arr: T[], i: number, j: number): T[] {
-  const next = arr.slice();
-  [next[i], next[j]] = [next[j], next[i]];
-  return next;
 }

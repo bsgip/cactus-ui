@@ -17,7 +17,7 @@ describe('playlists page', () => {
     expect(screen.getAllByText('ALL-01').length).toBeGreaterThan(0);
 
     // Empty queue + disabled Start
-    expect(screen.getByText('No tests selected.')).toBeInTheDocument();
+    expect(screen.getByText(/Pick tests from the/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Start Playlist' })).toBeDisabled();
   });
 

@@ -1,13 +1,12 @@
-import { Box, Button, Code, Flex, IconButton, Separator, Text } from '@radix-ui/themes';
-import { IconChevronDown, IconChevronUp, IconX } from '@tabler/icons-react';
-import { Fragment } from 'react';
+import { Box, Button, Callout, Code, Flex, IconButton, Separator, Text } from '@radix-ui/themes';
+import { IconArrowLeft, IconGripVertical, IconX } from '@tabler/icons-react';
+import { Fragment, useState } from 'react';
 import type { PlaylistTest } from '../../api/types';
 
 interface PlaylistQueueProps {
   queue: PlaylistTest[];
   isStarting: boolean;
-  onMoveUp: (index: number) => void;
-  onMoveDown: (index: number) => void;
+  onReorder: (from: number, to: number) => void;
   onRemove: (index: number) => void;
   onStart: () => void;
 }
@@ -15,19 +14,29 @@ interface PlaylistQueueProps {
 export function PlaylistQueue({
   queue,
   isStarting,
-  onMoveUp,
-  onMoveDown,
+  onReorder,
   onRemove,
   onStart,
 }: PlaylistQueueProps) {
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+
+  const endDrag = () => {
+    setDragIndex(null);
+    setOverIndex(null);
+  };
+  const handleDrop = () => {
+    if (dragIndex !== null && overIndex !== null && dragIndex !== overIndex) {
+      onReorder(dragIndex, overIndex);
+    }
+    endDrag();
+  };
+
   return (
     <>
       <Flex gap="2" align="center" py="1">
         <Text weight="medium" style={{ flex: 1 }}>
           Current Playlist
-        </Text>
-        <Text size="2" color="gray">
-          May take up to 30s per test
         </Text>
         <Button
           size="1"
@@ -41,17 +50,15 @@ export function PlaylistQueue({
       </Flex>
 
       {queue.length === 0 ? (
-        <Box
-          role="alert"
-          style={{
-            backgroundColor: 'var(--yellow-3)',
-            border: '1px solid var(--yellow-6)',
-            borderRadius: 'var(--radius-3)',
-            padding: 'var(--space-2)',
-          }}
-        >
-          <strong>No tests selected.</strong> Click tests in the library to build your playlist.
-        </Box>
+        <Callout.Root color="blue">
+          <Callout.Icon>
+            <IconArrowLeft size={16} />
+          </Callout.Icon>
+          <Callout.Text>
+            Pick tests from the <strong>Test Library</strong> to build your playlist, then drag to
+            set the order and press Start.
+          </Callout.Text>
+        </Callout.Root>
       ) : (
         <Box
           style={{
@@ -63,29 +70,31 @@ export function PlaylistQueue({
           {queue.map((t, i) => (
             <Fragment key={t.id}>
               {i > 0 && <Separator size="4" />}
-              <Flex gap="2" align="center" style={{ padding: '5px 10px' }}>
-                <Flex direction="column" gap="1">
-                  <IconButton
-                    variant="soft"
-                    color="gray"
-                    size="1"
-                    disabled={i === 0}
-                    aria-label={`Move ${t.id} up`}
-                    onClick={() => onMoveUp(i)}
-                  >
-                    <IconChevronUp size={12} />
-                  </IconButton>
-                  <IconButton
-                    variant="soft"
-                    color="gray"
-                    size="1"
-                    disabled={i === queue.length - 1}
-                    aria-label={`Move ${t.id} down`}
-                    onClick={() => onMoveDown(i)}
-                  >
-                    <IconChevronDown size={12} />
-                  </IconButton>
-                </Flex>
+              <Flex
+                gap="2"
+                align="center"
+                draggable
+                onDragStart={() => setDragIndex(i)}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setOverIndex(i);
+                }}
+                onDrop={handleDrop}
+                onDragEnd={endDrag}
+                style={{
+                  padding: '5px 10px',
+                  cursor: 'grab',
+                  opacity: dragIndex === i ? 0.4 : 1,
+                  background:
+                    dragIndex !== null && overIndex === i && dragIndex !== i
+                      ? 'var(--gray-3)'
+                      : undefined,
+                }}
+              >
+                <IconGripVertical size={14} color="var(--gray-8)" aria-hidden />
+                <Text size="1" color="gray" style={{ width: '1.5em', textAlign: 'right' }}>
+                  {i + 1}
+                </Text>
                 <Text as="span" style={{ flex: 1, minWidth: 0 }}>
                   <Code>{t.id}</Code>
                   <Text size="1" color="gray" ml="2">
@@ -106,6 +115,10 @@ export function PlaylistQueue({
           ))}
         </Box>
       )}
+
+      <Text as="div" size="1" color="gray" mt="1">
+        Test startup may take up to 30s.
+      </Text>
     </>
   );
 }

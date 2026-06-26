@@ -91,14 +91,14 @@ export function ProcedureList({ summaries, selection, onSelect }: ProcedureListP
       </Flex>
 
       <div>
-        {visibleGroups.map((gp) => (
-          <CategoryAccordion key={gp.slug} title={gp.category}>
-            <Flex direction="column" gap="1" p="1">
-              {gp.summaries
-                .filter((p) =>
-                  matchesFilter(summaries.classes_by_test[p.test_procedure_id], enabledClasses)
-                )
-                .map((p) => {
+        {visibleGroups.map((gp) => {
+          const visible = gp.summaries.filter((p) =>
+            matchesFilter(summaries.classes_by_test[p.test_procedure_id], enabledClasses)
+          );
+          return (
+            <CategoryAccordion key={gp.slug} title={gp.category} count={visible.length}>
+              <Flex direction="column" gap="1" p="1">
+                {visible.map((p) => {
                   const isActive =
                     selection.kind === 'procedure' && selection.id === p.test_procedure_id;
                   return (
@@ -120,9 +120,10 @@ export function ProcedureList({ summaries, selection, onSelect }: ProcedureListP
                     </Button>
                   );
                 })}
-            </Flex>
-          </CategoryAccordion>
-        ))}
+              </Flex>
+            </CategoryAccordion>
+          );
+        })}
       </div>
     </Flex>
   );

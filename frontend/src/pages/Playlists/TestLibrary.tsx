@@ -1,10 +1,11 @@
 import { Flex, Grid, IconButton, Text, Tooltip } from '@radix-ui/themes';
-import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
+import { IconAdjustmentsHorizontal, IconCheck } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ComplianceClass, PlaylistTest } from '../../api/types';
 import { CategoryAccordion } from '../../components/CategoryAccordion';
 import { ModalButton } from '../../components/ModalButton';
 import { ComplianceFilter } from '../Runs/ComplianceFilter';
+import cellClasses from './testLibrary.module.css';
 
 interface TestLibraryProps {
   testsByCategory: Record<string, PlaylistTest[]>;
@@ -50,7 +51,7 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
     .filter(([, tests]) => tests.length > 0);
 
   return (
-    <>
+    <div>
       <Flex gap="2" align="center" mb="1">
         <Text weight="medium" style={{ flex: 1 }}>
           Test Library
@@ -61,6 +62,7 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
           trigger={(open) => (
             <IconButton
               variant="outline"
+              color="blue"
               size="2"
               onClick={open}
               aria-label="Filter compliance classes"
@@ -86,7 +88,7 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
 
       <div>
         {categories.map(([category, tests]) => (
-          <CategoryAccordion key={category} title={category}>
+          <CategoryAccordion key={category} title={category} count={tests.length}>
             <Grid columns="2" gap="0">
               {tests.map((t) => {
                 const queued = queuedIds.has(t.id);
@@ -94,28 +96,17 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
                   <Tooltip key={t.id} content={t.description} side="right" delayDuration={400}>
                     <button
                       type="button"
+                      aria-pressed={queued}
                       onClick={() => onToggle(t)}
-                      style={{
-                        display: 'block',
-                        width: '100%',
-                        padding: '4px 8px',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        border: '1px solid var(--gray-5)',
-                        background: queued ? 'var(--blue-3)' : 'transparent',
-                        fontWeight: queued ? 500 : undefined,
-                      }}
+                      className={`${cellClasses.cell} ${queued ? cellClasses.cellSelected : ''}`}
                     >
-                      <Flex gap="1" align="center">
-                        <Text as="span" color={queued ? 'blue' : 'gray'}>
-                          {queued ? '✓' : '☐'}
-                        </Text>
-                        <Text
-                          as="span"
-                          size="2"
-                          truncate
-                          style={{ fontFamily: 'var(--code-font-family)' }}
+                      <Flex gap="2" align="center">
+                        <span
+                          className={`${cellClasses.box} ${queued ? cellClasses.boxChecked : ''}`}
                         >
+                          {queued && <IconCheck size={11} stroke={3} />}
+                        </span>
+                        <Text as="span" size="2" truncate weight={queued ? 'medium' : 'regular'}>
                           {t.id}
                         </Text>
                       </Flex>
@@ -127,6 +118,6 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
           </CategoryAccordion>
         ))}
       </div>
-    </>
+    </div>
   );
 }

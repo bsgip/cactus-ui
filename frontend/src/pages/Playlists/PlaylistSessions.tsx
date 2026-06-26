@@ -1,4 +1,4 @@
-import { Box, Button, Card, Code, DropdownMenu, Flex, Link, Table, Text } from '@radix-ui/themes';
+import { Box, Button, Card, Code, DropdownMenu, Flex, Heading, Link, Table, Text } from '@radix-ui/themes';
 import { IconDownload, IconPlayerPlay, IconPlayerStop } from '@tabler/icons-react';
 import { Link as RouterLink } from 'react-router-dom';
 import type { PlaylistSession, PlaylistTestStatus } from '../../api/types';
@@ -6,12 +6,6 @@ import { useConfirm } from '../../components/useConfirm';
 import { formatDate, formatRelativeDate } from '../../utils/dates';
 import { StatusDots } from './StatusDots';
 import { statusDots } from './statusDots';
-
-interface PlaylistSessionsProps {
-  sessions: PlaylistSession[];
-  isFinalising: boolean;
-  onFinalise: (runId: number) => void;
-}
 
 function testCountLabel(statuses: PlaylistTestStatus[]): string {
   return `${statuses.length} test${statuses.length !== 1 ? 's' : ''}`;
@@ -59,10 +53,16 @@ function DownloadMenu({ statuses }: { statuses: PlaylistTestStatus[] }) {
   );
 }
 
-export function PlaylistSessions({ sessions, isFinalising, onFinalise }: PlaylistSessionsProps) {
+interface ActivePlaylistsProps {
+  sessions: PlaylistSession[];
+  isFinalising: boolean;
+  onFinalise: (runId: number) => void;
+}
+
+// Live monitor for the currently-running playlist(s). Promoted to the top of the page so it
+// is the first thing visible while a playlist is in progress.
+export function ActivePlaylists({ sessions, isFinalising, onFinalise }: ActivePlaylistsProps) {
   const { confirm, confirmDialog } = useConfirm();
-  const active = sessions.filter((s) => s.is_active);
-  const past = sessions.filter((s) => !s.is_active);
 
   const confirmFinalise = (runId: number) =>
     confirm({
@@ -77,61 +77,67 @@ export function PlaylistSessions({ sessions, isFinalising, onFinalise }: Playlis
   return (
     <>
       {confirmDialog}
-      {active.length > 0 && (
-        <>
-          <Text as="div" weight="medium" my="1">
-            Active Playlist
-          </Text>
-          <Flex direction="column" gap="2">
-            {active.map((s) => {
-              const { activeRunId } = statusDots(s.test_statuses);
-              const goToRunId = activeRunId ?? s.first_run_id;
-              return (
-                <Card key={s.playlist_execution_id} style={{ border: '1px solid var(--blue-7)' }}>
-                  <Flex gap="2" align="center" wrap="wrap">
-                    <div>
-                      <Link asChild>
-                        <RouterLink to={`/run/${s.first_run_id}`}>
-                          <Code variant="ghost">{s.short_id}</Code>
-                        </RouterLink>
-                      </Link>
-                      <Text size="1" color="gray" ml="2">
-                        {testCountLabel(s.test_statuses)}
-                      </Text>
-                    </div>
-                    <Text size="2" color="gray">
-                      {formatDate(new Date(s.created_at))}
-                    </Text>
-                    <Box style={{ flex: 1 }}>
-                      <StatusDots testStatuses={s.test_statuses} />
-                    </Box>
-                    <Button size="1" asChild>
-                      <RouterLink to={`/run/${goToRunId}`}>
-                        <IconPlayerPlay size={14} />
-                        Go to run
-                      </RouterLink>
-                    </Button>
-                    <Button
-                      size="1"
-                      color="red"
-                      loading={isFinalising}
-                      onClick={() => confirmFinalise(goToRunId)}
-                    >
-                      <IconPlayerStop size={14} />
-                      Finalise Playlist
-                    </Button>
-                  </Flex>
-                </Card>
-              );
-            })}
-          </Flex>
-        </>
-      )}
+      <Heading as="h3" size="4" mb="2">
+        Active Playlist
+      </Heading>
+      <Flex direction="column" gap="2">
+        {sessions.map((s) => {
+          const { activeRunId } = statusDots(s.test_statuses);
+          const goToRunId = activeRunId ?? s.first_run_id;
+          return (
+            <Card key={s.playlist_execution_id} style={{ border: '1px solid var(--blue-7)' }}>
+              <Flex gap="2" align="center" wrap="wrap">
+                <div>
+                  <Link asChild>
+                    <RouterLink to={`/run/${s.first_run_id}`}>
+                      <Code variant="ghost">{s.short_id}</Code>
+                    </RouterLink>
+                  </Link>
+                  <Text size="1" color="gray" ml="2">
+                    {testCountLabel(s.test_statuses)}
+                  </Text>
+                </div>
+                <Text size="2" color="gray">
+                  {formatDate(new Date(s.created_at))}
+                </Text>
+                <Box style={{ flex: 1 }}>
+                  <StatusDots testStatuses={s.test_statuses} />
+                </Box>
+                <Button size="1" asChild>
+                  <RouterLink to={`/run/${goToRunId}`}>
+                    <IconPlayerPlay size={14} />
+                    Go to run
+                  </RouterLink>
+                </Button>
+                <Button
+                  size="1"
+                  color="red"
+                  loading={isFinalising}
+                  onClick={() => confirmFinalise(goToRunId)}
+                >
+                  <IconPlayerStop size={14} />
+                  Finalise Playlist
+                </Button>
+              </Flex>
+            </Card>
+          );
+        })}
+      </Flex>
+    </>
+  );
+}
 
+interface PastSessionsProps {
+  sessions: PlaylistSession[];
+}
+
+export function PastSessions({ sessions }: PastSessionsProps) {
+  return (
+    <>
       <Text as="div" weight="medium" my="1">
         Past Sessions
       </Text>
-      {past.length === 0 ? (
+      {sessions.length === 0 ? (
         <Text color="gray">No past playlist sessions.</Text>
       ) : (
         <Table.Root variant="surface">
@@ -144,7 +150,7 @@ export function PlaylistSessions({ sessions, isFinalising, onFinalise }: Playlis
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {past.map((s) => {
+            {sessions.map((s) => {
               const created = new Date(s.created_at);
               return (
                 <Table.Row key={s.playlist_execution_id}>
