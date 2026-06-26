@@ -1,4 +1,4 @@
-import { ActionIcon, Group, SimpleGrid, Text, Tooltip, UnstyledButton } from '@mantine/core';
+import { Flex, Grid, IconButton, Text, Tooltip } from '@radix-ui/themes';
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ComplianceClass, PlaylistTest } from '../../api/types';
@@ -51,22 +51,22 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
 
   return (
     <>
-      <Group gap="xs" wrap="nowrap" mb={4}>
-        <Text fw={500} flex={1}>
+      <Flex gap="2" align="center" mb="1">
+        <Text weight="medium" style={{ flex: 1 }}>
           Test Library
         </Text>
         <ModalButton
           title="Filter Compliance Classes"
           size="lg"
           trigger={(open) => (
-            <ActionIcon
+            <IconButton
               variant="outline"
-              size="lg"
+              size="2"
               onClick={open}
               aria-label="Filter compliance classes"
             >
               <IconAdjustmentsHorizontal size={18} />
-            </ActionIcon>
+            </IconButton>
           )}
         >
           {(close) => (
@@ -78,9 +78,9 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
             />
           )}
         </ModalButton>
-      </Group>
+      </Flex>
 
-      <Text size="sm" c="dimmed" mb={4}>
+      <Text as="div" size="2" color="gray" mb="1">
         {filterSummaryText(enabledNames, allClassNames.length)}
       </Text>
 
@@ -88,41 +88,43 @@ export function TestLibrary({ testsByCategory, classes, queuedIds, onToggle }: T
         {categories.map(([category, tests]) => (
           <details key={category} open className={accordionClasses.item}>
             <summary className={accordionClasses.control}>{category}</summary>
-            <SimpleGrid cols={2} spacing={0} verticalSpacing={0}>
+            <Grid columns="2" gap="0">
               {tests.map((t) => {
-                  const queued = queuedIds.has(t.id);
-                  return (
-                    <Tooltip
-                      key={t.id}
-                      label={t.description}
-                      position="right"
-                      withArrow
-                      openDelay={400}
+                const queued = queuedIds.has(t.id);
+                return (
+                  <Tooltip key={t.id} content={t.description} side="right" delayDuration={400}>
+                    <button
+                      type="button"
+                      onClick={() => onToggle(t)}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: '4px 8px',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        border: '1px solid var(--gray-5)',
+                        background: queued ? 'var(--blue-3)' : 'transparent',
+                        fontWeight: queued ? 500 : undefined,
+                      }}
                     >
-                      <UnstyledButton
-                        onClick={() => onToggle(t)}
-                        p="4px 8px"
-                        w="100%"
-                        bg={queued ? 'blue.1' : undefined}
-                        fw={queued ? 500 : undefined}
-                        style={{
-                          border: '1px solid var(--mantine-color-gray-3)',
-                          display: 'block',
-                        }}
-                      >
-                        <Group gap={5} wrap="nowrap">
-                          <Text component="span" c={queued ? 'blue' : 'dimmed'}>
-                            {queued ? '✓' : '☐'}
-                          </Text>
-                          <Text span ff="monospace" size="sm" truncate>
-                            {t.id}
-                          </Text>
-                        </Group>
-                      </UnstyledButton>
-                    </Tooltip>
-                  );
-                })}
-            </SimpleGrid>
+                      <Flex gap="1" align="center">
+                        <Text as="span" color={queued ? 'blue' : 'gray'}>
+                          {queued ? '✓' : '☐'}
+                        </Text>
+                        <Text
+                          as="span"
+                          size="2"
+                          truncate
+                          style={{ fontFamily: 'var(--code-font-family)' }}
+                        >
+                          {t.id}
+                        </Text>
+                      </Flex>
+                    </button>
+                  </Tooltip>
+                );
+              })}
+            </Grid>
           </details>
         ))}
       </div>

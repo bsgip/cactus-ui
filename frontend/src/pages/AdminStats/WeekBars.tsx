@@ -1,4 +1,4 @@
-import { Box, Flex, Text } from '@mantine/core';
+import { Box, Flex, Text } from '@radix-ui/themes';
 import type { WeekBar } from '../../api/types';
 import { SectionCard } from '../../components/SectionCard';
 
@@ -8,24 +8,32 @@ export function WeekBars({ bars }: { bars: WeekBar[] }) {
 
   return (
     <SectionCard title="Tests Per Week">
-      <Flex align="flex-end" gap={2} h={110}>
+      <Flex align="end" gap="1" style={{ height: 110 }}>
         {bars.map((bar, i) => (
           <Flex key={i} direction="column" align="center" style={{ flex: 1, minWidth: 0 }}>
-            <Text fz="0.6rem" c="dimmed">
+            <Text color="gray" style={{ fontSize: '0.6rem' }}>
               {bar.count}
             </Text>
             <Box
               title={`${bar.month || ''} ${bar.year || ''}: ${bar.count} runs`.trim()}
-              bg="green.6"
-              w="100%"
-              style={{ height: Math.max(2, Math.round((bar.count / maxCount) * 80)) }}
+              style={{
+                width: '100%',
+                backgroundColor: 'var(--green-9)',
+                height: Math.max(2, Math.round((bar.count / maxCount) * 80)),
+              }}
             />
           </Flex>
         ))}
       </Flex>
-      <Flex gap={2} mt={4}>
+      <Flex gap="1" mt="1">
         {bars.map((bar, i) => (
-          <Text key={i} fz="0.6rem" c="dimmed" ta="center" truncate style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            key={i}
+            color="gray"
+            align="center"
+            truncate
+            style={{ fontSize: '0.6rem', flex: 1, minWidth: 0 }}
+          >
             {[bar.month, bar.year].filter(Boolean).join(' ') || ' '}
           </Text>
         ))}

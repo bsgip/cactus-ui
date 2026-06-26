@@ -1,4 +1,4 @@
-import { ActionIcon, Badge, Group, NavLink, Stack, Text } from '@mantine/core';
+import { Badge, Button, Flex, IconButton, Text } from '@radix-ui/themes';
 import { useState } from 'react';
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
 import type { ProcedureSummariesResponse, TestProcedureRunSummary } from '../../api/types';
@@ -13,7 +13,7 @@ interface ProcedureListProps {
   onSelect: (selection: RunsSelection) => void;
 }
 
-function badgeColor(summary: TestProcedureRunSummary): string {
+function badgeColor(summary: TestProcedureRunSummary): 'green' | 'red' | 'gray' {
   if (summary.latest_all_criteria_met === true) {
     return 'green';
   }
@@ -51,30 +51,32 @@ export function ProcedureList({ summaries, selection, onSelect }: ProcedureListP
   );
 
   return (
-    <Stack gap="xs">
-      <NavLink
-        component="button"
-        label="Active Runs"
-        active={selection.kind === 'active'}
+    <Flex direction="column" gap="2">
+      <Button
+        variant={selection.kind === 'active' ? 'solid' : 'soft'}
+        color={selection.kind === 'active' ? undefined : 'gray'}
         onClick={() => onSelect({ kind: 'active' })}
-      />
+        style={{ justifyContent: 'flex-start', width: '100%' }}
+      >
+        Active Runs
+      </Button>
 
-      <Group gap="xs" wrap="nowrap">
-        <Text size="sm" flex={1}>
+      <Flex gap="2" align="center">
+        <Text size="2" style={{ flex: 1 }}>
           {filterSummaryText(enabledNames, summaries.classes.length)}
         </Text>
         <ModalButton
           title="Filter Compliance Classes"
           size="lg"
           trigger={(open) => (
-            <ActionIcon
+            <IconButton
               variant="outline"
-              size="lg"
+              size="2"
               onClick={open}
               aria-label="Filter compliance classes"
             >
               <IconAdjustmentsHorizontal size={18} />
-            </ActionIcon>
+            </IconButton>
           )}
         >
           {(close) => (
@@ -86,45 +88,43 @@ export function ProcedureList({ summaries, selection, onSelect }: ProcedureListP
             />
           )}
         </ModalButton>
-      </Group>
+      </Flex>
 
       <div>
         {visibleGroups.map((gp) => (
           <details key={gp.slug} open className={accordionClasses.item}>
             <summary className={accordionClasses.control}>{gp.category}</summary>
-            {gp.summaries
-              .filter((p) =>
-                matchesFilter(summaries.classes_by_test[p.test_procedure_id], enabledClasses)
-              )
-              .map((p) => (
-                <NavLink
-                  key={p.test_procedure_id}
-                  component="button"
-                  label={p.test_procedure_id}
-                  active={selection.kind === 'procedure' && selection.id === p.test_procedure_id}
-                  mt={4}
-                  mx={4}
-                  style={{
-                    border: '1px solid var(--mantine-color-gray-3)',
-                    borderRadius: 'var(--mantine-radius-sm)',
-                  }}
-                  onClick={() =>
-                    onSelect({
-                      kind: 'procedure',
-                      id: p.test_procedure_id,
-                      description: p.description,
-                    })
-                  }
-                  rightSection={
-                    p.run_count > 0 ? (
-                      <Badge color={badgeColor(p)}>{p.run_count}</Badge>
-                    ) : undefined
-                  }
-                />
-              ))}
+            <Flex direction="column" gap="1" p="1">
+              {gp.summaries
+                .filter((p) =>
+                  matchesFilter(summaries.classes_by_test[p.test_procedure_id], enabledClasses)
+                )
+                .map((p) => {
+                  const isActive =
+                    selection.kind === 'procedure' && selection.id === p.test_procedure_id;
+                  return (
+                    <Button
+                      key={p.test_procedure_id}
+                      variant={isActive ? 'solid' : 'soft'}
+                      color={isActive ? undefined : 'gray'}
+                      onClick={() =>
+                        onSelect({
+                          kind: 'procedure',
+                          id: p.test_procedure_id,
+                          description: p.description,
+                        })
+                      }
+                      style={{ justifyContent: 'space-between', width: '100%' }}
+                    >
+                      <span>{p.test_procedure_id}</span>
+                      {p.run_count > 0 && <Badge color={badgeColor(p)}>{p.run_count}</Badge>}
+                    </Button>
+                  );
+                })}
+            </Flex>
           </details>
         ))}
       </div>
-    </Stack>
+    </Flex>
   );
 }

@@ -1,5 +1,4 @@
-import { Anchor, Text, Title } from '@mantine/core';
-import { useDocumentTitle } from '@mantine/hooks';
+import { Heading, Link, Text } from '@radix-ui/themes';
 import { useQuery } from '@tanstack/react-query';
 import hljs from 'highlight.js/lib/core';
 import yamlLanguage from 'highlight.js/lib/languages/yaml';
@@ -8,6 +7,7 @@ import { fetchProcedureYaml } from '../api/procedures';
 import { Banner } from '../components/Banner';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { PageSpinner } from '../components/PageSpinner';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useSession } from '../hooks/useSession';
 import 'highlight.js/styles/default.css';
 
@@ -25,15 +25,13 @@ export function ProcedureYamlPage() {
   return (
     <>
       <Banner message={session?.banner_message} />
-      <Title order={2} mb="md">
+      <Heading as="h2" size="6" mb="3">
         Test Procedure {testProcedureId}
-      </Title>
+      </Heading>
 
-      <Text mb="md">
+      <Text as="p" mb="3">
         The following test procedure is described and maintained at{' '}
-        <Anchor href="https://github.com/bsgip/cactus-test-definitions">
-          CACTUS Test Definitions
-        </Anchor>{' '}
+        <Link href="https://github.com/bsgip/cactus-test-definitions">CACTUS Test Definitions</Link>{' '}
         repository
       </Text>
 

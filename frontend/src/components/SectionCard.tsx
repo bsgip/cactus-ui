@@ -1,4 +1,4 @@
-import { Box, Flex, Separator, Text } from '@radix-ui/themes';
+import { Box, Flex, Heading, Separator } from '@radix-ui/themes';
 import type { ReactNode } from 'react';
 
 interface SectionCardProps {
@@ -30,7 +30,13 @@ export function SectionCard({ title, action, children, h, scroll }: SectionCardP
       }}
     >
       <Flex justify="between" align="center" px="3" py="2">
-        {typeof title === 'string' ? <Text weight="bold">{title}</Text> : title}
+        {typeof title === 'string' ? (
+          <Heading as="h3" size="3">
+            {title}
+          </Heading>
+        ) : (
+          title
+        )}
         {action}
       </Flex>
       <Separator size="4" />

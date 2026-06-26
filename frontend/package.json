@@ -16,10 +16,6 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@mantine/core": "^8.3.5",
-    "@mantine/hooks": "^8.3.5",
-    "@mantine/modals": "^8.3.5",
-    "@mantine/notifications": "^8.3.5",
     "@radix-ui/themes": "^3.3.0",
     "@tabler/icons-react": "^3.36.0",
     "@tanstack/react-query": "^5.90.0",
@@ -47,8 +43,6 @@
     "json-schema-to-typescript": "^15.0.4",
     "msw": "^2.12.0",
     "postcss": "^8.5.0",
-    "postcss-preset-mantine": "^1.18.0",
-    "postcss-simple-vars": "^7.0.1",
     "prettier": "^3.6.0",
     "typescript": "~5.9.0",
     "typescript-eslint": "^8.46.0",

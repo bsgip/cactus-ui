@@ -1,13 +1,13 @@
-import { Alert, Divider, SimpleGrid, Skeleton, Stack, Text } from '@mantine/core';
-import { useDocumentTitle } from '@mantine/hooks';
+import { Callout, Flex, Grid, Link, Separator, Skeleton, Text } from '@radix-ui/themes';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import { fetchConfig } from '../../api/config';
 import { Banner } from '../../components/Banner';
 import { ErrorAlert } from '../../components/ErrorAlert';
 import { PageHeader } from '../../components/PageHeader';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useSession } from '../../hooks/useSession';
 import { DeviceCapabilityCard } from './DeviceCapabilityCard';
 import { DomainCard } from './DomainCard';
@@ -37,33 +37,39 @@ export function ConfigPage() {
   };
 
   return (
-    <Stack gap="md">
+    <Flex direction="column" gap="3">
       <Banner message={session?.banner_message} />
       <PageHeader title="User Configuration" />
       <Text>
         The following configuration options will apply to all future{' '}
-        <Text component={Link} to="/runs" c="blue" inherit>
-          Runs
-        </Text>{' '}
+        <Link asChild>
+          <RouterLink to="/runs">Runs</RouterLink>
+        </Link>{' '}
         that are created.
       </Text>
-      <Divider />
+      <Separator size="4" />
 
       {actionError && <ErrorAlert message={actionError} />}
 
       {configQuery.isPending ? (
-        <Stack>
-          <Skeleton height={200} />
-          <Skeleton height={200} />
-        </Stack>
+        <Flex direction="column" gap="3">
+          <Skeleton height="200px" />
+          <Skeleton height="200px" />
+        </Flex>
       ) : configQuery.error ? (
         <ErrorAlert message="Unable to communicate with test server. Please try refreshing the page or re-logging in." />
       ) : (
-        <Stack gap="md">
+        <Flex direction="column" gap="3">
           {runGroups.length === 0 && (
-            <Alert color="red" icon={<IconAlertTriangle size={16} />} role="alert">
-              There are no Run Groups configured. Please create one below in order to start testing.
-            </Alert>
+            <Callout.Root color="red" role="alert">
+              <Callout.Icon>
+                <IconAlertTriangle size={16} />
+              </Callout.Icon>
+              <Callout.Text>
+                There are no Run Groups configured. Please create one below in order to start
+                testing.
+              </Callout.Text>
+            </Callout.Root>
           )}
 
           <RunGroupsCard
@@ -73,16 +79,16 @@ export function ConfigPage() {
             setError={setActionError}
           />
 
-          <SimpleGrid cols={3}>
+          <Grid columns="3" gap="3">
             <PenCard pen={config?.config.pen ?? null} setError={setActionError} />
             <DomainCard
               domain={config?.config.subscription_domain ?? ''}
               setError={setActionError}
             />
             <DeviceCapabilityCard />
-          </SimpleGrid>
-        </Stack>
+          </Grid>
+        </Flex>
       )}
-    </Stack>
+    </Flex>
   );
 }

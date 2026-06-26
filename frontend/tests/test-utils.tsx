@@ -1,5 +1,4 @@
-import { MantineProvider } from '@mantine/core';
-import { ModalsProvider } from '@mantine/modals';
+import { Theme } from '@radix-ui/themes';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
@@ -9,13 +8,14 @@ import { routes } from '../src/router';
 export function renderApp(path = '/') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const router = createMemoryRouter(routes, { initialEntries: [path] });
-  return render(
-    <MantineProvider>
-      <QueryClientProvider client={queryClient}>
-        <ModalsProvider>
+  return {
+    router,
+    ...render(
+      <Theme accentColor="blue" grayColor="slate" radius="medium">
+        <QueryClientProvider client={queryClient}>
           <RouterProvider router={router} />
-        </ModalsProvider>
-      </QueryClientProvider>
-    </MantineProvider>
-  );
+        </QueryClientProvider>
+      </Theme>
+    ),
+  };
 }

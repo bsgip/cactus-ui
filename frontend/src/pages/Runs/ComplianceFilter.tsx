@@ -1,4 +1,4 @@
-import { Button, Checkbox, Group, Stack, Text } from '@mantine/core';
+import { Button, Checkbox, Flex, Text } from '@radix-ui/themes';
 import type { ComplianceClass } from '../../api/types';
 
 interface ComplianceFilterProps {
@@ -24,22 +24,25 @@ export function ComplianceFilter({ classes, enabled, onChange, close }: Complian
 
   return (
     <>
-      <Text mb="sm">The following compliance classes are defined in TS 5573:2025 (Table 12.5)</Text>
-      <Stack gap="xs">
+      <Text as="p" mb="2">
+        The following compliance classes are defined in TS 5573:2025 (Table 12.5)
+      </Text>
+      <Flex direction="column" gap="2">
         {classes.map((c) => (
-          <Checkbox
-            key={c.name}
-            checked={enabled.has(c.name)}
-            onChange={(event) => toggle(c.name, event.currentTarget.checked)}
-            label={
-              <>
+          <Text as="label" size="2" key={c.name}>
+            <Flex gap="2" align="center">
+              <Checkbox
+                checked={enabled.has(c.name)}
+                onCheckedChange={(checked) => toggle(c.name, checked === true)}
+              />
+              <span>
                 <strong>({c.name})</strong> {c.description}
-              </>
-            }
-          />
+              </span>
+            </Flex>
+          </Text>
         ))}
-      </Stack>
-      <Group justify="flex-end" mt="md">
+      </Flex>
+      <Flex justify="end" gap="3" mt="3">
         <Button
           variant="outline"
           onClick={() => onChange(allEnabled ? new Set() : new Set(classes.map((c) => c.name)))}
@@ -47,7 +50,7 @@ export function ComplianceFilter({ classes, enabled, onChange, close }: Complian
           {allEnabled ? 'Select NONE' : 'Select ALL'}
         </Button>
         <Button onClick={close}>Close</Button>
-      </Group>
+      </Flex>
     </>
   );
 }

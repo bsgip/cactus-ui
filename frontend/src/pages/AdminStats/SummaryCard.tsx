@@ -1,17 +1,17 @@
-import { Card, Text } from '@mantine/core';
+import { Card, Text } from '@radix-ui/themes';
 import type { ReactNode } from 'react';
 
 export function SummaryCard({ value, label, sub }: { value: ReactNode; label: string; sub?: string }) {
   return (
-    <Card ta="center">
-      <Text fz="xl" fw={700}>
+    <Card style={{ textAlign: 'center' }}>
+      <Text as="div" size="5" weight="bold">
         {value}
       </Text>
-      <Text size="sm" c="dimmed">
+      <Text as="div" size="2" color="gray">
         {label}
       </Text>
       {sub && (
-        <Text size="xs" c="dimmed">
+        <Text as="div" size="1" color="gray">
           {sub}
         </Text>
       )}

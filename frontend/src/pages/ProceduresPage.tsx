@@ -1,11 +1,11 @@
-import { Anchor, Table, Title } from '@mantine/core';
-import { useDocumentTitle } from '@mantine/hooks';
+import { Heading, Link, Table } from '@radix-ui/themes';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import { fetchProcedures } from '../api/procedures';
 import { Banner } from '../components/Banner';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { PageSpinner } from '../components/PageSpinner';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useSession } from '../hooks/useSession';
 
 export function ProceduresPage() {
@@ -19,45 +19,47 @@ export function ProceduresPage() {
   return (
     <>
       <Banner message={session?.banner_message} />
-      <Title order={2} mb="md">
+      <Heading as="h2" size="6" mb="3">
         Test Procedures
-      </Title>
+      </Heading>
 
       {isPending ? (
         <PageSpinner />
       ) : error ? (
         <ErrorAlert message="Failed to retrieve procedures." />
       ) : (
-        <Table striped>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Test Procedure ID</Table.Th>
-              <Table.Th>Description</Table.Th>
-              <Table.Th>Category</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
+        <Table.Root variant="surface">
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeaderCell>Test Procedure ID</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>Description</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>Category</Table.ColumnHeaderCell>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
             {data.procedures.length === 0 ? (
-              <Table.Tr>
-                <Table.Td colSpan={3} ta="center">
+              <Table.Row>
+                <Table.Cell colSpan={3} style={{ textAlign: 'center' }}>
                   No procedures available.
-                </Table.Td>
-              </Table.Tr>
+                </Table.Cell>
+              </Table.Row>
             ) : (
               data.procedures.map((procedure) => (
-                <Table.Tr key={procedure.test_procedure_id}>
-                  <Table.Td>
-                    <Anchor component={Link} to={`/procedure/${procedure.test_procedure_id}`}>
-                      {procedure.test_procedure_id}
-                    </Anchor>
-                  </Table.Td>
-                  <Table.Td>{procedure.description}</Table.Td>
-                  <Table.Td>{procedure.category}</Table.Td>
-                </Table.Tr>
+                <Table.Row key={procedure.test_procedure_id}>
+                  <Table.Cell>
+                    <Link asChild>
+                      <RouterLink to={`/procedure/${procedure.test_procedure_id}`}>
+                        {procedure.test_procedure_id}
+                      </RouterLink>
+                    </Link>
+                  </Table.Cell>
+                  <Table.Cell>{procedure.description}</Table.Cell>
+                  <Table.Cell>{procedure.category}</Table.Cell>
+                </Table.Row>
               ))
             )}
-          </Table.Tbody>
-        </Table>
+          </Table.Body>
+        </Table.Root>
       )}
     </>
   );

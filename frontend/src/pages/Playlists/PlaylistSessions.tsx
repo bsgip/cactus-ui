@@ -1,8 +1,8 @@
-import { Anchor, Box, Button, Card, Group, Menu, Stack, Table, Text } from '@mantine/core';
-import { modals } from '@mantine/modals';
+import { Box, Button, Card, Code, DropdownMenu, Flex, Link, Table, Text } from '@radix-ui/themes';
 import { IconDownload, IconPlayerPlay, IconPlayerStop } from '@tabler/icons-react';
-import { Link } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import type { PlaylistSession, PlaylistTestStatus } from '../../api/types';
+import { useConfirm } from '../../components/useConfirm';
 import { formatDate, formatRelativeDate } from '../../utils/dates';
 import { StatusDots } from './StatusDots';
 import { statusDots } from './statusDots';
@@ -21,7 +21,7 @@ function DownloadMenu({ statuses }: { statuses: PlaylistTestStatus[] }) {
   const withArtifacts = statuses.filter((ts) => ts.has_artifacts);
   if (withArtifacts.length === 0) {
     return (
-      <Button size="xs" variant="outline" color="gray" disabled aria-label="No artifacts">
+      <Button size="1" variant="outline" color="gray" disabled aria-label="No artifacts">
         <IconDownload size={14} />
       </Button>
     );
@@ -30,156 +30,153 @@ function DownloadMenu({ statuses }: { statuses: PlaylistTestStatus[] }) {
   const downloadAllHref = `/playlist/artifacts?run_ids=${withArtifacts.map((ts) => ts.run_id).join(',')}`;
 
   return (
-    <Menu position="bottom-end">
-      <Menu.Target>
-        <Button size="xs" variant="outline" color="gray" aria-label="Download artifacts">
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger>
+        <Button size="1" variant="outline" color="gray" aria-label="Download artifacts">
           <IconDownload size={14} />
         </Button>
-      </Menu.Target>
-      <Menu.Dropdown>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content align="end">
         {withArtifacts.map((ts) => (
-          <Menu.Item key={ts.run_id} component="a" href={`/run/${ts.run_id}/artifact`}>
-            #{ts.run_id} – {ts.test_procedure_id}
-          </Menu.Item>
+          <DropdownMenu.Item key={ts.run_id} asChild>
+            <a href={`/run/${ts.run_id}/artifact`}>
+              #{ts.run_id} – {ts.test_procedure_id}
+            </a>
+          </DropdownMenu.Item>
         ))}
         {withArtifacts.length > 1 && (
           <>
-            <Menu.Divider />
-            <Menu.Item
-              component="a"
-              href={downloadAllHref}
-              leftSection={<IconDownload size={14} />}
-            >
-              Download All
-            </Menu.Item>
+            <DropdownMenu.Separator />
+            <DropdownMenu.Item asChild>
+              <a href={downloadAllHref}>
+                <IconDownload size={14} /> Download All
+              </a>
+            </DropdownMenu.Item>
           </>
         )}
-      </Menu.Dropdown>
-    </Menu>
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
   );
 }
 
 export function PlaylistSessions({ sessions, isFinalising, onFinalise }: PlaylistSessionsProps) {
+  const { confirm, confirmDialog } = useConfirm();
   const active = sessions.filter((s) => s.is_active);
   const past = sessions.filter((s) => !s.is_active);
 
   const confirmFinalise = (runId: number) =>
-    modals.openConfirmModal({
+    confirm({
       title: 'Finalise playlist',
-      children: (
-        <Text size="sm">
-          Finalise this playlist? The current test will be finalised and remaining tests skipped.
-        </Text>
-      ),
-      labels: { confirm: 'Finalise Playlist', cancel: 'Cancel' },
-      confirmProps: { color: 'red' },
+      body: 'Finalise this playlist? The current test will be finalised and remaining tests skipped.',
+      confirmLabel: 'Finalise Playlist',
+      cancelLabel: 'Cancel',
+      confirmColor: 'red',
       onConfirm: () => onFinalise(runId),
     });
 
   return (
     <>
+      {confirmDialog}
       {active.length > 0 && (
         <>
-          <Text fw={500} py={4}>
+          <Text as="div" weight="medium" my="1">
             Active Playlist
           </Text>
-          <Stack gap="xs">
+          <Flex direction="column" gap="2">
             {active.map((s) => {
               const { activeRunId } = statusDots(s.test_statuses);
               const goToRunId = activeRunId ?? s.first_run_id;
               return (
-                <Card key={s.playlist_execution_id} padding="xs" bd="1px solid blue.5">
-                  <Group gap="sm" wrap="wrap">
+                <Card key={s.playlist_execution_id} style={{ border: '1px solid var(--blue-7)' }}>
+                  <Flex gap="2" align="center" wrap="wrap">
                     <div>
-                      <Anchor component={Link} to={`/run/${s.first_run_id}`}>
-                        <Text span ff="monospace">
-                          {s.short_id}
-                        </Text>
-                      </Anchor>
-                      <Text component="small" size="xs" c="dimmed" ml={6}>
+                      <Link asChild>
+                        <RouterLink to={`/run/${s.first_run_id}`}>
+                          <Code variant="ghost">{s.short_id}</Code>
+                        </RouterLink>
+                      </Link>
+                      <Text size="1" color="gray" ml="2">
                         {testCountLabel(s.test_statuses)}
                       </Text>
                     </div>
-                    <Text size="sm" c="dimmed">
+                    <Text size="2" color="gray">
                       {formatDate(new Date(s.created_at))}
                     </Text>
-                    <Box flex={1}>
+                    <Box style={{ flex: 1 }}>
                       <StatusDots testStatuses={s.test_statuses} />
                     </Box>
-                    <Button
-                      size="xs"
-                      component={Link}
-                      to={`/run/${goToRunId}`}
-                      leftSection={<IconPlayerPlay size={14} />}
-                    >
-                      Go to run
+                    <Button size="1" asChild>
+                      <RouterLink to={`/run/${goToRunId}`}>
+                        <IconPlayerPlay size={14} />
+                        Go to run
+                      </RouterLink>
                     </Button>
                     <Button
-                      size="xs"
+                      size="1"
                       color="red"
                       loading={isFinalising}
                       onClick={() => confirmFinalise(goToRunId)}
-                      leftSection={<IconPlayerStop size={14} />}
                     >
+                      <IconPlayerStop size={14} />
                       Finalise Playlist
                     </Button>
-                  </Group>
+                  </Flex>
                 </Card>
               );
             })}
-          </Stack>
+          </Flex>
         </>
       )}
 
-      <Text fw={500} py={4}>
+      <Text as="div" weight="medium" my="1">
         Past Sessions
       </Text>
       {past.length === 0 ? (
-        <Text c="dimmed">No past playlist sessions.</Text>
+        <Text color="gray">No past playlist sessions.</Text>
       ) : (
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Session</Table.Th>
-              <Table.Th>Date</Table.Th>
-              <Table.Th>Status</Table.Th>
-              <Table.Th />
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
+        <Table.Root variant="surface">
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeaderCell>Session</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>Date</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>Status</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell />
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
             {past.map((s) => {
               const created = new Date(s.created_at);
               return (
-                <Table.Tr key={s.playlist_execution_id}>
-                  <Table.Td>
-                    <Anchor component={Link} to={`/run/${s.first_run_id}`}>
-                      <Text span ff="monospace">
-                        {s.short_id}
-                      </Text>
-                    </Anchor>
+                <Table.Row key={s.playlist_execution_id}>
+                  <Table.Cell>
+                    <Link asChild>
+                      <RouterLink to={`/run/${s.first_run_id}`}>
+                        <Code variant="ghost">{s.short_id}</Code>
+                      </RouterLink>
+                    </Link>
                     <br />
-                    <Text component="small" size="xs" c="dimmed">
+                    <Text size="1" color="gray">
                       {testCountLabel(s.test_statuses)}
                     </Text>
-                  </Table.Td>
-                  <Table.Td>
+                  </Table.Cell>
+                  <Table.Cell>
                     {formatDate(created)}
                     <br />
-                    <Text component="small" size="xs" c="dimmed">
+                    <Text size="1" color="gray">
                       {formatRelativeDate(created)}
                     </Text>
-                  </Table.Td>
-                  <Table.Td>
+                  </Table.Cell>
+                  <Table.Cell>
                     <StatusDots testStatuses={s.test_statuses} />
-                  </Table.Td>
-                  <Table.Td align="right">
+                  </Table.Cell>
+                  <Table.Cell style={{ textAlign: 'right' }}>
                     <DownloadMenu statuses={s.test_statuses} />
-                  </Table.Td>
-                </Table.Tr>
+                  </Table.Cell>
+                </Table.Row>
               );
             })}
-          </Table.Tbody>
-        </Table>
+          </Table.Body>
+        </Table.Root>
       )}
     </>
   );

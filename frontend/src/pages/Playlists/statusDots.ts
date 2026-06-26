@@ -3,11 +3,11 @@ import type { PlaylistTestStatus } from '../../api/types';
 export type DotKind = 'success' | 'failed' | 'pending' | 'active' | 'skipped';
 
 export const DOT_COLOR: Record<DotKind, string> = {
-  success: 'var(--mantine-color-green-6)',
-  failed: 'var(--mantine-color-red-6)',
-  pending: 'var(--mantine-color-gray-5)',
-  active: 'var(--mantine-color-blue-6)',
-  skipped: 'var(--mantine-color-gray-6)',
+  success: 'var(--green-9)',
+  failed: 'var(--red-9)',
+  pending: 'var(--gray-7)',
+  active: 'var(--blue-9)',
+  skipped: 'var(--gray-9)',
 };
 
 // Returns the ordered status dots plus the run the playlist is currently sitting on

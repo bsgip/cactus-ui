@@ -16,7 +16,7 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
-// jsdom shims required by Mantine (https://mantine.dev/guides/vitest/)
+// jsdom shims for layout/measurement APIs jsdom lacks (used by Radix Themes + Chart.js).
 const { getComputedStyle } = window;
 window.getComputedStyle = (elt) => getComputedStyle(elt);
 window.HTMLElement.prototype.scrollIntoView = () => {};

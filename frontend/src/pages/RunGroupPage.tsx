@@ -1,28 +1,17 @@
-import {
-  Anchor,
-  Badge,
-  Box,
-  Button,
-  Divider,
-  Group,
-  Menu,
-  Table,
-  Text,
-  Title,
-} from '@mantine/core';
-import { useDocumentTitle } from '@mantine/hooks';
+import { Badge, Box, Button, DropdownMenu, Flex, Heading, Link, Separator, Table, Text } from '@radix-ui/themes';
 import { IconChevronDown } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import { fetchCompliance } from '../api/runGroup';
 import { fetchRunGroups } from '../api/runs';
 import type { ComplianceStatus } from '../api/types';
 import { Banner } from '../components/Banner';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { PageSpinner } from '../components/PageSpinner';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useSession } from '../hooks/useSession';
 
-const STATUS_COLOR: Record<ComplianceStatus, string> = {
+const STATUS_COLOR: Record<ComplianceStatus, 'green' | 'red' | 'blue' | 'gray'> = {
   success: 'green',
   failed: 'red',
   active: 'blue',
@@ -34,6 +23,7 @@ export function RunGroupPage({ isAdminView }: { isAdminView: boolean }) {
   useDocumentTitle('Compliance - CACTUS');
   const { runGroupId: runGroupIdParam } = useParams();
   const runGroupId = Number(runGroupIdParam);
+  const navigate = useNavigate();
   const { data: session } = useSession();
 
   const groupsQuery = useQuery({
@@ -61,78 +51,88 @@ export function RunGroupPage({ isAdminView }: { isAdminView: boolean }) {
       {groupsQuery.error && <ErrorAlert message="Unable to fetch run groups." />}
       {complianceQuery.error && <ErrorAlert message="Unable to fetch compliance data." />}
 
-      <Group justify="space-between" mb="xs">
-        <Group gap="sm">
-          <Title order={2}>Compliance for</Title>
+      <Flex justify="between" align="center" mb="1">
+        <Flex gap="2" align="center">
+          <Heading as="h2" size="6">
+            Compliance for
+          </Heading>
           {runGroups.length < 2 ? (
-            activeRunGroup && <Title order={2}>{activeRunGroup.name}</Title>
+            activeRunGroup && (
+              <Heading as="h2" size="6">
+                {activeRunGroup.name}
+              </Heading>
+            )
           ) : (
-            <Menu>
-              <Menu.Target>
-                <Button rightSection={<IconChevronDown size={16} />}>
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger>
+                <Button>
                   {activeRunGroup?.name}
+                  <IconChevronDown size={16} />
                 </Button>
-              </Menu.Target>
-              <Menu.Dropdown>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content>
                 {runGroups
                   .filter((rg) => rg.run_group_id !== runGroupId)
                   .map((rg) => (
-                    <Menu.Item key={rg.run_group_id} component={Link} to={groupPath(rg.run_group_id)}>
+                    <DropdownMenu.Item
+                      key={rg.run_group_id}
+                      onSelect={() => navigate(groupPath(rg.run_group_id))}
+                    >
                       {rg.name}
-                    </Menu.Item>
+                    </DropdownMenu.Item>
                   ))}
-              </Menu.Dropdown>
-            </Menu>
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
           )}
-        </Group>
+        </Flex>
         {activeRunGroup && (
-          <Anchor component={Link} to={groupRunsPath(runGroupId)} style={{ alignContent: 'center' }}>
-            All runs for <b>{activeRunGroup.name}</b> →
-          </Anchor>
+          <Link asChild>
+            <RouterLink to={groupRunsPath(runGroupId)}>
+              All runs for <b>{activeRunGroup.name}</b> →
+            </RouterLink>
+          </Link>
         )}
-      </Group>
+      </Flex>
 
-      <Divider mb="md" />
+      <Separator size="4" mb="3" />
 
       {isAdminView && (
-        <Group justify="flex-end" mb="md">
-          <Button component="a" href={`/admin/group/${runGroupId}/compliance_pdf`}>
-            Generate Compliance Report
+        <Flex justify="end" mb="3">
+          <Button asChild>
+            <a href={`/admin/group/${runGroupId}/compliance_pdf`}>Generate Compliance Report</a>
           </Button>
-        </Group>
+        </Flex>
       )}
 
       {complianceQuery.data && complianceQuery.data.compliance_by_class.length === 0 && (
-        <Text c="dimmed">No compliance classes found for this run group.</Text>
+        <Text color="gray">No compliance classes found for this run group.</Text>
       )}
 
       {complianceQuery.data && complianceQuery.data.compliance_by_class.length > 0 && (
         <>
           <Box style={{ overflow: 'auto' }}>
-            <Table striped>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th />
-                  <Table.Th>Class</Table.Th>
-                  <Table.Th />
-                  <Table.Th>Latest Runs</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
+            <Table.Root variant="surface">
+              <Table.Header>
+                <Table.Row>
+                  <Table.ColumnHeaderCell />
+                  <Table.ColumnHeaderCell>Class</Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell />
+                  <Table.ColumnHeaderCell>Latest Runs</Table.ColumnHeaderCell>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
                 {complianceQuery.data.compliance_by_class.map((entry) => (
-                  <Table.Tr key={entry.class_name}>
-                    <Table.Th
+                  <Table.Row key={entry.class_name}>
+                    <Table.Cell
                       style={
-                        entry.compliant
-                          ? { backgroundColor: 'var(--mantine-color-green-6)' }
-                          : undefined
+                        entry.compliant ? { backgroundColor: 'var(--green-9)' } : undefined
                       }
                     />
-                    <Table.Td fw="bold" style={{ whiteSpace: 'nowrap' }}>
+                    <Table.Cell style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>
                       {entry.class_name}
-                    </Table.Td>
-                    <Table.Td>{entry.class_details.description}</Table.Td>
-                    <Table.Td>
+                    </Table.Cell>
+                    <Table.Cell>{entry.class_details.description}</Table.Cell>
+                    <Table.Cell>
                       {entry.per_run_status.map((rs) => {
                         const color = STATUS_COLOR[rs.status];
                         const hasLink =
@@ -142,38 +142,34 @@ export function RunGroupPage({ isAdminView }: { isAdminView: boolean }) {
                             rs.status === 'failed');
                         if (hasLink) {
                           return (
-                            <Badge
-                              key={rs.test_procedure_id}
-                              color={color}
-                              component={Link}
-                              to={`${isAdminView ? '/admin' : ''}/run/${rs.latest_run_id}`}
-                              style={{ cursor: 'pointer' }}
-                              mr={6}
-                              mb={8}
-                            >
-                              {rs.test_procedure_id} ({rs.latest_run_id})
+                            <Badge key={rs.test_procedure_id} asChild color={color} mr="2" mb="2">
+                              <RouterLink
+                                to={`${isAdminView ? '/admin' : ''}/run/${rs.latest_run_id}`}
+                                style={{ cursor: 'pointer' }}
+                              >
+                                {rs.test_procedure_id} ({rs.latest_run_id})
+                              </RouterLink>
                             </Badge>
                           );
                         }
                         return (
-                          <Badge key={rs.test_procedure_id} color={color} mr={6} mb={8}>
+                          <Badge key={rs.test_procedure_id} color={color} mr="2" mb="2">
                             {rs.test_procedure_id}
                           </Badge>
                         );
                       })}
-                    </Table.Td>
-                  </Table.Tr>
+                    </Table.Cell>
+                  </Table.Row>
                 ))}
-              </Table.Tbody>
-            </Table>
+              </Table.Body>
+            </Table.Root>
           </Box>
 
-          <Text component="div" mt="sm" size="sm">
+          <Text as="div" mt="2" size="2">
             This compliance table shows whether the criteria for each compliance class has been met.
             Each test procedure required by a compliance class is shown next to the compliance class.
             The test procedures are colour-coded by the success of the <i>most recent run</i>, for
-            example <Badge color="green">Passed</Badge> or{' '}
-            <Badge color="red">Failed</Badge>.{' '}
+            example <Badge color="green">Passed</Badge> or <Badge color="red">Failed</Badge>.{' '}
             <Badge color="blue">Active</Badge> indicates the test procedure is currently in progress
             and <Badge color="gray">No Runs</Badge> indicates test procedures that have never been
             run.

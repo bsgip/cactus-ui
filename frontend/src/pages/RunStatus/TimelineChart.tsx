@@ -1,4 +1,4 @@
-import { Alert, Card, Title } from '@mantine/core';
+import { Callout, Card, Heading } from '@radix-ui/themes';
 import {
   Chart as ChartJS,
   Legend,
@@ -82,11 +82,13 @@ export function TimelineChart({ timeline, stepStatus, requestHistory, timestampS
 
   if (!timestampStart) {
     return (
-      <Card withBorder>
-        <Title order={5} mb="xs">
+      <Card>
+        <Heading as="h5" size="3" mb="1">
           Timeline
-        </Title>
-        <Alert color="blue">Timeline will appear when test starts</Alert>
+        </Heading>
+        <Callout.Root color="blue">
+          <Callout.Text>Timeline will appear when test starts</Callout.Text>
+        </Callout.Root>
       </Card>
     );
   }
@@ -176,10 +178,10 @@ export function TimelineChart({ timeline, stepStatus, requestHistory, timestampS
   };
 
   return (
-    <Card withBorder>
-      <Title order={5} mb="xs">
+    <Card>
+      <Heading as="h5" size="3" mb="1">
         Timeline
-      </Title>
+      </Heading>
       <Line ref={mainRef} data={{ datasets }} options={mainOptions} />
       <div style={{ marginTop: 10 }}>
         <Line ref={activityRef} data={{ datasets: activityDatasets }} options={activityOptions} />

@@ -1,13 +1,13 @@
-import { Button, SimpleGrid, Stack } from '@mantine/core';
-import { useDocumentTitle } from '@mantine/hooks';
+import { Button, Flex, Grid } from '@radix-ui/themes';
 import { IconArrowLeft } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import { fetchAdminStats } from '../../api/admin';
 import { ApiError } from '../../api/client';
 import { ErrorAlert } from '../../components/ErrorAlert';
 import { PageHeader } from '../../components/PageHeader';
 import { PageSpinner } from '../../components/PageSpinner';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { Overview } from './Overview';
 import { ProcedureTable } from './ProcedureTable';
 import { SummaryCard } from './SummaryCard';
@@ -29,20 +29,17 @@ export function AdminStatsPage() {
     data.total_users > 0 ? Math.round((data.total_runs / data.total_users) * 10) / 10 : null;
 
   return (
-    <Stack gap="md">
+    <Flex direction="column" gap="3">
       <PageHeader title="Platform Stats">
-        <Button
-          component={Link}
-          to="/admin"
-          variant="default"
-          size="xs"
-          leftSection={<IconArrowLeft size={14} />}
-        >
-          Back to Admin
+        <Button asChild variant="soft" color="gray" size="1">
+          <RouterLink to="/admin">
+            <IconArrowLeft size={14} />
+            Back to Admin
+          </RouterLink>
         </Button>
       </PageHeader>
 
-      <SimpleGrid cols={{ base: 1, xs: 2, sm: 4 }}>
+      <Grid columns={{ initial: '1', xs: '2', sm: '4' }} gap="3">
         <SummaryCard
           value={data.max_run_number}
           label="Total Runs"
@@ -51,7 +48,7 @@ export function AdminStatsPage() {
         <SummaryCard value={data.total_users} label="Total Users" />
         <SummaryCard value={data.total_run_groups} label="Run Groups" />
         <SummaryCard value={avgRunsPerUser ?? '—'} label="Avg Runs per User" />
-      </SimpleGrid>
+      </Grid>
 
       <Overview
         versionCounts={data.version_counts}
@@ -61,6 +58,6 @@ export function AdminStatsPage() {
       <WeekBars bars={data.runs_per_week} />
       <ProcedureTable procedures={data.procedures} />
       <UserLeaderboard entries={data.user_leaderboard} />
-    </Stack>
+    </Flex>
   );
 }

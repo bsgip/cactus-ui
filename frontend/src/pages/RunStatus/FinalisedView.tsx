@@ -1,8 +1,8 @@
-import { Alert, Anchor, Button, Group, Stack, Text, TextInput, Title } from '@mantine/core';
-import { useDisclosure } from '../../hooks/useDisclosure';
+import { Box, Button, Flex, Heading, Link, Text, TextField } from '@radix-ui/themes';
 import { IconArrowRight, IconCircleCheck } from '@tabler/icons-react';
-import { Link } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import type { RunStatus } from '../../api/types';
+import { useDisclosure } from '../../hooks/useDisclosure';
 
 interface Props {
   runId: number;
@@ -12,6 +12,29 @@ interface Props {
   nextPlaylistRunId: number | null;
   supportEmail: string | undefined;
   isAdminView: boolean;
+}
+
+// Tinted alert box (Radix has no Alert; Callout can't hold buttons/multi-paragraph cleanly).
+function AlertBox({
+  color,
+  children,
+}: {
+  color: 'red' | 'gray' | 'blue' | 'yellow' | 'green';
+  children: React.ReactNode;
+}) {
+  return (
+    <Box
+      role="alert"
+      style={{
+        backgroundColor: `var(--${color}-3)`,
+        border: `1px solid var(--${color}-6)`,
+        borderRadius: 'var(--radius-3)',
+        padding: 'var(--space-3)',
+      }}
+    >
+      {children}
+    </Box>
+  );
 }
 
 // The non-live run view: Not Found / Skipped / Finalised.
@@ -29,75 +52,88 @@ export function FinalisedView({
   const adminPrefix = isAdminView ? '/admin' : '';
 
   return (
-    <Stack>
+    <Flex direction="column" gap="3">
       {runStatus == null && (
         <>
-          <Title order={2}>Run {runId} Not Found</Title>
-          <Alert color="red" role="alert">
+          <Heading as="h2" size="6">
+            Run {runId} Not Found
+          </Heading>
+          <AlertBox color="red">
             Run <strong>{runId}</strong> does not exist.
-          </Alert>
+          </AlertBox>
         </>
       )}
 
       {runStatus === 'skipped' && (
         <>
-          <Title order={2}>Run {runId} [Skipped]</Title>
-          <Alert color="gray" role="alert">
-            <Text>This run was skipped as part of a playlist and was never executed.</Text>
-            <Text>No artifacts are available for skipped runs.</Text>
-          </Alert>
+          <Heading as="h2" size="6">
+            Run {runId} [Skipped]
+          </Heading>
+          <AlertBox color="gray">
+            <Text as="p">This run was skipped as part of a playlist and was never executed.</Text>
+            <Text as="p">No artifacts are available for skipped runs.</Text>
+          </AlertBox>
         </>
       )}
 
       {runStatus != null && runStatus !== 'skipped' && (
         <>
-          <Title order={2}>Run {runId} [Finalised]</Title>
+          <Heading as="h2" size="6">
+            Run {runId} [Finalised]
+          </Heading>
           {runHasArtifacts ? (
-            <Alert color="blue" role="alert">
-              <Text>This run has been finalised and is no longer active.</Text>
-              <Text mb="sm">
+            <AlertBox color="blue">
+              <Text as="p">This run has been finalised and is no longer active.</Text>
+              <Text as="p" mb="2">
                 Click below to download the run's artifacts
                 {!isImmediateStart && ' or view the Active Power Chart'}.
               </Text>
-              <Group align="flex-start">
-                <Button component="a" href={`${adminPrefix}/run/${runId}/artifact`}>
-                  Download Artifacts
+              <Flex align="start" gap="2">
+                <Button asChild>
+                  <a href={`${adminPrefix}/run/${runId}/artifact`}>Download Artifacts</a>
                 </Button>
                 {!isImmediateStart && <ActivePowerChart runId={runId} adminPrefix={adminPrefix} />}
-              </Group>
-            </Alert>
+              </Flex>
+            </AlertBox>
           ) : (
-            <Alert color="yellow" role="alert">
-              <Text>This run has been finalised and is no longer active.</Text>
-              <Text>
+            <AlertBox color="yellow">
+              <Text as="p">This run has been finalised and is no longer active.</Text>
+              <Text as="p">
                 There are <b>no artifacts</b> recorded for this run due to an unexpected error
                 during finalisation.
               </Text>
-              <Text>
+              <Text as="p">
                 Please try re-running the test. If the problem persists contact support:{' '}
-                <Anchor href={`mailto:${supportEmail}`}>{supportEmail}</Anchor>
+                <Link href={`mailto:${supportEmail}`}>{supportEmail}</Link>
               </Text>
-            </Alert>
+            </AlertBox>
           )}
         </>
       )}
 
       {nextPlaylistRunId && (
-        <Alert color="green" role="alert" icon={<IconCircleCheck size={18} />} title="Test Complete!">
-          <Text mb="sm">
-            This test has been completed. Click below to proceed to the next test in the playlist.
-          </Text>
-          <Button
-            color="green"
-            component={Link}
-            to={`${adminPrefix}/run/${nextPlaylistRunId}`}
-            rightSection={<IconArrowRight size={16} />}
-          >
-            Go to Next Test
-          </Button>
-        </Alert>
+        <AlertBox color="green">
+          <Flex gap="2" align="start">
+            <IconCircleCheck size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+            <div>
+              <Text as="div" weight="bold" mb="1">
+                Test Complete!
+              </Text>
+              <Text as="p" mb="2">
+                This test has been completed. Click below to proceed to the next test in the
+                playlist.
+              </Text>
+              <Button color="green" asChild>
+                <RouterLink to={`${adminPrefix}/run/${nextPlaylistRunId}`}>
+                  Go to Next Test
+                  <IconArrowRight size={16} />
+                </RouterLink>
+              </Button>
+            </div>
+          </Flex>
+        </AlertBox>
       )}
-    </Stack>
+    </Flex>
   );
 }
 
@@ -115,34 +151,32 @@ function ActivePowerChart({ runId, adminPrefix }: { runId: number; adminPrefix: 
           action={`${adminPrefix}/run/${runId}/html_report`}
           method="GET"
           target="_blank"
-          style={{
-            marginTop: 'var(--mantine-spacing-xs)',
-            width: 280,
-          }}
+          style={{ marginTop: 'var(--space-2)', width: 280 }}
         >
-          <Stack
-            gap="xs"
-            p="sm"
-            style={{
-              border: '1px solid var(--mantine-color-gray-3)',
-              borderRadius: 'var(--mantine-radius-sm)',
-            }}
+          <Flex
+            direction="column"
+            gap="2"
+            p="3"
+            style={{ border: '1px solid var(--gray-5)', borderRadius: 'var(--radius-2)' }}
           >
-            <Text size="sm">
+            <Text size="2">
               Optionally align the time axis to a video recording. Enter the video timestamp (MM:SS)
               at which the test started.
             </Text>
-            <TextInput
-              name="video_start"
-              label="Video timestamp"
-              placeholder="MM:SS"
-              autoComplete="off"
-              w={120}
-            />
-            <Button type="submit" variant="outline" color="gray" size="sm" style={{ alignSelf: 'flex-start' }}>
+            <Text as="label" size="2">
+              Video timestamp
+              <TextField.Root name="video_start" placeholder="MM:SS" autoComplete="off" />
+            </Text>
+            <Button
+              type="submit"
+              variant="outline"
+              color="gray"
+              size="2"
+              style={{ alignSelf: 'flex-start' }}
+            >
               Create Chart
             </Button>
-          </Stack>
+          </Flex>
         </form>
       )}
     </div>

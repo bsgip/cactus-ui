@@ -1,4 +1,4 @@
-import { Badge, Grid, Group, Progress, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Badge, Box, Code, Flex, Grid, Text } from '@radix-ui/themes';
 import { SectionCard } from '../../components/SectionCard';
 
 interface OverviewProps {
@@ -13,64 +13,80 @@ export function Overview({ versionCounts, totalPassed, totalFailed }: OverviewPr
   const passRate = assessed > 0 ? Math.round((totalPassed / assessed) * 1000) / 10 : null;
 
   return (
-    <Grid>
-      <Grid.Col span={{ base: 12, sm: 4 }}>
-        <SectionCard title="CSIP-AUS Versions">
-          <Stack gap="xs">
-            {versions.map(([version, count]) => (
-              <Group key={version} justify="space-between">
-                <Text component="code" size="sm">
-                  {version}
-                </Text>
-                <Badge color="green">
-                  {count} run group{count !== 1 ? 's' : ''}
-                </Badge>
-              </Group>
-            ))}
-          </Stack>
-        </SectionCard>
-      </Grid.Col>
+    <Grid columns={{ initial: '1', sm: '3' }} gap="3">
+      <SectionCard title="CSIP-AUS Versions">
+        <Flex direction="column" gap="1">
+          {versions.map(([version, count]) => (
+            <Flex key={version} justify="between" align="center">
+              <Code>{version}</Code>
+              <Badge color="green">
+                {count} run group{count !== 1 ? 's' : ''}
+              </Badge>
+            </Flex>
+          ))}
+        </Flex>
+      </SectionCard>
 
-      <Grid.Col span={{ base: 12, sm: 8 }}>
+      <Box style={{ gridColumn: 'span 2' }}>
         <SectionCard title="Current Compliance (latest run per procedure per group)">
-          <SimpleGrid cols={2} mb="md">
-            <Stack gap={0} align="center">
-              <Text fz="xl" fw={700} c="green">
+          <Grid columns="2" mb="3">
+            <Flex direction="column" align="center">
+              <Text size="5" weight="bold" color="green">
                 {totalPassed}
               </Text>
-              <Text size="sm" c="dimmed">
+              <Text size="2" color="gray">
                 Currently Passing
               </Text>
-            </Stack>
-            <Stack gap={0} align="center">
-              <Text fz="xl" fw={700} c="red">
+            </Flex>
+            <Flex direction="column" align="center">
+              <Text size="5" weight="bold" color="red">
                 {totalFailed}
               </Text>
-              <Text size="sm" c="dimmed">
+              <Text size="2" color="gray">
                 Currently Failing
               </Text>
-            </Stack>
-          </SimpleGrid>
+            </Flex>
+          </Grid>
           {passRate !== null && (
             <>
-              <Group justify="space-between" mb={4}>
-                <Text size="sm">Pass rate</Text>
-                <Text size="sm" fw={700}>
+              <Flex justify="between" mb="1">
+                <Text size="2">Pass rate</Text>
+                <Text size="2" weight="bold">
                   {passRate}%
                 </Text>
-              </Group>
-              <Progress.Root size={24}>
-                <Progress.Section value={passRate} color="green">
-                  <Progress.Label>{totalPassed} passing</Progress.Label>
-                </Progress.Section>
-                <Progress.Section value={100 - passRate} color="red">
-                  <Progress.Label>{totalFailed} failing</Progress.Label>
-                </Progress.Section>
-              </Progress.Root>
+              </Flex>
+              <Flex
+                style={{ height: 24, borderRadius: 'var(--radius-2)', overflow: 'hidden' }}
+              >
+                <Flex
+                  align="center"
+                  justify="center"
+                  style={{
+                    width: `${passRate}%`,
+                    backgroundColor: 'var(--green-9)',
+                    color: 'white',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  {totalPassed} passing
+                </Flex>
+                <Flex
+                  align="center"
+                  justify="center"
+                  style={{
+                    width: `${100 - passRate}%`,
+                    backgroundColor: 'var(--red-9)',
+                    color: 'white',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  {totalFailed} failing
+                </Flex>
+              </Flex>
             </>
           )}
         </SectionCard>
-      </Grid.Col>
+      </Box>
     </Grid>
   );
 }

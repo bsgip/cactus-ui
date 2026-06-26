@@ -1,4 +1,4 @@
-import { Button, Code, Group, Stack, Text } from '@mantine/core';
+import { Button, Code, Flex, Text } from '@radix-ui/themes';
 import { IconDownload, IconPlus, IconRecycle } from '@tabler/icons-react';
 import type { RunGroupResponse } from '../../api/types';
 import { ModalButton } from '../../components/ModalButton';
@@ -21,11 +21,8 @@ export function CertModal({
       title={`Certificate for ${runGroup.name}`}
       size="lg"
       trigger={(open) => (
-        <Button
-          variant={hasCert ? 'outline' : 'filled'}
-          leftSection={hasCert ? <IconRecycle size={14} /> : <IconPlus size={14} />}
-          onClick={open}
-        >
+        <Button variant={hasCert ? 'outline' : 'solid'} onClick={open}>
+          {hasCert ? <IconRecycle size={14} /> : <IconPlus size={14} />}
           {hasCert ? `${certType} Certificate` : 'Generate Certificate'}
         </Button>
       )}
@@ -37,7 +34,7 @@ export function CertModal({
         };
         return (
           <>
-            <Stack>
+            <Flex direction="column" gap="3">
               {hasCert ? (
                 <Text>
                   The current <Code>{certType}</Code> certificate (ID{' '}
@@ -54,15 +51,13 @@ export function CertModal({
                 </Text>
               )}
 
-              <Group justify="flex-end">
+              <Flex justify="end" gap="2" wrap="wrap">
                 {hasCert && (
-                  <Button
-                    component="a"
-                    href={`/config/run_group/${runGroup.run_group_id}/cert`}
-                    variant="outline"
-                    leftSection={<IconDownload size={14} />}
-                  >
-                    Download Existing Certificate
+                  <Button asChild variant="outline">
+                    <a href={`/config/run_group/${runGroup.run_group_id}/cert`}>
+                      <IconDownload size={14} />
+                      Download Existing Certificate
+                    </a>
                   </Button>
                 )}
 
@@ -74,12 +69,8 @@ export function CertModal({
                   style={{ display: 'inline' }}
                 >
                   <input type="hidden" name="type" value="device" />
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    color={hasCert ? 'red' : 'blue'}
-                    leftSection={<IconRecycle size={14} />}
-                  >
+                  <Button type="submit" variant="outline" color={hasCert ? 'red' : 'blue'}>
+                    <IconRecycle size={14} />
                     Device Certificate
                   </Button>
                 </form>
@@ -92,17 +83,13 @@ export function CertModal({
                   style={{ display: 'inline' }}
                 >
                   <input type="hidden" name="type" value="aggregator" />
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    color={hasCert ? 'red' : 'blue'}
-                    leftSection={<IconRecycle size={14} />}
-                  >
+                  <Button type="submit" variant="outline" color={hasCert ? 'red' : 'blue'}>
+                    <IconRecycle size={14} />
                     Aggregator Certificate
                   </Button>
                 </form>
-              </Group>
-            </Stack>
+              </Flex>
+            </Flex>
             <iframe
               name={`hiddenFrame-${runGroup.run_group_id}-device`}
               style={{ display: 'none' }}

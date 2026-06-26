@@ -1,4 +1,4 @@
-import { Button, Text, TextInput } from '@mantine/core';
+import { Button, Text, TextField } from '@radix-ui/themes';
 import { IconPencil } from '@tabler/icons-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -26,24 +26,21 @@ export function DomainCard({
 
   return (
     <SectionCard title="Subscription Notification Domain (Optional)">
-      <Text mb="xs">
+      <Text as="p" mb="1">
         This domain will be authorised for receiving subscription notifications.
       </Text>
-      <Text mb="md">
+      <Text as="p" mb="3">
         <strong>Note:</strong> All subscription notification URIs must use this registered domain,
         or they will be rejected.
       </Text>
-      <TextInput
+      <TextField.Root
         value={domainValue}
         onChange={(e) => setDomainValue(e.target.value)}
         placeholder="Enter a FQDN (e.g. my.example.com)"
-        mb="sm"
+        mb="2"
       />
-      <Button
-        leftSection={<IconPencil size={14} />}
-        loading={mutation.isPending}
-        onClick={() => mutation.mutate()}
-      >
+      <Button loading={mutation.isPending} onClick={() => mutation.mutate()}>
+        <IconPencil size={14} />
         Update Domain
       </Button>
     </SectionCard>

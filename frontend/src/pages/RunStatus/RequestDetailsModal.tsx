@@ -1,4 +1,4 @@
-import { Code, Loader, Modal, Text, Title } from '@mantine/core';
+import { Code, Dialog, Heading, Spinner, Text } from '@radix-ui/themes';
 import { useQuery } from '@tanstack/react-query';
 import { fetchRequestDetails } from '../../api/runStatus';
 
@@ -20,25 +20,30 @@ export function RequestDetailsModal({ runId, requestId, onClose }: Props) {
   const firstLine = query.data?.request?.split('\n')[0].trim() || 'Request';
 
   return (
-    <Modal opened={requestId !== null} onClose={onClose} title={firstLine} size="xl">
-      {query.isPending ? (
-        <Loader />
-      ) : query.error ? (
-        <Text c="red">Failed to load request details</Text>
-      ) : (
-        <>
-          <Title order={6} mb={4}>
-            Request
-          </Title>
-          <Code block mb="md">
-            {query.data?.request || 'No request data'}
-          </Code>
-          <Title order={6} mb={4}>
-            Response
-          </Title>
-          <Code block>{query.data?.response || 'No response data'}</Code>
-        </>
-      )}
-    </Modal>
+    <Dialog.Root open={requestId !== null} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Content maxWidth="800px">
+        <Dialog.Title>{firstLine}</Dialog.Title>
+        {query.isPending ? (
+          <Spinner />
+        ) : query.error ? (
+          <Text color="red">Failed to load request details</Text>
+        ) : (
+          <>
+            <Heading as="h6" size="2" mb="1">
+              Request
+            </Heading>
+            <Code variant="soft" mb="3" style={{ display: 'block', whiteSpace: 'pre-wrap' }}>
+              {query.data?.request || 'No request data'}
+            </Code>
+            <Heading as="h6" size="2" mb="1">
+              Response
+            </Heading>
+            <Code variant="soft" style={{ display: 'block', whiteSpace: 'pre-wrap' }}>
+              {query.data?.response || 'No response data'}
+            </Code>
+          </>
+        )}
+      </Dialog.Content>
+    </Dialog.Root>
   );
 }

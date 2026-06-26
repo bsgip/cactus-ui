@@ -1,28 +1,28 @@
-import { Anchor, Button, Group, Table, Text, TextInput, Title } from '@mantine/core';
-import { useDocumentTitle } from '@mantine/hooks';
-import { useQuery } from '@tanstack/react-query';
+import { Box, Button, Flex, Heading, Link, Table, Text, TextField } from '@radix-ui/themes';
 import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { fetchAdminUsers } from '../api/admin';
 import { ApiError } from '../api/client';
 import type { AdminUserResponse } from '../api/types';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { PageSpinner } from '../components/PageSpinner';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 function UserRow({ user }: { user: AdminUserResponse }) {
   return (
-    <Table.Tr>
-      <Table.Td>{user.user_id}</Table.Td>
-      <Table.Td>{user.name ? <strong>{user.name}</strong> : '-'}</Table.Td>
-      <Table.Td>
+    <Table.Row>
+      <Table.Cell>{user.user_id}</Table.Cell>
+      <Table.Cell>{user.name ? <strong>{user.name}</strong> : '-'}</Table.Cell>
+      <Table.Cell>
         {user.run_groups.length === 0
           ? 'No run groups found.'
           : user.run_groups.map((rg) => (
-              <Anchor key={rg.run_group_id} href={`/admin/group/${rg.run_group_id}/runs`} mr="sm">
+              <Link key={rg.run_group_id} href={`/admin/group/${rg.run_group_id}/runs`} mr="2">
                 {rg.name} ({rg.run_group_id})
-              </Anchor>
+              </Link>
             ))}
-      </Table.Td>
-    </Table.Tr>
+      </Table.Cell>
+    </Table.Row>
   );
 }
 
@@ -58,43 +58,45 @@ export function AdminPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Group justify="space-between" align="center" mb="xs">
-        <Title order={2}>Admin</Title>
-        <Button component="a" href="/admin/stats" variant="outline" color="green" size="xs">
-          Platform Stats
+      <Flex justify="between" align="center" mb="1">
+        <Heading as="h2" size="6">
+          Admin
+        </Heading>
+        <Button asChild variant="outline" color="green" size="1">
+          <a href="/admin/stats">Platform Stats</a>
         </Button>
-      </Group>
+      </Flex>
 
-      <TextInput
+      <TextField.Root
         placeholder="Search by user name, run group name or by user/run groups IDs"
         aria-label="Search"
         value={filter}
         onChange={(e) => setFilter(e.currentTarget.value)}
-        mb="sm"
+        mb="2"
       />
 
-      <Table.ScrollContainer minWidth={400} style={{ flex: 1 }}>
-        <Table striped>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>User ID</Table.Th>
-              <Table.Th>User Name</Table.Th>
-              <Table.Th>Run Groups</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
+      <Box style={{ flex: 1, overflow: 'auto' }}>
+        <Table.Root variant="surface">
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeaderCell>User ID</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>User Name</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>Run Groups</Table.ColumnHeaderCell>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
             {filteredUsers.length === 0 ? (
-              <Table.Tr>
-                <Table.Td colSpan={3} style={{ textAlign: 'center' }}>
-                  <Text c="dimmed">No users found.</Text>
-                </Table.Td>
-              </Table.Tr>
+              <Table.Row>
+                <Table.Cell colSpan={3} style={{ textAlign: 'center' }}>
+                  <Text color="gray">No users found.</Text>
+                </Table.Cell>
+              </Table.Row>
             ) : (
               filteredUsers.map((user) => <UserRow key={user.user_id} user={user} />)
             )}
-          </Table.Tbody>
-        </Table>
-      </Table.ScrollContainer>
+          </Table.Body>
+        </Table.Root>
+      </Box>
     </div>
   );
 }

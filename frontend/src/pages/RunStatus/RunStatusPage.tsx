@@ -1,5 +1,4 @@
-import { Center, Loader, Stack } from '@mantine/core';
-import { useDocumentTitle } from '@mantine/hooks';
+import { Flex, Spinner } from '@radix-ui/themes';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -10,6 +9,7 @@ import { finaliseRun, startRun } from '../../api/runs';
 import { Banner } from '../../components/Banner';
 import { ErrorAlert } from '../../components/ErrorAlert';
 import { PageSpinner } from '../../components/PageSpinner';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useSession } from '../../hooks/useSession';
 import { FinalisedView } from './FinalisedView';
 import { LiveHeaderCard } from './LiveHeaderCard';
@@ -114,7 +114,7 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
     currentActiveRun != null && runStatus === 'initialised' && currentActiveRun.run_id !== runId;
 
   return (
-    <Stack maw={1000} mx="auto">
+    <Flex direction="column" gap="3" style={{ maxWidth: 1000, margin: '0 auto' }}>
       <Banner message={session?.banner_message} />
       {actionError && <ErrorAlert message={actionError} />}
 
@@ -163,9 +163,9 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
           ) : statusError && !(statusError instanceof ApiError && statusError.status === 410) ? (
             <ErrorAlert message="Failed to retrieve current status." />
           ) : (
-            <Center py="xl">
-              <Loader color="green" />
-            </Center>
+            <Flex justify="center" py="6">
+              <Spinner size="3" />
+            </Flex>
           )}
 
           {/* Spacer so the fixed bottom banner never overlaps the last card. */}
@@ -183,6 +183,6 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
           isAdminView={isAdminView}
         />
       )}
-    </Stack>
+    </Flex>
   );
 }

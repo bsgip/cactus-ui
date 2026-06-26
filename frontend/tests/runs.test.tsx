@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import activeRunsFixture from '../fixtures/active_runs.json';
 import procedureRunsFixture from '../fixtures/procedure_runs.json';
 import { server } from './msw-server';
@@ -43,19 +43,19 @@ describe('runs page', () => {
 
   it('switches run groups through the dropdown', async () => {
     const user = userEvent.setup();
-    renderApp('/group/1/runs');
+    const { router } = renderApp('/group/1/runs');
 
     await user.click(await screen.findByRole('button', { name: 'Battery Mk1' }));
-    const other = await screen.findByRole('menuitem', { name: 'Battery Mk2' });
-    expect(other).toHaveAttribute('href', '/group/2/runs');
+    await user.click(await screen.findByRole('menuitem', { name: 'Battery Mk2' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/group/2/runs'));
   });
 
   it('lists procedures by category with run-count badges and loads runs on selection', async () => {
     const user = userEvent.setup();
     renderApp('/group/1/runs');
 
-    // Category headers from the fixture
-    expect(await screen.findByRole('button', { name: 'Registration' })).toBeInTheDocument();
+    // Category headers from the fixture (native <details>/<summary> accordion)
+    expect(await screen.findByText('Registration')).toBeInTheDocument();
 
     // ALL-01 has 3 runs, latest passing -> badge shows the count
     const all01 = await screen.findByRole('button', { name: /ALL-01/ });
@@ -84,17 +84,24 @@ describe('runs page', () => {
     renderApp('/group/1/runs');
 
     expect(await screen.findByText('Showing ALL compliance classes')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Filter compliance classes' }));
 
+    // The filter dialog aria-hides the page behind it, so close it before asserting on the
+    // procedure list (role queries skip elements hidden from the accessibility tree).
+    await user.click(screen.getByRole('button', { name: 'Filter compliance classes' }));
     const modal = await screen.findByRole('dialog');
     await user.click(within(modal).getByRole('button', { name: 'Select NONE' }));
+    await user.click(within(modal).getByRole('button', { name: 'Close' }));
 
     expect(await screen.findByText('Showing NO compliance classes')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /ALL-01/ })).not.toBeInTheDocument();
 
-    await user.click(within(modal).getByRole('button', { name: 'Select ALL' }));
+    await user.click(screen.getByRole('button', { name: 'Filter compliance classes' }));
+    const modal2 = await screen.findByRole('dialog');
+    await user.click(within(modal2).getByRole('button', { name: 'Select ALL' }));
+    await user.click(within(modal2).getByRole('button', { name: 'Close' }));
+
     expect(await screen.findByText('Showing ALL compliance classes')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /ALL-01/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /ALL-01/ })).toBeInTheDocument();
   });
 
   it('hides run lifecycle controls in the admin view', async () => {
@@ -174,37 +181,24 @@ describe('runs page', () => {
 });
 
 describe('run start/initialise navigation', () => {
-  const originalLocation = window.location;
-
-  beforeEach(() => {
-    Object.defineProperty(window, 'location', {
-      value: { ...originalLocation, assign: vi.fn() },
-      writable: true,
-    });
-  });
-
-  afterEach(() => {
-    Object.defineProperty(window, 'location', { value: originalLocation, writable: true });
-  });
-
   it('navigates to the run status page after starting a run', async () => {
     const user = userEvent.setup();
-    renderApp('/group/1/runs');
+    const { router } = renderApp('/group/1/runs');
 
     await user.click(await screen.findByRole('button', { name: /ALL-01/ }));
     await user.click(await screen.findByRole('button', { name: 'Start' }));
 
-    await waitFor(() => expect(window.location.assign).toHaveBeenCalledWith('/run/110'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/run/110'));
   });
 
   it('navigates to the new run after initialising', async () => {
     const user = userEvent.setup();
-    renderApp('/group/1/runs');
+    const { router } = renderApp('/group/1/runs');
 
     await user.click(await screen.findByRole('button', { name: /ALL-01/ }));
     await user.click(await screen.findByRole('button', { name: 'New Test Run' }));
 
-    await waitFor(() => expect(window.location.assign).toHaveBeenCalledWith('/run/991'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/run/991'));
   });
 });
 

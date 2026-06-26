@@ -1,4 +1,4 @@
-import { Button, Code, Group, Table, Text, TextInput } from '@mantine/core';
+import { Button, Code, Flex, Table, Text, TextField } from '@radix-ui/themes';
 import { IconDownload, IconPlus } from '@tabler/icons-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
@@ -48,36 +48,36 @@ export function RunGroupsCard({
 
   return (
     <SectionCard title="Run Groups">
-      <Text mb="xs">
+      <Text as="p" mb="1">
         Each run group represents progress towards certification for a single device / client.
       </Text>
-      <Text mb="sm">All certificates will be signed by the CACTUS certificate authority.</Text>
+      <Text as="p" mb="2">
+        All certificates will be signed by the CACTUS certificate authority.
+      </Text>
 
-      <Group mb="md">
-        <Button
-          component="a"
-          href="/config/ca_cert"
-          variant="outline"
-          leftSection={<IconDownload size={14} />}
-        >
-          Download SERCA Certificate
+      <Flex gap="2" align="center" mb="3">
+        <Button asChild variant="outline">
+          <a href="/config/ca_cert">
+            <IconDownload size={14} />
+            Download SERCA Certificate
+          </a>
         </Button>
         {runGroups.length > 1 && <SharedCertMenu onCertAction={onCertAction} />}
-      </Group>
+      </Flex>
 
       {runGroups.length === 0 ? (
-        <Text fw={700}>There doesn&apos;t seem to be anything here...</Text>
+        <Text weight="bold">There doesn&apos;t seem to be anything here...</Text>
       ) : (
-        <Table>
-          <Table.Tbody>
+        <Table.Root variant="surface">
+          <Table.Body>
             {runGroups.map((rg) => (
-              <Table.Tr key={rg.run_group_id}>
-                <Table.Td>
+              <Table.Row key={rg.run_group_id}>
+                <Table.Cell>
                   <CertModal runGroup={rg} onCertAction={onCertAction} />
-                </Table.Td>
-                <Table.Td>
-                  <Group gap="xs">
-                    <TextInput
+                </Table.Cell>
+                <Table.Cell>
+                  <Flex gap="2" align="center">
+                    <TextField.Root
                       value={editNames[rg.run_group_id] ?? rg.name}
                       onChange={(e) =>
                         setEditNames((prev) => ({ ...prev, [rg.run_group_id]: e.target.value }))
@@ -99,24 +99,24 @@ export function RunGroupsCard({
                     >
                       Save
                     </Button>
-                  </Group>
-                </Table.Td>
-                <Table.Td>
+                  </Flex>
+                </Table.Cell>
+                <Table.Cell>
                   <Code>{rg.csip_aus_version}</Code>
-                </Table.Td>
-                <Table.Td>
+                </Table.Cell>
+                <Table.Cell>
                   {rg.static_uri ? (
-                    <Text component="u" size="xs">
+                    <Text size="1" style={{ textDecoration: 'underline' }}>
                       {rg.static_uri}
                     </Text>
                   ) : (
-                    <Text size="xs" c="dimmed">
+                    <Text size="1" color="gray">
                       URI pending
                     </Text>
                   )}
-                </Table.Td>
-                <Table.Td>{rg.total_runs} total run(s)</Table.Td>
-                <Table.Td>
+                </Table.Cell>
+                <Table.Cell>{rg.total_runs} total run(s)</Table.Cell>
+                <Table.Cell>
                   <DeleteModal
                     runGroup={rg}
                     isDeleting={
@@ -127,26 +127,26 @@ export function RunGroupsCard({
                       deleteMutation.mutate(rg.run_group_id);
                     }}
                   />
-                </Table.Td>
-              </Table.Tr>
+                </Table.Cell>
+              </Table.Row>
             ))}
-          </Table.Tbody>
-        </Table>
+          </Table.Body>
+        </Table.Root>
       )}
 
-      <Group mt="md">
+      <Flex gap="2" align="center" mt="3">
         {csipVersions.map((v) => (
           <Button
             key={v.version}
             variant="outline"
-            leftSection={<IconPlus size={14} />}
             loading={createGroupMutation.isPending && createGroupMutation.variables === v.version}
             onClick={() => createGroupMutation.mutate(v.version)}
           >
+            <IconPlus size={14} />
             New {v.version} Group
           </Button>
         ))}
-      </Group>
+      </Flex>
     </SectionCard>
   );
 }

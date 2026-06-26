@@ -1,4 +1,4 @@
-import { Badge, Button, Table } from '@mantine/core';
+import { Badge, Button, Table } from '@radix-ui/themes';
 import { SectionCard } from '../../components/SectionCard';
 import type { RequestEntry } from '../../api/types';
 import { formatDate } from '../../utils/dates';
@@ -10,7 +10,7 @@ interface Props {
   onShowRequest: (requestId: number) => void;
 }
 
-function statusColor(status: number) {
+function statusColor(status: number): 'red' | 'green' {
   return status < 200 || status > 299 ? 'red' : 'green';
 }
 
@@ -20,55 +20,51 @@ export function RequestsCard({ requests, onShowRequest }: Props) {
 
   return (
     <SectionCard scroll title="CSIP-Aus Requests">
-      <Table>
-        <Table.Tbody>
+      <Table.Root>
+        <Table.Body>
           {requests.length === 0 ? (
-            <Table.Tr>
-              <Table.Th>No requests received</Table.Th>
-              <Table.Td />
-              <Table.Td />
-              <Table.Td />
-              <Table.Td />
-            </Table.Tr>
+            <Table.Row>
+              <Table.RowHeaderCell>No requests received</Table.RowHeaderCell>
+              <Table.Cell />
+              <Table.Cell />
+              <Table.Cell />
+              <Table.Cell />
+            </Table.Row>
           ) : (
             <>
               {requests.length > MAX_VISIBLE_REQUESTS && (
-                <Table.Tr>
-                  <Table.Td colSpan={5} ta="center" c="dimmed">
+                <Table.Row>
+                  <Table.Cell colSpan={5} style={{ textAlign: 'center', color: 'var(--gray-9)' }}>
                     Showing last {MAX_VISIBLE_REQUESTS} of {requests.length} requests
-                  </Table.Td>
-                </Table.Tr>
+                  </Table.Cell>
+                </Table.Row>
               )}
               {recent.map((r) => {
                 const schemaError = r.body_xml_errors.length > 0;
                 return (
-                  <Table.Tr key={r.request_id}>
-                    <Table.Th>{formatDate(new Date(r.timestamp))}</Table.Th>
-                    <Table.Td>
+                  <Table.Row key={r.request_id}>
+                    <Table.RowHeaderCell>{formatDate(new Date(r.timestamp))}</Table.RowHeaderCell>
+                    <Table.Cell>
                       {r.method} {r.path} <Badge color={statusColor(r.status)}>{r.status}</Badge>
-                    </Table.Td>
-                    <Table.Td>{r.step_name === 'Unmatched' ? '' : r.step_name}</Table.Td>
-                    <Table.Td>
+                    </Table.Cell>
+                    <Table.Cell>{r.step_name === 'Unmatched' ? '' : r.step_name}</Table.Cell>
+                    <Table.Cell>
                       <Badge color={schemaError ? 'red' : 'green'}>
                         {schemaError ? 'XSD Errors' : 'XSD Valid'}
                       </Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <Button
-                        size="xs"
-                        variant="outline"
-                        onClick={() => onShowRequest(r.request_id)}
-                      >
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Button size="1" variant="outline" onClick={() => onShowRequest(r.request_id)}>
                         Details
                       </Button>
-                    </Table.Td>
-                  </Table.Tr>
+                    </Table.Cell>
+                  </Table.Row>
                 );
               })}
             </>
           )}
-        </Table.Tbody>
-      </Table>
+        </Table.Body>
+      </Table.Root>
     </SectionCard>
   );
 }

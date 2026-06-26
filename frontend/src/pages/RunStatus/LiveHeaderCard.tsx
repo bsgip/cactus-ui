@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Code, Text, Title } from '@mantine/core';
+import { Box, Button, Card, Code, Heading, Text } from '@radix-ui/themes';
 import type { RunStatus } from '../../api/types';
 
 interface Props {
@@ -28,18 +28,18 @@ export function LiveHeaderCard({
   onFinalise,
 }: Props) {
   return (
-    <Card withBorder>
-      <Title order={4}>
+    <Card>
+      <Heading as="h4" size="4">
         Run {runId} ({runStatus})
-      </Title>
+      </Heading>
 
-      <Text my="sm">
+      <Text as="p" my="2">
         <Code
           style={{
             userSelect: 'all',
-            backgroundColor: 'var(--mantine-color-blue-0)',
-            color: 'var(--mantine-color-blue-9)',
-            border: '1px solid var(--mantine-color-blue-2)',
+            backgroundColor: 'var(--blue-2)',
+            color: 'var(--blue-11)',
+            border: '1px solid var(--blue-5)',
             padding: '2px 8px',
           }}
         >
@@ -50,57 +50,63 @@ export function LiveHeaderCard({
       {runStatus === 'initialised' &&
         (instructions.length === 0 ? (
           <>
-            <Text mb="sm">
+            <Text as="p" mb="2">
               This run is currently in the pre-start phase. It can be started at any time.
             </Text>
             <Button
-              size="sm"
-              w="fit-content"
               onClick={onStart}
               loading={isStarting}
               disabled={isAdminView}
+              style={{ width: 'fit-content' }}
             >
               Start
             </Button>
           </>
         ) : (
-          <Alert color="blue">
-            <Text>This run is currently in the pre-start phase.</Text>
-            <Text mb="xs">Please ensure the following before starting the test:</Text>
+          <Box
+            style={{
+              backgroundColor: 'var(--blue-3)',
+              border: '1px solid var(--blue-6)',
+              borderRadius: 'var(--radius-3)',
+              padding: 'var(--space-3)',
+            }}
+          >
+            <Text as="p">This run is currently in the pre-start phase.</Text>
+            <Text as="p" mb="1">
+              Please ensure the following before starting the test:
+            </Text>
             <ul>
               {instructions.map((i, idx) => (
                 <li key={idx}>{i}</li>
               ))}
             </ul>
             <Button
-              size="sm"
-              w="fit-content"
               onClick={onStart}
               loading={isStarting}
               disabled={isAdminView}
+              style={{ width: 'fit-content' }}
             >
               Start
             </Button>
-          </Alert>
+          </Box>
         ))}
 
       {runStatus === 'started' && (
         <>
-          <Text>
+          <Text as="p">
             The test is now underway - the server will have loaded any initial preconditions (eg:
             DERControls) and its now time for your client to respond appropriately.
           </Text>
-          <Text my="sm">
+          <Text as="p" my="2">
             When you're ready to end the test, press the Finalise button. An artefact will be
             downloaded including a PDF report, request logs, and server logs to help with debugging.
           </Text>
           <Button
             color="yellow"
-            size="sm"
-            w="fit-content"
             onClick={onFinalise}
             loading={isFinalising}
             disabled={isAdminView}
+            style={{ width: 'fit-content' }}
           >
             Finalise
           </Button>

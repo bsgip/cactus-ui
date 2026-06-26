@@ -1,27 +1,37 @@
-import { Alert, Box, Button, Stack, Text, Title } from '@mantine/core';
+import { Button, Callout, Flex, Heading, Text } from '@radix-ui/themes';
 
 // Shown when /api/session returns 401. The login banner message comes from the
 // LOGIN_BANNER_MESSAGE envvar and may contain HTML (rendered via dangerouslySetInnerHTML).
 export function LoginPage({ loginBannerMessage }: { loginBannerMessage: string | null }) {
   return (
-    <Box bg="gray.0" mih="100vh" display="flex" style={{ flexDirection: 'column' }}>
-      <Stack align="center" justify="center" ta="center" gap="md" style={{ flexGrow: 1 }}>
-        <Title order={1}>🌵 Welcome to CACTUS</Title>
-        <Title order={2} fz="h5" fw={500} c="dimmed">
+    <Flex direction="column" style={{ minHeight: '100vh', backgroundColor: 'var(--gray-2)' }}>
+      <Flex
+        direction="column"
+        align="center"
+        justify="center"
+        gap="3"
+        style={{ flexGrow: 1, textAlign: 'center' }}
+      >
+        <Heading as="h1" size="8">
+          🌵 Welcome to CACTUS
+        </Heading>
+        <Heading as="h2" size="5" weight="medium" color="gray">
           Client Testing Harness
-        </Title>
-        <Button component="a" href="/login" color="green">
-          Login
+        </Heading>
+        <Button asChild color="green">
+          <a href="/login">Login</a>
         </Button>
         {loginBannerMessage && (
-          <Alert color="red" maw={600} role="alert">
-            <span dangerouslySetInnerHTML={{ __html: loginBannerMessage }} />
-          </Alert>
+          <Callout.Root color="red" role="alert" style={{ maxWidth: 600 }}>
+            <Callout.Text>
+              <span dangerouslySetInnerHTML={{ __html: loginBannerMessage }} />
+            </Callout.Text>
+          </Callout.Root>
         )}
-      </Stack>
-      <Text ta="center" c="dimmed" size="sm" pb={20}>
+      </Flex>
+      <Text as="div" align="center" color="gray" size="2" style={{ paddingBottom: 20 }}>
         <strong>C.A.C.T.U.S.</strong> = CSIP-Australia Compliance Testing for Utility Services
       </Text>
-    </Box>
+    </Flex>
   );
 }

@@ -1,5 +1,4 @@
-import { MantineProvider } from '@mantine/core';
-import { ModalsProvider } from '@mantine/modals';
+import { Theme } from '@radix-ui/themes';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -20,18 +19,21 @@ function renderRunStatus(path: string) {
     [
       { path: '/run/:runId', element: <RunStatusPage isAdminView={false} /> },
       { path: '/admin/run/:runId', element: <RunStatusPage isAdminView /> },
+      // Destination for End Playlist navigation; content is irrelevant to the assertions.
+      { path: '/playlists', element: <div /> },
     ],
     { initialEntries: [path] }
   );
-  return render(
-    <MantineProvider>
-      <QueryClientProvider client={queryClient}>
-        <ModalsProvider>
+  return {
+    router,
+    ...render(
+      <Theme accentColor="blue" grayColor="slate" radius="medium">
+        <QueryClientProvider client={queryClient}>
           <RouterProvider router={router} />
-        </ModalsProvider>
-      </QueryClientProvider>
-    </MantineProvider>
-  );
+        </QueryClientProvider>
+      </Theme>
+    ),
+  };
 }
 
 // Make the shell endpoints return a specific payload for this test.
@@ -146,11 +148,6 @@ describe('run status playlist banner', () => {
 
   it('confirms before ending the playlist and then finalises it', async () => {
     useShell(shellPlaylist);
-    const assign = vi.fn();
-    Object.defineProperty(window, 'location', {
-      value: { ...window.location, assign },
-      writable: true,
-    });
     const finalised = vi.fn();
     server.use(
       http.post('/api/runs/:runId/finalise_playlist', ({ params }) => {
@@ -160,15 +157,15 @@ describe('run status playlist banner', () => {
     );
 
     const user = userEvent.setup();
-    renderRunStatus('/run/202');
+    const { router } = renderRunStatus('/run/202');
 
     await user.click(await screen.findByRole('button', { name: /End Playlist/ }));
-    // Confirmation modal — confirm via the button inside the dialog.
-    const dialog = await screen.findByRole('dialog');
+    // Confirmation modal (Radix AlertDialog) — confirm via the button inside it.
+    const dialog = await screen.findByRole('alertdialog');
     await user.click(within(dialog).getByRole('button', { name: 'End Playlist' }));
 
     await waitFor(() => expect(finalised).toHaveBeenCalledWith(202));
-    await waitFor(() => expect(assign).toHaveBeenCalledWith('/playlists'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/playlists'));
   });
 
   it('warns and links to the active test when viewing a not-yet-active run', async () => {

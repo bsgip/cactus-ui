@@ -1,7 +1,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { server } from './msw-server';
 import { renderApp } from './test-utils';
 
@@ -12,8 +12,8 @@ describe('playlists page', () => {
     expect(await screen.findByRole('button', { name: 'Battery Mk1' })).toBeInTheDocument();
     expect(document.title).toBe('Playlists - CACTUS');
 
-    // Categories and tests from the fixture
-    expect(await screen.findByRole('button', { name: 'Registration' })).toBeInTheDocument();
+    // Categories (native <details>/<summary> accordion) and tests from the fixture
+    expect(await screen.findByText('Registration')).toBeInTheDocument();
     expect(screen.getAllByText('ALL-01').length).toBeGreaterThan(0);
 
     // Empty queue + disabled Start
@@ -23,11 +23,11 @@ describe('playlists page', () => {
 
   it('switches run groups through the dropdown', async () => {
     const user = userEvent.setup();
-    renderApp('/group/1/playlists');
+    const { router } = renderApp('/group/1/playlists');
 
     await user.click(await screen.findByRole('button', { name: 'Battery Mk1' }));
-    const other = await screen.findByRole('menuitem', { name: 'Battery Mk2' });
-    expect(other).toHaveAttribute('href', '/group/2/playlists');
+    await user.click(await screen.findByRole('menuitem', { name: 'Battery Mk2' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/group/2/playlists'));
   });
 
   it('adds a test to the queue and enables Start Playlist', async () => {
@@ -43,19 +43,13 @@ describe('playlists page', () => {
   });
 
   it('navigates to the run status page when a playlist starts', async () => {
-    const originalLocation = window.location;
-    Object.defineProperty(window, 'location', {
-      value: { ...originalLocation, assign: vi.fn() },
-      writable: true,
-    });
     const user = userEvent.setup();
-    renderApp('/group/1/playlists');
+    const { router } = renderApp('/group/1/playlists');
 
     await user.click(await screen.findByRole('button', { name: /ALL-01/ }));
     await user.click(screen.getByRole('button', { name: 'Start Playlist' }));
 
-    await waitFor(() => expect(window.location.assign).toHaveBeenCalledWith('/run/301'));
-    Object.defineProperty(window, 'location', { value: originalLocation, writable: true });
+    await waitFor(() => expect(router.state.location.pathname).toBe('/run/301'));
   });
 
   it('shows the active playlist with go-to-run and finalise controls', async () => {

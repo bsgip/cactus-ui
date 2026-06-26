@@ -1,6 +1,6 @@
-import { Badge, Button, Card, Modal, Table, Text } from '@mantine/core';
+import { Badge, Box, Button, Dialog, Flex, Separator, Table, Text } from '@radix-ui/themes';
 import { SectionCard } from '../../components/SectionCard';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure } from '../../hooks/useDisclosure';
 import type {
   DERCapabilityInfo,
   DERSettingsInfo,
@@ -20,9 +20,7 @@ function notSet(v: string | number | null | undefined) {
   return v !== null && v !== undefined ? (
     <>{v}</>
   ) : (
-    <Text span c="dimmed">
-      Not set
-    </Text>
+    <Text color="gray">Not set</Text>
   );
 }
 
@@ -32,22 +30,16 @@ function unit(v: number | null | undefined, u: string) {
       {v} {u}
     </>
   ) : (
-    <Text span c="dimmed">
-      Not set
-    </Text>
+    <Text color="gray">Not set</Text>
   );
 }
 
 function badges(items: string[] | null | undefined) {
   if (!items || items.length === 0) {
-    return (
-      <Text span c="dimmed">
-        None
-      </Text>
-    );
+    return <Text color="gray">None</Text>;
   }
   return items.map((i) => (
-    <Badge key={i} color="gray" mr={4}>
+    <Badge key={i} color="gray" mr="1">
       {i}
     </Badge>
   ));
@@ -62,60 +54,71 @@ export function MetadataCard({ metadata }: Props) {
       scroll
       title="Active Device Metadata"
       action={
-        <Button size="xs" variant="outline" color="gray" onClick={open}>
+        <Button size="1" variant="outline" color="gray" onClick={open}>
           Device Details
         </Button>
       }
     >
-      <Table>
-        <Table.Tbody>
-          <Table.Tr>
-            <Table.Th>End Device href</Table.Th>
-            <Table.Td>{value(metadata?.edevid)}</Table.Td>
-          </Table.Tr>
-          <Table.Tr>
-            <Table.Th>LFDI</Table.Th>
-            <Table.Td>{value(metadata?.lfdi)}</Table.Td>
-          </Table.Tr>
-          <Table.Tr>
-            <Table.Th>NMI</Table.Th>
-            <Table.Td>{value(metadata?.nmi)}</Table.Td>
-          </Table.Tr>
-          <Table.Tr>
-            <Table.Th>Set Max W (W)</Table.Th>
-            <Table.Td>{value(metadata?.set_max_w)}</Table.Td>
-          </Table.Tr>
-        </Table.Tbody>
-      </Table>
+      <Table.Root>
+        <Table.Body>
+          <Table.Row>
+            <Table.RowHeaderCell>End Device href</Table.RowHeaderCell>
+            <Table.Cell>{value(metadata?.edevid)}</Table.Cell>
+          </Table.Row>
+          <Table.Row>
+            <Table.RowHeaderCell>LFDI</Table.RowHeaderCell>
+            <Table.Cell>{value(metadata?.lfdi)}</Table.Cell>
+          </Table.Row>
+          <Table.Row>
+            <Table.RowHeaderCell>NMI</Table.RowHeaderCell>
+            <Table.Cell>{value(metadata?.nmi)}</Table.Cell>
+          </Table.Row>
+          <Table.Row>
+            <Table.RowHeaderCell>Set Max W (W)</Table.RowHeaderCell>
+            <Table.Cell>{value(metadata?.set_max_w)}</Table.Cell>
+          </Table.Row>
+        </Table.Body>
+      </Table.Root>
 
-      <Modal opened={opened} onClose={close} title="DER Device Details" size="lg">
-        <DerCapabilityCard cap={metadata?.der_capability ?? null} />
-        <DerSettingsCard set={metadata?.der_settings ?? null} />
-        <DerStatusCard sta={metadata?.der_status ?? null} />
-      </Modal>
+      <Dialog.Root open={opened} onOpenChange={(o) => !o && close()}>
+        <Dialog.Content maxWidth="600px">
+          <Dialog.Title>DER Device Details</Dialog.Title>
+          <DerCapabilityCard cap={metadata?.der_capability ?? null} />
+          <DerSettingsCard set={metadata?.der_settings ?? null} />
+          <DerStatusCard sta={metadata?.der_status ?? null} />
+        </Dialog.Content>
+      </Dialog.Root>
     </SectionCard>
   );
 }
 
 function SubCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <Card withBorder mb="md" padding={0}>
-      <Card.Section withBorder inheritPadding py="xs">
-        <Text fw={600}>{title}</Text>
-      </Card.Section>
-      <Table>
-        <Table.Tbody>{children}</Table.Tbody>
-      </Table>
-    </Card>
+    <Box
+      mb="3"
+      style={{
+        border: '1px solid var(--gray-5)',
+        borderRadius: 'var(--radius-3)',
+        overflow: 'hidden',
+      }}
+    >
+      <Flex px="3" py="2">
+        <Text weight="medium">{title}</Text>
+      </Flex>
+      <Separator size="4" />
+      <Table.Root>
+        <Table.Body>{children}</Table.Body>
+      </Table.Root>
+    </Box>
   );
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <Table.Tr>
-      <Table.Th>{label}</Table.Th>
-      <Table.Td>{children}</Table.Td>
-    </Table.Tr>
+    <Table.Row>
+      <Table.RowHeaderCell>{label}</Table.RowHeaderCell>
+      <Table.Cell>{children}</Table.Cell>
+    </Table.Row>
   );
 }
 
@@ -189,12 +192,10 @@ function DerStatusCard({ sta }: { sta: DERStatusInfo | null }) {
 
 function NotSetRow() {
   return (
-    <Table.Tr>
-      <Table.Td>
-        <Text span c="dimmed">
-          Not set
-        </Text>
-      </Table.Td>
-    </Table.Tr>
+    <Table.Row>
+      <Table.Cell>
+        <Text color="gray">Not set</Text>
+      </Table.Cell>
+    </Table.Row>
   );
 }

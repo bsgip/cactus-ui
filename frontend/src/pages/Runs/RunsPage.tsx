@@ -1,9 +1,8 @@
-import { Anchor, Box, Button, Divider, Flex, Group, Menu, Text, Title } from '@mantine/core';
-import { useDocumentTitle } from '@mantine/hooks';
+import { Box, Button, DropdownMenu, Flex, Heading, Link, Separator, Text } from '@radix-ui/themes';
 import { IconChevronDown } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import {
   deleteRun,
   fetchActiveRuns,
@@ -17,6 +16,7 @@ import {
 import { Banner } from '../../components/Banner';
 import { ErrorAlert } from '../../components/ErrorAlert';
 import { PageSpinner } from '../../components/PageSpinner';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useSession } from '../../hooks/useSession';
 import { ProcedureList } from './ProcedureList';
 import { RunsTable, type PendingRunAction } from './RunsTable';
@@ -126,49 +126,56 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
       {groupsQuery.error && <ErrorAlert message="Unable to fetch run groups." />}
       {actionError && <ErrorAlert message={actionError} />}
 
-      <Group justify="space-between" mb="xs">
-        <Group gap="sm">
-          <Title order={2}>Runs for</Title>
+      <Flex justify="between" align="center" mb="1">
+        <Flex gap="2" align="center">
+          <Heading as="h2" size="6">
+            Runs for
+          </Heading>
           {runGroups.length < 2 ? (
-            activeRunGroup && <Title order={2}>{activeRunGroup.name}</Title>
+            activeRunGroup && (
+              <Heading as="h2" size="6">
+                {activeRunGroup.name}
+              </Heading>
+            )
           ) : (
-            <Menu>
-              <Menu.Target>
-                <Button rightSection={<IconChevronDown size={16} />}>{activeRunGroup?.name}</Button>
-              </Menu.Target>
-              <Menu.Dropdown>
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger>
+                <Button>
+                  {activeRunGroup?.name}
+                  <IconChevronDown size={16} />
+                </Button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content>
                 {runGroups
                   .filter((rg) => rg.run_group_id !== runGroupId)
                   .map((rg) => (
-                    <Menu.Item
+                    <DropdownMenu.Item
                       key={rg.run_group_id}
-                      component={Link}
-                      to={groupRunsPath(rg.run_group_id)}
+                      onSelect={() => navigate(groupRunsPath(rg.run_group_id))}
                     >
                       {rg.name}
-                    </Menu.Item>
+                    </DropdownMenu.Item>
                   ))}
-              </Menu.Dropdown>
-            </Menu>
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
           )}
-        </Group>
+        </Flex>
         {activeRunGroup && (
-          <Anchor
-            component={Link}
-            to={`${isAdminView ? '/admin' : ''}/group/${runGroupId}`}
-          >
-            Compliance for <b>{activeRunGroup.name}</b> →
-          </Anchor>
+          <Link asChild>
+            <RouterLink to={`${isAdminView ? '/admin' : ''}/group/${runGroupId}`}>
+              Compliance for <b>{activeRunGroup.name}</b> →
+            </RouterLink>
+          </Link>
         )}
-      </Group>
+      </Flex>
 
-      <Divider mb="md" />
+      <Separator size="4" mb="3" />
 
-      <Flex gap="md" align="flex-start">
-        <Box w={400} miw={200} mah="70vh" style={{ overflow: 'auto' }}>
-          <Title order={5} mb="xs">
+      <Flex gap="3" align="start">
+        <Box style={{ width: 400, minWidth: 200, maxHeight: '70vh', overflow: 'auto' }}>
+          <Heading as="h3" size="3" mb="1">
             Procedures
-          </Title>
+          </Heading>
           {summariesQuery.isPending ? (
             <PageSpinner />
           ) : summariesQuery.error ? (
@@ -182,18 +189,20 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
           )}
         </Box>
 
-        <Box flex={1}>
-          <Group justify="space-between" py={5}>
+        <Box style={{ flex: 1 }}>
+          <Flex justify="between" align="start" py="1">
             {selection.kind === 'active' ? (
-              <Title order={4}>Active Runs</Title>
+              <Heading as="h4" size="4">
+                Active Runs
+              </Heading>
             ) : (
               <div>
-                <Title order={4}>
-                  <Anchor component={Link} to={`/procedure/${selection.id}`}>
-                    {selection.id}
-                  </Anchor>
-                </Title>
-                <Text size="sm" c="dimmed" mt={2}>
+                <Heading as="h4" size="4">
+                  <Link asChild>
+                    <RouterLink to={`/procedure/${selection.id}`}>{selection.id}</RouterLink>
+                  </Link>
+                </Heading>
+                <Text as="div" size="2" color="gray" mt="1">
                   {selection.description}
                 </Text>
               </div>
@@ -206,13 +215,13 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
                 >
                   New Test Run
                 </Button>
-                <Text size="xs" c="dimmed" mt={4}>
+                <Text as="div" size="1" color="gray" mt="1">
                   May take up to 30s to initialize
                 </Text>
               </Box>
             )}
-          </Group>
-          <Box mah="70vh" style={{ overflow: 'auto' }}>
+          </Flex>
+          <Box style={{ maxHeight: '70vh', overflow: 'auto' }}>
             <RunsTable
               runs={runsQuery.data?.items}
               isPending={runsQuery.isPending}

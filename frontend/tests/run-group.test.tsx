@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
@@ -107,11 +107,11 @@ describe('run group compliance page', () => {
 
   it('switches run group via dropdown', async () => {
     const user = userEvent.setup();
-    renderApp('/group/1');
+    const { router } = renderApp('/group/1');
 
     await user.click(await screen.findByRole('button', { name: 'Battery Mk1' }));
-    const other = await screen.findByRole('menuitem', { name: 'Battery Mk2' });
-    expect(other).toHaveAttribute('href', '/group/2');
+    await user.click(await screen.findByRole('menuitem', { name: 'Battery Mk2' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/group/2'));
   });
 
   it('shows error alert when compliance fetch fails', async () => {
@@ -168,9 +168,9 @@ describe('run group compliance page', () => {
     renderApp('/group/1');
 
     await screen.findByRole('cell', { name: 'A' });
-    // The compliant row's first cell (th) carries the green background style
+    // The compliant row's first cell carries the green background style
     const row = screen.getByRole('cell', { name: 'A' }).closest('tr')!;
-    const indicator = row.querySelector('th')!;
-    expect(indicator).toHaveStyle({ backgroundColor: 'var(--mantine-color-green-6)' });
+    const indicator = row.querySelector('td')!;
+    expect(indicator).toHaveStyle({ backgroundColor: 'var(--green-9)' });
   });
 });

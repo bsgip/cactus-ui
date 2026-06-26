@@ -1,4 +1,4 @@
-import { Button, Code, Group, Table } from '@mantine/core';
+import { Button, Code, Flex, Table } from '@radix-ui/themes';
 import { SectionCard } from '../../components/SectionCard';
 import { useState } from 'react';
 import type { RequestEntry } from '../../api/types';
@@ -41,68 +41,68 @@ export function XsdErrorsCard({ requests, onShowRequest }: Props) {
       title={title(withErrors.length, totalErrorCount)}
       action={
         withErrors.length > 1 && (
-          <Group gap="xs">
+          <Flex gap="2" align="center">
             <Button
-              size="xs"
+              size="1"
               variant="outline"
               disabled={currentIndex === 0}
               onClick={() => setIndex(currentIndex - 1)}
             >
               ← Previous
             </Button>
-            <Button size="xs" variant="outline" color="gray" disabled>
+            <Button size="1" variant="outline" color="gray" disabled>
               {currentIndex + 1} of {withErrors.length}
             </Button>
             <Button
-              size="xs"
+              size="1"
               variant="outline"
               disabled={currentIndex === withErrors.length - 1}
               onClick={() => setIndex(currentIndex + 1)}
             >
               Next →
             </Button>
-          </Group>
+          </Flex>
         )
       }
     >
-      <Table>
-        <Table.Tbody>
+      <Table.Root>
+        <Table.Body>
           {!current ? (
-            <Table.Tr>
-              <Table.Td colSpan={2} ta="center" c="dimmed">
+            <Table.Row>
+              <Table.Cell colSpan={2} style={{ textAlign: 'center', color: 'var(--gray-9)' }}>
                 No XSD validation errors detected
-              </Table.Td>
-            </Table.Tr>
+              </Table.Cell>
+            </Table.Row>
           ) : (
             <>
-              <Table.Tr>
-                <Table.Th>Timestamp</Table.Th>
-                <Table.Td>
+              <Table.Row>
+                <Table.RowHeaderCell>Timestamp</Table.RowHeaderCell>
+                <Table.Cell>
                   {formatDate(new Date(current.timestamp))} (
                   {formatRelativeDate(new Date(current.timestamp))})
-                </Table.Td>
-              </Table.Tr>
-              <Table.Tr>
-                <Table.Th>Request</Table.Th>
-                <Table.Td>
+                </Table.Cell>
+              </Table.Row>
+              <Table.Row>
+                <Table.RowHeaderCell>Request</Table.RowHeaderCell>
+                <Table.Cell>
                   {current.method} {current.path}
-                </Table.Td>
-              </Table.Tr>
-              <Table.Tr>
-                <Table.Th>URL</Table.Th>
-                <Table.Td>
+                </Table.Cell>
+              </Table.Row>
+              <Table.Row>
+                <Table.RowHeaderCell>URL</Table.RowHeaderCell>
+                <Table.Cell>
                   <Code style={{ wordBreak: 'break-all' }}>{current.url}</Code>
-                </Table.Td>
-              </Table.Tr>
-              <Table.Tr>
-                <Table.Th>Step</Table.Th>
-                <Table.Td>
+                </Table.Cell>
+              </Table.Row>
+              <Table.Row>
+                <Table.RowHeaderCell>Step</Table.RowHeaderCell>
+                <Table.Cell>
                   {current.step_name === 'Unmatched' ? <em>Unmatched</em> : current.step_name}
-                </Table.Td>
-              </Table.Tr>
-              <Table.Tr>
-                <Table.Th>XSD Errors</Table.Th>
-                <Table.Td>
+                </Table.Cell>
+              </Table.Row>
+              <Table.Row>
+                <Table.RowHeaderCell>XSD Errors</Table.RowHeaderCell>
+                <Table.Cell>
                   <ul style={{ margin: 0, maxHeight: 300, overflowY: 'auto' }}>
                     {current.body_xml_errors.map((err, i) => (
                       <li key={i}>
@@ -112,20 +112,20 @@ export function XsdErrorsCard({ requests, onShowRequest }: Props) {
                       </li>
                     ))}
                   </ul>
-                </Table.Td>
-              </Table.Tr>
-              <Table.Tr>
-                <Table.Th>Details</Table.Th>
-                <Table.Td>
-                  <Button size="xs" onClick={() => onShowRequest(current.request_id)}>
+                </Table.Cell>
+              </Table.Row>
+              <Table.Row>
+                <Table.RowHeaderCell>Details</Table.RowHeaderCell>
+                <Table.Cell>
+                  <Button size="1" onClick={() => onShowRequest(current.request_id)}>
                     View Full Request Details
                   </Button>
-                </Table.Td>
-              </Table.Tr>
+                </Table.Cell>
+              </Table.Row>
             </>
           )}
-        </Table.Tbody>
-      </Table>
+        </Table.Body>
+      </Table.Root>
     </SectionCard>
   );
 }

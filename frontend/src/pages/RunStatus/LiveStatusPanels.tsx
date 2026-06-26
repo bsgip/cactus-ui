@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, Table, Text } from '@mantine/core';
+import { Box, Button, Callout, Link, Table, Text } from '@radix-ui/themes';
 import { useMutation } from '@tanstack/react-query';
 import { IconCheck, IconMinus, IconPlayerPlay, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
@@ -78,37 +78,37 @@ function GeneralCard({
     <SectionCard
       scroll
       title={
-        <Anchor href={`/procedure/${runProcedureId}`} fw={700}>
+        <Link href={`/procedure/${runProcedureId}`} weight="bold">
           {runProcedureId}
-        </Anchor>
+        </Link>
       }
     >
-      <Table>
-        <Table.Tbody>
+      <Table.Root>
+        <Table.Body>
           {status.timestamp_start && (
-            <Table.Tr>
-              <Table.Th>Started</Table.Th>
-              <Table.Td>{dateCell(status.timestamp_start)}</Table.Td>
-            </Table.Tr>
+            <Table.Row>
+              <Table.RowHeaderCell>Started</Table.RowHeaderCell>
+              <Table.Cell>{dateCell(status.timestamp_start)}</Table.Cell>
+            </Table.Row>
           )}
           {status.timestamp_initialise && (
-            <Table.Tr>
-              <Table.Th>Created</Table.Th>
-              <Table.Td>{dateCell(status.timestamp_initialise)}</Table.Td>
-            </Table.Tr>
+            <Table.Row>
+              <Table.RowHeaderCell>Created</Table.RowHeaderCell>
+              <Table.Cell>{dateCell(status.timestamp_initialise)}</Table.Cell>
+            </Table.Row>
           )}
           {interaction && (
-            <Table.Tr>
-              <Table.Th>Last Interaction</Table.Th>
-              <Table.Td>{dateCell(interaction)}</Table.Td>
-            </Table.Tr>
+            <Table.Row>
+              <Table.RowHeaderCell>Last Interaction</Table.RowHeaderCell>
+              <Table.Cell>{dateCell(interaction)}</Table.Cell>
+            </Table.Row>
           )}
-          <Table.Tr>
-            <Table.Th>Summary</Table.Th>
-            <Table.Td>{status.status_summary}</Table.Td>
-          </Table.Tr>
-        </Table.Tbody>
-      </Table>
+          <Table.Row>
+            <Table.RowHeaderCell>Summary</Table.RowHeaderCell>
+            <Table.Cell>{status.status_summary}</Table.Cell>
+          </Table.Row>
+        </Table.Body>
+      </Table.Root>
     </SectionCard>
   );
 }
@@ -117,32 +117,32 @@ function GeneralCard({
 function CheckTableCard({ title, entries }: { title: string; entries: CriteriaEntry[] }) {
   return (
     <SectionCard scroll title={title}>
-      <Table>
-        <Table.Tbody>
+      <Table.Root>
+        <Table.Body>
           {entries.map((c) => (
-            <Table.Tr key={c.type}>
-              <Table.Th>{c.type}</Table.Th>
-              <Table.Td>
+            <Table.Row key={c.type}>
+              <Table.RowHeaderCell>{c.type}</Table.RowHeaderCell>
+              <Table.Cell>
                 {c.success ? (
-                  <IconCheck size={16} color="var(--mantine-color-green-6)" />
+                  <IconCheck size={16} color="var(--green-9)" />
                 ) : (
-                  <IconX size={16} color="var(--mantine-color-red-6)" />
+                  <IconX size={16} color="var(--red-9)" />
                 )}
-              </Table.Td>
-              <Table.Td>{c.details}</Table.Td>
-            </Table.Tr>
+              </Table.Cell>
+              <Table.Cell>{c.details}</Table.Cell>
+            </Table.Row>
           ))}
-        </Table.Tbody>
-      </Table>
+        </Table.Body>
+      </Table.Root>
     </SectionCard>
   );
 }
 
 function StepIcon({ info }: { info: StepEventStatus }) {
   const phase = stepPhase(info);
-  if (phase === 'resolved') return <IconCheck size={16} color="var(--mantine-color-green-6)" />;
-  if (phase === 'active') return <IconPlayerPlay size={16} color="var(--mantine-color-blue-6)" />;
-  return <IconMinus size={16} color="var(--mantine-color-gray-6)" />;
+  if (phase === 'resolved') return <IconCheck size={16} color="var(--green-9)" />;
+  if (phase === 'active') return <IconPlayerPlay size={16} color="var(--blue-9)" />;
+  return <IconMinus size={16} color="var(--gray-9)" />;
 }
 
 function completedCell(info: StepEventStatus, timestampStart: string | null) {
@@ -186,7 +186,15 @@ function StepsCard({
   return (
     <SectionCard scroll title="Steps">
       {showInstructions && (
-        <Alert color="blue" mb="md">
+        <Box
+          mb="3"
+          style={{
+            backgroundColor: 'var(--blue-3)',
+            border: '1px solid var(--blue-6)',
+            borderRadius: 'var(--radius-3)',
+            padding: 'var(--space-3)',
+          }}
+        >
           <ul>
             {instructions.map((i, idx) => (
               <li key={idx}>{i}</li>
@@ -198,31 +206,31 @@ function StepsCard({
             </Button>
           )}
           {proceedMutation.isError && (
-            <Alert color="red" mt="md">
-              There was an error proceeding to the next step. Please try again.
-            </Alert>
+            <Callout.Root color="red" mt="3">
+              <Callout.Text>
+                There was an error proceeding to the next step. Please try again.
+              </Callout.Text>
+            </Callout.Root>
           )}
-        </Alert>
+        </Box>
       )}
 
-      <Table>
-        <Table.Tbody>
+      <Table.Root>
+        <Table.Body>
           {steps.map(([name, info]) => (
-            <Table.Tr key={name}>
-              <Table.Th>{name}</Table.Th>
-              <Table.Td>
-                <Text span c="dimmed">
-                  {info.event_status ?? ''}
-                </Text>
-              </Table.Td>
-              <Table.Td>{completedCell(info, status.timestamp_start)}</Table.Td>
-              <Table.Td>
+            <Table.Row key={name}>
+              <Table.RowHeaderCell>{name}</Table.RowHeaderCell>
+              <Table.Cell>
+                <Text color="gray">{info.event_status ?? ''}</Text>
+              </Table.Cell>
+              <Table.Cell>{completedCell(info, status.timestamp_start)}</Table.Cell>
+              <Table.Cell>
                 <StepIcon info={info} />
-              </Table.Td>
-            </Table.Tr>
+              </Table.Cell>
+            </Table.Row>
           ))}
-        </Table.Tbody>
-      </Table>
+        </Table.Body>
+      </Table.Root>
     </SectionCard>
   );
 }

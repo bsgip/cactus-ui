@@ -27,7 +27,7 @@ export function StatusBanner({ stepStatus }: Props) {
         left: 0,
         right: 0,
         zIndex: 1050,
-        background: allComplete ? 'var(--mantine-color-green-8)' : '#212529',
+        background: allComplete ? 'var(--green-9)' : '#212529',
         color: '#fff',
         padding: '8px 20px',
         display: 'flex',

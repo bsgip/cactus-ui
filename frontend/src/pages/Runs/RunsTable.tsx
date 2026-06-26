@@ -1,6 +1,6 @@
-import { ActionIcon, Anchor, Button, Center, Loader, Table, Text } from '@mantine/core';
+import { Button, Flex, IconButton, Link, Spinner, Table, Text } from '@radix-ui/themes';
 import { IconCheck, IconQuestionMark, IconTrash, IconX } from '@tabler/icons-react';
-import { Link } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import type { RunResponse } from '../../api/types';
 import { formatDate, formatRelativeDate } from '../../utils/dates';
 
@@ -26,25 +26,23 @@ function isLiveStatus(run: RunResponse): boolean {
 
 function rowBackground(run: RunResponse): string | undefined {
   if (run.all_criteria_met === true) {
-    return 'var(--mantine-color-green-0)';
+    return 'var(--green-2)';
   }
   if (run.all_criteria_met === false) {
-    return 'var(--mantine-color-red-0)';
+    return 'var(--red-2)';
   }
-  return isLiveStatus(run) ? 'var(--mantine-color-blue-0)' : undefined;
+  return isLiveStatus(run) ? 'var(--blue-2)' : undefined;
 }
 
 function ResultIcon({ run }: { run: RunResponse }) {
   if (run.all_criteria_met === true) {
-    return <IconCheck size={16} color="var(--mantine-color-green-7)" aria-label="criteria met" />;
+    return <IconCheck size={16} color="var(--green-9)" aria-label="criteria met" />;
   }
   if (run.all_criteria_met === false) {
-    return <IconX size={16} color="var(--mantine-color-red-7)" aria-label="criteria not met" />;
+    return <IconX size={16} color="var(--red-9)" aria-label="criteria not met" />;
   }
   if (!isLiveStatus(run)) {
-    return (
-      <IconQuestionMark size={16} color="var(--mantine-color-gray-6)" aria-label="result unknown" />
-    );
+    return <IconQuestionMark size={16} color="var(--gray-9)" aria-label="result unknown" />;
   }
   return null;
 }
@@ -69,8 +67,8 @@ function ActionButton({
     }
     if (run.has_artifacts) {
       return (
-        <Button component="a" href={`/admin/run/${run.run_id}/artifact`} color="gray">
-          Download
+        <Button asChild color="gray">
+          <a href={`/admin/run/${run.run_id}/artifact`}>Download</a>
         </Button>
       );
     }
@@ -100,8 +98,8 @@ function ActionButton({
   }
   if (run.has_artifacts) {
     return (
-      <Button component="a" href={`/run/${run.run_id}/artifact`} color="gray">
-        Download
+      <Button asChild color="gray">
+        <a href={`/run/${run.run_id}/artifact`}>Download</a>
       </Button>
     );
   }
@@ -121,48 +119,50 @@ export function RunsTable({
   let body;
   if (isPending) {
     body = (
-      <Table.Tr>
-        <Table.Td colSpan={6}>
-          <Center py="md">
-            <Loader color="green" />
-          </Center>
-        </Table.Td>
-      </Table.Tr>
+      <Table.Row>
+        <Table.Cell colSpan={6}>
+          <Flex justify="center" py="3">
+            <Spinner />
+          </Flex>
+        </Table.Cell>
+      </Table.Row>
     );
   } else if (error) {
     body = (
-      <Table.Tr bg="var(--mantine-color-red-0)">
-        <Table.Td colSpan={6}>{error.message}</Table.Td>
-      </Table.Tr>
+      <Table.Row style={{ backgroundColor: 'var(--red-2)' }}>
+        <Table.Cell colSpan={6}>{error.message}</Table.Cell>
+      </Table.Row>
     );
   } else if (!runs || runs.length === 0) {
     body = (
-      <Table.Tr>
-        <Table.Td colSpan={6}>No runs were returned.</Table.Td>
-      </Table.Tr>
+      <Table.Row>
+        <Table.Cell colSpan={6}>No runs were returned.</Table.Cell>
+      </Table.Row>
     );
   } else {
     body = runs.map((run) => {
       const created = new Date(run.created_at);
       return (
-        <Table.Tr key={run.run_id} bg={rowBackground(run)}>
-          <Table.Td>
-            <Anchor component={Link} to={`${isAdminView ? '/admin' : ''}/run/${run.run_id}`}>
-              {run.run_id}
-            </Anchor>
-          </Table.Td>
-          <Table.Td>
+        <Table.Row key={run.run_id} style={{ backgroundColor: rowBackground(run) }}>
+          <Table.Cell>
+            <Link asChild>
+              <RouterLink to={`${isAdminView ? '/admin' : ''}/run/${run.run_id}`}>
+                {run.run_id}
+              </RouterLink>
+            </Link>
+          </Table.Cell>
+          <Table.Cell>
             {formatDate(created)}
             <br />
-            <Text component="small" size="xs" c="dimmed">
+            <Text size="1" color="gray">
               ({formatRelativeDate(created)})
             </Text>
-          </Table.Td>
-          <Table.Td>{run.status}</Table.Td>
-          <Table.Td>
+          </Table.Cell>
+          <Table.Cell>{run.status}</Table.Cell>
+          <Table.Cell>
             <ResultIcon run={run} />
-          </Table.Td>
-          <Table.Td>
+          </Table.Cell>
+          <Table.Cell>
             <ActionButton
               run={run}
               isAdminView={isAdminView}
@@ -170,29 +170,29 @@ export function RunsTable({
               onStart={onStart}
               onFinalise={onFinalise}
             />
-          </Table.Td>
-          <Table.Td>
+          </Table.Cell>
+          <Table.Cell>
             {!isAdminView && (
-              <ActionIcon
+              <IconButton
                 variant="outline"
                 color="red"
-                size="lg"
+                size="2"
                 aria-label={`Delete run ${run.run_id}`}
                 loading={pendingAction?.kind === 'delete' && pendingAction.runId === run.run_id}
                 onClick={() => onDelete(run.run_id)}
               >
                 <IconTrash size={16} />
-              </ActionIcon>
+              </IconButton>
             )}
-          </Table.Td>
-        </Table.Tr>
+          </Table.Cell>
+        </Table.Row>
       );
     });
   }
 
   return (
-    <Table>
-      <Table.Tbody>{body}</Table.Tbody>
-    </Table>
+    <Table.Root variant="surface">
+      <Table.Body>{body}</Table.Body>
+    </Table.Root>
   );
 }

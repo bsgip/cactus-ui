@@ -1,9 +1,8 @@
-import { Button, Divider, Grid, Group, Menu, Title } from '@mantine/core';
-import { useDocumentTitle } from '@mantine/hooks';
+import { Box, Button, DropdownMenu, Flex, Grid, Heading, Separator } from '@radix-ui/themes';
 import { IconChevronDown } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   fetchPlaylistSessions,
   fetchPlaylistTests,
@@ -15,6 +14,7 @@ import type { PlaylistTest } from '../../api/types';
 import { Banner } from '../../components/Banner';
 import { ErrorAlert } from '../../components/ErrorAlert';
 import { PageSpinner } from '../../components/PageSpinner';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useSession } from '../../hooks/useSession';
 import { PlaylistQueue } from './PlaylistQueue';
 import { PlaylistSessions } from './PlaylistSessions';
@@ -98,47 +98,53 @@ export function PlaylistsPage() {
       {testsQuery.error && <ErrorAlert message="Unable to fetch test procedures." />}
       {actionError && <ErrorAlert message={actionError} />}
 
-      <Group gap="sm" mb="xs">
+      <Flex gap="2" align="center" mb="1">
         {runGroups.length < 2 ? (
-          activeRunGroup && <Title order={2}>Playlists for {activeRunGroup.name}</Title>
+          activeRunGroup && (
+            <Heading as="h2" size="6">
+              Playlists for {activeRunGroup.name}
+            </Heading>
+          )
         ) : (
           <>
-            <Title order={2}>Playlists for</Title>
-            <Menu>
-              <Menu.Target>
-                <Button rightSection={<IconChevronDown size={16} />}>{activeRunGroup?.name}</Button>
-              </Menu.Target>
-              <Menu.Dropdown>
+            <Heading as="h2" size="6">
+              Playlists for
+            </Heading>
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger>
+                <Button>
+                  {activeRunGroup?.name}
+                  <IconChevronDown size={16} />
+                </Button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content>
                 {runGroups
                   .filter((rg) => rg.run_group_id !== runGroupId)
                   .map((rg) => (
-                    <Menu.Item
+                    <DropdownMenu.Item
                       key={rg.run_group_id}
-                      component={Link}
-                      to={`/group/${rg.run_group_id}/playlists`}
+                      onSelect={() => navigate(`/group/${rg.run_group_id}/playlists`)}
                     >
                       {rg.name}
-                    </Menu.Item>
+                    </DropdownMenu.Item>
                   ))}
-              </Menu.Dropdown>
-            </Menu>
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
           </>
         )}
-      </Group>
+      </Flex>
 
-      <Divider mb="md" />
+      <Separator size="4" mb="3" />
 
       {testsQuery.data && (
-        <Grid>
-          <Grid.Col span={{ base: 12, md: 4 }}>
-            <TestLibrary
-              testsByCategory={testsQuery.data.tests_by_category}
-              classes={testsQuery.data.classes}
-              queuedIds={new Set(queue.map((t) => t.id))}
-              onToggle={toggleTest}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ base: 12, md: 8 }}>
+        <Grid columns={{ initial: '1', md: '3' }} gap="3">
+          <TestLibrary
+            testsByCategory={testsQuery.data.tests_by_category}
+            classes={testsQuery.data.classes}
+            queuedIds={new Set(queue.map((t) => t.id))}
+            onToggle={toggleTest}
+          />
+          <Box style={{ gridColumn: 'span 2' }}>
             <PlaylistQueue
               queue={queue}
               isStarting={initMutation.isPending}
@@ -147,7 +153,7 @@ export function PlaylistsPage() {
               onRemove={removeAt}
               onStart={() => initMutation.mutate(queue.map((t) => t.id))}
             />
-            <Divider my="sm" />
+            <Separator size="4" my="2" />
             {sessionsQuery.error ? (
               <ErrorAlert message="Failed to load session history." />
             ) : (
@@ -157,7 +163,7 @@ export function PlaylistsPage() {
                 onFinalise={(runId) => finaliseMutation.mutate(runId)}
               />
             )}
-          </Grid.Col>
+          </Box>
         </Grid>
       )}
     </>
