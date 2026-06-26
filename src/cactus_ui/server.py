@@ -1128,65 +1128,94 @@ def playlists_page(access_token: str) -> str | Response:
     return redirect(url_for("group_playlists_page", run_group_id=run_groups.items[0].run_group_id))
 
 
+@dataclass
+class PostActionMessage:
+    msg: str
+    msg_type: str
+
+
+def post_actions_for_compliance_page(request: Request, access_token: str) -> PostActionMessage | str | Response | None:
+    """Handles the following POST actions for compliance requests:
+
+    - edit
+    - delete
+    - view
+    - download
+
+    Returns either:
+    - a PostActionMessage (usually an error) to displayed on CompliancePage
+    - a url (as string) if a redirect is required (usually to compliance request page)
+    - a Response (to be returned directly)
+    - None
+    """
+    action = request.form.get("action")
+
+    raw_compliance_request_id = request.form.get("compliance_request_id")
+    try:
+        if raw_compliance_request_id is None:
+            raise ValueError
+        compliance_request_id = int(raw_compliance_request_id)
+    except (TypeError, ValueError):
+        return PostActionMessage(
+            msg=f"Not a valid compliance request_id: '{raw_compliance_request_id}'", msg_type="error"
+        )
+
+    if action == "edit":
+        url = (
+            url_for("compliance_request_page")
+            + f"?prefill={compliance_request_id}&prefill-classes=true&prefill-runs=true&action=edit"
+        )
+        return url
+    elif action == "delete":
+        success = orchestrator.delete_compliance_request(
+            access_token=access_token, compliance_request_id=compliance_request_id
+        )
+        if not success:
+            return PostActionMessage(
+                msg=f"Failed to delete compliance request (id={compliance_request_id})", msg_type="error"
+            )
+    elif action == "view":
+        url = (
+            url_for("compliance_request_page")
+            + f"?prefill={compliance_request_id}&prefill-classes=true&prefill-runs=true&action=view"
+        )
+        return url
+    elif action == "download":
+        compliance_report, compliance_report_name = orchestrator.fetch_compliance_artifact_for_compliance_request(
+            access_token=access_token, compliance_request_id=compliance_request_id
+        )
+        if compliance_report is None:
+            return PostActionMessage(
+                msg="Failed to finalise the compliance request or retrieve the compliance report.", msg_type="error"
+            )
+        else:
+            return send_file(
+                io.BytesIO(compliance_report),
+                as_attachment=True,
+                download_name=compliance_report_name,
+                mimetype="application/pdf",
+            )
+
+    return None
+
+
 @app.route("/compliance", methods=["GET", "POST"])
 @login_required
 def compliance_page(access_token: str) -> str | Response:
-    error: str | None = None
-
-    page = "compliance.html"
 
     msg = None
-    msg_type = None
     if request.method == "POST":
-        action = request.form.get("action")
-        raw_compliance_request_id = request.form.get("compliance_request_id")
-        try:
-            if raw_compliance_request_id is None:
-                raise ValueError
-            compliance_request_id = int(raw_compliance_request_id)
-        except (TypeError, ValueError):
-            error = f"Not a valid compliance request_id: '{raw_compliance_request_id}'"
-
-        if not error:
-            if action == "edit":
-                url = (
-                    url_for("compliance_request_page")
-                    + f"?prefill={compliance_request_id}&prefill-classes=true&prefill-runs=true&action=edit"
-                )
-                return redirect(url)
-            elif action == "delete":
-                success = orchestrator.delete_compliance_request(
-                    access_token=access_token, compliance_request_id=compliance_request_id
-                )
-                if not success:
-                    msg = f"Failed to delete compliance request (id={compliance_request_id})"
-                    msg_type = "error"
-            elif action == "view":
-                url = (
-                    url_for("compliance_request_page")
-                    + f"?prefill={compliance_request_id}&prefill-classes=true&prefill-runs=true&action=view"
-                )
-                return redirect(url)
-            elif action == "download":
-                compliance_report, compliance_report_name = (
-                    orchestrator.fetch_compliance_artifact_for_compliance_request(
-                        access_token=access_token, compliance_request_id=compliance_request_id
-                    )
-                )
-                if compliance_report is None:
-                    msg = "Failed to finalise the compliance request or retrieve the compliance report."
-                    msg_type = "error"
-                else:
-                    return send_file(
-                        io.BytesIO(compliance_report),
-                        as_attachment=True,
-                        download_name=compliance_report_name,
-                        mimetype="application/pdf",
-                    )
+        result = post_actions_for_compliance_page(request=request, access_token=access_token)
+        if isinstance(result, Response):
+            return result
+        if isinstance(result, str):
+            return redirect(result)
+        if isinstance(result, PostActionMessage):
+            msg = result
 
     paged_requests = orchestrator.fetch_compliance_requests(access_token=access_token, page=1)
     if paged_requests is None:
-        return render_template(page, error="Failed to fetch compliance requests.")
+        return render_template("compliance.html", error="Failed to fetch compliance requests.")
     requests = paged_requests.items
 
     def custom_serializer(obj: Any) -> str | dict:  # noqa: ANN401
@@ -1199,93 +1228,99 @@ def compliance_page(access_token: str) -> str | Response:
         return json.dumps(obj)
 
     return render_template(
-        page,
-        error=error,
+        "compliance.html",
         requests=requests,
         requests_b64=b64encode(json.dumps(requests, default=custom_serializer).encode()).decode(),
-        msg=msg if msg else request.args.get("msg"),
-        msg_type=msg_type if msg_type else request.args.get("msg_type"),
+        msg=msg.msg if msg else request.args.get("msg"),
+        msg_type=msg.msg_type if msg else request.args.get("msg_type"),
         is_admin_view=False,
     )
+
+
+def post_actions_admin_compliance_page(
+    request: Request, access_token: str
+) -> PostActionMessage | str | Response | None:
+    action = request.form.get("action")
+    raw_compliance_request_id = request.form.get("compliance_request_id")
+    try:
+        if raw_compliance_request_id is None:
+            raise ValueError
+        compliance_request_id = int(raw_compliance_request_id)
+    except (TypeError, ValueError):
+        return PostActionMessage(
+            msg=f"Not a valid compliance request_id: '{raw_compliance_request_id}'", msg_type="error"
+        )
+
+    if action == "edit":
+        # Set status to under review
+        _ = orchestrator.admin_update_compliance_request(
+            access_token=access_token,
+            compliance_request_id=compliance_request_id,
+            body=schema.ComplianceRequestUpdateRequest(
+                status=orchestrator.ComplianceRequestStatus.UNDER_REVIEW,
+            ),
+        )
+
+        # Redirect to compliance request page (edit mode)
+        url = (
+            url_for("admin_compliance_request_page")
+            + f"?prefill={compliance_request_id}&prefill-classes=true&prefill-runs=true&action=edit"
+        )
+        return url
+
+    elif action == "delete":
+        success = orchestrator.admin_delete_compliance_request(
+            access_token=access_token, compliance_request_id=compliance_request_id
+        )
+        if not success:
+            return PostActionMessage(
+                msg=f"Failed to delete compliance request (id={compliance_request_id})", msg_type="error"
+            )
+    elif action == "view":
+        # Redirect to compliance request page (view only mode)
+        url = (
+            url_for("admin_compliance_request_page")
+            + f"?prefill={compliance_request_id}&prefill-classes=true&prefill-runs=true&action=view"
+        )
+        return url
+    elif action == "download":
+        compliance_report, compliance_report_name = orchestrator.admin_fetch_compliance_artifact_for_compliance_request(
+            access_token=access_token, compliance_request_id=compliance_request_id
+        )
+        if compliance_report is None:
+            return PostActionMessage(
+                msg="Failed to finalise the compliance request or retrieve the compliance report.", msg_type="error"
+            )
+        else:
+            return send_file(
+                io.BytesIO(compliance_report),
+                as_attachment=True,
+                download_name=compliance_report_name,
+                mimetype="application/pdf",
+            )
+
+    return None
 
 
 @app.route("/admin/compliance", methods=["GET", "POST"])
 @login_required
 @admin_role_required
 def admin_compliance_page(access_token: str) -> str | Response:
-    error: str | None = None
-
-    page = "compliance.html"
 
     msg = None
-    msg_type = None
     if request.method == "POST":
-        action = request.form.get("action")
-        raw_compliance_request_id = request.form.get("compliance_request_id")
-        try:
-            if raw_compliance_request_id is None:
-                raise ValueError
-            compliance_request_id = int(raw_compliance_request_id)
-        except (TypeError, ValueError):
-            error = f"Not a valid compliance request_id: '{raw_compliance_request_id}'"
-
-        if not error:
-            if action == "edit":
-                # Set status to under review
-                _ = orchestrator.admin_update_compliance_request(
-                    access_token=access_token,
-                    compliance_request_id=compliance_request_id,
-                    body=schema.ComplianceRequestUpdateRequest(
-                        status=orchestrator.ComplianceRequestStatus.UNDER_REVIEW,
-                    ),
-                )
-
-                # Redirect to compliance request page (edit mode)
-                url = (
-                    url_for("admin_compliance_request_page")
-                    + f"?prefill={compliance_request_id}&prefill-classes=true&prefill-runs=true&action=edit"
-                )
-                return redirect(url)
-
-            elif action == "delete":
-                success = orchestrator.admin_delete_compliance_request(
-                    access_token=access_token, compliance_request_id=compliance_request_id
-                )
-                if not success:
-                    msg = f"Failed to delete compliance request (id={compliance_request_id})"
-                    msg_type = "error"
-            elif action == "view":
-                # Redirect to compliance request page (view only mode)
-                url = (
-                    url_for("admin_compliance_request_page")
-                    + f"?prefill={compliance_request_id}&prefill-classes=true&prefill-runs=true&action=view"
-                )
-                return redirect(url)
-            elif action == "download":
-                compliance_report, compliance_report_name = (
-                    orchestrator.admin_fetch_compliance_artifact_for_compliance_request(
-                        access_token=access_token, compliance_request_id=compliance_request_id
-                    )
-                )
-                if compliance_report is None:
-                    msg = "Failed to finalise the compliance request or retrieve the compliance report."
-                    msg_type = "error"
-                else:
-                    return send_file(
-                        io.BytesIO(compliance_report),
-                        as_attachment=True,
-                        download_name=compliance_report_name,
-                        mimetype="application/pdf",
-                    )
-    page = "compliance.html"
+        result = post_actions_admin_compliance_page(request=request, access_token=access_token)
+        if isinstance(result, Response):
+            return result
+        if isinstance(result, str):
+            return redirect(result)
+        if isinstance(result, PostActionMessage):
+            msg = result
 
     paged_requests = orchestrator.admin_fetch_compliance_requests(access_token=access_token, page=1)
     if paged_requests is None:
-        return render_template(page, error="Failed to fetch compliance requests.")
+        return render_template("compliance.html", error="Failed to fetch compliance requests.")
     requests = paged_requests.items
-
-    if requests is None:
-        return render_template(page, error="Failed to fetch compliance requests.")
 
     def custom_serializer(obj: Any) -> str | dict:  # noqa: ANN401
         if isinstance(obj, JSONWizard):
@@ -1297,11 +1332,11 @@ def admin_compliance_page(access_token: str) -> str | Response:
         return json.dumps(obj)
 
     return render_template(
-        page,
+        "compliance.html",
         requests=requests,
         requests_b64=b64encode(json.dumps(requests, default=custom_serializer).encode()).decode(),
-        msg=msg if msg else request.args.get("msg"),
-        msg_type=msg_type if msg_type else request.args.get("msg_type"),
+        msg=msg.msg if msg else request.args.get("msg"),
+        msg_type=msg.msg_type if msg else request.args.get("msg_type"),
         is_admin_view=True,
     )
 
