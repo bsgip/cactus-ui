@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 import sessionAdminFixture from '../fixtures/session_admin.json';
@@ -13,14 +14,13 @@ describe('home page (logged in)', () => {
     expect(await screen.findByRole('heading', { name: 'Welcome to CACTUS' })).toBeInTheDocument();
     expect(screen.getByText('User: Test User')).toBeInTheDocument();
 
-    for (const link of ['Procedures', 'Runs', 'Playlists', 'Config']) {
+    for (const link of ['Procedures', 'Runs', 'Playlists', 'Compliance', 'Config']) {
       expect(screen.getByRole('link', { name: link })).toBeInTheDocument();
     }
     expect(screen.getByRole('link', { name: 'Logout' })).toHaveAttribute('href', '/logout');
 
-    // Regular users must not see admin links
-    expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Stats' })).not.toBeInTheDocument();
+    // Regular users must not see the admin dropdown
+    expect(screen.queryByRole('button', { name: 'Admin' })).not.toBeInTheDocument();
 
     // support_email present in fixture => Need Help section renders
     expect(screen.getByRole('heading', { name: 'Need Help?' })).toBeInTheDocument();
@@ -32,12 +32,25 @@ describe('home page (logged in)', () => {
     );
   });
 
-  it('shows Admin and Stats links for an admin session', async () => {
+  it('shows the admin links inside the Admin dropdown for an admin session', async () => {
+    const user = userEvent.setup();
     server.use(http.get('/api/session', () => HttpResponse.json(sessionAdminFixture)));
     renderApp();
 
-    expect(await screen.findByRole('link', { name: 'Admin' })).toHaveAttribute('href', '/admin');
-    expect(screen.getByRole('link', { name: 'Stats' })).toHaveAttribute('href', '/admin/stats');
+    await user.click(await screen.findByRole('button', { name: 'Admin' }));
+
+    expect(await screen.findByRole('menuitem', { name: 'Manage Users' })).toHaveAttribute(
+      'href',
+      '/admin'
+    );
+    expect(screen.getByRole('menuitem', { name: 'Compliance' })).toHaveAttribute(
+      'href',
+      '/admin/compliance'
+    );
+    expect(screen.getByRole('menuitem', { name: 'Platform Stats' })).toHaveAttribute(
+      'href',
+      '/admin/stats'
+    );
   });
 
   it('shows the dismissible banner message when set', async () => {
