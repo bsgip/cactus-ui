@@ -22,8 +22,11 @@ from pydantic import TypeAdapter
 from pydantic.json_schema import GenerateJsonSchema
 
 from cactus_ui.api_models import (
+    AdminComplianceRequestsResponse,
     AdminStatsResponse,
     AdminUsersResponse,
+    ComplianceFormDataResponse,
+    ComplianceRequestsResponse,
     ComplianceResponse,
     ConfigResponse,
     PlaylistSession,
@@ -47,6 +50,9 @@ RESPONSE_TYPES = [
     RunActionResponse,
     ProcedureSummariesResponse,
     ComplianceResponse,
+    ComplianceRequestsResponse,
+    AdminComplianceRequestsResponse,
+    ComplianceFormDataResponse,
     ConfigResponse,
     AdminUsersResponse,
     AdminStatsResponse,

@@ -2,6 +2,7 @@ import logging
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from enum import IntEnum, auto
 from http import HTTPStatus
 from os import environ as env
@@ -22,6 +23,29 @@ CACTUS_ORCHESTRATOR_BASEURL = env["CACTUS_ORCHESTRATOR_BASEURL"]
 CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT = int(env.get("CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT", "30"))
 CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_LONG = int(env.get("CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_LONG", "120"))
 CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN = int(env.get("CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_SPAWN", "120"))
+
+
+# Duplicated from cactus-orchestrator/models.py
+class ComplianceRequestStatus(IntEnum):
+    """Encodes the status of a compliance request
+
+    submitted    - client has created the request
+                   admin has ability to open the request (see under_review)
+                   client has ability to edit request
+    under_review - once an admin opens a previously submitted request its status changes to 'under review'
+                   admin has ability to edit the request
+                   client can no longer edit the request
+    pushed_back  - admin has pushed the request back to the client (changes needed)
+                   admin can no longer edit the request
+                   client has ability to edit the request
+    finalised    - the compliance request is finalised (a compliance record gets created)
+                   neither admin nor client can modify the request
+    """
+
+    SUBMITTED = auto()
+    UNDER_REVIEW = auto()
+    PUSHED_BACK = auto()
+    FINALISED = auto()
 
 
 @dataclass
@@ -614,6 +638,140 @@ def admin_send_proceed(access_token: str, run_id: str) -> orchestrator.ProceedRe
 
 # ----------------------------------------------------------------------------------
 #
+#  Compliance request functions
+#
+# ----------------------------------------------------------------------------------
+
+
+def fetch_ordered_successful_runs(access_token: str) -> list[orchestrator.RunResponse] | None:
+    """Returns all the successful runs for the user.
+
+    Successful = all_criteria_met AND finalised
+    Runs are sorted by `finalised_at` time.
+    """
+    uri = generate_uri(orchestrator.uri.RunList + "?passed=true")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    parsed_body = orchestrator.RunResponse.from_json(response.text)
+    if not isinstance(parsed_body, list):
+        return [parsed_body]
+    return parsed_body
+
+
+def fetch_compliance_requests(
+    access_token: str, page: int
+) -> orchestrator.Pagination[orchestrator.ComplianceRequestResponse] | None:
+    """Fetch all compliance requests for the user."""
+    uri = generate_uri(orchestrator.uri.ComplianceRequestList + f"?page={page}")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return handle_pagination(response.json(), lambda r: orchestrator.ComplianceRequestResponse.from_dict(r))
+
+
+def fetch_compliance_request(
+    access_token: str, compliance_request_id: int
+) -> orchestrator.ComplianceRequestResponse | None:
+    """Fetch a single compliance request by id."""
+    uri = generate_uri(orchestrator.uri.ComplianceRequest.format(compliance_request_id=compliance_request_id))
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    parsed_body = orchestrator.ComplianceRequestResponse.from_json(response.text)
+    if isinstance(parsed_body, list):
+        return parsed_body[0]
+    return parsed_body
+
+
+def create_compliance_request(
+    access_token: str,
+    csip_aus_version: str,
+    witnessed_at: datetime,
+    classes: set[str],
+    runs: set[int],
+    der_brand: str,
+    der_oem: str,
+    der_series: str,
+    der_representative_models: str,
+    software_client_type: str,
+    software_client_providers: str,
+    software_client_versions: str,
+    onsite_hardware_details: str,
+) -> orchestrator.ComplianceRequestResponse | None:
+    """Creates a new compliance request - returns the created request."""
+    uri = generate_uri(orchestrator.uri.ComplianceRequestList)
+    response = safe_request(
+        "POST",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+        json=orchestrator.ComplianceRequestRequest(
+            csip_aus_version=csip_aus_version,
+            witnessed_at=witnessed_at,
+            classes=classes,
+            runs=runs,
+            der_brand=der_brand,
+            der_oem=der_oem,
+            der_series=der_series,
+            der_representative_models=der_representative_models,
+            software_client_type=software_client_type,
+            software_client_providers=software_client_providers,
+            software_client_versions=software_client_versions,
+            onsite_hardware_details=onsite_hardware_details,
+        ).to_dict(),
+    )
+    if response is None or not is_success_response(response):
+        return None
+
+    body_data = orchestrator.ComplianceRequestResponse.from_json(response.text)
+    if isinstance(body_data, list):
+        return body_data[0]
+    return body_data
+
+
+def update_compliance_request(
+    access_token: str, compliance_request_id: int, body: orchestrator.ComplianceRequestUpdateRequest
+) -> orchestrator.ComplianceRequestResponse | None:
+    uri = generate_uri(orchestrator.uri.ComplianceRequest.format(compliance_request_id=compliance_request_id))
+    response = safe_request(
+        "PUT",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+        json=body.to_dict(),
+    )
+    if response is None or not is_success_response(response):
+        return None
+
+    body_data = orchestrator.ComplianceRequestResponse.from_json(response.text)
+    if isinstance(body_data, list):
+        return body_data[0]
+    return body_data
+
+
+def delete_compliance_request(access_token: str, compliance_request_id: int) -> bool:
+    uri = generate_uri(orchestrator.uri.ComplianceRequest.format(compliance_request_id=compliance_request_id))
+    response = safe_request("DELETE", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    return response is not None and is_success_response(response)
+
+
+def fetch_compliance_artifact_for_compliance_request(
+    access_token: str, compliance_request_id: int
+) -> tuple[bytes | None, str | None]:
+    uri = generate_uri(orchestrator.uri.ComplianceRequestArtifact.format(compliance_request_id=compliance_request_id))
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None, None
+
+    return (response.content, try_read_file_name(response, f"ComplianceReport_RequestID_{compliance_request_id}.pdf"))
+
+
+# ----------------------------------------------------------------------------------
+#
 #  Admin only functions
 #
 # ----------------------------------------------------------------------------------
@@ -777,3 +935,65 @@ def admin_fetch_individual_run(access_token: str, run_id: str) -> orchestrator.R
         return parsed_body[0]
     else:
         return parsed_body
+
+
+def admin_fetch_compliance_requests(
+    access_token: str, page: int
+) -> orchestrator.Pagination[orchestrator.AdminComplianceRequestResponse] | None:
+    """Fetch all compliance requests (admin only)."""
+    uri = generate_uri(orchestrator.uri.AdminComplianceRequestList + f"?page={page}")
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    return handle_pagination(response.json(), lambda r: orchestrator.AdminComplianceRequestResponse.from_dict(r))
+
+
+def admin_update_compliance_request(
+    access_token: str, compliance_request_id: int, body: orchestrator.ComplianceRequestUpdateRequest
+) -> orchestrator.ComplianceRequestResponse | None:
+    uri = generate_uri(orchestrator.uri.AdminComplianceRequest.format(compliance_request_id=compliance_request_id))
+    response = safe_request(
+        "PUT",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+        json=body.to_dict(),
+    )
+    if response is None or not is_success_response(response):
+        return None
+
+    body_data = orchestrator.ComplianceRequestResponse.from_json(response.text)
+    if isinstance(body_data, list):
+        return body_data[0]
+    return body_data
+
+
+def admin_delete_compliance_request(access_token: str, compliance_request_id: int) -> bool:
+    uri = generate_uri(orchestrator.uri.AdminComplianceRequest.format(compliance_request_id=compliance_request_id))
+    response = safe_request("DELETE", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    return response is not None and is_success_response(response)
+
+
+def admin_fetch_compliance_artifact_for_compliance_request(
+    access_token: str, compliance_request_id: int
+) -> tuple[bytes | None, str | None]:
+    uri = generate_uri(
+        orchestrator.uri.AdminComplianceRequestArtifact.format(compliance_request_id=compliance_request_id)
+    )
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None, None
+
+    return (response.content, try_read_file_name(response, f"ComplianceReport_RequestID_{compliance_request_id}.pdf"))
+
+
+def admin_finalise_compliance_request(access_token: str, compliance_request_id: int) -> tuple[bytes | None, str | None]:
+    uri = generate_uri(
+        orchestrator.uri.AdminComplianceRequestArtifact.format(compliance_request_id=compliance_request_id)
+    )
+    response = safe_request("POST", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None, None
+
+    return (response.content, try_read_file_name(response, f"ComplianceReport_RequestID_{compliance_request_id}.pdf"))

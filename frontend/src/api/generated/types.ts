@@ -18,6 +18,7 @@ export type ClientInteractionType =
  * Per-test compliance state derived from its latest run (compliance page).
  */
 export type ComplianceStatus = 'active' | 'failed' | 'success' | 'runless' | 'unknown';
+export type RunStatusResponse = 'initialised' | 'started' | 'finalised' | 'provisioning' | 'skipped';
 /**
  * The set of all available test ID's
  *
@@ -196,8 +197,41 @@ export type HTTPStatus =
   | 508
   | 510
   | 511;
-export type RunStatusResponse = 'initialised' | 'started' | 'finalised' | 'provisioning' | 'skipped';
 
+export interface AdminComplianceRequestResponse {
+  classes: string[];
+  compliance_request_id: number;
+  created_at: string;
+  created_by: number;
+  created_by_user: ComplianceRequestUser;
+  csip_aus_version: string;
+  der_brand: string;
+  der_oem: string;
+  der_representative_models: string;
+  der_series: string;
+  onsite_hardware_details: string;
+  runs: number[];
+  software_client_providers: string;
+  software_client_type: string;
+  software_client_versions: string;
+  status: number;
+  updated_at: string;
+  updated_by: number;
+  updated_by_user: ComplianceRequestUser;
+  witnessed_at: string;
+}
+export interface ComplianceRequestUser {
+  issuer_id: string;
+  subject_id: string;
+  user_id: number;
+  user_name: string | null;
+}
+/**
+ * GET /api/admin/compliance/requests — all compliance requests, with submitter info.
+ */
+export interface AdminComplianceRequestsResponse {
+  requests: AdminComplianceRequestResponse[];
+}
 /**
  * GET /api/admin/stats — the schema's AdminStatsResponse reshaped for the dashboard
  * (dict counters turned into ordered lists, `max_run_id` surfaced as `max_run_number`).
@@ -290,6 +324,74 @@ export interface PerRunStatus {
   latest_run_id: number | null;
   status: ComplianceStatus;
   test_procedure_id: string;
+}
+/**
+ * GET /api/compliance/form-data — everything the request wizard needs to render.
+ *
+ * Consolidates what the old template passed as several base64 blobs: the selectable CSIP-Aus
+ * versions, every compliance class (with its description), the version→class→test-procedure
+ * map used to filter classes and compute missing runs, the test procedures the user has a
+ * successful run for, and those successful runs (for the per-procedure run selectors).
+ */
+export interface ComplianceFormDataResponse {
+  completed_test_procedures: string[];
+  compliance_classes: ComplianceClass[];
+  csipaus_versions: string[];
+  successful_runs: RunResponse[];
+  tests_by_version_and_class: {
+    [k: string]: {
+      [k: string]: string[];
+    };
+  };
+}
+export interface RunResponse {
+  all_criteria_met: boolean | null;
+  classes: string[] | null;
+  created_at: string;
+  finalised_at: string | null;
+  has_artifacts: boolean;
+  is_device_cert: boolean;
+  playlist_execution_id: string | null;
+  playlist_order: number | null;
+  playlist_runs: PlaylistRunInfo[] | null;
+  run_id: number;
+  status: RunStatusResponse;
+  test_procedure_id: string;
+  test_url: string;
+}
+/**
+ * Summary info for a run within a playlist
+ */
+export interface PlaylistRunInfo {
+  run_id: number;
+  status: RunStatusResponse;
+  test_procedure_id: string;
+}
+export interface ComplianceRequestResponse {
+  classes: string[];
+  compliance_request_id: number;
+  created_at: string;
+  created_by: number;
+  csip_aus_version: string;
+  der_brand: string;
+  der_oem: string;
+  der_representative_models: string;
+  der_series: string;
+  onsite_hardware_details: string;
+  runs: number[];
+  software_client_providers: string;
+  software_client_type: string;
+  software_client_versions: string;
+  status: number;
+  updated_at: string;
+  updated_by: number;
+  witnessed_at: string;
+}
+/**
+ * GET /api/compliance/requests — the user's compliance requests (pagination flattened).
+ */
+export interface ComplianceRequestsResponse {
+  requests: ComplianceRequestResponse[];
 }
 /**
  * GET /api/group/<id>/compliance — compliance-by-class for the run group.
@@ -398,14 +500,6 @@ export interface TestProcedureRunSummaryResponse {
   test_procedure_id: TestProcedureId;
 }
 /**
- * Summary info for a run within a playlist
- */
-export interface PlaylistRunInfo {
-  run_id: number;
-  status: RunStatusResponse;
-  test_procedure_id: string;
-}
-/**
  * One playlist execution (active or completed), grouped from its runs.
  */
 export interface PlaylistSession {
@@ -505,21 +599,6 @@ export interface RequestEntry {
  */
 export interface RunActionResponse {
   run_id: number;
-}
-export interface RunResponse {
-  all_criteria_met: boolean | null;
-  classes: string[] | null;
-  created_at: string;
-  finalised_at: string | null;
-  has_artifacts: boolean;
-  is_device_cert: boolean;
-  playlist_execution_id: string | null;
-  playlist_order: number | null;
-  playlist_runs: PlaylistRunInfo[] | null;
-  run_id: number;
-  status: RunStatusResponse;
-  test_procedure_id: string;
-  test_url: string;
 }
 /**
  * Run-status page shell: the run plus the few extras the orchestrator doesn't supply.

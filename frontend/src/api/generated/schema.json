@@ -1,5 +1,118 @@
 {
   "$defs": {
+    "AdminComplianceRequestResponse": {
+      "properties": {
+        "classes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "compliance_request_id": {
+          "type": "integer"
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "created_by": {
+          "type": "integer"
+        },
+        "created_by_user": {
+          "$ref": "#/$defs/ComplianceRequestUser"
+        },
+        "csip_aus_version": {
+          "type": "string"
+        },
+        "der_brand": {
+          "type": "string"
+        },
+        "der_oem": {
+          "type": "string"
+        },
+        "der_representative_models": {
+          "type": "string"
+        },
+        "der_series": {
+          "type": "string"
+        },
+        "onsite_hardware_details": {
+          "type": "string"
+        },
+        "runs": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "software_client_providers": {
+          "type": "string"
+        },
+        "software_client_type": {
+          "type": "string"
+        },
+        "software_client_versions": {
+          "type": "string"
+        },
+        "status": {
+          "type": "integer"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "updated_by": {
+          "type": "integer"
+        },
+        "updated_by_user": {
+          "$ref": "#/$defs/ComplianceRequestUser"
+        },
+        "witnessed_at": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "classes",
+        "compliance_request_id",
+        "created_at",
+        "created_by",
+        "created_by_user",
+        "csip_aus_version",
+        "der_brand",
+        "der_oem",
+        "der_representative_models",
+        "der_series",
+        "onsite_hardware_details",
+        "runs",
+        "software_client_providers",
+        "software_client_type",
+        "software_client_versions",
+        "status",
+        "updated_at",
+        "updated_by",
+        "updated_by_user",
+        "witnessed_at"
+      ],
+      "type": "object"
+    },
+    "AdminComplianceRequestsResponse": {
+      "description": "GET /api/admin/compliance/requests \u2014 all compliance requests, with submitter info.",
+      "properties": {
+        "requests": {
+          "items": {
+            "$ref": "#/$defs/AdminComplianceRequestResponse"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "requests"
+      ],
+      "type": "object"
+    },
     "AdminStatsResponse": {
       "description": "GET /api/admin/stats \u2014 the schema's AdminStatsResponse reshaped for the dashboard\n(dict counters turned into ordered lists, `max_run_id` surfaced as `max_run_number`).",
       "properties": {
@@ -189,6 +302,190 @@
         "class_name",
         "compliant",
         "per_run_status"
+      ],
+      "type": "object"
+    },
+    "ComplianceFormDataResponse": {
+      "description": "GET /api/compliance/form-data \u2014 everything the request wizard needs to render.\n\nConsolidates what the old template passed as several base64 blobs: the selectable CSIP-Aus\nversions, every compliance class (with its description), the version\u2192class\u2192test-procedure\nmap used to filter classes and compute missing runs, the test procedures the user has a\nsuccessful run for, and those successful runs (for the per-procedure run selectors).",
+      "properties": {
+        "completed_test_procedures": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "compliance_classes": {
+          "items": {
+            "$ref": "#/$defs/ComplianceClass"
+          },
+          "type": "array"
+        },
+        "csipaus_versions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "successful_runs": {
+          "items": {
+            "$ref": "#/$defs/RunResponse"
+          },
+          "type": "array"
+        },
+        "tests_by_version_and_class": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "completed_test_procedures",
+        "compliance_classes",
+        "csipaus_versions",
+        "successful_runs",
+        "tests_by_version_and_class"
+      ],
+      "type": "object"
+    },
+    "ComplianceRequestResponse": {
+      "properties": {
+        "classes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "compliance_request_id": {
+          "type": "integer"
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "created_by": {
+          "type": "integer"
+        },
+        "csip_aus_version": {
+          "type": "string"
+        },
+        "der_brand": {
+          "type": "string"
+        },
+        "der_oem": {
+          "type": "string"
+        },
+        "der_representative_models": {
+          "type": "string"
+        },
+        "der_series": {
+          "type": "string"
+        },
+        "onsite_hardware_details": {
+          "type": "string"
+        },
+        "runs": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "software_client_providers": {
+          "type": "string"
+        },
+        "software_client_type": {
+          "type": "string"
+        },
+        "software_client_versions": {
+          "type": "string"
+        },
+        "status": {
+          "type": "integer"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "updated_by": {
+          "type": "integer"
+        },
+        "witnessed_at": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "classes",
+        "compliance_request_id",
+        "created_at",
+        "created_by",
+        "csip_aus_version",
+        "der_brand",
+        "der_oem",
+        "der_representative_models",
+        "der_series",
+        "onsite_hardware_details",
+        "runs",
+        "software_client_providers",
+        "software_client_type",
+        "software_client_versions",
+        "status",
+        "updated_at",
+        "updated_by",
+        "witnessed_at"
+      ],
+      "type": "object"
+    },
+    "ComplianceRequestUser": {
+      "properties": {
+        "issuer_id": {
+          "type": "string"
+        },
+        "subject_id": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "integer"
+        },
+        "user_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "issuer_id",
+        "subject_id",
+        "user_id",
+        "user_name"
+      ],
+      "type": "object"
+    },
+    "ComplianceRequestsResponse": {
+      "description": "GET /api/compliance/requests \u2014 the user's compliance requests (pagination flattened).",
+      "properties": {
+        "requests": {
+          "items": {
+            "$ref": "#/$defs/ComplianceRequestResponse"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "requests"
       ],
       "type": "object"
     },

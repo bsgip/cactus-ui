@@ -33,9 +33,11 @@ from werkzeug.wrappers.response import Response
 
 import cactus_ui.orchestrator as orchestrator
 from cactus_ui.api_models import (
+    AdminComplianceRequestsResponse,
     AdminStatsResponse,
     AdminUserResponse,
     AdminUsersResponse,
+    ComplianceRequestsResponse,
     ConfigResponse,
     PlaylistSession,
     PlaylistTestsResponse,
@@ -60,6 +62,7 @@ from cactus_ui.auth import (
 )
 from cactus_ui.presenters import (
     build_compliance,
+    build_compliance_form_data,
     build_playlist_tests_by_category,
     build_procedure_summaries,
     build_test_status,
@@ -299,17 +302,15 @@ def admin_run_html_report_page(access_token: str, run_id: int) -> str | Response
     return Response(html, mimetype="text/html")
 
 
-@app.route("/api/procedures", methods=["GET"])
-@api_login_required
-def api_procedures(access_token: str) -> Response | tuple[Response, int]:
-    """Get all test procedures, handling pagination."""
-    all_procedures = []
+def fetch_all_test_procedures(access_token: str) -> list[schema.TestProcedureResponse] | None:
+    """Request every page of test procedures. Returns None on any failure."""
+    all_procedures: list[schema.TestProcedureResponse] = []
     page = 1
 
     while True:
         procedure_pages = orchestrator.fetch_procedures(access_token, page)
         if procedure_pages is None:
-            return jsonify({"error": "Failed to retrieve procedures."}), HTTPStatus.BAD_GATEWAY
+            return None
 
         all_procedures.extend(procedure_pages.items)
 
@@ -318,7 +319,240 @@ def api_procedures(access_token: str) -> Response | tuple[Response, int]:
 
         page = procedure_pages.next_page
 
+    return all_procedures
+
+
+@app.route("/api/procedures", methods=["GET"])
+@api_login_required
+def api_procedures(access_token: str) -> Response | tuple[Response, int]:
+    """Get all test procedures, handling pagination."""
+    all_procedures = fetch_all_test_procedures(access_token)
+    if all_procedures is None:
+        return jsonify({"error": "Failed to retrieve procedures."}), HTTPStatus.BAD_GATEWAY
+
     return jsonify(ProceduresResponse(procedures=all_procedures).to_dict())
+
+
+# ----------------------------------------------------------------------------------
+#  Compliance requests
+# ----------------------------------------------------------------------------------
+
+# The mutable compliance-request fields shared by create/update (everything except status,
+# classes, runs and witnessed_at, which need their own coercion).
+_COMPLIANCE_TEXT_FIELDS = (
+    "csip_aus_version",
+    "der_brand",
+    "der_oem",
+    "der_series",
+    "der_representative_models",
+    "software_client_type",
+    "software_client_providers",
+    "software_client_versions",
+    "onsite_hardware_details",
+)
+
+# Status keywords the admin review endpoint accepts (the only transitions the admin UI drives).
+_ADMIN_STATUS_BY_NAME = {
+    "under_review": orchestrator.ComplianceRequestStatus.UNDER_REVIEW,
+    "pushed_back": orchestrator.ComplianceRequestStatus.PUSHED_BACK,
+}
+
+
+def _parse_witnessed_at(value: str) -> datetime:
+    """Parse the wizard's witness-testing date (ISO date or datetime) into a UTC datetime."""
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
+def _compliance_update_from_body(
+    body: dict, status: orchestrator.ComplianceRequestStatus
+) -> schema.ComplianceRequestUpdateRequest:
+    """Build a partial update request from a JSON body. Only keys present in the body are
+    sent (omitted fields stay None → unchanged), plus the status the endpoint enforces."""
+    kwargs: dict = {"status": int(status)}
+    for field in _COMPLIANCE_TEXT_FIELDS:
+        if field in body:
+            kwargs[field] = body[field]
+    if "classes" in body:
+        kwargs["classes"] = set(body["classes"])
+    if "runs" in body:
+        kwargs["runs"] = {int(r) for r in body["runs"]}
+    if "witnessed_at" in body:
+        kwargs["witnessed_at"] = _parse_witnessed_at(body["witnessed_at"])
+    return schema.ComplianceRequestUpdateRequest(**kwargs)
+
+
+@app.route("/api/compliance/requests", methods=["GET"])
+@api_login_required
+def api_compliance_requests(access_token: str) -> Response | tuple[Response, int]:
+    """The current user's compliance requests (page 1)."""
+    paged = orchestrator.fetch_compliance_requests(access_token, 1)
+    if paged is None:
+        return jsonify({"error": "Failed to fetch compliance requests."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(ComplianceRequestsResponse(requests=paged.items).to_dict())
+
+
+@app.route("/api/admin/compliance/requests", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_compliance_requests(access_token: str) -> Response | tuple[Response, int]:
+    """All compliance requests, with submitter info (admin only, page 1)."""
+    paged = orchestrator.admin_fetch_compliance_requests(access_token, 1)
+    if paged is None:
+        return jsonify({"error": "Failed to fetch compliance requests."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(AdminComplianceRequestsResponse(requests=paged.items).to_dict())
+
+
+@app.route("/api/compliance/requests/<int:compliance_request_id>", methods=["GET"])
+@api_login_required
+def api_compliance_request(access_token: str, compliance_request_id: int) -> Response | tuple[Response, int]:
+    """A single compliance request (used to prefill the wizard on direct navigation)."""
+    compliance_request = orchestrator.fetch_compliance_request(access_token, compliance_request_id)
+    if compliance_request is None:
+        return jsonify({"error": "Failed to fetch compliance request."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(compliance_request.to_dict())
+
+
+@app.route("/api/compliance/form-data", methods=["GET"])
+@api_login_required
+def api_compliance_form_data(access_token: str) -> Response | tuple[Response, int]:
+    """Everything the compliance-request wizard needs (versions, classes, test map, runs)."""
+    test_procedures = fetch_all_test_procedures(access_token)
+    if test_procedures is None:
+        return jsonify({"error": "Failed to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
+
+    successful_runs = orchestrator.fetch_ordered_successful_runs(access_token) or []
+    return jsonify(build_compliance_form_data(test_procedures, successful_runs).to_dict())
+
+
+@app.route("/api/compliance/requests", methods=["POST"])
+@api_login_required
+def api_create_compliance_request(access_token: str) -> Response | tuple[Response, int]:
+    """Create a new compliance request (status defaults to submitted in the orchestrator)."""
+    body = request.get_json(silent=True) or {}
+    try:
+        witnessed_at = _parse_witnessed_at(body["witnessed_at"])
+        result = orchestrator.create_compliance_request(
+            access_token=access_token,
+            witnessed_at=witnessed_at,
+            classes=set(body.get("classes", [])),
+            runs={int(r) for r in body.get("runs", [])},
+            **{field: body.get(field, "") for field in _COMPLIANCE_TEXT_FIELDS},
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        return jsonify({"error": f"Invalid compliance request: {exc}"}), HTTPStatus.BAD_REQUEST
+    if result is None:
+        return jsonify({"error": "Failed to create compliance request."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(result.to_dict()), HTTPStatus.CREATED
+
+
+@app.route("/api/compliance/requests/<int:compliance_request_id>", methods=["PUT"])
+@api_login_required
+def api_update_compliance_request(access_token: str, compliance_request_id: int) -> Response | tuple[Response, int]:
+    """User edit of their own request - resubmits it (status -> submitted)."""
+    body = request.get_json(silent=True) or {}
+    try:
+        update = _compliance_update_from_body(body, orchestrator.ComplianceRequestStatus.SUBMITTED)
+    except (TypeError, ValueError) as exc:
+        return jsonify({"error": f"Invalid compliance request: {exc}"}), HTTPStatus.BAD_REQUEST
+    result = orchestrator.update_compliance_request(access_token, compliance_request_id, update)
+    if result is None:
+        return jsonify({"error": "Failed to update compliance request."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(result.to_dict())
+
+
+@app.route("/api/admin/compliance/requests/<int:compliance_request_id>", methods=["PUT"])
+@api_login_required
+@api_admin_role_required
+def api_admin_update_compliance_request(
+    access_token: str, compliance_request_id: int
+) -> Response | tuple[Response, int]:
+    """Admin review update. `status` ('under_review' to open for editing, 'pushed_back' to return
+    to the user) is required; other fields are optional partial edits."""
+    body = request.get_json(silent=True) or {}
+    status = _ADMIN_STATUS_BY_NAME.get(body.get("status", ""))
+    if status is None:
+        return jsonify({"error": "A valid status (under_review|pushed_back) is required."}), HTTPStatus.BAD_REQUEST
+    try:
+        update = _compliance_update_from_body(body, status)
+    except (TypeError, ValueError) as exc:
+        return jsonify({"error": f"Invalid compliance request: {exc}"}), HTTPStatus.BAD_REQUEST
+    result = orchestrator.admin_update_compliance_request(access_token, compliance_request_id, update)
+    if result is None:
+        return jsonify({"error": "Failed to update compliance request."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(result.to_dict())
+
+
+@app.route("/api/compliance/requests/<int:compliance_request_id>", methods=["DELETE"])
+@api_login_required
+def api_delete_compliance_request(access_token: str, compliance_request_id: int) -> Response | tuple[Response, int]:
+    if not orchestrator.delete_compliance_request(access_token, compliance_request_id):
+        return jsonify({"error": "Failed to delete compliance request."}), HTTPStatus.BAD_GATEWAY
+    return jsonify({})
+
+
+@app.route("/api/admin/compliance/requests/<int:compliance_request_id>", methods=["DELETE"])
+@api_login_required
+@api_admin_role_required
+def api_admin_delete_compliance_request(
+    access_token: str, compliance_request_id: int
+) -> Response | tuple[Response, int]:
+    if not orchestrator.admin_delete_compliance_request(access_token, compliance_request_id):
+        return jsonify({"error": "Failed to delete compliance request."}), HTTPStatus.BAD_GATEWAY
+    return jsonify({})
+
+
+@app.route("/compliance/requests/<int:compliance_request_id>/artifact", methods=["GET"])
+@login_required
+def compliance_request_artifact_download(access_token: str, compliance_request_id: int) -> Response:
+    """Browser-native compliance report PDF download (plain link; session cookie auth)."""
+    report, download_name = orchestrator.fetch_compliance_artifact_for_compliance_request(
+        access_token, compliance_request_id
+    )
+    if report is None:
+        return Response(
+            response="Failed to retrieve compliance report.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
+        )  # noqa: E501
+
+    return send_file(io.BytesIO(report), as_attachment=True, download_name=download_name, mimetype="application/pdf")
+
+
+@app.route("/admin/compliance/requests/<int:compliance_request_id>/artifact", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_compliance_request_artifact_download(access_token: str, compliance_request_id: int) -> Response:
+    """Browser-native compliance report PDF download for the admin view."""
+    report, download_name = orchestrator.admin_fetch_compliance_artifact_for_compliance_request(
+        access_token, compliance_request_id
+    )
+    if report is None:
+        return Response(
+            response="Failed to retrieve compliance report.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
+        )  # noqa: E501
+
+    return send_file(io.BytesIO(report), as_attachment=True, download_name=download_name, mimetype="application/pdf")
+
+
+@app.route("/admin/compliance/requests/<int:compliance_request_id>/finalise", methods=["POST"])
+@login_required
+@admin_role_required
+def admin_compliance_request_finalise(access_token: str, compliance_request_id: int) -> Response:
+    """Finalise a compliance request and return the generated report PDF (admin only)."""
+    report, download_name = orchestrator.admin_finalise_compliance_request(access_token, compliance_request_id)
+    if report is None:
+        return Response(
+            response="Failed to finalise the compliance request.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
+        )  # noqa: E501
+
+    return send_file(io.BytesIO(report), as_attachment=True, download_name=download_name, mimetype="application/pdf")
 
 
 @app.route("/api/procedure/<test_procedure_id>", methods=["GET"])

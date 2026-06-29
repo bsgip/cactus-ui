@@ -14,6 +14,7 @@ from cactus_schema.orchestrator.compliance import ComplianceClass, fetch_complia
 
 from cactus_ui.api_models import (
     ComplianceClassEntry,
+    ComplianceFormDataResponse,
     ComplianceResponse,
     ComplianceStatus,
     GroupedProcedures,
@@ -115,6 +116,36 @@ def build_procedure_summaries(
         classes=list(fetch_compliance_classes(all_classes)),
         classes_by_test=classes_by_test,
         classes_by_category={key: sorted(value) for key, value in classes_by_category.items()},
+    )
+
+
+def build_compliance_form_data(
+    test_procedures: list[schema.TestProcedureResponse],
+    successful_runs: list[schema.RunResponse],
+) -> ComplianceFormDataResponse:
+    """Assemble the data the compliance-request wizard needs.
+
+    Builds the CSIP-Aus version -> compliance class -> test procedure ids map (used to filter
+    classes by version and compute missing runs), the full set of compliance classes (with
+    descriptions), the test procedures the user has a successful run for, and the successful
+    runs themselves (for the per-procedure run selectors).
+    """
+    tests_by_version_and_class: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
+    all_classes: set[str] = set()
+    for p in test_procedures:
+        for version in p.target_versions:
+            for compliance_class in p.classes:
+                all_classes.add(compliance_class)
+                tests_by_version_and_class[version][compliance_class].append(p.test_procedure_id)
+
+    completed_test_procedures = sorted({r.test_procedure_id for r in successful_runs})
+
+    return ComplianceFormDataResponse(
+        csipaus_versions=list(tests_by_version_and_class.keys()),
+        compliance_classes=sorted(fetch_compliance_classes(all_classes), key=lambda c: c.name),
+        tests_by_version_and_class={v: dict(classes) for v, classes in tests_by_version_and_class.items()},
+        completed_test_procedures=completed_test_procedures,
+        successful_runs=successful_runs,
     )
 
 

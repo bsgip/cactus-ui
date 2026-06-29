@@ -85,4 +85,15 @@ export const handlers = [
   ),
   http.post('/api/runs/:runId/proceed', () => HttpResponse.json({ handled: true })),
   http.post('/api/admin/runs/:runId/proceed', () => HttpResponse.json({ handled: true })),
+  http.get('/api/compliance/requests', () => HttpResponse.json({ requests: [] })),
+  http.get('/api/admin/compliance/requests', () => HttpResponse.json({ requests: [] })),
+  http.get('/api/compliance/form-data', () =>
+    HttpResponse.json({
+      csipaus_versions: [],
+      compliance_classes: [],
+      tests_by_version_and_class: {},
+      completed_test_procedures: [],
+      successful_runs: [],
+    })
+  ),
 ];

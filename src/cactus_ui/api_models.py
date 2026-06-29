@@ -17,6 +17,8 @@ from enum import StrEnum, auto
 
 from cactus_schema.orchestrator.compliance import ComplianceClass
 from cactus_schema.orchestrator.schema import (
+    AdminComplianceRequestResponse,
+    ComplianceRequestResponse,
     CSIPAusVersionResponse,
     FastAPICompatibleWizard,
     RunGroupResponse,
@@ -112,6 +114,37 @@ class ComplianceResponse(FastAPICompatibleWizard):
     """GET /api/group/<id>/compliance — compliance-by-class for the run group."""
 
     compliance_by_class: list[ComplianceClassEntry]
+
+
+@dataclass
+class ComplianceRequestsResponse(FastAPICompatibleWizard):
+    """GET /api/compliance/requests — the user's compliance requests (pagination flattened)."""
+
+    requests: list[ComplianceRequestResponse]
+
+
+@dataclass
+class AdminComplianceRequestsResponse(FastAPICompatibleWizard):
+    """GET /api/admin/compliance/requests — all compliance requests, with submitter info."""
+
+    requests: list[AdminComplianceRequestResponse]
+
+
+@dataclass
+class ComplianceFormDataResponse(FastAPICompatibleWizard):
+    """GET /api/compliance/form-data — everything the request wizard needs to render.
+
+    Consolidates what the old template passed as several base64 blobs: the selectable CSIP-Aus
+    versions, every compliance class (with its description), the version→class→test-procedure
+    map used to filter classes and compute missing runs, the test procedures the user has a
+    successful run for, and those successful runs (for the per-procedure run selectors).
+    """
+
+    csipaus_versions: list[str]
+    compliance_classes: list[ComplianceClass]
+    tests_by_version_and_class: dict[str, dict[str, list[str]]]
+    completed_test_procedures: list[str]
+    successful_runs: list[RunResponse]
 
 
 @dataclass

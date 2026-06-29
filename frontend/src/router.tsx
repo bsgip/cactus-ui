@@ -2,6 +2,8 @@ import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { AdminPage } from './pages/AdminPage';
 import { AdminStatsPage } from './pages/AdminStats/AdminStatsPage';
+import { CompliancePage } from './pages/Compliance/CompliancePage';
+import { ComplianceRequestPage } from './pages/Compliance/ComplianceRequestPage';
 import { ConfigPage } from './pages/Config/ConfigPage';
 import { HomePage } from './pages/HomePage';
 import { ProceduresPage } from './pages/ProceduresPage';
@@ -31,8 +33,12 @@ export const routes: RouteObject[] = [
       { path: 'playlists', element: <PlaylistsRedirect /> },
       { path: 'group/:runGroupId/playlists', element: <PlaylistsPage /> },
       { path: 'config', element: <ConfigPage /> },
+      { path: 'compliance', element: <CompliancePage isAdminView={false} /> },
+      { path: 'compliance-request', element: <ComplianceRequestPage isAdminView={false} /> },
       { path: 'admin', element: <AdminPage /> },
       { path: 'admin/stats', element: <AdminStatsPage /> },
+      { path: 'admin/compliance', element: <CompliancePage isAdminView={true} /> },
+      { path: 'admin/compliance-request', element: <ComplianceRequestPage isAdminView={true} /> },
     ],
   },
 ];

@@ -10,12 +10,14 @@ const NAV_LINKS = [
   { to: '/procedures', label: 'Procedures' },
   { to: '/runs', label: 'Runs' },
   { to: '/playlists', label: 'Playlists' },
+  { to: '/compliance', label: 'Compliance' },
   { to: '/config', label: 'Config' },
 ];
 
 const ADMIN_LINKS = [
   { to: '/admin', label: 'Admin' },
   { to: '/admin/stats', label: 'Stats' },
+  { to: '/admin/compliance', label: 'Compliance' },
 ];
 
 export function NavBar({ session }: { session: SessionResponse }) {
