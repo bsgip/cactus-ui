@@ -1,29 +1,38 @@
-import { Card, Text } from '@radix-ui/themes';
+import { Box, Text } from '@radix-ui/themes';
 import type { ReactNode } from 'react';
 
-type AccentColor = 'green' | 'blue' | 'violet' | 'amber';
+type AccentColor = 'green' | 'blue' | 'cyan' | 'violet' | 'amber';
+
+const BORDER_WIDTH = 4;
 
 export function SummaryCard({
   value,
   label,
   sub,
+  icon,
   accent,
 }: {
   value: ReactNode;
   label: string;
   sub?: string;
+  icon?: ReactNode;
   accent?: AccentColor;
 }) {
   return (
-    <Card
+    <Box
+      p="4"
       style={{
         textAlign: 'center',
-        ...(accent && {
-          backgroundColor: `var(--${accent}-2)`,
-          boxShadow: `inset 0 0 0 5px var(--${accent}-9)`,
-        }),
+        borderRadius: 'var(--radius-4)',
+        backgroundColor: 'var(--color-panel-solid)',
+        border: `${BORDER_WIDTH}px solid ${accent ? `var(--${accent}-9)` : 'var(--gray-6)'}`,
       }}
     >
+      {icon && (
+        <Text as="div" size="5" mb="1" style={accent ? { color: `var(--${accent}-9)` } : undefined}>
+          {icon}
+        </Text>
+      )}
       <Text as="div" size="7" weight="bold" style={accent ? { color: `var(--${accent}-11)` } : undefined}>
         {value}
       </Text>
@@ -35,6 +44,6 @@ export function SummaryCard({
           {sub}
         </Text>
       )}
-    </Card>
+    </Box>
   );
 }

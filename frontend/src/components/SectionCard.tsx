@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 interface SectionCardProps {
   // Plain string renders as the bold heading; pass a node for a custom header row.
   title: ReactNode;
+  // Optional icon shown to the left of a string title.
+  icon?: ReactNode;
   // Optional right-aligned header content (e.g. a "Show all" button or count badge).
   action?: ReactNode;
   children: ReactNode;
@@ -18,7 +20,7 @@ const SCROLL_MAX_HEIGHT = 600;
 
 // A bordered card with a titled header strip and a full-width separator. Replaces the repeated
 // "panel with a heading bar" pattern (was Mantine's Card.Section).
-export function SectionCard({ title, action, children, h, scroll }: SectionCardProps) {
+export function SectionCard({ title, icon, action, children, h, scroll }: SectionCardProps) {
   return (
     <Box
       style={{
@@ -31,9 +33,12 @@ export function SectionCard({ title, action, children, h, scroll }: SectionCardP
     >
       <Flex justify="between" align="center" px="3" py="2">
         {typeof title === 'string' ? (
-          <Heading as="h3" size="3">
-            {title}
-          </Heading>
+          <Flex align="center" gap="2">
+            {icon}
+            <Heading as="h3" size="3">
+              {title}
+            </Heading>
+          </Flex>
         ) : (
           title
         )}

@@ -44,7 +44,7 @@ Fixtures live in `frontend/src/mocks/` (`handlers.ts`).
 
 ### 2. Full stack (Point at a real orchestrator backend)
 
-Requires: 
+Requires:
 CACTUS_ORCHESTRATOR_BASEURL set in the env file to a port forwarded tunnel to the orchestrator.
 Valid Auth0 settings in `.env` (see sample.env).
 
@@ -53,7 +53,7 @@ cd frontend && npm run build
 uv run python src/cactus_ui/server.py   # http://localhost:3000
 ```
 
-### 3. Frontend hot-reload against the real backend
+### 3. Frontend hot-reload against the real backend (I cant seem to get this working but it should :P)
 
 If you want live reload *and* real data, run Flask (as above) and Vite side by side. Vite proxies the Flask-owned paths to `:3000`:
 
@@ -61,12 +61,6 @@ If you want live reload *and* real data, run Flask (as above) and Vite side by s
 uv run python src/cactus_ui/server.py   # terminal 1 — Flask on :3000
 cd frontend && npm run dev              # terminal 2 — http://localhost:5173
 ```
-
-Log in via Flask first, then switch to Vite: open http://localhost:3000 and complete the
-Auth0 login there, then open http://localhost:5173. The Flask session cookie is host-only on
-`localhost`, so it's shared across ports and the hot-reload tab is authenticated. Logging in
-directly from :5173 fails (`access_denied: Service not found`) because the OAuth callback
-would run on the :5173 origin, which Auth0 isn't configured for.
 
 ## Tests
 

@@ -1,4 +1,5 @@
 import { Badge, Box, Button, Code, Flex, Table, Text } from '@radix-ui/themes';
+import { IconMicroscope } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ProcedureStat } from '../../api/types';
 import { SectionCard } from '../../components/SectionCard';
@@ -72,6 +73,7 @@ export function ProcedureTable({ procedures }: { procedures: ProcedureStat[] }) 
     <SectionCard
       title={
         <Flex gap="2" align="center">
+          <IconMicroscope size={16} />
           <Text weight="bold">Test Procedures</Text>
           <Badge color="gray">{procedures.length}</Badge>
           <Text size="1" color="gray">

@@ -1,5 +1,11 @@
 import { Button, Flex, Grid } from '@radix-ui/themes';
-import { IconArrowLeft } from '@tabler/icons-react';
+import {
+  IconArrowLeft,
+  IconPlayerPlayFilled,
+  IconStack2,
+  IconUserBolt,
+  IconUsers,
+} from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { Link as RouterLink } from 'react-router-dom';
 import { fetchAdminStats } from '../../api/admin';
@@ -44,11 +50,27 @@ export function AdminStatsPage() {
           value={data.max_run_number}
           label="Total Runs"
           sub={`incl. ${data.max_run_number - data.total_runs} deleted`}
+          icon={<IconPlayerPlayFilled size={22} />}
           accent="green"
         />
-        <SummaryCard value={data.total_users} label="Total Users" accent="blue" />
-        <SummaryCard value={data.total_run_groups} label="Run Groups" accent="violet" />
-        <SummaryCard value={avgRunsPerUser ?? '—'} label="Avg Runs per User" accent="amber" />
+        <SummaryCard
+          value={data.total_users}
+          label="Total Users"
+          icon={<IconUsers size={22} />}
+          accent="blue"
+        />
+        <SummaryCard
+          value={data.total_run_groups}
+          label="Run Groups"
+          icon={<IconStack2 size={22} />}
+          accent="cyan"
+        />
+        <SummaryCard
+          value={avgRunsPerUser ?? '—'}
+          label="Avg Runs per User"
+          icon={<IconUserBolt size={22} />}
+          accent="amber"
+        />
       </Grid>
 
       <Overview

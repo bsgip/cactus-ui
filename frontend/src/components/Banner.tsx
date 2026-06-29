@@ -12,7 +12,7 @@ export function Banner({ message }: { message: string | null | undefined }) {
   }
 
   return (
-    <Callout.Root color="yellow" role="alert" mb="3">
+    <Callout.Root color="amber" role="alert" mb="3">
       <Flex justify="between" align="center" gap="3">
         <Flex gap="2" align="center">
           <Callout.Icon>

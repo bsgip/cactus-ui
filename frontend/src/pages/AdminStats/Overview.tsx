@@ -1,4 +1,5 @@
 import { Badge, Box, Code, Flex, Grid, Text } from '@radix-ui/themes';
+import { IconChartBar, IconGitBranch } from '@tabler/icons-react';
 import { SectionCard } from '../../components/SectionCard';
 
 interface OverviewProps {
@@ -14,7 +15,7 @@ export function Overview({ versionCounts, totalPassed, totalFailed }: OverviewPr
 
   return (
     <Grid columns={{ initial: '1', sm: '3' }} gap="3">
-      <SectionCard title="CSIP-AUS Versions">
+      <SectionCard title="CSIP-AUS Versions" icon={<IconGitBranch size={16} />}>
         <Flex direction="column" gap="1">
           {versions.map(([version, count]) => (
             <Flex key={version} justify="between" align="center">
@@ -28,10 +29,13 @@ export function Overview({ versionCounts, totalPassed, totalFailed }: OverviewPr
       </SectionCard>
 
       <Box style={{ gridColumn: 'span 2' }}>
-        <SectionCard title="Current Compliance (latest run per procedure per group)">
+        <SectionCard
+          title="Current Compliance (latest run per procedure per group)"
+          icon={<IconChartBar size={16} />}
+        >
           <Grid columns="2" mb="3">
             <Flex direction="column" align="center">
-              <Text size="5" weight="bold" color="green">
+              <Text size="8" weight="bold" color="green">
                 {totalPassed}
               </Text>
               <Text size="2" color="gray">
@@ -39,7 +43,7 @@ export function Overview({ versionCounts, totalPassed, totalFailed }: OverviewPr
               </Text>
             </Flex>
             <Flex direction="column" align="center">
-              <Text size="5" weight="bold" color="red">
+              <Text size="8" weight="bold" color="red">
                 {totalFailed}
               </Text>
               <Text size="2" color="gray">

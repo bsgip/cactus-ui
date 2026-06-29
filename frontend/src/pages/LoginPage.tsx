@@ -22,7 +22,7 @@ export function LoginPage({ loginBannerMessage }: { loginBannerMessage: string |
           <a href="/login">Login</a>
         </Button>
         {loginBannerMessage && (
-          <Callout.Root color="red" role="alert" style={{ maxWidth: 600 }}>
+          <Callout.Root color="amber" role="alert" style={{ maxWidth: 600 }}>
             <Callout.Text>
               <span dangerouslySetInnerHTML={{ __html: loginBannerMessage }} />
             </Callout.Text>

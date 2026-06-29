@@ -1,4 +1,5 @@
 import { Box, Flex, Text } from '@radix-ui/themes';
+import { IconCalendar } from '@tabler/icons-react';
 import type { WeekBar } from '../../api/types';
 import { SectionCard } from '../../components/SectionCard';
 
@@ -7,7 +8,7 @@ export function WeekBars({ bars }: { bars: WeekBar[] }) {
   const maxCount = Math.max(...bars.map((b) => b.count), 1);
 
   return (
-    <SectionCard title="Tests Per Week">
+    <SectionCard title="Tests Per Week" icon={<IconCalendar size={16} />}>
       <Flex align="end" gap="1" style={{ height: 110 }}>
         {bars.map((bar, i) => (
           <Flex key={i} direction="column" align="center" style={{ flex: 1, minWidth: 0 }}>
