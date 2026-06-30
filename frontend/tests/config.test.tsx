@@ -9,16 +9,15 @@ describe('config page', () => {
   it('shows heading and section titles', async () => {
     renderApp('/config');
 
-    expect(await screen.findByRole('heading', { name: 'User Configuration' })).toBeInTheDocument();
-    expect(document.title).toBe('Certificate - CACTUS');
-    expect(await screen.findByRole('heading', { name: 'Run Groups' })).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Private Enterprise Number (PEN)' })
+      await screen.findByRole('heading', { name: 'Certificates & Configuration' })
     ).toBeInTheDocument();
+    expect(document.title).toBe('Certificates - CACTUS');
+    expect(screen.getByRole('heading', { name: 'Organisation Identity' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Run Groups' })).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Subscription Notification Domain (Optional)' })
+      screen.getByRole('heading', { name: 'Utility Server Certificates' })
     ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'DeviceCapability URI' })).toBeInTheDocument();
   });
 
   it('renders run groups from fixture', async () => {
@@ -57,6 +56,8 @@ describe('config page', () => {
               name: 'No Cert Group',
               csip_aus_version: 'v1.2',
               created_at: '2026-06-01T00:00:00+00:00',
+              is_static_uri: true,
+              static_uri: 'https://example.com/dcap/static/3',
               is_device_cert: null,
               certificate_id: null,
               certificate_created_at: null,
@@ -73,7 +74,7 @@ describe('config page', () => {
     expect(await screen.findByRole('button', { name: /Generate Certificate/ })).toBeInTheDocument();
   });
 
-  it('shows no run groups alert when list is empty', async () => {
+  it('shows getting-started callout when list is empty', async () => {
     server.use(
       http.get('/api/config', () =>
         HttpResponse.json({
@@ -86,23 +87,28 @@ describe('config page', () => {
 
     renderApp('/config');
 
-    expect(await screen.findByText(/There are no Run Groups configured/)).toBeInTheDocument();
+    expect(await screen.findByText(/Getting started/)).toBeInTheDocument();
   });
 
-  it('shows Download SERCA Certificate link', async () => {
+  it('shows Download Utility Server Certificates link', async () => {
     renderApp('/config');
 
-    const link = await screen.findByRole('link', { name: /Download SERCA Certificate/ });
+    const link = await screen.findByRole('link', {
+      name: /Download Utility Server Certificates/,
+    });
     expect(link).toHaveAttribute('href', '/config/ca_cert');
   });
 
-  it('shows Advanced Options only when > 1 run groups', async () => {
+  it('enables the shared aggregator cert button when a domain is set', async () => {
     renderApp('/config');
 
-    expect(await screen.findByRole('button', { name: 'Advanced Options' })).toBeInTheDocument();
+    // Default fixture has a subscription domain, so the shared-cert action is enabled.
+    expect(
+      await screen.findByRole('button', { name: /Aggregator cert for all groups/ })
+    ).toBeEnabled();
   });
 
-  it('does NOT show Advanced Options with 1 run group', async () => {
+  it('disables the shared aggregator cert button when no domain is set', async () => {
     server.use(
       http.get('/api/config', () =>
         HttpResponse.json({
@@ -113,6 +119,8 @@ describe('config page', () => {
               name: 'Only Group',
               csip_aus_version: 'v1.2',
               created_at: '2026-05-01T00:00:00+00:00',
+              is_static_uri: true,
+              static_uri: 'https://example.com/dcap/static/1',
               is_device_cert: true,
               certificate_id: 11,
               certificate_created_at: '2026-05-01T00:05:00+00:00',
@@ -126,8 +134,42 @@ describe('config page', () => {
 
     renderApp('/config');
 
-    await screen.findByRole('heading', { name: 'Run Groups' });
-    expect(screen.queryByRole('button', { name: 'Advanced Options' })).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: /Aggregator cert for all groups/ })
+    ).toBeDisabled();
+  });
+
+  it('disables the per-group aggregator cert option when no domain is set', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/config', () =>
+        HttpResponse.json({
+          config: { subscription_domain: '', pen: null },
+          run_groups: [
+            {
+              run_group_id: 1,
+              name: 'Only Group',
+              csip_aus_version: 'v1.2',
+              created_at: '2026-05-01T00:00:00+00:00',
+              is_static_uri: true,
+              static_uri: 'https://example.com/dcap/static/1',
+              is_device_cert: true,
+              certificate_id: 11,
+              certificate_created_at: '2026-05-01T00:05:00+00:00',
+              total_runs: 1,
+            },
+          ],
+          csip_aus_versions: [{ version: 'v1.2' }],
+        })
+      )
+    );
+
+    renderApp('/config');
+
+    await user.click(await screen.findByRole('button', { name: /Device Certificate/ }));
+    expect(
+      await screen.findByRole('button', { name: /Aggregator Certificate/ })
+    ).toBeDisabled();
   });
 
   it('renders PEN from fixture', async () => {
@@ -146,11 +188,8 @@ describe('config page', () => {
   it('shows each run group DeviceCapability URI from fixture', async () => {
     renderApp('/config');
 
-    // Battery Mk1 has a static_uri; Battery Mk2 has none yet ("URI pending")
     expect(await screen.findByText('https://example.com/dcap/static/1')).toBeInTheDocument();
-    expect(screen.getByText('URI pending')).toBeInTheDocument();
-    expect(screen.queryByText('Dynamic URI')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Swap to/ })).not.toBeInTheDocument();
+    expect(screen.getByText('https://example.com/dcap/static/2')).toBeInTheDocument();
   });
 
   it('shows error alert when config fetch fails', async () => {
@@ -201,10 +240,10 @@ describe('config page', () => {
 
     renderApp('/config');
 
-    const penInput = await screen.findByPlaceholderText(/Enter PEN/);
+    const penInput = await screen.findByPlaceholderText(/123456/);
     await user.clear(penInput);
     await user.type(penInput, '999999');
-    await user.click(screen.getByRole('button', { name: /Update PEN/ }));
+    await user.click(screen.getByRole('button', { name: /Save PEN/ }));
 
     await waitFor(() => expect(penSent).toBe(999999));
   });
@@ -223,10 +262,10 @@ describe('config page', () => {
 
     renderApp('/config');
 
-    const domainInput = await screen.findByPlaceholderText(/Enter a FQDN/);
+    const domainInput = await screen.findByPlaceholderText(/my\.example\.com/);
     await user.clear(domainInput);
     await user.type(domainInput, 'new.example.com');
-    await user.click(screen.getByRole('button', { name: /Update Domain/ }));
+    await user.click(screen.getByRole('button', { name: /Save Domain/ }));
 
     await waitFor(() => expect(domainSent).toBe('new.example.com'));
   });

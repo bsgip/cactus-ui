@@ -1014,14 +1014,20 @@ def send_zip_file(filename: str, files: dict[str, bytes | None]) -> Response:
 @app.route("/config/ca_cert", methods=["GET"])
 @login_required
 def config_ca_cert(access_token: str) -> Response:
+    # The orchestrator now returns a ZIP bundle (SERCA trust anchor + utility-server chain), not a
+    # single PEM, so the OEM webhook can trust the utility server when it POSTs notifications out.
     download_bytes = orchestrator.download_certificate_authority_cert(access_token)
     if download_bytes is None:
-        return Response(response="Failed to retrieve SERCA.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain")
+        return Response(
+            response="Failed to retrieve utility server certificates.",
+            status=HTTPStatus.BAD_GATEWAY,
+            mimetype="text/plain",
+        )
     return send_file(
         io.BytesIO(download_bytes),
         as_attachment=True,
-        download_name="cactus-serca.pem",
-        mimetype="application/x-x509-ca-cert",
+        download_name="utility-server-certificates.zip",
+        mimetype="application/zip",
     )
 
 

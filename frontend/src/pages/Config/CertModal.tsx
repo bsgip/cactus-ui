@@ -1,13 +1,16 @@
-import { Button, Code, Flex, Text } from '@radix-ui/themes';
+import { Button, Code, Flex, Text, Tooltip } from '@radix-ui/themes';
 import { IconDownload, IconPlus, IconRecycle } from '@tabler/icons-react';
 import type { RunGroupResponse } from '../../api/types';
+import { InfoPopover } from '../../components/InfoPopover';
 import { ModalButton } from '../../components/ModalButton';
 
 export function CertModal({
   runGroup,
+  hasDomain,
   onCertAction,
 }: {
   runGroup: RunGroupResponse;
+  hasDomain: boolean;
   onCertAction: () => void;
 }) {
   const hasCert = !!(runGroup.certificate_id && runGroup.certificate_created_at);
@@ -51,6 +54,20 @@ export function CertModal({
                 </Text>
               )}
 
+              <Flex align="center" gap="2">
+                <Text size="2" weight="bold">
+                  Choose a certificate type
+                </Text>
+                <InfoPopover title="Device vs Aggregator certificates">
+                  <strong>Device</strong> certificates identify a single piece of equipment (e.g. a
+                  battery or meter) and sit on the device signing chain. <strong>Aggregator</strong>{' '}
+                  certificates identify an organisation acting on behalf of many devices; they sit on
+                  the aggregator chain and embed your notification domain in the SAN, so the utility
+                  server can deliver subscription notifications back to you. Both chain to the same
+                  root that the utility server trusts.
+                </InfoPopover>
+              </Flex>
+
               <Flex justify="end" gap="2" wrap="wrap">
                 {hasCert && (
                   <Button asChild variant="outline">
@@ -75,19 +92,28 @@ export function CertModal({
                   </Button>
                 </form>
 
-                <form
-                  method="POST"
-                  action={`/config/run_group/${runGroup.run_group_id}/cert`}
-                  target={`hiddenFrame-${runGroup.run_group_id}-agg`}
-                  onSubmit={handleFormSubmit}
-                  style={{ display: 'inline' }}
-                >
-                  <input type="hidden" name="type" value="aggregator" />
-                  <Button type="submit" variant="outline" color={hasCert ? 'red' : 'blue'}>
-                    <IconRecycle size={14} />
-                    Aggregator Certificate
-                  </Button>
-                </form>
+                {hasDomain ? (
+                  <form
+                    method="POST"
+                    action={`/config/run_group/${runGroup.run_group_id}/cert`}
+                    target={`hiddenFrame-${runGroup.run_group_id}-agg`}
+                    onSubmit={handleFormSubmit}
+                    style={{ display: 'inline' }}
+                  >
+                    <input type="hidden" name="type" value="aggregator" />
+                    <Button type="submit" variant="outline" color={hasCert ? 'red' : 'blue'}>
+                      <IconRecycle size={14} />
+                      Aggregator Certificate
+                    </Button>
+                  </form>
+                ) : (
+                  <Tooltip content="Set a notification domain first - an aggregator certificate requires it.">
+                    <Button variant="outline" color="gray" disabled>
+                      <IconRecycle size={14} />
+                      Aggregator Certificate
+                    </Button>
+                  </Tooltip>
+                )}
               </Flex>
             </Flex>
             <iframe

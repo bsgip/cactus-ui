@@ -212,7 +212,8 @@ def update_username(
 
 
 def download_certificate_authority_cert(access_token: str) -> bytes | None:
-    """Downloads the current CA cert - returns the raw x509 PEM bytes"""
+    """Downloads the utility-server certificate bundle (SERCA trust anchor + utility-server chain) -
+    returns the raw ZIP bytes"""
     uri = generate_uri(orchestrator.uri.CertificateAuthority)
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
