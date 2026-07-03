@@ -1,0 +1,571 @@
+{
+  "procedures": [
+    {
+      "test_procedure_id": "ALL-01",
+      "description": "Discovery with Out-of-Band Registration",
+      "category": "Registration",
+      "classes": ["A", "DR-A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-02",
+      "description": "Discovery with In-Band Registration",
+      "category": "Registration",
+      "classes": ["A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-03",
+      "description": "Connection Point registration",
+      "category": "Registration",
+      "classes": ["C"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-03-REJ",
+      "description": "Client rejection of incorrect PIN",
+      "category": "Registration",
+      "classes": ["A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-04",
+      "description": "Client Registration and PIN Validation",
+      "category": "Registration",
+      "classes": ["A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-05",
+      "description": "Client Response to Lack of RegistrationLink",
+      "category": "Registration",
+      "classes": ["A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-06",
+      "description": "Individual Readings",
+      "category": "Monitoring",
+      "classes": ["A", "DR-A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-07",
+      "description": "Connection Status",
+      "category": "Monitoring",
+      "classes": ["A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-08",
+      "description": "Operational Mode Status",
+      "category": "Monitoring",
+      "classes": ["A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-09",
+      "description": "Capabilities and Settings",
+      "category": "Monitoring",
+      "classes": ["A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-10",
+      "description": "Update telemetry post rates",
+      "category": "Monitoring",
+      "classes": ["A", "DR-A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-11",
+      "description": "Active Control \u2013 Energise / De-energise",
+      "category": "Control",
+      "classes": ["A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-12",
+      "description": "Active Control \u2013 Disconnect",
+      "category": "Control",
+      "classes": ["A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-13",
+      "description": "Default Controls \u2013 Ramp Rate",
+      "category": "Control",
+      "classes": ["A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-14",
+      "description": "Subscribe",
+      "category": "Control",
+      "classes": ["S-L", "S-G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-15",
+      "description": "Active Controls \u2013 Energize/de-energize",
+      "category": "Control",
+      "classes": ["S-L", "S-G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-16",
+      "description": "Active Controls \u2013 Disconnect",
+      "category": "Control",
+      "classes": ["S-L", "S-G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-17",
+      "description": "Default Controls \u2013 Ramp Rate",
+      "category": "Control",
+      "classes": ["S-L", "S-G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-18",
+      "description": "Control Responses",
+      "category": "Control",
+      "classes": ["A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-19",
+      "description": "Update Function Set Assignments Poll Rate",
+      "category": "Control",
+      "classes": ["A", "DR-A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-20",
+      "description": "Update DER Program Poll Rate",
+      "category": "Control",
+      "classes": ["A", "DR-A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-21",
+      "description": "Scheduling",
+      "category": "Control",
+      "classes": ["A", "DR-A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-22",
+      "description": "Randomisation",
+      "category": "Control",
+      "classes": ["A", "DR-A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-23",
+      "description": "Communication Loss",
+      "category": "Control",
+      "classes": ["A", "DR-A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-24",
+      "description": "Validation of Scaling Factors",
+      "category": "Control",
+      "classes": ["A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-25",
+      "description": "Active control ramp rates",
+      "category": "Control",
+      "classes": ["A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-25-EXT",
+      "description": "Extended operations",
+      "category": "Control",
+      "classes": ["A", "DR-A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-26",
+      "description": "De-energization of DER",
+      "category": "DER",
+      "classes": ["DER-A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-27",
+      "description": "Disconnection of DER",
+      "category": "DER",
+      "classes": ["DER-A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-28",
+      "description": "Response to Changing Ramp-Rates",
+      "category": "DER",
+      "classes": ["DER-A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-29",
+      "description": "Validate Operating Telemetry",
+      "category": "DER",
+      "classes": ["DER-A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALL-30",
+      "description": "Persisting Settings Through Reconnection",
+      "category": "DER",
+      "classes": ["DER-A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "DRA-01",
+      "description": "Configuration",
+      "category": "Demand Response",
+      "classes": ["DR-A"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "DRA-02",
+      "description": "Disconnect Instruction",
+      "category": "Demand Response",
+      "classes": ["DR-L", "DR-G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "DRD-01",
+      "description": "DRED operational instruction response",
+      "category": "Demand Response",
+      "classes": ["DR-D"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "DRL-01",
+      "description": "Load operational instructions",
+      "category": "Demand Response",
+      "classes": ["DR-L"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "DRG-01",
+      "description": "Generation operational instructions",
+      "category": "Demand Response",
+      "classes": ["DR-G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "GEN-01",
+      "description": "Active Control \u2013 Export Limit",
+      "category": "Control",
+      "classes": ["G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "GEN-02",
+      "description": "Active Control \u2013 Generation Limit",
+      "category": "Control",
+      "classes": ["G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "GEN-03",
+      "description": "Default Control \u2013 Export Limit",
+      "category": "Control",
+      "classes": ["G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "GEN-04",
+      "description": "Default Control \u2013 Generation Limit",
+      "category": "Control",
+      "classes": ["G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "GEN-05",
+      "description": "Active Control \u2013 Export Limit",
+      "category": "Control",
+      "classes": ["S-G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "GEN-06",
+      "description": "Active Control \u2013 Generation Limit",
+      "category": "Control",
+      "classes": ["S-G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "GEN-07",
+      "description": "Default Controls \u2013 Export Limit",
+      "category": "Control",
+      "classes": ["S-G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "GEN-08",
+      "description": "Default Controls \u2013 Generation Limit",
+      "category": "Control",
+      "classes": ["S-G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "GEN-09",
+      "description": "Response to Cancelled Export Control",
+      "category": "DER",
+      "classes": ["DER-G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "GEN-10",
+      "description": "Primacy Validation for Generators",
+      "category": "DER",
+      "classes": ["DER-G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "GEN-11",
+      "description": "Variable Export Limit",
+      "category": "DER",
+      "classes": ["DER-G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "GEN-12",
+      "description": "Variable Generation Limit",
+      "category": "DER",
+      "classes": ["DER-G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "GEN-13",
+      "description": "Tracking export-limit through variable load",
+      "category": "DER",
+      "classes": ["DER-G"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "LOA-01",
+      "description": "Active Control \u2013 Import Limit",
+      "category": "Control",
+      "classes": ["L"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "LOA-02",
+      "description": "Active Control \u2013 Load Limit",
+      "category": "Control",
+      "classes": ["L"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "LOA-03",
+      "description": "Default Control \u2013 Import Limit",
+      "category": "Control",
+      "classes": ["L"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "LOA-04",
+      "description": "Default Control \u2013 Load Limit",
+      "category": "Control",
+      "classes": ["L"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "LOA-05",
+      "description": "Active Controls \u2013 Import Limit",
+      "category": "Control",
+      "classes": ["S-L"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "LOA-06",
+      "description": "Active Controls \u2013 Load Limit",
+      "category": "Control",
+      "classes": ["S-L"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "LOA-07",
+      "description": "Default Controls \u2013 Import Limit",
+      "category": "Control",
+      "classes": ["S-L"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "LOA-08",
+      "description": "Default Controls \u2013 Load Limit",
+      "category": "Control",
+      "classes": ["S-L"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "LOA-09",
+      "description": "Response to Cancelled Import Control",
+      "category": "DER",
+      "classes": ["DER-L"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "LOA-10",
+      "description": "Primacy Validation for loads",
+      "category": "DER",
+      "classes": ["DER-L"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "LOA-11",
+      "description": "Variable Import Limit",
+      "category": "DER",
+      "classes": ["DER-L"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "LOA-12",
+      "description": "Variable Load Limit",
+      "category": "DER",
+      "classes": ["DER-L"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "LOA-13",
+      "description": "Tracking import-limit through variable load",
+      "category": "DER",
+      "classes": ["DER-L"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "MUL-01",
+      "description": "Returning DERStatus Values for Multiple DER",
+      "category": "Monitoring",
+      "classes": ["M"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "MUL-02",
+      "description": "Reporting Aggregated Telemetry for Multiple DER",
+      "category": "Monitoring",
+      "classes": ["M"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "MUL-03",
+      "description": "Validate DERCapability and DERSettings For Multiple DER",
+      "category": "Monitoring",
+      "classes": ["M"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "P-01",
+      "description": "Provisional - Multiple EndDevice shared DERControls",
+      "category": "Provisional",
+      "classes": ["P-A"],
+      "target_versions": ["v1.2", "v1.3", "v1.3-beta/storage"]
+    },
+    {
+      "test_procedure_id": "P-02",
+      "description": "Provisional - EndDevice FunctionSetAssignmentList Changes",
+      "category": "Provisional",
+      "classes": ["P-A"],
+      "target_versions": ["v1.2", "v1.3", "v1.3-beta/storage"]
+    },
+    {
+      "test_procedure_id": "ALT-ALL-29",
+      "description": "Validate Operating Telemetry (EVSE Alternate - import limits increased by 20%)",
+      "category": "DER",
+      "classes": ["DER-A-ALT"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "ALT-LOA-13",
+      "description": "Tracking import-limit through variable load (EVSE Alternate - import limit increased by 20%)",
+      "category": "DER",
+      "classes": ["DER-L-ALT"],
+      "target_versions": ["v1.2", "v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "STO-01",
+      "description": "Individual readings - storage",
+      "category": "Monitoring",
+      "classes": ["STO"],
+      "target_versions": ["v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "STO-02",
+      "description": "Capabilities and settings - storage",
+      "category": "Monitoring",
+      "classes": ["STO"],
+      "target_versions": ["v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "STO-03",
+      "description": "Storage control with export limits - opModStorageTargetW with opModExpLimW",
+      "category": "Control",
+      "classes": ["STO"],
+      "target_versions": ["v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "STO-04",
+      "description": "Individual readings - storage",
+      "category": "Monitoring",
+      "classes": ["DER-STO"],
+      "target_versions": ["v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "STO-05",
+      "description": "Capabilities and settings - storage",
+      "category": "Monitoring",
+      "classes": ["DER-STO"],
+      "target_versions": ["v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "STO-06",
+      "description": "Storage control with export limits - opModStorageTargetW with opModExpLimW",
+      "category": "Control",
+      "classes": ["DER-STO"],
+      "target_versions": ["v1.3-beta/storage", "v1.3"]
+    },
+    {
+      "test_procedure_id": "PRC-01",
+      "description": "Pricing Streamlined Flow",
+      "category": "Pricing",
+      "classes": ["PRC"],
+      "target_versions": ["v1.3"]
+    },
+    {
+      "test_procedure_id": "PRC-02",
+      "description": "Validate Client Interpretation of Pricing",
+      "category": "Pricing",
+      "classes": ["PRC"],
+      "target_versions": ["v1.3"]
+    },
+    {
+      "test_procedure_id": "PRC-03",
+      "description": "Poll Rate Compliance",
+      "category": "Pricing",
+      "classes": ["PRC"],
+      "target_versions": ["v1.3"]
+    },
+    {
+      "test_procedure_id": "PRC-04",
+      "description": "TimeTariffInterval Cancellation",
+      "category": "Pricing",
+      "classes": ["PRC"],
+      "target_versions": ["v1.3"]
+    },
+    {
+      "test_procedure_id": "PRC-05",
+      "description": "Dynamic RateComponentList",
+      "category": "Pricing",
+      "classes": ["PRC"],
+      "target_versions": ["v1.3"]
+    }
+  ]
+}

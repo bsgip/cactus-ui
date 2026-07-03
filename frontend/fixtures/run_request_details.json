@@ -1,0 +1,5 @@
+{
+  "request_id": 2,
+  "request": "PUT /edev/1/ders/1/dercap HTTP/1.1\nHost: cactus.example\nContent-Type: application/sep+xml\n\n<DERCapability xmlns=\"urn:ieee:std:2030.5:ns\"><rtgMaxW value=\"5000\"/></DERCapability>",
+  "response": "HTTP/1.1 400 Bad Request\nContent-Type: application/sep+xml\n\n<Error xmlns=\"urn:ieee:std:2030.5:ns\"><message>Element rtgMaxW is not expected</message></Error>"
+}

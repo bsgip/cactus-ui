@@ -6,32 +6,25 @@ import logging
 import logging.config
 import os
 import zipfile
-from base64 import b64encode
-from collections import defaultdict
-from collections.abc import Callable
-from dataclasses import dataclass
 from datetime import UTC, datetime
-from functools import lru_cache, wraps
+from functools import lru_cache
 from http import HTTPStatus
 from os import environ as env
 from pathlib import Path
-from typing import Any, cast
 from urllib.parse import quote_plus, urlencode
 
 import cactus_schema.orchestrator as schema
-import jwt
 from authlib.integrations.flask_client import OAuth
 from cactus_schema.orchestrator.compliance import fetch_compliance_classes
-from dataclass_wizard import JSONWizard
 from dotenv import find_dotenv, load_dotenv
 from flask import (
     Flask,
     current_app,
     jsonify,
     redirect,
-    render_template,
     request,
     send_file,
+    send_from_directory,
     session,
     url_for,
 )
@@ -39,7 +32,42 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.wrappers.response import Response
 
 import cactus_ui.orchestrator as orchestrator
-from cactus_ui.compliance_class import fetch_compliance_class
+from cactus_ui.api_models import (
+    AdminComplianceRequestsResponse,
+    AdminStatsResponse,
+    AdminUserResponse,
+    AdminUsersResponse,
+    ComplianceRequestsResponse,
+    ConfigResponse,
+    PlaylistSession,
+    PlaylistTestsResponse,
+    ProceduresResponse,
+    ProcedureStat,
+    ProcedureYamlResponse,
+    RunActionResponse,
+    RunStatusShell,
+    SessionResponse,
+    UserConfig,
+    UserLeaderboardEntry,
+    WeekBar,
+)
+from cactus_ui.auth import (
+    admin_role_required,
+    api_admin_role_required,
+    api_login_required,
+    get_access_token,
+    get_permissions,
+    get_username_from_session,
+    login_required,
+)
+from cactus_ui.presenters import (
+    build_compliance,
+    build_compliance_form_data,
+    build_playlist_tests_by_category,
+    build_procedure_summaries,
+    build_test_status,
+    paginated_json,
+)
 
 # Setup logs
 logconf_fp = "./logconf.json"
@@ -51,18 +79,35 @@ else:
 
 logger = logging.getLogger(__name__)
 
-_WITNESS_CLASSES = frozenset({"DER-A", "DER-G", "DER-L", "DR-D", "DR-G", "DR-L"})
-# Integer status codes used by TestProcedureRunSummaryResponse.latest_run_status (not a RunStatusResponse enum)
-_ACTIVE_RUN_STATUS_INTS = [1, 2, 6]  # initialised, started, provisioning
-_FINALIZED_RUN_STATUS_INTS = [3, 4]  # finalised by user, finalised by timeout
+# Test procedures with `immediate_start: true` - these have no init phase and so no meaningful
+# active-power timeline, so the run status page hides the Active Power Chart for them.
+# INTERIM: hardcoded mirror of the cactus-test-definitions client procedures (same hardcoded
+# pattern as presenters._WITNESS_CLASSES). The clean fix is an additive `immediate_start` field
+# on the orchestrator's RunResponse; swap is_immediate_start() to read that when it lands.
+_IMMEDIATE_START_PROCEDURE_IDS = frozenset(
+    {
+        "ALL-01",
+        "ALL-02",
+        "ALL-03",
+        "ALL-03-REJ",
+        "ALL-04",
+        "ALL-05",
+        "ALL-06",
+        "ALL-09",
+        "ALL-14",
+        "DRA-01",
+        "MUL-03",
+        "STO-02",
+    }
+)
 # RunStatusResponse enum values used by RunResponse.status
 _ACTIVE_RUN_STATUSES = frozenset(
     {schema.RunStatusResponse.initialised, schema.RunStatusResponse.started, schema.RunStatusResponse.provisioning}
 )
 
 
-def is_witness_test(run_response: schema.RunResponse | None) -> bool:
-    return bool(_WITNESS_CLASSES & set(run_response.classes or [])) if run_response else False
+def is_immediate_start(run_response: schema.RunResponse | None) -> bool:
+    return bool(run_response and run_response.test_procedure_id in _IMMEDIATE_START_PROCEDURE_IDS)
 
 
 ENV_FILE = find_dotenv()
@@ -93,117 +138,10 @@ CACTUS_PLATFORM_SUPPORT_EMAIL = env["CACTUS_PLATFORM_SUPPORT_EMAIL"]
 BANNER_MESSAGE = env.get("BANNER_MESSAGE")
 LOGIN_BANNER_MESSAGE = env.get("LOGIN_BANNER_MESSAGE")
 
-
-@dataclass
-class GroupedProcedure:
-    slug: str
-    category: str
-    summaries: list[schema.TestProcedureRunSummaryResponse]
-
-
-def get_access_token() -> str | None:
-    """Overly simple method for fetching an access token from the user's session. All validation will be handled at the
-    service receiving this access_token - all we are validating is that there is one and that it hasn't expired
-
-    Returns access_token if its present AND not expired. None otherwise."""
-
-    if "user" not in session:
-        logger.info("user not found in session.")
-        return None
-
-    user = session["user"]
-    if user is None or "access_token" not in user:
-        logger.info("access_token not found in user.")
-        return None
-
-    access_token = user["access_token"]
-    if not access_token:
-        logger.info("access_token appears to be empty.")
-        return None
-
-    # access_token should come paired with expires_at (the returned metadata from OAuth2)
-    if "expires_at" not in user:
-        logger.error("No expires_at was returned with access_token.")
-        return None
-
-    try:
-        exp_time = datetime.fromtimestamp(float(user["expires_at"]), tz=UTC)
-        if exp_time < datetime.now(tz=UTC):
-            logger.info(f"User access_token expired at {exp_time}.")
-            return None
-    except Exception as exc:
-        logger.error("Exception attempting to decode user expires_at.", exc_info=exc)
-        return None
-
-    return access_token
-
-
-def get_username_from_session() -> str | None:
-    """
-    Extracts the username from the OAuth2 session token.
-
-    Returns:
-        Username string if user is logged in, None otherwise.
-        Tries common OAuth2 fields in order of preference
-    """
-    if "user" not in session:
-        return None
-
-    user_info = session["user"].get("userinfo", {})
-
-    return user_info.get("name")
-
-
-def login_required[F: Callable[..., object]](f: F) -> F:
-    @wraps(f)
-    def decorated(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
-        access_token = get_access_token()
-        if access_token is None:
-            return redirect(url_for("login"))
-
-        return f(*args, access_token=access_token, **kwargs)
-
-    return cast(F, decorated)
-
-
-def get_permissions() -> list[str] | None:
-    if "user" not in session:
-        return None
-
-    user = session["user"]
-
-    if "access_token" not in user:
-        return None
-
-    encoded_jwt = user["access_token"]
-    decoded_jwt = jwt.decode(encoded_jwt, options={"verify_signature": False})
-
-    if "permissions" not in decoded_jwt:
-        return None
-
-    return decoded_jwt["permissions"]
-
-
-def admin_role_required[F: Callable[..., object]](f: F) -> F:
-    @wraps(f)
-    def decorated(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
-        permissions = get_permissions()
-        if not permissions or "admin:all" not in permissions:
-            return redirect(url_for("login_or_home_page"))
-
-        return f(*args, **kwargs)
-
-    return cast(F, decorated)
-
-
-def parse_bool(v: str | None) -> bool:
-    if not v:
-        return False
-
-    if v[0] in ["F", "f", "0"]:
-        return False
-
-    return True
+# Built React SPA (frontend/dist). Overridable for tests/deployments where dist lives elsewhere.
+FRONTEND_DIST_DIR = Path(
+    env.get("CACTUS_UI_FRONTEND_DIST", Path(__file__).resolve().parents[2] / "frontend" / "dist")
+).resolve()
 
 
 def download_playlist_artifacts(access_token: str, run_ids: list[int], download_name: str) -> Response | None:
@@ -226,109 +164,68 @@ def download_playlist_artifacts(access_token: str, run_ids: list[int], download_
     )
 
 
-def run_summary_to_compliance_status(
-    test_procedure: schema.TestProcedureRunSummaryResponse,
-) -> str:
-    if test_procedure.latest_run_status in _ACTIVE_RUN_STATUS_INTS:
-        return "active"
-    elif test_procedure.run_count == 0:
-        return "runless"
-    elif test_procedure.latest_run_status in _FINALIZED_RUN_STATUS_INTS:
-        if test_procedure.latest_all_criteria_met:
-            return "success"
-        else:
-            return "failed"
-    else:
-        return "unknown"
-
-
-def build_playlist_tests_by_category(
-    procedures: list[schema.TestProcedureRunSummaryResponse],
-) -> dict[str, list[dict]]:
-    """Build ordered category→tests dict for the playlist builder, excluding immediate_start procedures.
-
-    Procedures are expected to arrive in definition order from the orchestrator; insertion order is preserved.
-    """
-    result: dict[str, list[dict]] = {}
-    for p in procedures:
-        if p.immediate_start:
-            continue
-        cat = p.category
-        if cat not in result:
-            result[cat] = []
-        result[cat].append(
-            {
-                "id": str(p.test_procedure_id),
-                "description": p.description,
-                "is_witness": bool(_WITNESS_CLASSES & set(p.classes or [])),
-                "classes": p.classes or [],
-            }
-        )
-    return result
-
-
-def build_test_status_dict(run: schema.RunResponse) -> dict:
-    """Build a test status dictionary from a RunResponse for playlist display."""
-    return {
-        "test_procedure_id": run.test_procedure_id,
-        "run_id": run.run_id,
-        "status": run.status.value if hasattr(run.status, "value") else str(run.status),
-        "all_criteria_met": run.all_criteria_met,
-        "has_artifacts": run.has_artifacts,
-    }
-
-
 # Controllers API
 @app.route("/")
-def login_or_home_page() -> str:
-    if session.get("user") is None:
-        return render_template(
-            "login.html",
+def login_or_home_page() -> Response:
+    return send_file(FRONTEND_DIST_DIR / "index.html")
+
+
+@app.route("/<path:spa_path>")
+def spa_catch_all(spa_path: str) -> Response:
+    """Serves built SPA assets, falling back to index.html for client-side routes.
+
+    Only fires for paths not matched by any other route; /api paths must never serve HTML."""
+    if spa_path.startswith("api/"):
+        return Response(
+            response=json.dumps({"error": "not found"}),
+            status=HTTPStatus.NOT_FOUND,
+            mimetype="application/json",
         )
-    return render_template("home.html")
+
+    if (FRONTEND_DIST_DIR / spa_path).is_file():
+        return send_from_directory(FRONTEND_DIST_DIR, spa_path)
+
+    return send_file(FRONTEND_DIST_DIR / "index.html")
 
 
-@app.route("/admin")
-@login_required
-@admin_role_required
-def admin_page(access_token: str) -> str:
-    users = orchestrator.admin_fetch_users(access_token)
-    if users is None:
-        return render_template("admin.html", error="Failed to retrieve users.")
+@app.route("/api/session", methods=["GET"])
+def api_session() -> Response | tuple[Response, int]:
+    """Session/global context for the SPA (replaces the Jinja context processor).
 
-    def custom_serializer(obj: Any) -> str | dict:  # noqa: ANN401
-        if isinstance(obj, JSONWizard):
-            # This is pretty crufty - but we're forcing in our own custom property
-            # Josh - I wrote this on xmas eve (sue me) - probably better done with a subclass
-            raw_data = obj.to_dict()
-            raw_data["matchable_description"] = orchestrator.get_matchable_description(raw_data)
-            return raw_data
-        # other rely on standard serialization
-        return json.dumps(obj)
+    Returns 401 with the login banner message when not logged in - the SPA shows the login screen."""
+    access_token = get_access_token()
+    if access_token is None:
+        return (
+            jsonify({"error": "unauthenticated", "login_banner_message": LOGIN_BANNER_MESSAGE}),
+            HTTPStatus.UNAUTHORIZED,
+        )
 
-    return render_template(
-        "admin.html",
-        users=users,
-        users_b64=b64encode(json.dumps(users, default=custom_serializer).encode()).decode(),
+    return jsonify(
+        SessionResponse(
+            username=get_username_from_session(),
+            permissions=get_permissions() or [],
+            version=CACTUS_PLATFORM_VERSION,
+            support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
+            banner_message=BANNER_MESSAGE,
+            hosted_images=[f"/{path}" for path in get_hosted_images()],
+        ).to_dict()
     )
 
 
-@app.route("/admin/stats")
-@login_required
-@admin_role_required
-def admin_stats_page(access_token: str) -> str:
+@app.route("/api/admin/stats", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_stats(access_token: str) -> Response | tuple[Response, int]:
     stats = orchestrator.admin_fetch_stats(access_token)
     if stats is None:
-        return render_template("admin_stats.html", error="Failed to retrieve stats.")
+        return jsonify({"error": "Failed to retrieve stats."}), HTTPStatus.BAD_GATEWAY
 
-    # Convert runs_per_user dict to sorted leaderboard list for the template
     user_leaderboard = [
-        {"name": name, "run_count": count}
+        UserLeaderboardEntry(name=name, run_count=count)
         for name, count in sorted(stats.runs_per_user.items(), key=lambda x: x[1], reverse=True)
     ]
 
-    # Build weekly bars; x-axis label shows month only when it changes
-    week_bars: list[dict] = []
+    week_bars: list[WeekBar] = []
     last_month: str | None = None
     last_year: str | None = None
     for week_str, count in sorted(stats.runs_per_week.items()):
@@ -343,297 +240,32 @@ def admin_stats_page(access_token: str) -> str:
             month_display = week_str
             year_display = ""
         week_bars.append(
-            {
-                "month": month_display if month_key != last_month else "",
-                "year": year_display if year_display != last_year else "",
-                "count": count,
-            }
+            WeekBar(
+                month=month_display if month_key != last_month else "",
+                year=year_display if year_display != last_year else "",
+                count=count,
+            )
         )
         last_month = month_key
         last_year = year_display
 
-    # Sort procedures by total_runs descending (all procedures are returned, not just top 20)
-    procedures = sorted(stats.procedures, key=lambda p: p.get("total_runs", 0), reverse=True)
+    procedures = [
+        ProcedureStat.from_dict(p) for p in sorted(stats.procedures, key=lambda p: p.get("total_runs", 0), reverse=True)
+    ]
 
-    return render_template(
-        "admin_stats.html",
-        total_users=stats.total_users,
-        total_run_groups=stats.total_run_groups,
-        total_runs=stats.total_runs,
-        total_passed=stats.total_passed,
-        total_failed=stats.total_failed,
-        version_counts=stats.version_counts,
-        user_leaderboard=user_leaderboard,
-        procedures=procedures,
-        max_run_number=stats.max_run_id,
-        runs_per_week=week_bars,
-    )
-
-
-@app.route("/admin/group/<int:run_group_id>", methods=["GET", "POST"])
-@login_required
-@admin_role_required
-def admin_run_group_page(  # noqa: C901
-    access_token: str, run_group_id: int
-) -> str | Response:
-    error: str | None = None
-    """This is the admin-only page summarizing compliance across a run group"""
-
-    if request.method == "POST":
-        # Handle dl artifact
-        if request.form.get("action") == "compliance":
-            compliance_report = orchestrator.admin_fetch_run_group_artifact(access_token, run_group_id)
-            if compliance_report is None:
-                error = "There was an error generating the compliance report."
-            else:
-                return send_file(
-                    io.BytesIO(compliance_report),
-                    as_attachment=True,
-                    download_name=f"{run_group_id}_compliance.pdf",
-                    mimetype="application/pdf",
-                )
-
-    # Fetch procedures
-    procedures = orchestrator.admin_fetch_group_procedure_run_summaries(
-        access_token=access_token, run_group_id=run_group_id
-    )
-
-    compliance_by_class = {}
-
-    if procedures is None:
-        error = "Unabled to fetch test procedures."
-    else:
-        tests_by_class = defaultdict(list)
-        for p in procedures:
-            if p.classes:
-                for c in p.classes:
-                    tests_by_class[c].append(p.test_procedure_id)
-
-        procedure_map = {p.test_procedure_id: p for p in procedures}
-
-        for compliance_class, tests in tests_by_class.items():
-            per_run_status = [
-                {
-                    "procedure": procedure_map[t],
-                    "status": run_summary_to_compliance_status(procedure_map[t]),
-                }
-                for t in tests
-            ]
-            compliant: bool = all([run["status"] == "success" for run in per_run_status])
-            compliance_by_class[compliance_class] = {
-                "class_details": fetch_compliance_class(compliance_class),
-                "compliant": compliant,
-                "per_run_status": per_run_status,
-            }
-
-    # Fetch the run groups (for the breadcrumbs selector)
-    run_groups = orchestrator.admin_fetch_run_groups(access_token=access_token, run_group_id=run_group_id, page=1)
-    active_run_group: schema.RunGroupResponse | None = None
-    if not run_groups or not run_groups.items:
-        error = "Unable to fetch run groups."
-    else:
-        for rg in run_groups.items:
-            if rg.run_group_id == run_group_id:
-                active_run_group = rg
-                break
-
-    return render_template(
-        "run_group.html",
-        error=error,
-        compliance_by_class=compliance_by_class,
-        run_groups=[] if run_groups is None else run_groups.items,
-        run_group_id=run_group_id,
-        active_run_group=active_run_group,
-        is_admin_view=True,
-    )
-
-
-@app.route("/admin/group/<int:run_group_id>/runs", methods=["GET", "POST"])
-@login_required
-@admin_role_required
-def admin_group_runs_page(  # noqa: C901
-    access_token: str, run_group_id: int
-) -> str | Response:
-    error: str | None = None
-    """This is the admin equivalent of group_runs_page"""
-    # Handle POST for triggering an artifact download
-    if request.method == "POST":
-        # Handle dl artifact
-        if request.form.get("action") == "artifact":
-            run_id = request.form.get("run_id")
-            if not run_id:
-                error = "No run ID specified."
-            else:
-                artifact_data, download_name = orchestrator.admin_fetch_run_artifact(access_token, run_id)
-                if artifact_data is None:
-                    error = "Failed to retrieve artifacts."
-                else:
-                    return send_file(
-                        io.BytesIO(artifact_data),
-                        as_attachment=True,
-                        download_name=download_name,
-                        mimetype="application/zip",
-                    )
-
-    # Fetch procedures
-    procedures = orchestrator.admin_fetch_group_procedure_run_summaries(
-        access_token=access_token, run_group_id=run_group_id
-    )
-    grouped_procedures: list[GroupedProcedure] = []
-
-    all_classes: set[str] = set()
-    classes_by_test: dict[str, list[str]] = {}
-    tmp_classes_by_category: dict[str, set[str]] = {}
-
-    if procedures is None:
-        error = "Unable to fetch test procedures."
-    else:
-        # Organise the procedures by grouping them under the "category" label present (while also preserving order)
-        for p in procedures:
-            category_slug = p.category.replace(" ", "-")  # This could do with a more robust slugify method
-
-            # Add this procedure to the list of groups
-            existing_group = next((x for x in grouped_procedures if x.slug == category_slug), None)
-            if existing_group:
-                existing_group.summaries.append(p)
-            else:
-                grouped_procedures.append(GroupedProcedure(category_slug, p.category, [p]))
-
-            classes = p.classes if p.classes else []
-            classes_by_test[p.test_procedure_id] = classes
-            all_classes.update(classes)
-
-            if category_slug in tmp_classes_by_category:
-                tmp_classes_by_category[category_slug].update(classes)
-            else:
-                tmp_classes_by_category[category_slug] = set(classes)
-
-    # convert sets to lists (sets are not serializable to json)
-    classes_by_category: dict[str, list[str]] = {key: list(value) for key, value in tmp_classes_by_category.items()}
-
-    # Fetch the run groups (for the breadcrumbs selector)
-    run_groups = orchestrator.admin_fetch_run_groups(access_token=access_token, run_group_id=run_group_id, page=1)
-    active_run_group: schema.RunGroupResponse | None = None
-    if not run_groups or not run_groups.items:
-        error = "Unable to fetch run groups."
-    else:
-        for rg in run_groups.items:
-            if rg.run_group_id == run_group_id:
-                active_run_group = rg
-                break
-
-    return render_template(
-        "runs.html",
-        error=error,
-        grouped_procedures=grouped_procedures,
-        classes=fetch_compliance_classes(all_classes),
-        classes_by_test_b64=b64encode(json.dumps(classes_by_test).encode()).decode(),
-        classes_by_category_b64=b64encode(json.dumps(classes_by_category).encode()).decode(),
-        run_groups=[] if run_groups is None else run_groups.items,
-        run_group_id=run_group_id,
-        active_run_group=active_run_group,
-        is_admin_view=True,
-    )
-
-
-@app.route(
-    "/admin/run_group/<int:run_group_id>/procedure_runs/<test_procedure_id>",
-    methods=["GET"],
-)
-@login_required
-@admin_role_required
-def admin_procedure_runs_json(access_token: str, run_group_id: int, test_procedure_id: str) -> Response:
-    runs_page = orchestrator.admin_fetch_group_runs_for_procedure(access_token, run_group_id, test_procedure_id)
-    if runs_page is None:
-        return Response(
-            response=f"Unable to fetch runs for {test_procedure_id}.",
-            status=HTTPStatus.NOT_FOUND,
-            mimetype="text/plain",
-        )
-
-    return jsonify(runs_page)
-
-
-@app.route("/admin/run_group/<int:run_group_id>/active_runs", methods=["GET"])
-@login_required
-@admin_role_required
-def admin_active_runs_json(access_token: str, run_group_id: int) -> Response:
-    runs_page = orchestrator.admin_fetch_runs_for_group(access_token, run_group_id, 1, False)
-    if runs_page is None:
-        return Response(
-            response="Unable to load active runs.",
-            status=HTTPStatus.NOT_FOUND,
-            mimetype="text/plain",
-        )
-
-    return jsonify(runs_page)
-
-
-@app.route("/admin/run/<int:run_id>", methods=["GET", "POST"])
-@login_required
-@admin_role_required
-def admin_run_status_page(access_token: str, run_id: str) -> str | Response:
-    error: str | None = None
-
-    if request.method == "POST":
-        # Handle downloading a prior run's artifacts
-        if request.form.get("action") == "artifact":
-            artifact_data, download_name = orchestrator.admin_fetch_run_artifact(access_token, run_id)
-            if artifact_data is None:
-                error = "Failed to retrieve artifacts."
-            else:
-                return send_file(
-                    io.BytesIO(artifact_data),
-                    as_attachment=True,
-                    download_name=download_name,
-                    mimetype="application/zip",
-                )
-
-    status = orchestrator.admin_fetch_run_status(access_token=access_token, run_id=run_id)
-
-    run_status = None
-    run_test_uri = None
-    run_procedure_id = None
-    run_has_artifacts = None
-
-    run_response = orchestrator.admin_fetch_individual_run(access_token, run_id)
-    if run_response:
-        run_status = run_response.status
-        run_test_uri = run_response.test_url
-        run_procedure_id = run_response.test_procedure_id
-        run_has_artifacts = run_response.has_artifacts
-
-    run_is_live = status is not None or (run_response is not None and run_response.status in _ACTIVE_RUN_STATUSES)
-
-    # Take the big JSON response string and encode it using base64 so we can embed it in the template and re-hydrate
-    # it easily enough
-    if status is not None:
-        initial_status_b64 = b64encode(status.encode()).decode()
-    else:
-        initial_status_b64 = ""
-
-    playlist_info, next_playlist_run_id, current_active_run = (
-        _build_playlist_info(access_token, run_response, admin=True) if run_response else (None, None, None)
-    )
-
-    return render_template(
-        "run_status.html",
-        run_is_live=run_is_live,
-        run_has_artifacts=run_has_artifacts,
-        run_id=run_id,
-        initial_status_b64=initial_status_b64,
-        run_status=run_status,
-        run_test_uri=run_test_uri,
-        run_procedure_id=run_procedure_id,
-        error=error,
-        playlist_info=playlist_info,
-        next_playlist_run_id=next_playlist_run_id,
-        current_active_run=current_active_run,
-        is_admin_view=True,
-        is_witness_test=is_witness_test(run_response),
-        user_buttons_state="disabled",
-        proceed_uri=url_for("admin_send_proceed", run_id=run_id),
-        cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
+    return jsonify(
+        AdminStatsResponse(
+            total_users=stats.total_users,
+            total_run_groups=stats.total_run_groups,
+            total_runs=stats.total_runs,
+            total_passed=stats.total_passed,
+            total_failed=stats.total_failed,
+            max_run_number=stats.max_run_id,
+            version_counts=stats.version_counts,
+            user_leaderboard=user_leaderboard,
+            procedures=procedures,
+            runs_per_week=week_bars,
+        ).to_dict()
     )
 
 
@@ -670,34 +302,15 @@ def admin_run_html_report_page(access_token: str, run_id: int) -> str | Response
     return Response(html, mimetype="text/html")
 
 
-@app.route("/admin/run/<int:run_id>/status", methods=["GET"])
-@login_required
-@admin_role_required
-def admin_run_status_json(access_token: str, run_id: str) -> Response:
-
-    status = orchestrator.admin_fetch_run_status(access_token=access_token, run_id=run_id)
-
-    if status is None:
-        return Response(
-            response="Unable to fetch runner status. Likely terminated available.",
-            status=HTTPStatus.GONE,
-            mimetype="text/plain",
-        )
-
-    return Response(response=status, status=200, mimetype="application/json")
-
-
-@app.route("/procedures", methods=["GET"])
-@login_required
-def procedures_page(access_token: str) -> str:
-    """Get all test procedures, handling pagination."""
-    all_procedures = []
+def fetch_all_test_procedures(access_token: str) -> list[schema.TestProcedureResponse] | None:
+    """Request every page of test procedures. Returns None on any failure."""
+    all_procedures: list[schema.TestProcedureResponse] = []
     page = 1
 
     while True:
         procedure_pages = orchestrator.fetch_procedures(access_token, page)
         if procedure_pages is None:
-            return render_template("procedures.html", error="Failed to retrieve procedures.")
+            return None
 
         all_procedures.extend(procedure_pages.items)
 
@@ -706,41 +319,683 @@ def procedures_page(access_token: str) -> str:
 
         page = procedure_pages.next_page
 
-    return render_template("procedures.html", procedures=all_procedures)
+    return all_procedures
 
 
-@app.route("/procedure/<test_procedure_id>", methods=["GET"])
+@app.route("/api/procedures", methods=["GET"])
+@api_login_required
+def api_procedures(access_token: str) -> Response | tuple[Response, int]:
+    """Get all test procedures, handling pagination."""
+    all_procedures = fetch_all_test_procedures(access_token)
+    if all_procedures is None:
+        return jsonify({"error": "Failed to retrieve procedures."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(ProceduresResponse(procedures=all_procedures).to_dict())
+
+
+# ----------------------------------------------------------------------------------
+#  Compliance requests
+# ----------------------------------------------------------------------------------
+
+# The mutable compliance-request fields shared by create/update (everything except status,
+# classes, runs and witnessed_at, which need their own coercion).
+_COMPLIANCE_TEXT_FIELDS = (
+    "csip_aus_version",
+    "der_brand",
+    "der_oem",
+    "der_series",
+    "der_representative_models",
+    "software_client_type",
+    "software_client_providers",
+    "software_client_versions",
+    "onsite_hardware_details",
+)
+
+# Status keywords the admin review endpoint accepts (the only transitions the admin UI drives).
+_ADMIN_STATUS_BY_NAME = {
+    "under_review": orchestrator.ComplianceRequestStatus.UNDER_REVIEW,
+    "pushed_back": orchestrator.ComplianceRequestStatus.PUSHED_BACK,
+}
+
+
+def _parse_witnessed_at(value: str) -> datetime:
+    """Parse the wizard's witness-testing date (ISO date or datetime) into a UTC datetime."""
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
+def _compliance_update_from_body(
+    body: dict, status: orchestrator.ComplianceRequestStatus
+) -> schema.ComplianceRequestUpdateRequest:
+    """Build a partial update request from a JSON body. Only keys present in the body are
+    sent (omitted fields stay None → unchanged), plus the status the endpoint enforces."""
+    kwargs: dict = {"status": int(status)}
+    for field in _COMPLIANCE_TEXT_FIELDS:
+        if field in body:
+            kwargs[field] = body[field]
+    if "classes" in body:
+        kwargs["classes"] = set(body["classes"])
+    if "runs" in body:
+        kwargs["runs"] = {int(r) for r in body["runs"]}
+    if "witnessed_at" in body:
+        kwargs["witnessed_at"] = _parse_witnessed_at(body["witnessed_at"])
+    return schema.ComplianceRequestUpdateRequest(**kwargs)
+
+
+@app.route("/api/compliance/requests", methods=["GET"])
+@api_login_required
+def api_compliance_requests(access_token: str) -> Response | tuple[Response, int]:
+    """The current user's compliance requests (page 1)."""
+    paged = orchestrator.fetch_compliance_requests(access_token, 1)
+    if paged is None:
+        return jsonify({"error": "Failed to fetch compliance requests."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(ComplianceRequestsResponse(requests=paged.items).to_dict())
+
+
+@app.route("/api/admin/compliance/requests", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_compliance_requests(access_token: str) -> Response | tuple[Response, int]:
+    """All compliance requests, with submitter info (admin only, page 1)."""
+    paged = orchestrator.admin_fetch_compliance_requests(access_token, 1)
+    if paged is None:
+        return jsonify({"error": "Failed to fetch compliance requests."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(AdminComplianceRequestsResponse(requests=paged.items).to_dict())
+
+
+@app.route("/api/compliance/requests/<int:compliance_request_id>", methods=["GET"])
+@api_login_required
+def api_compliance_request(access_token: str, compliance_request_id: int) -> Response | tuple[Response, int]:
+    """A single compliance request (used to prefill the wizard on direct navigation)."""
+    compliance_request = orchestrator.fetch_compliance_request(access_token, compliance_request_id)
+    if compliance_request is None:
+        return jsonify({"error": "Failed to fetch compliance request."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(compliance_request.to_dict())
+
+
+@app.route("/api/compliance/form-data", methods=["GET"])
+@api_login_required
+def api_compliance_form_data(access_token: str) -> Response | tuple[Response, int]:
+    """Everything the compliance-request wizard needs (versions, classes, test map, runs)."""
+    test_procedures = fetch_all_test_procedures(access_token)
+    if test_procedures is None:
+        return jsonify({"error": "Failed to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
+
+    successful_runs = orchestrator.fetch_ordered_successful_runs(access_token) or []
+    return jsonify(build_compliance_form_data(test_procedures, successful_runs).to_dict())
+
+
+@app.route("/api/compliance/requests", methods=["POST"])
+@api_login_required
+def api_create_compliance_request(access_token: str) -> Response | tuple[Response, int]:
+    """Create a new compliance request (status defaults to submitted in the orchestrator)."""
+    body = request.get_json(silent=True) or {}
+    try:
+        witnessed_at = _parse_witnessed_at(body["witnessed_at"])
+        result = orchestrator.create_compliance_request(
+            access_token=access_token,
+            witnessed_at=witnessed_at,
+            classes=set(body.get("classes", [])),
+            runs={int(r) for r in body.get("runs", [])},
+            **{field: body.get(field, "") for field in _COMPLIANCE_TEXT_FIELDS},
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        return jsonify({"error": f"Invalid compliance request: {exc}"}), HTTPStatus.BAD_REQUEST
+    if result is None:
+        return jsonify({"error": "Failed to create compliance request."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(result.to_dict()), HTTPStatus.CREATED
+
+
+@app.route("/api/compliance/requests/<int:compliance_request_id>", methods=["PUT"])
+@api_login_required
+def api_update_compliance_request(access_token: str, compliance_request_id: int) -> Response | tuple[Response, int]:
+    """User edit of their own request - resubmits it (status -> submitted)."""
+    body = request.get_json(silent=True) or {}
+    try:
+        update = _compliance_update_from_body(body, orchestrator.ComplianceRequestStatus.SUBMITTED)
+    except (TypeError, ValueError) as exc:
+        return jsonify({"error": f"Invalid compliance request: {exc}"}), HTTPStatus.BAD_REQUEST
+    result = orchestrator.update_compliance_request(access_token, compliance_request_id, update)
+    if result is None:
+        return jsonify({"error": "Failed to update compliance request."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(result.to_dict())
+
+
+@app.route("/api/admin/compliance/requests/<int:compliance_request_id>", methods=["PUT"])
+@api_login_required
+@api_admin_role_required
+def api_admin_update_compliance_request(
+    access_token: str, compliance_request_id: int
+) -> Response | tuple[Response, int]:
+    """Admin review update. `status` ('under_review' to open for editing, 'pushed_back' to return
+    to the user) is required; other fields are optional partial edits."""
+    body = request.get_json(silent=True) or {}
+    status = _ADMIN_STATUS_BY_NAME.get(body.get("status", ""))
+    if status is None:
+        return jsonify({"error": "A valid status (under_review|pushed_back) is required."}), HTTPStatus.BAD_REQUEST
+    try:
+        update = _compliance_update_from_body(body, status)
+    except (TypeError, ValueError) as exc:
+        return jsonify({"error": f"Invalid compliance request: {exc}"}), HTTPStatus.BAD_REQUEST
+    result = orchestrator.admin_update_compliance_request(access_token, compliance_request_id, update)
+    if result is None:
+        return jsonify({"error": "Failed to update compliance request."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(result.to_dict())
+
+
+@app.route("/api/compliance/requests/<int:compliance_request_id>", methods=["DELETE"])
+@api_login_required
+def api_delete_compliance_request(access_token: str, compliance_request_id: int) -> Response | tuple[Response, int]:
+    if not orchestrator.delete_compliance_request(access_token, compliance_request_id):
+        return jsonify({"error": "Failed to delete compliance request."}), HTTPStatus.BAD_GATEWAY
+    return jsonify({})
+
+
+@app.route("/api/admin/compliance/requests/<int:compliance_request_id>", methods=["DELETE"])
+@api_login_required
+@api_admin_role_required
+def api_admin_delete_compliance_request(
+    access_token: str, compliance_request_id: int
+) -> Response | tuple[Response, int]:
+    if not orchestrator.admin_delete_compliance_request(access_token, compliance_request_id):
+        return jsonify({"error": "Failed to delete compliance request."}), HTTPStatus.BAD_GATEWAY
+    return jsonify({})
+
+
+@app.route("/compliance/requests/<int:compliance_request_id>/artifact", methods=["GET"])
 @login_required
-def procedure_yaml_page(access_token: str, test_procedure_id: str) -> str | Response:
+def compliance_request_artifact_download(access_token: str, compliance_request_id: int) -> Response:
+    """Browser-native compliance report PDF download (plain link; session cookie auth)."""
+    report, download_name = orchestrator.fetch_compliance_artifact_for_compliance_request(
+        access_token, compliance_request_id
+    )
+    if report is None:
+        return Response(
+            response="Failed to retrieve compliance report.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
+        )  # noqa: E501
 
-    error: str | None = None
+    return send_file(io.BytesIO(report), as_attachment=True, download_name=download_name, mimetype="application/pdf")
 
-    # Handle POST for triggering a new run / precondition phase
-    # if request.method == "POST":
-    #     if request.form.get("action") == "initialise":
-    #         init_result = orchestrator.init_run(access_token, test_procedure_id)
-    #         if init_result.run_id is not None:
-    #             return redirect(url_for("run_status_page", run_id=init_result.run_id))
-    #         elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
-    #             error = "Your certificate has expired. Please generate and download a new certificate."
-    #         elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
-    #             error = "You cannot start a second test run while your DeviceCapability URI is set to static."
-    #         else:
-    #             error = "Failed to trigger a new run due to an unknown error."
 
-    # Request the paginated list of procedures from upstream
+@app.route("/admin/compliance/requests/<int:compliance_request_id>/artifact", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_compliance_request_artifact_download(access_token: str, compliance_request_id: int) -> Response:
+    """Browser-native compliance report PDF download for the admin view."""
+    report, download_name = orchestrator.admin_fetch_compliance_artifact_for_compliance_request(
+        access_token, compliance_request_id
+    )
+    if report is None:
+        return Response(
+            response="Failed to retrieve compliance report.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
+        )  # noqa: E501
+
+    return send_file(io.BytesIO(report), as_attachment=True, download_name=download_name, mimetype="application/pdf")
+
+
+@app.route("/admin/compliance/requests/<int:compliance_request_id>/finalise", methods=["POST"])
+@login_required
+@admin_role_required
+def admin_compliance_request_finalise(access_token: str, compliance_request_id: int) -> Response:
+    """Finalise a compliance request and return the generated report PDF (admin only)."""
+    report, download_name = orchestrator.admin_finalise_compliance_request(access_token, compliance_request_id)
+    if report is None:
+        return Response(
+            response="Failed to finalise the compliance request.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
+        )  # noqa: E501
+
+    return send_file(io.BytesIO(report), as_attachment=True, download_name=download_name, mimetype="application/pdf")
+
+
+@app.route("/api/procedure/<test_procedure_id>", methods=["GET"])
+@api_login_required
+def api_procedure_yaml(access_token: str, test_procedure_id: str) -> Response | tuple[Response, int]:
+    """Get the raw YAML definition for a single test procedure."""
     yaml = orchestrator.fetch_procedure_yaml(access_token, test_procedure_id)
     if yaml is None:
-        return render_template(
-            "procedure_yaml.html",
-            error=f"Failed to fetch YAML for test '{test_procedure_id}'.",
+        return jsonify({"error": f"Failed to fetch YAML for test '{test_procedure_id}'."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(ProcedureYamlResponse(test_procedure_id=test_procedure_id, yaml=yaml).to_dict())
+
+
+@app.route("/api/run_groups", methods=["GET"])
+@api_login_required
+def api_run_groups(access_token: str) -> Response | tuple[Response, int]:
+    """Run groups for the current user (page 1 - matches the old template's dropdown source)."""
+    run_groups = orchestrator.fetch_run_groups(access_token, 1)
+    if run_groups is None:
+        return jsonify({"error": "Unable to fetch run groups."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(paginated_json(run_groups))
+
+
+@app.route("/api/admin/users", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_users(access_token: str) -> Response | tuple[Response, int]:
+    """All users with their run groups."""
+    users = orchestrator.admin_fetch_users(access_token)
+    if users is None:
+        return jsonify({"error": "Unable to fetch users."}), HTTPStatus.BAD_GATEWAY
+
+    users_list = []
+    for user in users:
+        matchable_description = orchestrator.get_matchable_description(user.to_dict())
+        users_list.append(
+            AdminUserResponse(
+                user_id=user.user_id,
+                subject_id=user.subject_id,
+                name=user.name,
+                run_groups=user.run_groups,
+                matchable_description=matchable_description,
+            )
         )
 
-    return render_template(
-        "procedure_yaml.html",
-        test_procedure_id=test_procedure_id,
-        yaml=yaml,
-        error=error,
+    return jsonify(AdminUsersResponse(users=users_list).to_dict())
+
+
+@app.route("/api/admin/run_groups", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_run_groups(access_token: str) -> Response | tuple[Response, int]:
+    """Run groups belonging to the user that owns ?run_group_id (admins can't be identified by token alone)."""
+    run_group_id = request.args.get("run_group_id", type=int)
+    if run_group_id is None:
+        return jsonify({"error": "run_group_id is required."}), HTTPStatus.BAD_REQUEST
+
+    run_groups = orchestrator.admin_fetch_run_groups(access_token, run_group_id, 1)
+    if run_groups is None:
+        return jsonify({"error": "Unable to fetch run groups."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(paginated_json(run_groups))
+
+
+@app.route("/api/group/<int:run_group_id>/procedure_summaries", methods=["GET"])
+@api_login_required
+def api_group_procedure_summaries(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
+    if procedures is None:
+        return jsonify({"error": "Unable to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(build_procedure_summaries(procedures).to_dict())
+
+
+@app.route("/api/admin/group/<int:run_group_id>/procedure_summaries", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_group_procedure_summaries(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    procedures = orchestrator.admin_fetch_group_procedure_run_summaries(
+        access_token=access_token, run_group_id=run_group_id
+    )
+    if procedures is None:
+        return jsonify({"error": "Unable to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(build_procedure_summaries(procedures).to_dict())
+
+
+@app.route("/api/group/<int:run_group_id>/compliance", methods=["GET"])
+@api_login_required
+def api_group_compliance(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
+    if procedures is None:
+        return jsonify({"error": "Unable to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
+    return jsonify(build_compliance(procedures).to_dict())
+
+
+@app.route("/api/admin/group/<int:run_group_id>/compliance", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_group_compliance(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    procedures = orchestrator.admin_fetch_group_procedure_run_summaries(
+        access_token=access_token, run_group_id=run_group_id
+    )
+    if procedures is None:
+        return jsonify({"error": "Unable to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
+    return jsonify(build_compliance(procedures).to_dict())
+
+
+@app.route("/admin/group/<int:run_group_id>/compliance_pdf", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_compliance_pdf(access_token: str, run_group_id: int) -> Response:
+    """Browser-native compliance PDF download for the admin view."""
+    compliance_report = orchestrator.admin_fetch_run_group_artifact(access_token, run_group_id)
+    if compliance_report is None:
+        return Response(
+            response="There was an error generating the compliance report.",
+            status=HTTPStatus.BAD_GATEWAY,
+            mimetype="text/plain",
+        )
+    return send_file(
+        io.BytesIO(compliance_report),
+        as_attachment=True,
+        download_name=f"{run_group_id}_compliance.pdf",
+        mimetype="application/pdf",
+    )
+
+
+@app.route("/api/group/<int:run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
+@api_login_required
+def api_group_procedure_runs(
+    access_token: str, run_group_id: int, test_procedure_id: str
+) -> Response | tuple[Response, int]:
+    runs_page = orchestrator.fetch_group_runs_for_procedure(access_token, run_group_id, test_procedure_id)
+    if runs_page is None:
+        return jsonify({"error": f"Unable to fetch runs for {test_procedure_id}."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(paginated_json(runs_page))
+
+
+@app.route("/api/admin/group/<int:run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_group_procedure_runs(
+    access_token: str, run_group_id: int, test_procedure_id: str
+) -> Response | tuple[Response, int]:
+    runs_page = orchestrator.admin_fetch_group_runs_for_procedure(access_token, run_group_id, test_procedure_id)
+    if runs_page is None:
+        return jsonify({"error": f"Unable to fetch runs for {test_procedure_id}."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(paginated_json(runs_page))
+
+
+@app.route("/api/group/<int:run_group_id>/active_runs", methods=["GET"])
+@api_login_required
+def api_group_active_runs(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, False)
+    if runs_page is None:
+        return jsonify({"error": "Unable to load active runs."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(paginated_json(runs_page))
+
+
+@app.route("/api/admin/group/<int:run_group_id>/active_runs", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_group_active_runs(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    runs_page = orchestrator.admin_fetch_runs_for_group(access_token, run_group_id, 1, False)
+    if runs_page is None:
+        return jsonify({"error": "Unable to load active runs."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(paginated_json(runs_page))
+
+
+@app.route("/api/group/<int:run_group_id>/runs", methods=["POST"])
+@api_login_required
+def api_init_run(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    """Initialise a new test run (the precondition phase) for a test procedure."""
+    body = request.get_json(silent=True) or {}
+    test_procedure_id = body.get("test_procedure_id")
+    if not test_procedure_id:
+        return jsonify({"error": "No test procedure selected."}), HTTPStatus.BAD_REQUEST
+
+    init_result = orchestrator.init_run(access_token, run_group_id, test_procedure_id)
+    if init_result.response is not None:
+        return jsonify(RunActionResponse(run_id=init_result.response.run_id).to_dict())
+    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
+        return (
+            jsonify({"error": "Your certificate has expired. Please generate and download a new certificate."}),
+            HTTPStatus.CONFLICT,
+        )
+    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
+        return (
+            jsonify({"error": "You cannot start a second test run while your DeviceCapability URI is set to static."}),
+            HTTPStatus.CONFLICT,
+        )
+    else:
+        return jsonify({"error": "Failed to trigger a new run due to an unknown error."}), HTTPStatus.BAD_GATEWAY
+
+
+@app.route("/api/runs/<int:run_id>/start", methods=["POST"])
+@api_login_required
+def api_start_run(access_token: str, run_id: int) -> Response | tuple[Response, int]:
+    start_result = orchestrator.start_run(access_token, str(run_id))
+    if not start_result.success:
+        error = "Failed to start the test run." if start_result.error_message is None else start_result.error_message
+        return jsonify({"error": error}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(RunActionResponse(run_id=run_id).to_dict())
+
+
+@app.route("/api/runs/<int:run_id>/finalise", methods=["POST"])
+@api_login_required
+def api_finalise_run(access_token: str, run_id: int) -> Response | tuple[Response, int]:
+    if not orchestrator.finalise_run(access_token, str(run_id)):
+        return jsonify({"error": "Failed to finalise the run."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(RunActionResponse(run_id=run_id).to_dict())
+
+
+@app.route("/api/runs/<int:run_id>", methods=["DELETE"])
+@api_login_required
+def api_delete_run(access_token: str, run_id: int) -> Response | tuple[Response, int]:
+    if not orchestrator.delete_individual_run(access_token, str(run_id)):
+        return jsonify({"error": "Failed to delete run."}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(RunActionResponse(run_id=run_id).to_dict())
+
+
+@app.route("/api/group/<int:run_group_id>/playlist_tests", methods=["GET"])
+@api_login_required
+def api_playlist_tests(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    """Returns tests-by-category and compliance classes for the playlist builder."""
+    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
+    if procedures is None:
+        return jsonify({"error": "Unable to fetch test procedures."}), HTTPStatus.BAD_GATEWAY
+
+    all_classes: set[str] = set()
+    for p in procedures:
+        if p.classes:
+            all_classes.update(p.classes)
+
+    return jsonify(
+        PlaylistTestsResponse(
+            tests_by_category=build_playlist_tests_by_category(procedures),
+            classes=list(fetch_compliance_classes(all_classes)),
+        ).to_dict()
+    )
+
+
+@app.route("/api/group/<int:run_group_id>/playlist", methods=["POST"])
+@api_login_required
+def api_init_playlist(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    """Initialise a playlist of test runs. Also persists active_playlist in the Flask session for run_status.html."""
+    body = request.get_json(silent=True) or {}
+    procedures = body.get("procedures")
+    if not procedures or not isinstance(procedures, list):
+        return jsonify({"error": "No tests selected."}), HTTPStatus.BAD_REQUEST
+
+    init_result = orchestrator.init_playlist(access_token, run_group_id, procedures)
+    if init_result.response is not None:
+        if init_result.response.playlist_execution_id and init_result.response.playlist_runs:
+            session["active_playlist"] = {
+                "execution_id": init_result.response.playlist_execution_id,
+                "name": "Custom Playlist",
+                "started_at": datetime.now(UTC).isoformat(),
+                "runs": [
+                    {"run_id": r.run_id, "test_procedure_id": r.test_procedure_id}
+                    for r in init_result.response.playlist_runs
+                ],
+            }
+        return jsonify(RunActionResponse(run_id=init_result.response.run_id).to_dict())
+    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
+        return (
+            jsonify({"error": "Your certificate has expired. Please generate and download a new certificate."}),
+            HTTPStatus.CONFLICT,
+        )
+    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
+        return (
+            jsonify({"error": "You cannot start a second test run while your DeviceCapability URI is set to static."}),
+            HTTPStatus.CONFLICT,
+        )
+    else:
+        return jsonify({"error": "Failed to trigger playlist due to an unknown error."}), HTTPStatus.BAD_GATEWAY
+
+
+@app.route("/api/group/<int:run_group_id>/playlist_sessions", methods=["GET"])
+@api_login_required
+def api_playlist_sessions(access_token: str, run_group_id: int) -> Response:
+    """Fetch all playlist sessions (active and completed) grouped by execution ID."""
+    all_runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, None)
+    if all_runs_page is None:
+        return jsonify([])
+
+    active_statuses = {"initialised", "started", "provisioning"}
+
+    playlist_executions: dict[str, list[schema.RunResponse]] = {}
+    for run in all_runs_page.items:
+        if run.playlist_execution_id:
+            playlist_executions.setdefault(run.playlist_execution_id, []).append(run)
+
+    result: list[PlaylistSession] = []
+    for exec_id, runs in playlist_executions.items():
+        runs_sorted = sorted(runs, key=lambda r: r.playlist_order or 0)
+        if not runs_sorted:
+            continue
+        first_run = runs_sorted[0]
+        is_active = any(
+            (r.status.value if hasattr(r.status, "value") else str(r.status)) in active_statuses for r in runs_sorted
+        )
+        result.append(
+            PlaylistSession(
+                playlist_execution_id=exec_id,
+                short_id=exec_id[:8],
+                first_run_id=first_run.run_id,
+                created_at=first_run.created_at.isoformat(),
+                test_statuses=[build_test_status(r) for r in runs_sorted],
+                is_active=is_active,
+            )
+        )
+
+    result.sort(key=lambda x: x.created_at, reverse=True)
+    result.sort(key=lambda x: not x.is_active)
+
+    return jsonify([s.to_dict() for s in result])
+
+
+@app.route("/api/runs/<int:run_id>/finalise_playlist", methods=["POST"])
+@api_login_required
+def api_finalise_playlist(access_token: str, run_id: int) -> Response:
+    """Finalise a playlist early: finalises current test and marks remaining as skipped."""
+    orchestrator.finalise_playlist(access_token, str(run_id))
+    return jsonify(RunActionResponse(run_id=run_id).to_dict())
+
+
+@app.route("/api/config", methods=["GET"])
+@api_login_required
+def api_config(access_token: str) -> Response | tuple[Response, int]:
+    config = orchestrator.fetch_config(access_token)
+    run_groups = orchestrator.fetch_run_groups(access_token, 1)
+    csip_aus_versions = orchestrator.fetch_csip_aus_versions(access_token, 1)
+    if config is None or run_groups is None or csip_aus_versions is None:
+        return jsonify({"error": "Unable to communicate with test server."}), HTTPStatus.BAD_GATEWAY
+    return jsonify(
+        ConfigResponse(
+            config=UserConfig(
+                subscription_domain=config.subscription_domain,
+                pen=None if config.pen == 0 else config.pen,
+            ),
+            run_groups=list(run_groups.items),
+            csip_aus_versions=list(csip_aus_versions.items),
+        ).to_dict()
+    )
+
+
+@app.route("/api/config/pen", methods=["POST"])
+@api_login_required
+def api_config_pen(access_token: str) -> Response | tuple[Response, int]:
+    body = request.get_json(silent=True) or {}
+    try:
+        pen = int(body.get("pen", 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Failed to parse PEN"}), HTTPStatus.BAD_REQUEST
+    if not orchestrator.update_config(access_token, pen=pen):
+        return jsonify({"error": "Failed to update PEN"}), HTTPStatus.BAD_GATEWAY
+    return jsonify({})
+
+
+@app.route("/api/config/domain", methods=["POST"])
+@api_login_required
+def api_config_domain(access_token: str) -> Response | tuple[Response, int]:
+    body = request.get_json(silent=True) or {}
+    domain = body.get("subscription_domain") or ""
+    if not orchestrator.update_config(access_token, subscription_domain=domain):
+        return jsonify({"error": "Failed to update subscription domain"}), HTTPStatus.BAD_GATEWAY
+    return jsonify({})
+
+
+@app.route("/api/run_groups", methods=["POST"])
+@api_login_required
+def api_create_run_group(access_token: str) -> Response | tuple[Response, int]:
+    body = request.get_json(silent=True) or {}
+    version = body.get("csip_aus_version")
+    if not version:
+        return jsonify({"error": "csip_aus_version is required."}), HTTPStatus.BAD_REQUEST
+    result = orchestrator.create_run_group(access_token, version)
+    if result is None:
+        return jsonify({"error": "Failed to create run group"}), HTTPStatus.BAD_GATEWAY
+    return jsonify(result.to_dict()), HTTPStatus.CREATED
+
+
+@app.route("/api/run_groups/<int:run_group_id>", methods=["PATCH"])
+@api_login_required
+def api_update_run_group(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    body = request.get_json(silent=True) or {}
+    name = body.get("name")
+    if not name:
+        return jsonify({"error": "name is required."}), HTTPStatus.BAD_REQUEST
+    result = orchestrator.update_run_group(access_token, run_group_id, name=name)
+    if result is None:
+        return jsonify({"error": "Failed to update run group"}), HTTPStatus.BAD_GATEWAY
+    return jsonify(result.to_dict())
+
+
+@app.route("/api/run_groups/<int:run_group_id>", methods=["DELETE"])
+@api_login_required
+def api_delete_run_group(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    if not orchestrator.delete_run_group(access_token, run_group_id):
+        return jsonify({"error": "Failed to delete run group"}), HTTPStatus.BAD_GATEWAY
+    return jsonify({})
+
+
+@app.route("/run/<int:run_id>/artifact", methods=["GET"])
+@login_required
+def run_artifact_download(access_token: str, run_id: int) -> Response:
+    """Browser-native artifact ZIP download (plain link; session cookie auth)."""
+    artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, str(run_id))
+    if artifact_data is None:
+        return Response(response="Failed to retrieve artifacts.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain")
+
+    return send_file(
+        io.BytesIO(artifact_data),
+        as_attachment=True,
+        download_name=download_name,
+        mimetype="application/zip",
+    )
+
+
+@app.route("/admin/run/<int:run_id>/artifact", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_run_artifact_download(access_token: str, run_id: int) -> Response:
+    """Browser-native artifact ZIP download for the admin view."""
+    artifact_data, download_name = orchestrator.admin_fetch_run_artifact(access_token, str(run_id))
+    if artifact_data is None:
+        return Response(response="Failed to retrieve artifacts.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain")
+
+    return send_file(
+        io.BytesIO(artifact_data),
+        as_attachment=True,
+        download_name=download_name,
+        mimetype="application/zip",
     )
 
 
@@ -756,649 +1011,120 @@ def send_zip_file(filename: str, files: dict[str, bytes | None]) -> Response:
     return send_file(zip_buffer, as_attachment=True, download_name=filename, mimetype=mimetype)
 
 
-@app.route("/config", methods=["GET", "POST"])
+@app.route("/config/ca_cert", methods=["GET"])
 @login_required
-def config_page(access_token: str) -> str | Response:  # noqa: C901
-    error = None
-
-    if request.method == "POST":
-        action = request.form.get("action")
-        if action == "downloadcert":
-            run_group_id = int(request.form.get("run_group_id", ""))
-            download_bytes, download_file_name = orchestrator.download_client_cert(access_token, run_group_id)
-            if not download_bytes or not download_file_name:
-                error = "Failed to retrieve certificate for run group."
-            else:
-                return send_file(
-                    io.BytesIO(download_bytes),
-                    "application/x-x509-user-cert",
-                    True,
-                    download_name=download_file_name,
-                )
-
-        elif action == "download-ca":
-            download_bytes = orchestrator.download_certificate_authority_cert(access_token)
-            mimetype = "application/x-x509-ca-cert"
-            download_file_name = "cactus-serca.pem"
-            if download_bytes is None:
-                error = "Failed to retrieve SERCA."
-            else:
-                return send_file(
-                    io.BytesIO(download_bytes),
-                    as_attachment=True,
-                    download_name=download_file_name,
-                    mimetype=mimetype,
-                )
-        elif action == "generatesharedcertificateallrungroups":
-            download_bytes, download_file_name = orchestrator.generate_shared_client_cert(access_token)
-            if not download_bytes or not download_file_name:
-                error = "Failed to generate a shared aggregator certificate for all run groups."
-            else:
-                return send_file(
-                    io.BytesIO(download_bytes),
-                    "application/zip",
-                    True,
-                    download_name=download_file_name,
-                )
-
-        elif action == "generatedevice" or action == "generateagg":
-            run_group_id = int(request.form.get("run_group_id", ""))
-            download_bytes, download_file_name = orchestrator.generate_client_cert(
-                access_token, run_group_id, action == "generatedevice"
-            )
-            if not download_bytes or not download_file_name:
-                error = "Failed to generate certificate for run group."
-            else:
-                return send_file(
-                    io.BytesIO(download_bytes),
-                    "application/zip",
-                    True,
-                    download_name=download_file_name,
-                )
-
-        elif action == "setpen":
-            try:
-                pen: int = int(request.form.get("pen", 0))
-                if not orchestrator.update_config(access_token, pen=pen):
-                    error = "Failed to update PEN"
-            except ValueError:
-                error = "Failed to parse PEN"
-        elif action == "setsubscribeddomain":
-            domain = request.form.get("subscription_domain", None)
-            if domain is None:
-                domain = ""
-            if not orchestrator.update_config(access_token, subscription_domain=domain):
-                error = "Failed to update subscription domain"
-        elif action == "setstaticuri":
-            static_uri = parse_bool(request.form.get("static_uri"))
-            if not orchestrator.update_config(access_token, is_static_uri=static_uri):
-                error = "Failed to update static URI"
-        elif action == "updaterungroup":
-            new_name = request.form["name"]
-            run_group_id = int(request.form["run_group_id"])
-            if not orchestrator.update_run_group(access_token, run_group_id, new_name):
-                error = "Failed to update name"
-        elif action == "createrungroup":
-            version = request.form["version"]
-            if not orchestrator.create_run_group(access_token, version):
-                error = "Failed to create run group"
-        elif action == "deleterungroup":
-            run_group_id = int(request.form["run_group_id"])
-            if not orchestrator.delete_run_group(access_token, run_group_id):
-                error = "Failed to delete run group"
-
-    # Fetch after doing any updates so we always render the latest version of the config
-    config = orchestrator.fetch_config(access_token)
-    run_groups = orchestrator.fetch_run_groups(access_token, 1)
-    csip_aus_versions = orchestrator.fetch_csip_aus_versions(access_token, 1)
-    if config is None or run_groups is None or csip_aus_versions is None:
-        return render_template(
-            "config.html",
-            error="Unable to communicate with test server. Please try refreshing the page or re-logging in.",
-        )
-
-    return render_template(
-        "config.html",
-        error=error,
-        domain=config.subscription_domain,
-        static_uri=config.is_static_uri,
-        static_uri_example=config.static_uri,
-        run_groups=run_groups.items,
-        csip_aus_versions=csip_aus_versions.items,
-        pen=(
-            "" if config.pen == 0 else config.pen
-        ),  # A PEN of 0 is reserved. Replace with "" to trigger display of placeholder text
-    )
-
-
-@app.route("/run_group/<int:run_group_id>/procedure_runs/<test_procedure_id>", methods=["GET"])
-@login_required
-def procedure_runs_json(access_token: str, run_group_id: int, test_procedure_id: str) -> Response:
-    runs_page = orchestrator.fetch_group_runs_for_procedure(access_token, run_group_id, test_procedure_id)
-    if runs_page is None:
+def config_ca_cert(access_token: str) -> Response:
+    # The orchestrator now returns a ZIP bundle (SERCA trust anchor + utility-server chain), not a
+    # single PEM, so the OEM webhook can trust the utility server when it POSTs notifications out.
+    download_bytes = orchestrator.download_certificate_authority_cert(access_token)
+    if download_bytes is None:
         return Response(
-            response=f"Unable to fetch runs for {test_procedure_id}.",
-            status=HTTPStatus.NOT_FOUND,
+            response="Failed to retrieve utility server certificates.",
+            status=HTTPStatus.BAD_GATEWAY,
             mimetype="text/plain",
         )
-
-    return jsonify(runs_page)
-
-
-@app.route("/run_group/<int:run_group_id>/active_runs", methods=["GET"])
-@login_required
-def active_runs_json(access_token: str, run_group_id: int) -> Response:
-    runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, False)
-    if runs_page is None:
-        return Response(
-            response="Unable to load active runs.",
-            status=HTTPStatus.NOT_FOUND,
-            mimetype="text/plain",
-        )
-
-    return jsonify(runs_page)
-
-
-@app.route("/runs", methods=["GET"])
-@login_required
-def runs_page(access_token: str) -> str | Response:  # noqa: C901
-    """Just redirects to the "first" RunGroup page"""
-
-    run_groups = orchestrator.fetch_run_groups(access_token, 1)
-    if not run_groups or not run_groups.items:
-        return redirect(url_for("config_page"))
-
-    return redirect(url_for("group_runs_page", run_group_id=run_groups.items[0].run_group_id))
-
-
-@app.route("/group/<int:run_group_id>", methods=["GET"])
-@login_required
-def run_group_page(access_token: str, run_group_id: int) -> str:
-    error: str | None = None
-    """This page summarizes compliance across a run group"""
-
-    # Fetch procedures
-    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token=access_token, run_group_id=run_group_id)
-
-    compliance_by_class = {}
-
-    if procedures is None:
-        error = "Unabled to fetch test procedures."
-    else:
-        tests_by_class = defaultdict(list)
-        for p in procedures:
-            if p.classes:
-                for c in p.classes:
-                    tests_by_class[c].append(p.test_procedure_id)
-
-        procedure_map = {p.test_procedure_id: p for p in procedures}
-
-        for compliance_class, tests in tests_by_class.items():
-            per_run_status = [
-                {
-                    "procedure": procedure_map[t],
-                    "status": run_summary_to_compliance_status(procedure_map[t]),
-                }
-                for t in tests
-            ]
-            compliant: bool = all([run["status"] == "success" for run in per_run_status])
-            compliance_by_class[compliance_class] = {
-                "class_details": fetch_compliance_class(compliance_class),
-                "compliant": compliant,
-                "per_run_status": per_run_status,
-            }
-
-    # Fetch the run groups (for the breadcrumbs selector)
-    run_groups = orchestrator.fetch_run_groups(access_token=access_token, page=1)
-    active_run_group: schema.RunGroupResponse | None = None
-    if not run_groups or not run_groups.items:
-        error = "Unable to fetch run groups."
-    else:
-        for rg in run_groups.items:
-            if rg.run_group_id == run_group_id:
-                active_run_group = rg
-                break
-
-    return render_template(
-        "run_group.html",
-        error=error,
-        compliance_by_class=compliance_by_class,
-        run_groups=[] if run_groups is None else run_groups.items,
-        run_group_id=run_group_id,
-        active_run_group=active_run_group,
-        is_admin_view=False,
-    )
-
-
-@app.route("/group/<int:run_group_id>/runs", methods=["GET", "POST"])
-@login_required
-def group_runs_page(  # noqa: C901
-    access_token: str, run_group_id: int
-) -> str | Response:
-    error: str | None = None
-
-    # Handle POST for triggering a new run / precondition phase
-    if request.method == "POST":
-        if request.form.get("action") == "initialise":
-            test_procedure_id = request.form.get("test_procedure_id")
-            if not test_procedure_id:
-                error = "No test procedure selected."
-            else:
-                init_result = orchestrator.init_run(access_token, run_group_id, test_procedure_id)
-                if init_result.response is not None:
-                    return redirect(url_for("run_status_page", run_id=init_result.response.run_id))
-                elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
-                    error = "Your certificate has expired. Please generate and download a new certificate."
-                elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
-                    error = "You cannot start a second test run while your DeviceCapability URI is set to static."
-                else:
-                    error = "Failed to trigger a new run due to an unknown error."
-
-        # Handle starting a run / test procedure phase
-        elif request.form.get("action") == "start":
-            run_id = request.form.get("run_id")
-            if not run_id:
-                error = "No run ID specified."
-            else:
-                start_result = orchestrator.start_run(access_token, run_id)
-                if start_result.success:
-                    return redirect(url_for("run_status_page", run_id=run_id))
-                else:
-                    error = (
-                        "Failed to start the test run."
-                        if start_result.error_message is None
-                        else start_result.error_message
-                    )
-
-        # Handle finalising a run
-        elif request.form.get("action") == "finalise":
-            run_id = request.form.get("run_id")
-            if not run_id:
-                error = "No run ID specified."
-            else:
-                if not orchestrator.finalise_run(access_token, run_id):
-                    error = "Failed to finalise the run."
-
-        # Handle dl artifact
-        elif request.form.get("action") == "artifact":
-            run_id = request.form.get("run_id")
-            if not run_id:
-                error = "No run ID specified."
-            else:
-                artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
-                if artifact_data is None:
-                    error = "Failed to retrieve artifacts."
-                else:
-                    return send_file(
-                        io.BytesIO(artifact_data),
-                        as_attachment=True,
-                        download_name=download_name,
-                        mimetype="application/zip",
-                    )
-        # Handle deleting a prior run
-        elif request.form.get("action") == "delete":
-            run_id = request.form["run_id"]
-            delete_result = orchestrator.delete_individual_run(access_token, run_id)
-            if not delete_result:
-                error = "Failed to delete run."
-
-    # Fetch procedures
-    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
-    grouped_procedures: list[GroupedProcedure] = []
-
-    all_classes: set[str] = set()
-    classes_by_test: dict[str, list[str]] = {}
-    tmp_classes_by_category: dict[str, set[str]] = {}
-
-    if procedures is None:
-        error = "Unable to fetch test procedures."
-    else:
-        # Organise the procedures by grouping them under the "category" label present (while also preserving order)
-        for p in procedures:
-            category_slug = p.category.replace(" ", "-")  # This could do with a more robust slugify method
-
-            # Add this procedure to the list of groups
-            existing_group = next((x for x in grouped_procedures if x.slug == category_slug), None)
-            if existing_group:
-                existing_group.summaries.append(p)
-            else:
-                grouped_procedures.append(GroupedProcedure(category_slug, p.category, [p]))
-
-            classes = p.classes if p.classes else []
-            classes_by_test[p.test_procedure_id] = classes
-            all_classes.update(classes)
-
-            if category_slug in tmp_classes_by_category:
-                tmp_classes_by_category[category_slug].update(classes)
-            else:
-                tmp_classes_by_category[category_slug] = set(classes)
-
-    # convert sets to lists (sets are not serializable to json)
-    classes_by_category: dict[str, list[str]] = {key: list(value) for key, value in tmp_classes_by_category.items()}
-
-    # Fetch the run groups (for the breadcrumbs selector)
-    run_groups = orchestrator.fetch_run_groups(access_token, 1)
-    active_run_group: schema.RunGroupResponse | None = None
-    if not run_groups or not run_groups.items:
-        error = "Unable to fetch run groups."
-    else:
-        for rg in run_groups.items:
-            if rg.run_group_id == run_group_id:
-                active_run_group = rg
-                break
-
-    return render_template(
-        "runs.html",
-        error=error,
-        grouped_procedures=grouped_procedures,
-        classes=fetch_compliance_classes(all_classes),
-        classes_by_test_b64=b64encode(json.dumps(classes_by_test).encode()).decode(),
-        classes_by_category_b64=b64encode(json.dumps(classes_by_category).encode()).decode(),
-        run_groups=[] if run_groups is None else run_groups.items,
-        run_group_id=run_group_id,
-        active_run_group=active_run_group,
-    )
-
-
-@app.route("/playlists", methods=["GET"])
-@login_required
-def playlists_page(access_token: str) -> str | Response:
-    """Redirects to the first RunGroup's playlists page"""
-    run_groups = orchestrator.fetch_run_groups(access_token, 1)
-    if not run_groups or not run_groups.items:
-        return redirect(url_for("config_page"))
-
-    return redirect(url_for("group_playlists_page", run_group_id=run_groups.items[0].run_group_id))
-
-
-def _handle_initialise_playlist(access_token: str, run_group_id: int) -> str | Response | None:
-    """Handle starting a playlist. Returns a redirect on success, an error string, or None."""
-    procedures_raw = request.form.get("procedures", "")
-    if not procedures_raw:
-        return "No tests selected."
-
-    try:
-        procedures = json.loads(procedures_raw)
-    except (json.JSONDecodeError, ValueError):
-        return "Invalid test selection."
-
-    if not procedures or not isinstance(procedures, list):
-        return "No tests selected."
-
-    init_result = orchestrator.init_playlist(access_token, run_group_id, procedures, 0)
-    if init_result.response is not None:
-        if init_result.response.playlist_execution_id and init_result.response.playlist_runs:
-            session["active_playlist"] = {
-                "execution_id": init_result.response.playlist_execution_id,
-                "name": "Custom Playlist",
-                "started_at": datetime.now(UTC).isoformat(),
-                "runs": [
-                    {"run_id": r.run_id, "test_procedure_id": r.test_procedure_id}
-                    for r in init_result.response.playlist_runs
-                ],
-            }
-        return redirect(url_for("run_status_page", run_id=init_result.response.run_id))
-    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
-        return "Your certificate has expired. Please generate and download a new certificate."
-    elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
-        return "You cannot start a second test run while your DeviceCapability URI is set to static."
-    else:
-        return "Failed to trigger playlist due to an unknown error."
-
-
-def _handle_artifact_download(access_token: str) -> str | Response | None:
-    """Handle downloading artifacts for a single run. Returns a file response, error string, or None."""
-    run_id = request.form.get("run_id")
-    if not run_id:
-        return "No run ID specified."
-
-    artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
-    if artifact_data is None:
-        return "Failed to retrieve artifacts."
-
     return send_file(
-        io.BytesIO(artifact_data),
+        io.BytesIO(download_bytes),
         as_attachment=True,
-        download_name=download_name,
+        download_name="utility-server-certificates.zip",
         mimetype="application/zip",
     )
 
 
-def _handle_artifact_all_download(access_token: str) -> str | Response | None:
-    """Handle downloading all artifacts for a playlist execution."""
-    run_ids_raw = request.form.get("run_ids", "")
-    playlist_name = request.form.get("playlist_name", "playlist")
-    if not run_ids_raw:
-        return "No run IDs specified."
-
-    try:
-        run_ids = [int(rid) for rid in run_ids_raw.split(",")]
-    except ValueError:
-        return "Invalid run IDs."
-
-    first_run_id = run_ids[0]
-    download_name = f"{playlist_name}_{first_run_id}_artifacts.zip"
-    response = download_playlist_artifacts(access_token, run_ids, download_name)
-    if response:
-        return response
-    return "Failed to retrieve artifacts."
-
-
-def _handle_skip_playlist(access_token: str) -> str | Response | None:
-    """Handle skipping remaining playlist tests and downloading artifacts."""
-    run_id = request.form.get("run_id")
-    if not run_id:
-        return "No run ID specified."
-
-    orchestrator.finalise_playlist(access_token, run_id)
-
-    run_response = orchestrator.fetch_individual_run(access_token, run_id)
-    if run_response and run_response.playlist_runs:
-        run_ids = [r.run_id for r in run_response.playlist_runs]
-        first_run_id = run_ids[0]
-        download_name = f"playlist_{first_run_id}_artifacts.zip"
-        response = download_playlist_artifacts(access_token, run_ids, download_name)
-        if response:
-            return response
-    return "Failed to download playlist artifacts."
-
-
-def _handle_playlists_post(access_token: str, run_group_id: int) -> str | Response | None:
-    """Dispatch POST actions for the playlists page."""
-    action = request.form.get("action")
-    if action == "initialise_playlist":
-        return _handle_initialise_playlist(access_token, run_group_id)
-    elif action == "artifact":
-        return _handle_artifact_download(access_token)
-    elif action == "artifact_all":
-        return _handle_artifact_all_download(access_token)
-    elif action == "skip_playlist":
-        return _handle_skip_playlist(access_token)
-    return None
-
-
-@app.route("/group/<int:run_group_id>/playlists", methods=["GET", "POST"])
+@app.route("/config/run_group/<int:run_group_id>/cert", methods=["GET"])
 @login_required
-def group_playlists_page(access_token: str, run_group_id: int) -> str | Response:
-    """Page for building and starting playlists"""
-    error: str | None = None
-
-    if request.method == "POST":
-        result = _handle_playlists_post(access_token, run_group_id)
-        if isinstance(result, Response):
-            return result
-        if isinstance(result, str):
-            error = result
-
-    procedures = orchestrator.fetch_group_procedure_run_summaries(access_token, run_group_id)
-    if procedures is None:
-        error = "Unable to fetch test procedures."
-
-    all_classes: set[str] = set()
-    for p in procedures or []:
-        if p.classes:
-            all_classes.update(p.classes)
-
-    run_groups = orchestrator.fetch_run_groups(access_token, 1)
-    active_run_group: schema.RunGroupResponse | None = None
-    if not run_groups or not run_groups.items:
-        error = "Unable to fetch run groups."
-    else:
-        for rg in run_groups.items:
-            if rg.run_group_id == run_group_id:
-                active_run_group = rg
-                break
-
-    return render_template(
-        "playlists.html",
-        error=error,
-        tests_by_category=build_playlist_tests_by_category(procedures or []),
-        classes=fetch_compliance_classes(all_classes),
-        run_groups=[] if run_groups is None else run_groups.items,
-        run_group_id=run_group_id,
-        active_run_group=active_run_group,
+def config_download_run_group_cert(access_token: str, run_group_id: int) -> Response:
+    download_bytes, download_file_name = orchestrator.download_client_cert(access_token, run_group_id)
+    if download_bytes is None or download_file_name is None:
+        return Response(
+            response="Failed to retrieve certificate.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
+        )  # noqa: E501
+    return send_file(
+        io.BytesIO(download_bytes),
+        "application/x-x509-user-cert",
+        True,
+        download_name=download_file_name,
     )
 
 
-@app.route("/group/<int:run_group_id>/past_playlist_sessions", methods=["GET"])
+@app.route("/config/run_group/<int:run_group_id>/cert", methods=["POST"])
 @login_required
-def past_playlist_sessions_json(access_token: str, run_group_id: int) -> Response:
-    """Fetch all playlist sessions (active and completed) grouped by execution ID."""
-    all_runs_page = orchestrator.fetch_runs_for_group(access_token, run_group_id, 1, None)
-    if all_runs_page is None:
-        return Response(response=json.dumps([]), status=HTTPStatus.OK, mimetype="application/json")
+def config_generate_run_group_cert(access_token: str, run_group_id: int) -> Response:
+    is_device_cert = request.form.get("type", "device") == "device"
+    download_bytes, download_file_name = orchestrator.generate_client_cert(access_token, run_group_id, is_device_cert)
+    if download_bytes is None or download_file_name is None:
+        return Response(
+            response="Failed to generate certificate.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
+        )  # noqa: E501
+    return send_file(
+        io.BytesIO(download_bytes),
+        "application/zip",
+        True,
+        download_name=download_file_name,
+    )
 
-    active_statuses = {"initialised", "started", "provisioning"}
 
-    playlist_executions: dict[str, list[schema.RunResponse]] = {}
-    for run in all_runs_page.items:
-        if run.playlist_execution_id:
-            playlist_executions.setdefault(run.playlist_execution_id, []).append(run)
-
-    result = []
-    for exec_id, runs in playlist_executions.items():
-        runs_sorted = sorted(runs, key=lambda r: r.playlist_order or 0)
-        if not runs_sorted:
-            continue
-        first_run = runs_sorted[0]
-        is_active = any(
-            (r.status.value if hasattr(r.status, "value") else str(r.status)) in active_statuses for r in runs_sorted
+@app.route("/config/shared_cert", methods=["POST"])
+@login_required
+def config_generate_shared_cert(access_token: str) -> Response:
+    download_bytes, download_file_name = orchestrator.generate_shared_client_cert(access_token)
+    if download_bytes is None or download_file_name is None:
+        return Response(
+            response="Failed to generate shared certificate.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
         )
-        result.append(
-            {
-                "playlist_execution_id": exec_id,
-                "short_id": exec_id[:8],
-                "first_run_id": first_run.run_id,
-                "created_at": first_run.created_at.isoformat(),
-                "test_statuses": [build_test_status_dict(r) for r in runs_sorted],
-                "is_active": is_active,
-            }
-        )
-
-    # Active sessions first, then most recent
-    result.sort(key=lambda x: str(x["created_at"]), reverse=True)
-    result.sort(key=lambda x: not bool(x["is_active"]))
-
-    return Response(response=json.dumps(result), status=HTTPStatus.OK, mimetype="application/json")
+    return send_file(
+        io.BytesIO(download_bytes),
+        "application/zip",
+        True,
+        download_name=download_file_name,
+    )
 
 
-def _build_playlist_info(
-    access_token: str, run_response: schema.RunResponse, admin: bool = False
-) -> tuple[dict | None, int | None, dict | None]:
-    """Build playlist template context from a run that belongs to a playlist.
+@app.route("/playlist/artifacts", methods=["GET"])
+@login_required
+def playlist_artifacts_download(access_token: str) -> Response:
+    """Browser-native ZIP download for all artifacts in a playlist (plain link; session cookie auth)."""
+    run_ids_raw = request.args.get("run_ids", "")
+    try:
+        run_ids = [int(rid) for rid in run_ids_raw.split(",") if rid]
+    except ValueError:
+        return Response(response="Invalid run IDs.", status=HTTPStatus.BAD_REQUEST, mimetype="text/plain")
 
-    Returns (playlist_info, next_playlist_run_id, current_active_run).
+    if not run_ids:
+        return Response(response="No run IDs specified.", status=HTTPStatus.BAD_REQUEST, mimetype="text/plain")
+
+    download_name = f"playlist_{run_ids[0]}_artifacts.zip"
+    response = download_playlist_artifacts(access_token, run_ids, download_name)
+    if response is None:
+        return Response(response="Failed to retrieve artifacts.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain")
+    return response
+
+
+def _fetch_playlist_runs(
+    access_token: str, run_response: schema.RunResponse | None, admin: bool = False
+) -> tuple[str | None, list[schema.RunResponse] | None]:
+    """Fetch the full RunResponse for every run in this run's playlist.
+
+    This is the one join the orchestrator doesn't do for us: RunResponse.playlist_runs only
+    carries summaries (no all_criteria_met / has_artifacts), so the page needs each run's full
+    detail. Returns (playlist_name, runs); the frontend derives ordering/active/next from the
+    authoritative summary list and looks these up by run_id, so a failed fetch just degrades
+    that run's detail rather than breaking the playlist. Returns (None, None) for non-playlist
+    runs.
     """
-    if not run_response.playlist_runs:
-        return None, None, None
+    if run_response is None or not run_response.playlist_runs:
+        return None, None
 
     fetch_run = orchestrator.admin_fetch_individual_run if admin else orchestrator.fetch_individual_run
-    current_order = run_response.playlist_order
-    active_playlist_session = session.get("active_playlist", {})
+    playlist_name = session.get("active_playlist", {}).get("name", "Playlist")
 
-    playlist_runs_full: list[dict] = []
-    first_run_started_at = None
-    for i, r in enumerate(run_response.playlist_runs):
-        full_run = fetch_run(access_token, str(r.run_id))
-        if full_run:
-            if i == 0:
-                first_run_started_at = full_run.created_at.isoformat() if full_run.created_at else None
-            playlist_runs_full.append(build_test_status_dict(full_run))
-        else:
-            playlist_runs_full.append(
-                {
-                    "run_id": r.run_id,
-                    "test_procedure_id": r.test_procedure_id,
-                    "status": (r.status.value if hasattr(r.status, "value") else str(r.status)),
-                    "all_criteria_met": None,
-                    "has_artifacts": False,
-                }
-            )
-
-    playlist_info = {
-        "name": active_playlist_session.get("name", "Playlist"),
-        "started_at": first_run_started_at,
-        "runs": playlist_runs_full,
-        "current_order": current_order,
-        "total": len(run_response.playlist_runs),
-    }
-
-    next_playlist_run_id = None
-    if current_order is not None and current_order + 1 < len(run_response.playlist_runs):
-        next_playlist_run_id = run_response.playlist_runs[current_order + 1].run_id
-
-    current_active_run = None
+    runs: list[schema.RunResponse] = []
     for r in run_response.playlist_runs:
-        if r.status in ["started", "provisioning"]:
-            current_active_run = {
-                "run_id": r.run_id,
-                "test_procedure_id": r.test_procedure_id,
-                "order": run_response.playlist_runs.index(r),
-            }
-            break
+        full_run = fetch_run(access_token, str(r.run_id))
+        if full_run is not None:
+            runs.append(full_run)
 
-    return playlist_info, next_playlist_run_id, current_active_run
-
-
-def _handle_run_status_post(access_token: str, run_id: str) -> str | Response | None:
-    """Dispatch POST actions for the run status page."""
-    action = request.form.get("action")
-    if action == "start":
-        start_result = orchestrator.start_run(access_token, run_id)
-        if not start_result or not start_result.success:
-            return (
-                "Failed to start the test run."
-                if start_result is None or start_result.error_message is None
-                else start_result.error_message
-            )
-        return None
-    elif action == "finalise":
-        if not orchestrator.finalise_run(access_token, run_id):
-            return "Failed to finalise the run."
-        return None
-    elif action == "artifact":
-        artifact_data, download_name = orchestrator.fetch_run_artifact(access_token, run_id)
-        if artifact_data is None:
-            return "Failed to retrieve artifacts."
-        return send_file(
-            io.BytesIO(artifact_data),
-            as_attachment=True,
-            download_name=download_name,
-            mimetype="application/zip",
-        )
-    elif action == "skip_playlist":
-        orchestrator.finalise_playlist(access_token, run_id)
-        run_response = orchestrator.fetch_individual_run(access_token, run_id)
-        if run_response and run_response.playlist_runs:
-            run_ids = [r.run_id for r in run_response.playlist_runs]
-            first_run_id = run_ids[0]
-            playlist_name = session.get("active_playlist", {}).get("name", "playlist")
-            download_name = f"{playlist_name}_{first_run_id}_artifacts.zip"
-            response = download_playlist_artifacts(access_token, run_ids, download_name)
-            if response:
-                return response
-        return "Failed to download playlist artifacts."
-    return None
+    return playlist_name, runs
 
 
 @app.route("/run/<int:run_id>/html_report", methods=["GET"])
@@ -1412,130 +1138,92 @@ def run_html_report_page(access_token: str, run_id: int) -> str | Response:
     return Response(html, mimetype="text/html")
 
 
-@app.route("/run/<int:run_id>", methods=["GET", "POST"])
-@login_required
-def run_status_page(access_token: str, run_id: str) -> str | Response:
-    error: str | None = None
+# Run status page (React) JSON endpoints. The page shell (metadata + playlist context)
+# is one endpoint; the polled RunnerStatus, request details, and proceed are separate.
+def _build_run_status_shell(access_token: str, run_id: str, admin: bool) -> RunStatusShell:
+    """Assemble the run status page shell: run metadata + playlist context.
 
-    if request.method == "POST":
-        result = _handle_run_status_post(access_token, run_id)
-        if isinstance(result, Response):
-            return result
-        if isinstance(result, str):
-            error = result
+    Mirrors the non-status context the old run_status.html template received. The polled
+    RunnerStatus is fetched separately by /api/run/<id>/status; there is no base64 blob.
+    """
+    fetch_status = orchestrator.admin_fetch_run_status if admin else orchestrator.fetch_run_status
+    fetch_run = orchestrator.admin_fetch_individual_run if admin else orchestrator.fetch_individual_run
 
-    status = orchestrator.fetch_run_status(access_token=access_token, run_id=run_id)
-
-    run_status = None
-    run_test_uri = None
-    run_procedure_id = None
-    run_has_artifacts = None
-
-    run_response = orchestrator.fetch_individual_run(access_token, run_id)
-    if run_response:
-        run_status = run_response.status
-        run_test_uri = run_response.test_url
-        run_procedure_id = run_response.test_procedure_id
-        run_has_artifacts = run_response.has_artifacts
+    status = fetch_status(access_token=access_token, run_id=run_id)
+    run_response = fetch_run(access_token, run_id)
 
     run_is_live = status is not None or (run_response is not None and run_response.status in _ACTIVE_RUN_STATUSES)
 
-    initial_status_b64 = b64encode(status.encode()).decode() if status is not None else ""
+    playlist_name, playlist_runs = _fetch_playlist_runs(access_token, run_response, admin=admin)
 
-    playlist_info, next_playlist_run_id, current_active_run = (
-        _build_playlist_info(access_token, run_response) if run_response else (None, None, None)
-    )
-
-    return render_template(
-        "run_status.html",
+    return RunStatusShell(
+        run=run_response,
         run_is_live=run_is_live,
-        run_has_artifacts=run_has_artifacts,
-        run_id=run_id,
-        initial_status_b64=initial_status_b64,
-        run_status=run_status,
-        run_test_uri=run_test_uri,
-        run_procedure_id=run_procedure_id,
-        error=error,
-        playlist_info=playlist_info,
-        next_playlist_run_id=next_playlist_run_id,
-        current_active_run=current_active_run,
-        is_admin_view=False,
-        is_witness_test=is_witness_test(run_response),
-        proceed_uri=url_for("send_proceed", run_id=run_id),
-        cactus_platform_support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
+        is_immediate_start=is_immediate_start(run_response),
+        playlist_name=playlist_name,
+        playlist_runs=playlist_runs,
     )
 
 
-@app.route("/run/<int:run_id>/status", methods=["GET"])
-@login_required
-def run_status_json(access_token: str, run_id: str) -> Response:
+@app.route("/api/run/<int:run_id>", methods=["GET"])
+@api_login_required
+def api_run_status(access_token: str, run_id: str) -> Response:
+    return jsonify(_build_run_status_shell(access_token, run_id, admin=False).to_dict())
 
+
+@app.route("/api/admin/run/<int:run_id>", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_run_status(access_token: str, run_id: str) -> Response:
+    return jsonify(_build_run_status_shell(access_token, run_id, admin=True).to_dict())
+
+
+@app.route("/api/run/<int:run_id>/status", methods=["GET"])
+@api_login_required
+def api_run_status_json(access_token: str, run_id: str) -> Response | tuple[Response, int]:
     status = orchestrator.fetch_run_status(access_token=access_token, run_id=run_id)
-
     if status is None:
-        return Response(
-            response="Unable to fetch runner status. Likely terminated available.",
-            status=HTTPStatus.GONE,
-            mimetype="text/plain",
-        )
-
-    return Response(response=status, status=200, mimetype="application/json")
+        return jsonify({"error": "Run status unavailable. The test runner has likely terminated."}), HTTPStatus.GONE
+    return Response(response=status, status=HTTPStatus.OK, mimetype="application/json")
 
 
-@app.route("/run/<int:run_id>/requests/<int:request_id>", methods=["GET"])
-@login_required
-def run_request_details(access_token: str, request_id: int, run_id: str) -> Response:
-    """Fetch raw request/response data for a specific request."""
+@app.route("/api/admin/run/<int:run_id>/status", methods=["GET"])
+@api_login_required
+@api_admin_role_required
+def api_admin_run_status_json(access_token: str, run_id: str) -> Response | tuple[Response, int]:
+    status = orchestrator.admin_fetch_run_status(access_token=access_token, run_id=run_id)
+    if status is None:
+        return jsonify({"error": "Run status unavailable. The test runner has likely terminated."}), HTTPStatus.GONE
+    return Response(response=status, status=HTTPStatus.OK, mimetype="application/json")
 
+
+@app.route("/api/run/<int:run_id>/requests/<int:request_id>", methods=["GET"])
+@api_login_required
+def api_run_request_details(access_token: str, run_id: str, request_id: int) -> Response | tuple[Response, int]:
+    """Raw request/response for the request-details modal. Shared by user and admin views."""
     request_data = orchestrator.fetch_request_details(access_token=access_token, request_id=request_id, run_id=run_id)
-
     if request_data is None:
-        return Response(
-            response=json.dumps({"error": "Request details not found"}),
-            status=HTTPStatus.NOT_FOUND,
-            mimetype="application/json",
-        )
-
+        return jsonify({"error": "Request details not found"}), HTTPStatus.NOT_FOUND
     return Response(response=request_data, status=HTTPStatus.OK, mimetype="application/json")
 
 
-@app.route("/run/<int:run_id>/proceed", methods=["GET"])
-@login_required
-def send_proceed(access_token: str, run_id: str) -> Response:
-
+@app.route("/api/runs/<int:run_id>/proceed", methods=["POST"])
+@api_login_required
+def api_send_proceed(access_token: str, run_id: str) -> Response | tuple[Response, int]:
     proceed_response = orchestrator.send_proceed(access_token=access_token, run_id=run_id)
-
     if proceed_response is None:
-        return Response(
-            response="Failed to proceed to next step",
-            status=HTTPStatus.INTERNAL_SERVER_ERROR,
-        )
-
-    return Response(
-        response=proceed_response.to_json(),
-        status=HTTPStatus.OK,
-        mimetype="application/json",
-    )
+        return jsonify({"error": "Failed to proceed to next step"}), HTTPStatus.BAD_GATEWAY
+    return Response(response=proceed_response.to_json(), status=HTTPStatus.OK, mimetype="application/json")
 
 
-@app.route("/admin/run/<int:run_id>/proceed", methods=["GET"])
-@login_required
-@admin_role_required
-def admin_send_proceed(access_token: str, run_id: str) -> Response:
-
+@app.route("/api/admin/runs/<int:run_id>/proceed", methods=["POST"])
+@api_login_required
+@api_admin_role_required
+def api_admin_send_proceed(access_token: str, run_id: str) -> Response | tuple[Response, int]:
     proceed_response = orchestrator.admin_send_proceed(access_token=access_token, run_id=run_id)
-
     if proceed_response is None:
-        return Response(
-            response="Failed to proceed to next step",
-            status=HTTPStatus.INTERNAL_SERVER_ERROR,
-        )
-
-    return Response(
-        response=proceed_response.to_json(),
-        status=HTTPStatus.OK,
-        mimetype="application/json",
-    )
+        return jsonify({"error": "Failed to proceed to next step"}), HTTPStatus.BAD_GATEWAY
+    return Response(response=proceed_response.to_json(), status=HTTPStatus.OK, mimetype="application/json")
 
 
 @app.route("/callback", methods=["GET", "POST"])
@@ -1590,29 +1278,6 @@ def get_hosted_images() -> list[str]:
     root_path = Path(current_app.root_path)
     static_base_path = Path(current_app.static_folder) / "base"  # type: ignore
     return [str(f.relative_to(root_path)) for f in static_base_path.glob("*.webp")]
-
-
-@app.context_processor
-def inject_global_template_context() -> dict:
-    """
-    Injects global constants and assets used across all templates, specifically:
-    - Injects images (.webp) into hosted by section of the base page's footer.
-       o NOTE: All (.webp) images under './static/base/' path will be included.
-    - sets platform version from CACTUS_PLATFORM_VERSION envvar
-    - Adds support email from CACTUS_PLATFORM_SUPPORT_EMAIL envvar.
-    - Adds the users name (if not None)
-    - Adds the BANNER_MESSAGE and LOGIN_BANNER_MESSAGE envvars (both optional)
-    """
-
-    return {
-        "version": CACTUS_PLATFORM_VERSION,
-        "hosted_images": get_hosted_images(),
-        "support_email": CACTUS_PLATFORM_SUPPORT_EMAIL,
-        "permissions": get_permissions(),
-        "username": get_username_from_session(),
-        "banner_message": BANNER_MESSAGE,
-        "login_banner_message": LOGIN_BANNER_MESSAGE,
-    }
 
 
 if __name__ == "__main__":

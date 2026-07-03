@@ -1,0 +1,2437 @@
+{
+  "$defs": {
+    "AdminComplianceRequestResponse": {
+      "properties": {
+        "classes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "compliance_request_id": {
+          "type": "integer"
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "created_by": {
+          "type": "integer"
+        },
+        "created_by_user": {
+          "$ref": "#/$defs/ComplianceRequestUser"
+        },
+        "csip_aus_version": {
+          "type": "string"
+        },
+        "der_brand": {
+          "type": "string"
+        },
+        "der_oem": {
+          "type": "string"
+        },
+        "der_representative_models": {
+          "type": "string"
+        },
+        "der_series": {
+          "type": "string"
+        },
+        "onsite_hardware_details": {
+          "type": "string"
+        },
+        "runs": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "software_client_providers": {
+          "type": "string"
+        },
+        "software_client_type": {
+          "type": "string"
+        },
+        "software_client_versions": {
+          "type": "string"
+        },
+        "status": {
+          "type": "integer"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "updated_by": {
+          "type": "integer"
+        },
+        "updated_by_user": {
+          "$ref": "#/$defs/ComplianceRequestUser"
+        },
+        "witnessed_at": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "classes",
+        "compliance_request_id",
+        "created_at",
+        "created_by",
+        "created_by_user",
+        "csip_aus_version",
+        "der_brand",
+        "der_oem",
+        "der_representative_models",
+        "der_series",
+        "onsite_hardware_details",
+        "runs",
+        "software_client_providers",
+        "software_client_type",
+        "software_client_versions",
+        "status",
+        "updated_at",
+        "updated_by",
+        "updated_by_user",
+        "witnessed_at"
+      ],
+      "type": "object"
+    },
+    "AdminComplianceRequestsResponse": {
+      "description": "GET /api/admin/compliance/requests \u2014 all compliance requests, with submitter info.",
+      "properties": {
+        "requests": {
+          "items": {
+            "$ref": "#/$defs/AdminComplianceRequestResponse"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "requests"
+      ],
+      "type": "object"
+    },
+    "AdminStatsResponse": {
+      "description": "GET /api/admin/stats \u2014 the schema's AdminStatsResponse reshaped for the dashboard\n(dict counters turned into ordered lists, `max_run_id` surfaced as `max_run_number`).",
+      "properties": {
+        "max_run_number": {
+          "type": "integer"
+        },
+        "procedures": {
+          "items": {
+            "$ref": "#/$defs/ProcedureStat"
+          },
+          "type": "array"
+        },
+        "runs_per_week": {
+          "items": {
+            "$ref": "#/$defs/WeekBar"
+          },
+          "type": "array"
+        },
+        "total_failed": {
+          "type": "integer"
+        },
+        "total_passed": {
+          "type": "integer"
+        },
+        "total_run_groups": {
+          "type": "integer"
+        },
+        "total_runs": {
+          "type": "integer"
+        },
+        "total_users": {
+          "type": "integer"
+        },
+        "user_leaderboard": {
+          "items": {
+            "$ref": "#/$defs/UserLeaderboardEntry"
+          },
+          "type": "array"
+        },
+        "version_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "max_run_number",
+        "procedures",
+        "runs_per_week",
+        "total_failed",
+        "total_passed",
+        "total_run_groups",
+        "total_runs",
+        "total_users",
+        "user_leaderboard",
+        "version_counts"
+      ],
+      "type": "object"
+    },
+    "AdminUserResponse": {
+      "description": "One user with their run groups, plus a search blob the admin table filters on.",
+      "properties": {
+        "matchable_description": {
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "run_groups": {
+          "items": {
+            "$ref": "#/$defs/RunGroupResponse"
+          },
+          "type": "array"
+        },
+        "subject_id": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "matchable_description",
+        "name",
+        "run_groups",
+        "subject_id",
+        "user_id"
+      ],
+      "type": "object"
+    },
+    "AdminUsersResponse": {
+      "description": "GET /api/admin/users.",
+      "properties": {
+        "users": {
+          "items": {
+            "$ref": "#/$defs/AdminUserResponse"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "users"
+      ],
+      "type": "object"
+    },
+    "CSIPAusVersionResponse": {
+      "description": "Represents the various CSIP-Aus versions available for testing",
+      "properties": {
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "version"
+      ],
+      "type": "object"
+    },
+    "ClientInteraction": {
+      "properties": {
+        "interaction_type": {
+          "$ref": "#/$defs/ClientInteractionType"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "interaction_type",
+        "timestamp"
+      ],
+      "type": "object"
+    },
+    "ClientInteractionType": {
+      "enum": [
+        "Runner Started",
+        "Test Procedure Initialised",
+        "Test Procedure Started",
+        "Request Proxied",
+        "TEST_PROCEDURE_FINALIZED"
+      ],
+      "type": "string"
+    },
+    "ComplianceClass": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "description",
+        "name"
+      ],
+      "type": "object"
+    },
+    "ComplianceClassEntry": {
+      "properties": {
+        "class_details": {
+          "$ref": "#/$defs/ComplianceClass"
+        },
+        "class_name": {
+          "type": "string"
+        },
+        "compliant": {
+          "type": "boolean"
+        },
+        "per_run_status": {
+          "items": {
+            "$ref": "#/$defs/PerRunStatus"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "class_details",
+        "class_name",
+        "compliant",
+        "per_run_status"
+      ],
+      "type": "object"
+    },
+    "ComplianceFormDataResponse": {
+      "description": "GET /api/compliance/form-data \u2014 everything the request wizard needs to render.\n\nConsolidates what the old template passed as several base64 blobs: the selectable CSIP-Aus\nversions, every compliance class (with its description), the version\u2192class\u2192test-procedure\nmap used to filter classes and compute missing runs, the test procedures the user has a\nsuccessful run for, and those successful runs (for the per-procedure run selectors).",
+      "properties": {
+        "completed_test_procedures": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "compliance_classes": {
+          "items": {
+            "$ref": "#/$defs/ComplianceClass"
+          },
+          "type": "array"
+        },
+        "csipaus_versions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "successful_runs": {
+          "items": {
+            "$ref": "#/$defs/RunResponse"
+          },
+          "type": "array"
+        },
+        "tests_by_version_and_class": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "completed_test_procedures",
+        "compliance_classes",
+        "csipaus_versions",
+        "successful_runs",
+        "tests_by_version_and_class"
+      ],
+      "type": "object"
+    },
+    "ComplianceRequestResponse": {
+      "properties": {
+        "classes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "compliance_request_id": {
+          "type": "integer"
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "created_by": {
+          "type": "integer"
+        },
+        "csip_aus_version": {
+          "type": "string"
+        },
+        "der_brand": {
+          "type": "string"
+        },
+        "der_oem": {
+          "type": "string"
+        },
+        "der_representative_models": {
+          "type": "string"
+        },
+        "der_series": {
+          "type": "string"
+        },
+        "onsite_hardware_details": {
+          "type": "string"
+        },
+        "runs": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "software_client_providers": {
+          "type": "string"
+        },
+        "software_client_type": {
+          "type": "string"
+        },
+        "software_client_versions": {
+          "type": "string"
+        },
+        "status": {
+          "type": "integer"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "updated_by": {
+          "type": "integer"
+        },
+        "witnessed_at": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "classes",
+        "compliance_request_id",
+        "created_at",
+        "created_by",
+        "csip_aus_version",
+        "der_brand",
+        "der_oem",
+        "der_representative_models",
+        "der_series",
+        "onsite_hardware_details",
+        "runs",
+        "software_client_providers",
+        "software_client_type",
+        "software_client_versions",
+        "status",
+        "updated_at",
+        "updated_by",
+        "witnessed_at"
+      ],
+      "type": "object"
+    },
+    "ComplianceRequestUser": {
+      "properties": {
+        "issuer_id": {
+          "type": "string"
+        },
+        "subject_id": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "integer"
+        },
+        "user_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "issuer_id",
+        "subject_id",
+        "user_id",
+        "user_name"
+      ],
+      "type": "object"
+    },
+    "ComplianceRequestsResponse": {
+      "description": "GET /api/compliance/requests \u2014 the user's compliance requests (pagination flattened).",
+      "properties": {
+        "requests": {
+          "items": {
+            "$ref": "#/$defs/ComplianceRequestResponse"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "requests"
+      ],
+      "type": "object"
+    },
+    "ComplianceResponse": {
+      "description": "GET /api/group/<id>/compliance \u2014 compliance-by-class for the run group.",
+      "properties": {
+        "compliance_by_class": {
+          "items": {
+            "$ref": "#/$defs/ComplianceClassEntry"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "compliance_by_class"
+      ],
+      "type": "object"
+    },
+    "ComplianceStatus": {
+      "description": "Per-test compliance state derived from its latest run (compliance page).",
+      "enum": [
+        "active",
+        "failed",
+        "success",
+        "runless",
+        "unknown"
+      ],
+      "type": "string"
+    },
+    "ConfigResponse": {
+      "description": "GET /api/config \u2014 the user's config plus their run groups and selectable versions.",
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/UserConfig"
+        },
+        "csip_aus_versions": {
+          "items": {
+            "$ref": "#/$defs/CSIPAusVersionResponse"
+          },
+          "type": "array"
+        },
+        "run_groups": {
+          "items": {
+            "$ref": "#/$defs/RunGroupResponse"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "config",
+        "csip_aus_versions",
+        "run_groups"
+      ],
+      "type": "object"
+    },
+    "CriteriaEntry": {
+      "properties": {
+        "details": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "details",
+        "success",
+        "type"
+      ],
+      "type": "object"
+    },
+    "DERCapabilityInfo": {
+      "description": "Snapshot of DERCapability for UI display",
+      "properties": {
+        "der_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "doe_modes_supported": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_a": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_charge_rate_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_discharge_rate_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_va": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_var": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_var_neg": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_wh": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "modes_supported": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "der_type",
+        "doe_modes_supported",
+        "max_a",
+        "max_charge_rate_w",
+        "max_discharge_rate_w",
+        "max_va",
+        "max_var",
+        "max_var_neg",
+        "max_w",
+        "max_wh",
+        "modes_supported"
+      ],
+      "type": "object"
+    },
+    "DERSettingsInfo": {
+      "description": "Snapshot of DERSettings for UI display",
+      "properties": {
+        "doe_modes_enabled": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "grad_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_charge_rate_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_discharge_rate_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_va": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_var": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_var_neg": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "modes_enabled": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "doe_modes_enabled",
+        "grad_w",
+        "max_charge_rate_w",
+        "max_discharge_rate_w",
+        "max_va",
+        "max_var",
+        "max_var_neg",
+        "max_w",
+        "modes_enabled"
+      ],
+      "type": "object"
+    },
+    "DERStatusInfo": {
+      "description": "Snapshot of current DER real-time status (from SiteDERStatus / sep2 DERStatus).\nBitmaps/enums resolved to strings.",
+      "properties": {
+        "alarm_status": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "generator_connect_status": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "inverter_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "local_control_mode_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "manufacturer_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "operational_mode_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "state_of_charge_status": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "storage_connect_status": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "storage_mode_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "alarm_status",
+        "generator_connect_status",
+        "inverter_status",
+        "local_control_mode_status",
+        "manufacturer_status",
+        "operational_mode_status",
+        "state_of_charge_status",
+        "storage_connect_status",
+        "storage_mode_status"
+      ],
+      "type": "object"
+    },
+    "DataStreamPoint": {
+      "properties": {
+        "offset": {
+          "type": "string"
+        },
+        "watts": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "offset",
+        "watts"
+      ],
+      "type": "object"
+    },
+    "EndDeviceMetadata": {
+      "properties": {
+        "aggregator_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "der_capability": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DERCapabilityInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "der_settings": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DERSettingsInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "der_status": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DERStatusInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "device_category": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "doe_modes_enabled": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "edevid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "lfdi": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "nmi": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "set_max_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sfdi": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timezone_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "aggregator_id",
+        "der_capability",
+        "der_settings",
+        "der_status",
+        "device_category",
+        "doe_modes_enabled",
+        "edevid",
+        "lfdi",
+        "nmi",
+        "set_max_w",
+        "sfdi",
+        "timezone_id"
+      ],
+      "type": "object"
+    },
+    "GroupedProcedures": {
+      "description": "One category's procedure run summaries, in definition order.",
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "summaries": {
+          "items": {
+            "$ref": "#/$defs/TestProcedureRunSummaryResponse"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "category",
+        "slug",
+        "summaries"
+      ],
+      "type": "object"
+    },
+    "HTTPMethod": {
+      "enum": [
+        "CONNECT",
+        "DELETE",
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "PATCH",
+        "POST",
+        "PUT",
+        "TRACE"
+      ],
+      "type": "string"
+    },
+    "HTTPStatus": {
+      "enum": [
+        100,
+        101,
+        102,
+        103,
+        200,
+        201,
+        202,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        226,
+        300,
+        301,
+        302,
+        303,
+        304,
+        305,
+        307,
+        308,
+        400,
+        401,
+        402,
+        403,
+        404,
+        405,
+        406,
+        407,
+        408,
+        409,
+        410,
+        411,
+        412,
+        413,
+        414,
+        415,
+        416,
+        417,
+        418,
+        421,
+        422,
+        423,
+        424,
+        425,
+        426,
+        428,
+        429,
+        431,
+        451,
+        500,
+        501,
+        502,
+        503,
+        504,
+        505,
+        506,
+        507,
+        508,
+        510,
+        511
+      ],
+      "type": "integer"
+    },
+    "PerRunStatus": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "latest_run_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/ComplianceStatus"
+        },
+        "test_procedure_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "description",
+        "latest_run_id",
+        "status",
+        "test_procedure_id"
+      ],
+      "type": "object"
+    },
+    "PlaylistRunInfo": {
+      "description": "Summary info for a run within a playlist",
+      "properties": {
+        "run_id": {
+          "type": "integer"
+        },
+        "status": {
+          "$ref": "#/$defs/RunStatusResponse"
+        },
+        "test_procedure_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "status",
+        "test_procedure_id"
+      ],
+      "type": "object"
+    },
+    "PlaylistSession": {
+      "description": "One playlist execution (active or completed), grouped from its runs.",
+      "properties": {
+        "created_at": {
+          "type": "string"
+        },
+        "first_run_id": {
+          "type": "integer"
+        },
+        "is_active": {
+          "type": "boolean"
+        },
+        "playlist_execution_id": {
+          "type": "string"
+        },
+        "short_id": {
+          "type": "string"
+        },
+        "test_statuses": {
+          "items": {
+            "$ref": "#/$defs/PlaylistTestStatus"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "created_at",
+        "first_run_id",
+        "is_active",
+        "playlist_execution_id",
+        "short_id",
+        "test_statuses"
+      ],
+      "type": "object"
+    },
+    "PlaylistTest": {
+      "description": "One selectable test in the playlist builder.",
+      "properties": {
+        "classes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "classes",
+        "description",
+        "id"
+      ],
+      "type": "object"
+    },
+    "PlaylistTestStatus": {
+      "description": "One run's status within a playlist session.",
+      "properties": {
+        "all_criteria_met": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_artifacts": {
+          "type": "boolean"
+        },
+        "run_id": {
+          "type": "integer"
+        },
+        "status": {
+          "$ref": "#/$defs/RunStatusResponse"
+        },
+        "test_procedure_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "all_criteria_met",
+        "has_artifacts",
+        "run_id",
+        "status",
+        "test_procedure_id"
+      ],
+      "type": "object"
+    },
+    "PlaylistTestsResponse": {
+      "description": "GET /api/group/<id>/playlist_tests \u2014 tests by category plus compliance classes.",
+      "properties": {
+        "classes": {
+          "items": {
+            "$ref": "#/$defs/ComplianceClass"
+          },
+          "type": "array"
+        },
+        "tests_by_category": {
+          "additionalProperties": {
+            "items": {
+              "$ref": "#/$defs/PlaylistTest"
+            },
+            "type": "array"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "classes",
+        "tests_by_category"
+      ],
+      "type": "object"
+    },
+    "PreconditionCheckEntry": {
+      "properties": {
+        "details": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "details",
+        "success",
+        "type"
+      ],
+      "type": "object"
+    },
+    "ProcedureStat": {
+      "properties": {
+        "classes": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "failed": {
+          "type": "integer"
+        },
+        "latest_failed": {
+          "type": "integer"
+        },
+        "latest_passed": {
+          "type": "integer"
+        },
+        "passed": {
+          "type": "integer"
+        },
+        "test_procedure_id": {
+          "type": "string"
+        },
+        "total_runs": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "classes",
+        "failed",
+        "latest_failed",
+        "latest_passed",
+        "passed",
+        "test_procedure_id",
+        "total_runs"
+      ],
+      "type": "object"
+    },
+    "ProcedureSummariesResponse": {
+      "description": "GET /api/group/<id>/procedure_summaries \u2014 summaries grouped by category plus the\ncompliance-class filter maps the runs table uses.",
+      "properties": {
+        "classes": {
+          "items": {
+            "$ref": "#/$defs/ComplianceClass"
+          },
+          "type": "array"
+        },
+        "classes_by_category": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": "object"
+        },
+        "classes_by_test": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": "object"
+        },
+        "grouped_procedures": {
+          "items": {
+            "$ref": "#/$defs/GroupedProcedures"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "classes",
+        "classes_by_category",
+        "classes_by_test",
+        "grouped_procedures"
+      ],
+      "type": "object"
+    },
+    "ProcedureYamlResponse": {
+      "description": "GET /api/procedure/<id> \u2014 the raw YAML definition for one procedure.",
+      "properties": {
+        "test_procedure_id": {
+          "type": "string"
+        },
+        "yaml": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "test_procedure_id",
+        "yaml"
+      ],
+      "type": "object"
+    },
+    "ProceduresResponse": {
+      "description": "GET /api/procedures \u2014 all test procedures (pagination flattened by the BFF).",
+      "properties": {
+        "procedures": {
+          "items": {
+            "$ref": "#/$defs/TestProcedureResponse"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "procedures"
+      ],
+      "type": "object"
+    },
+    "ProceedResponse": {
+      "properties": {
+        "handled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "handled"
+      ],
+      "type": "object"
+    },
+    "RequestData": {
+      "properties": {
+        "request": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "request_id": {
+          "type": "integer"
+        },
+        "response": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "request",
+        "request_id",
+        "response"
+      ],
+      "type": "object"
+    },
+    "RequestEntry": {
+      "properties": {
+        "body_xml_errors": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "method": {
+          "$ref": "#/$defs/HTTPMethod"
+        },
+        "path": {
+          "type": "string"
+        },
+        "request_id": {
+          "type": "integer"
+        },
+        "status": {
+          "$ref": "#/$defs/HTTPStatus"
+        },
+        "step_name": {
+          "type": "string"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "body_xml_errors",
+        "method",
+        "path",
+        "request_id",
+        "status",
+        "step_name",
+        "timestamp",
+        "url"
+      ],
+      "type": "object"
+    },
+    "RunActionResponse": {
+      "description": "The `{run_id}` envelope returned by run/playlist mutations (init/start/finalise/delete).",
+      "properties": {
+        "run_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "run_id"
+      ],
+      "type": "object"
+    },
+    "RunGroupResponse": {
+      "properties": {
+        "certificate_created_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "certificate_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "csip_aus_version": {
+          "type": "string"
+        },
+        "is_device_cert": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "is_static_uri": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "run_group_id": {
+          "type": "integer"
+        },
+        "static_uri": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "total_runs": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "certificate_created_at",
+        "certificate_id",
+        "created_at",
+        "csip_aus_version",
+        "is_device_cert",
+        "is_static_uri",
+        "name",
+        "run_group_id",
+        "static_uri",
+        "total_runs"
+      ],
+      "type": "object"
+    },
+    "RunResponse": {
+      "properties": {
+        "all_criteria_met": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "classes": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "finalised_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_artifacts": {
+          "type": "boolean"
+        },
+        "is_device_cert": {
+          "type": "boolean"
+        },
+        "playlist_execution_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "playlist_order": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "playlist_runs": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/PlaylistRunInfo"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "run_id": {
+          "type": "integer"
+        },
+        "status": {
+          "$ref": "#/$defs/RunStatusResponse"
+        },
+        "test_procedure_id": {
+          "type": "string"
+        },
+        "test_url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "all_criteria_met",
+        "classes",
+        "created_at",
+        "finalised_at",
+        "has_artifacts",
+        "is_device_cert",
+        "playlist_execution_id",
+        "playlist_order",
+        "playlist_runs",
+        "run_id",
+        "status",
+        "test_procedure_id",
+        "test_url"
+      ],
+      "type": "object"
+    },
+    "RunStatusResponse": {
+      "enum": [
+        "initialised",
+        "started",
+        "finalised",
+        "provisioning",
+        "skipped"
+      ],
+      "type": "string"
+    },
+    "RunStatusShell": {
+      "description": "Run-status page shell: the run plus the few extras the orchestrator doesn't supply.\n\n`run` and `playlist_runs` are canonical `RunResponse`s (no reshaping/renaming) \u2014 the\nfrontend reads their fields directly and derives playlist order / active-run / next-run\nitself. The remaining fields are things only the BFF knows or computes.",
+      "properties": {
+        "is_immediate_start": {
+          "type": "boolean"
+        },
+        "playlist_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "playlist_runs": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/RunResponse"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "run": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunResponse"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "run_is_live": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "is_immediate_start",
+        "playlist_name",
+        "playlist_runs",
+        "run",
+        "run_is_live"
+      ],
+      "type": "object"
+    },
+    "RunnerStatus": {
+      "properties": {
+        "criteria": {
+          "items": {
+            "$ref": "#/$defs/CriteriaEntry"
+          },
+          "type": "array"
+        },
+        "csip_aus_version": {
+          "type": "string"
+        },
+        "end_device_metadata": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EndDeviceMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "instructions": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "last_client_interaction": {
+          "$ref": "#/$defs/ClientInteraction"
+        },
+        "log_envoy": {
+          "type": "string"
+        },
+        "precondition_checks": {
+          "items": {
+            "$ref": "#/$defs/PreconditionCheckEntry"
+          },
+          "type": "array"
+        },
+        "request_history": {
+          "items": {
+            "$ref": "#/$defs/RequestEntry"
+          },
+          "type": "array"
+        },
+        "status_summary": {
+          "type": "string"
+        },
+        "step_status": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/StepEventStatus"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "test_procedure_name": {
+          "default": "-",
+          "type": "string"
+        },
+        "timeline": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineStatus"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timestamp_initialise": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timestamp_start": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timestamp_status": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "criteria",
+        "csip_aus_version",
+        "end_device_metadata",
+        "instructions",
+        "last_client_interaction",
+        "log_envoy",
+        "precondition_checks",
+        "request_history",
+        "status_summary",
+        "step_status",
+        "test_procedure_name",
+        "timeline",
+        "timestamp_initialise",
+        "timestamp_start",
+        "timestamp_status"
+      ],
+      "type": "object"
+    },
+    "SessionResponse": {
+      "description": "Session/global context for the SPA (GET /api/session).",
+      "properties": {
+        "banner_message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hosted_images": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "permissions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "support_email": {
+          "type": "string"
+        },
+        "username": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "banner_message",
+        "hosted_images",
+        "permissions",
+        "support_email",
+        "username",
+        "version"
+      ],
+      "type": "object"
+    },
+    "StepEventStatus": {
+      "properties": {
+        "completed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "event_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "completed_at",
+        "event_status",
+        "started_at"
+      ],
+      "type": "object"
+    },
+    "TestProcedureId": {
+      "description": "The set of all available test ID's\n\nThis should be kept in sync with the current set of client test procedures loaded from the procedures directory",
+      "enum": [
+        "ALL-01",
+        "ALL-02",
+        "ALL-03",
+        "ALL-03-REJ",
+        "ALL-04",
+        "ALL-05",
+        "ALL-06",
+        "ALL-07",
+        "ALL-08",
+        "ALL-09",
+        "ALL-10",
+        "ALL-11",
+        "ALL-12",
+        "ALL-13",
+        "ALL-14",
+        "ALL-15",
+        "ALL-16",
+        "ALL-17",
+        "ALL-18",
+        "ALL-19",
+        "ALL-20",
+        "ALL-21",
+        "ALL-22",
+        "ALL-23",
+        "ALL-24",
+        "ALL-25",
+        "ALL-25-EXT",
+        "ALL-26",
+        "ALL-27",
+        "ALL-28",
+        "ALL-29",
+        "ALL-30",
+        "DRA-01",
+        "DRA-02",
+        "DRD-01",
+        "DRL-01",
+        "DRG-01",
+        "GEN-01",
+        "GEN-02",
+        "GEN-03",
+        "GEN-04",
+        "GEN-05",
+        "GEN-06",
+        "GEN-07",
+        "GEN-08",
+        "GEN-09",
+        "GEN-10",
+        "GEN-11",
+        "GEN-12",
+        "GEN-13",
+        "LOA-01",
+        "LOA-02",
+        "LOA-03",
+        "LOA-04",
+        "LOA-05",
+        "LOA-06",
+        "LOA-07",
+        "LOA-08",
+        "LOA-09",
+        "LOA-10",
+        "LOA-11",
+        "LOA-12",
+        "LOA-13",
+        "MUL-01",
+        "MUL-02",
+        "MUL-03",
+        "P-01",
+        "P-02",
+        "ALT-ALL-29",
+        "ALT-LOA-13",
+        "STO-01",
+        "STO-02",
+        "STO-03",
+        "STO-04",
+        "STO-05",
+        "STO-06",
+        "PRC-01",
+        "PRC-02",
+        "PRC-03",
+        "PRC-04",
+        "PRC-05"
+      ],
+      "type": "string"
+    },
+    "TestProcedureResponse": {
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "classes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": {
+          "type": "string"
+        },
+        "target_versions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "test_procedure_id": {
+          "$ref": "#/$defs/TestProcedureId"
+        }
+      },
+      "required": [
+        "category",
+        "classes",
+        "description",
+        "target_versions",
+        "test_procedure_id"
+      ],
+      "type": "object"
+    },
+    "TestProcedureRunSummaryResponse": {
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "classes": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "immediate_start": {
+          "default": false,
+          "type": "boolean"
+        },
+        "latest_all_criteria_met": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "latest_run_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "latest_run_status": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "latest_run_timestamp": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "run_count": {
+          "type": "integer"
+        },
+        "test_procedure_id": {
+          "$ref": "#/$defs/TestProcedureId"
+        }
+      },
+      "required": [
+        "category",
+        "classes",
+        "description",
+        "immediate_start",
+        "latest_all_criteria_met",
+        "latest_run_id",
+        "latest_run_status",
+        "latest_run_timestamp",
+        "run_count",
+        "test_procedure_id"
+      ],
+      "type": "object"
+    },
+    "TimelineDataStreamEntry": {
+      "properties": {
+        "dashed": {
+          "type": "boolean"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/$defs/DataStreamPoint"
+          },
+          "type": "array"
+        },
+        "label": {
+          "type": "string"
+        },
+        "stepped": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "dashed",
+        "data",
+        "label",
+        "stepped"
+      ],
+      "type": "object"
+    },
+    "TimelineStatus": {
+      "properties": {
+        "data_streams": {
+          "items": {
+            "$ref": "#/$defs/TimelineDataStreamEntry"
+          },
+          "type": "array"
+        },
+        "now_offset": {
+          "type": "string"
+        },
+        "set_max_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "data_streams",
+        "now_offset",
+        "set_max_w"
+      ],
+      "type": "object"
+    },
+    "UserConfig": {
+      "properties": {
+        "pen": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subscription_domain": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "pen",
+        "subscription_domain"
+      ],
+      "type": "object"
+    },
+    "UserLeaderboardEntry": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "run_count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "run_count"
+      ],
+      "type": "object"
+    },
+    "WeekBar": {
+      "description": "A weekly runs-per-week bar; month/year blanked when same as the previous bar.",
+      "properties": {
+        "count": {
+          "type": "integer"
+        },
+        "month": {
+          "type": "string"
+        },
+        "year": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "count",
+        "month",
+        "year"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

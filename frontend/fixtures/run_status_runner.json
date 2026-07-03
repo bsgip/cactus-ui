@@ -1,0 +1,182 @@
+{
+  "timestamp_status": "2026-06-17T05:03:00+00:00",
+  "timestamp_initialise": "2026-06-17T04:58:00+00:00",
+  "timestamp_start": "2026-06-17T05:00:00+00:00",
+  "status_summary": "Test in progress - 1 of 3 steps complete",
+  "last_client_interaction": {
+    "interaction_type": "Request Proxied",
+    "timestamp": "2026-06-17T05:02:55+00:00"
+  },
+  "csip_aus_version": "v1.2",
+  "log_envoy": "2026-06-17 05:00:10 INFO envoy GET /edev -> 200\n2026-06-17 05:01:30 WARN envoy PUT /edev/1/ders/1/dercap -> 400 (schema invalid)\n2026-06-17 05:02:55 INFO envoy PUT /edev/1/ders/1/ders -> 204",
+  "criteria": [
+    {
+      "success": true,
+      "type": "response-contains-edev",
+      "details": "EndDevice was registered"
+    },
+    {
+      "success": false,
+      "type": "der-settings-updated",
+      "details": "Awaiting DERSettings update"
+    }
+  ],
+  "precondition_checks": [
+    {
+      "success": true,
+      "type": "edevice-registered",
+      "details": "EndDevice 1 registered"
+    },
+    {
+      "success": true,
+      "type": "der-present",
+      "details": "DER discovered on the EndDevice"
+    }
+  ],
+  "instructions": [
+    "Ensure the device is powered on and connected to the utility server",
+    "Confirm the inverter is exporting before proceeding"
+  ],
+  "test_procedure_name": "ALL-01",
+  "step_status": {
+    "GET-EDEV": {
+      "started_at": "2026-06-17T05:00:05+00:00",
+      "completed_at": "2026-06-17T05:00:20+00:00",
+      "event_status": null
+    },
+    "POST-DERSETTINGS": {
+      "started_at": "2026-06-17T05:00:25+00:00",
+      "completed_at": null,
+      "event_status": "Waiting on signal to proceed"
+    },
+    "POST-DERSTATUS": {
+      "started_at": null,
+      "completed_at": null,
+      "event_status": null
+    }
+  },
+  "request_history": [
+    {
+      "url": "https://cactus.example/edev",
+      "path": "/edev",
+      "method": "GET",
+      "status": 200,
+      "timestamp": "2026-06-17T05:00:10+00:00",
+      "step_name": "GET-EDEV",
+      "body_xml_errors": [],
+      "request_id": 1
+    },
+    {
+      "url": "https://cactus.example/edev/1/ders/1/dercap",
+      "path": "/edev/1/ders/1/dercap",
+      "method": "PUT",
+      "status": 400,
+      "timestamp": "2026-06-17T05:01:30+00:00",
+      "step_name": "POST-DERSETTINGS",
+      "body_xml_errors": [
+        "Element 'rtgMaxW': This element is not expected. Expected is ( rtgMaxVA )."
+      ],
+      "request_id": 2
+    },
+    {
+      "url": "https://cactus.example/edev/1/ders/1/ders",
+      "path": "/edev/1/ders/1/ders",
+      "method": "PUT",
+      "status": 204,
+      "timestamp": "2026-06-17T05:02:55+00:00",
+      "step_name": "Unmatched",
+      "body_xml_errors": [],
+      "request_id": 3
+    }
+  ],
+  "timeline": {
+    "data_streams": [
+      {
+        "label": "Active Power",
+        "data": [
+          {
+            "watts": 0,
+            "offset": "0s"
+          },
+          {
+            "watts": 1500,
+            "offset": "0m20s"
+          },
+          {
+            "watts": 3200,
+            "offset": "0m40s"
+          },
+          {
+            "watts": 3200,
+            "offset": "1m0s"
+          }
+        ],
+        "stepped": false,
+        "dashed": false
+      },
+      {
+        "label": "Limit",
+        "data": [
+          {
+            "watts": 5000,
+            "offset": "0s"
+          },
+          {
+            "watts": 5000,
+            "offset": "1m0s"
+          }
+        ],
+        "stepped": true,
+        "dashed": true
+      }
+    ],
+    "set_max_w": 5000,
+    "now_offset": "1m0s"
+  },
+  "end_device_metadata": {
+    "edevid": 1,
+    "lfdi": "0x48BC3A2F9D14E7B6C0A1",
+    "sfdi": 123456789,
+    "nmi": "6123456789",
+    "aggregator_id": null,
+    "set_max_w": 5000,
+    "doe_modes_enabled": 3,
+    "device_category": 0,
+    "timezone_id": "Australia/Brisbane",
+    "der_capability": {
+      "der_type": "COMBINED_PV_AND_STORAGE",
+      "modes_supported": ["OP_MOD_FIXED_W", "OP_MOD_VOLT_VAR"],
+      "max_w": 5000,
+      "max_va": 5500,
+      "max_var": 3000,
+      "max_var_neg": 3000,
+      "max_a": 22,
+      "max_charge_rate_w": 5000,
+      "max_discharge_rate_w": 5000,
+      "max_wh": 13500,
+      "doe_modes_supported": ["OP_MOD_EXPORT_LIMIT_W", "OP_MOD_IMPORT_LIMIT_W"]
+    },
+    "der_settings": {
+      "modes_enabled": ["OP_MOD_FIXED_W"],
+      "max_w": 5000,
+      "max_va": 5500,
+      "max_var": 3000,
+      "max_var_neg": 3000,
+      "max_charge_rate_w": 5000,
+      "max_discharge_rate_w": 5000,
+      "grad_w": 100,
+      "doe_modes_enabled": ["OP_MOD_EXPORT_LIMIT_W"]
+    },
+    "der_status": {
+      "alarm_status": [],
+      "inverter_status": "NORMAL",
+      "operational_mode_status": "GRID_FOLLOWING",
+      "generator_connect_status": ["CONNECTED"],
+      "storage_connect_status": ["CONNECTED"],
+      "storage_mode_status": "CHARGING",
+      "state_of_charge_status": 62,
+      "local_control_mode_status": "REMOTE",
+      "manufacturer_status": "OK"
+    }
+  }
+}

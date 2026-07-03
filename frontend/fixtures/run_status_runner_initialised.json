@@ -1,0 +1,26 @@
+{
+  "timestamp_status": "2026-06-17T04:59:00+00:00",
+  "timestamp_initialise": "2026-06-17T04:58:00+00:00",
+  "timestamp_start": null,
+  "status_summary": "Awaiting start",
+  "last_client_interaction": {
+    "interaction_type": "Test Procedure Initialised",
+    "timestamp": "2026-06-17T04:58:00+00:00"
+  },
+  "csip_aus_version": "v1.2",
+  "log_envoy": "No logs recorded",
+  "criteria": [],
+  "precondition_checks": [
+    {
+      "success": true,
+      "type": "edevice-registered",
+      "details": "EndDevice 1 registered"
+    }
+  ],
+  "instructions": ["Ensure the device is powered on before starting the test"],
+  "test_procedure_name": "ALL-01",
+  "step_status": null,
+  "request_history": [],
+  "timeline": null,
+  "end_device_metadata": null
+}

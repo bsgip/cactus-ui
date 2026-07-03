@@ -53,5 +53,47 @@ jobs:
       - name: Install Dependencies
         run: uv sync --extra test
 
+      - name: Check generated API schema is up to date
+        run: |
+          uv run python scripts/export_api_schema.py
+          git diff --exit-code frontend/src/api/generated/schema.json \
+            || (echo "::error::schema.json is stale — run 'uv run python scripts/export_api_schema.py' and commit." && exit 1)
+
       - name: Run Pytest
         run: uv run pytest -n auto
+
+  # This will typecheck, lint and test the React frontend
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Typecheck (tsc)
+        run: npm run typecheck
+
+      - name: Lint (eslint)
+        run: npm run lint
+
+      - name: Check generated API types are up to date
+        run: |
+          npm run generate:types
+          git diff --exit-code src/api/generated/types.ts \
+            || (echo "::error::generated types.ts is stale — run 'npm run generate:types' and commit." && exit 1)
+
+      - name: Unit tests (vitest)
+        run: npm run test

@@ -1,0 +1,53 @@
+/* Soft accent-tinted category headers for native <details>/<summary> accordions. Shared by
+   the Runs procedure list and the Playlists test library so the two stay visually consistent. */
+.item {
+  margin-bottom: 4px;
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--accent-3);
+  color: var(--accent-11);
+  padding: 6px 10px;
+  cursor: pointer;
+  font-weight: 500;
+  list-style: none;
+  border-radius: var(--radius-2);
+}
+
+.control::-webkit-details-marker {
+  display: none;
+}
+
+.control:hover {
+  background-color: var(--accent-4);
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--accent-9);
+  transition: transform 150ms ease;
+}
+
+details[open] > .control .chevron {
+  transform: rotate(90deg);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+}
+
+.count {
+  flex-shrink: 0;
+  font-size: var(--font-size-1);
+  line-height: 1;
+  color: var(--accent-11);
+  background-color: var(--accent-4);
+  border-radius: var(--radius-3);
+  padding: 3px 8px;
+  min-width: 1.5em;
+  text-align: center;
+}

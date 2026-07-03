@@ -1,0 +1,43 @@
+/* Soft selectable cells for the shared compliance library sidebar (Runs procedure list and
+   Playlists test library). Transparent by default with a subtle gray border; accent-tinted
+   when selected. */
+.cell {
+  display: block;
+  width: 100%;
+  padding: 5px 8px;
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid var(--gray-3);
+  background: transparent;
+}
+
+.cell:hover {
+  background: var(--gray-3);
+}
+
+.cellSelected {
+  background: var(--accent-3);
+  border-color: var(--accent-6);
+}
+
+.cellSelected:hover {
+  background: var(--accent-4);
+}
+
+.box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  border: 1px solid var(--gray-7);
+  background: transparent;
+}
+
+.boxChecked {
+  border-color: var(--accent-9);
+  background: var(--accent-9);
+  color: white;
+}
