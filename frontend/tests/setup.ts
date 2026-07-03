@@ -41,3 +41,7 @@ class ResizeObserverShim {
   disconnect() {}
 }
 window.ResizeObserver = window.ResizeObserver ?? ResizeObserverShim;
+
+// jsdom has no object URLs; apiDownload needs these to hand blobs to the browser.
+window.URL.createObjectURL = window.URL.createObjectURL ?? (() => 'blob:jsdom-stub');
+window.URL.revokeObjectURL = window.URL.revokeObjectURL ?? (() => {});

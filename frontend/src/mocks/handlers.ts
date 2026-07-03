@@ -19,6 +19,16 @@ import sessionAdminFixture from '../../fixtures/session_admin.json';
 
 const session = import.meta.env.VITE_MOCK_ADMIN === 'true' ? sessionAdminFixture : sessionFixture;
 
+// File-producing POST endpoints (cert generation, compliance finalise) — a stub attachment is
+// enough; apiDownload only needs a blob and a Content-Disposition filename.
+const attachmentResponse = (filename: string, contentType: string) => () =>
+  new HttpResponse('stub-file-content', {
+    headers: {
+      'Content-Type': contentType,
+      'Content-Disposition': `attachment; filename=${filename}`,
+    },
+  });
+
 export const handlers = [
   http.get('/api/session', () => HttpResponse.json(session)),
   http.get('/api/config', () => HttpResponse.json(configFixture)),
@@ -87,6 +97,15 @@ export const handlers = [
   http.post('/api/admin/runs/:runId/proceed', () => HttpResponse.json({ handled: true })),
   http.get('/api/compliance/requests', () => HttpResponse.json({ requests: [] })),
   http.get('/api/admin/compliance/requests', () => HttpResponse.json({ requests: [] })),
+  http.post(
+    '/config/run_group/:runGroupId/cert',
+    attachmentResponse('certificate.zip', 'application/zip')
+  ),
+  http.post('/config/shared_cert', attachmentResponse('certificate.zip', 'application/zip')),
+  http.post(
+    '/admin/compliance/requests/:requestId/finalise',
+    attachmentResponse('compliance.pdf', 'application/pdf')
+  ),
   http.get('/api/compliance/form-data', () =>
     HttpResponse.json({
       csipaus_versions: [],
