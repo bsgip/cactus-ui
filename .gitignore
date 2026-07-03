@@ -168,3 +168,8 @@ cython_debug/
 
 # PyCharm
 .idea
+
+## Node / Frontend
+
+node_modules/
+*.env
