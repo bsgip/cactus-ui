@@ -11,7 +11,7 @@ export function CertModal({
 }: {
   runGroup: RunGroupResponse;
   hasDomain: boolean;
-  onCertAction: () => void;
+  onCertAction: (message: string) => void;
 }) {
   const hasCert = !!(runGroup.certificate_id && runGroup.certificate_created_at);
   const certType = runGroup.is_device_cert ? 'Device' : 'Aggregator';
@@ -26,14 +26,14 @@ export function CertModal({
       trigger={(open) => (
         <Button variant={hasCert ? 'outline' : 'solid'} onClick={open}>
           {hasCert ? <IconRecycle size={14} /> : <IconPlus size={14} />}
-          {hasCert ? `${certType} Certificate` : 'Generate Certificate'}
+          {hasCert ? 'Manage Certificate' : 'Generate Certificate'}
         </Button>
       )}
     >
       {(close) => {
         const handleFormSubmit = () => {
           close();
-          onCertAction();
+          onCertAction('Certificate generated — your download should begin automatically.');
         };
         return (
           <>
@@ -44,8 +44,9 @@ export function CertModal({
                   <Code>{runGroup.certificate_id}</Code>) was created <Code>{certDate}</Code>
                   <br />
                   <br />
-                  <strong>Note:</strong> Generating a new certificate will invalidate the current
-                  certificate.
+                  <strong>Note:</strong> The replace buttons below generate and download a
+                  brand-new certificate, and the current certificate stops working immediately —
+                  your device or client must switch to the new one before its next test run.
                 </Text>
               ) : (
                 <Text>
@@ -56,7 +57,7 @@ export function CertModal({
 
               <Flex align="center" gap="2">
                 <Text size="2" weight="bold">
-                  Choose a certificate type
+                  {hasCert ? 'Replace the certificate' : 'Choose a certificate type'}
                 </Text>
                 <InfoPopover title="Device vs Aggregator certificates">
                   <strong>Device</strong> certificates identify a single piece of equipment (e.g. a
@@ -87,8 +88,8 @@ export function CertModal({
                 >
                   <input type="hidden" name="type" value="device" />
                   <Button type="submit" variant="outline" color={hasCert ? 'red' : 'blue'}>
-                    <IconRecycle size={14} />
-                    Device Certificate
+                    {hasCert ? <IconRecycle size={14} /> : <IconPlus size={14} />}
+                    {hasCert ? 'Replace with Device Certificate' : 'Generate Device Certificate'}
                   </Button>
                 </form>
 
@@ -102,15 +103,19 @@ export function CertModal({
                   >
                     <input type="hidden" name="type" value="aggregator" />
                     <Button type="submit" variant="outline" color={hasCert ? 'red' : 'blue'}>
-                      <IconRecycle size={14} />
-                      Aggregator Certificate
+                      {hasCert ? <IconRecycle size={14} /> : <IconPlus size={14} />}
+                      {hasCert
+                        ? 'Replace with Aggregator Certificate'
+                        : 'Generate Aggregator Certificate'}
                     </Button>
                   </form>
                 ) : (
                   <Tooltip content="Set a notification domain first - an aggregator certificate requires it.">
                     <Button variant="outline" color="gray" disabled>
-                      <IconRecycle size={14} />
-                      Aggregator Certificate
+                      {hasCert ? <IconRecycle size={14} /> : <IconPlus size={14} />}
+                      {hasCert
+                        ? 'Replace with Aggregator Certificate'
+                        : 'Generate Aggregator Certificate'}
                     </Button>
                   </Tooltip>
                 )}

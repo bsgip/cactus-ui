@@ -1,7 +1,7 @@
 import { Callout, Flex, Link, Separator, Skeleton, Text } from '@radix-ui/themes';
-import { IconInfoCircle } from '@tabler/icons-react';
+import { IconCircleCheck } from '@tabler/icons-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { fetchConfig } from '../../api/config';
 import { Banner } from '../../components/Banner';
@@ -9,19 +9,29 @@ import { ErrorAlert } from '../../components/ErrorAlert';
 import { PageHeader } from '../../components/PageHeader';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useSession } from '../../hooks/useSession';
-import { IdentityCard } from './IdentityCard';
+import { GettingStartedChecklist } from './GettingStartedChecklist';
+import { OrganisationCard } from './OrganisationCard';
 import { RunGroupsCard } from './RunGroupsCard';
-import { UtilityServerCertCard } from './UtilityServerCertCard';
 
 // After a cert form submission (which downloads a file via hidden iframe), wait briefly
 // then refetch so the run group list reflects any cert changes.
 const CERT_RELOAD_DELAY_MS = 1500;
+const NOTICE_AUTO_DISMISS_MS = 6000;
 
 export function ConfigPage() {
   useDocumentTitle('Certificates - CACTUS');
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const noticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
+    },
+    []
+  );
 
   const configQuery = useQuery({ queryKey: ['config'], queryFn: fetchConfig });
   const config = configQuery.data;
@@ -29,7 +39,20 @@ export function ConfigPage() {
   const csipVersions = config?.csip_aus_versions ?? [];
   const hasDomain = !!config?.config.subscription_domain;
 
-  const handleCertAction = () => {
+  const handleActionError = (message: string | null) => {
+    setActionError(message);
+    if (message) {
+      setActionNotice(null);
+      if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
+    }
+  };
+
+  const handleCertAction = (message: string) => {
+    setActionError(null);
+    setActionNotice(message);
+    if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
+    noticeTimeoutRef.current = setTimeout(() => setActionNotice(null), NOTICE_AUTO_DISMISS_MS);
+
     setTimeout(
       () => void queryClient.invalidateQueries({ queryKey: ['config'] }),
       CERT_RELOAD_DELAY_MS,
@@ -50,6 +73,14 @@ export function ConfigPage() {
       <Separator size="4" />
 
       {actionError && <ErrorAlert message={actionError} />}
+      {actionNotice && (
+        <Callout.Root color="green" role="status" mb="3">
+          <Callout.Icon>
+            <IconCircleCheck size={16} />
+          </Callout.Icon>
+          <Callout.Text>{actionNotice}</Callout.Text>
+        </Callout.Root>
+      )}
 
       {configQuery.isPending ? (
         <Flex direction="column" gap="3">
@@ -60,25 +91,16 @@ export function ConfigPage() {
         <ErrorAlert message="Unable to communicate with test server. Please try refreshing the page or re-logging in." />
       ) : (
         <Flex direction="column" gap="3">
-          {runGroups.length === 0 && (
-            <Callout.Root role="status">
-              <Callout.Icon>
-                <IconInfoCircle size={16} />
-              </Callout.Icon>
-              <Callout.Text>
-                <strong>Getting started:</strong> 1. set your organisation identity (PEN and, for
-                aggregators, a notification domain). 2. create a run group for the device or client
-                you&apos;re certifying. 3. generate a device or aggregator certificate for it. 4. if
-                you receive subscription notifications, download the utility-server certificates so
-                your webhook can trust them. Use the (i) icons for more detail on each step.
-              </Callout.Text>
-            </Callout.Root>
-          )}
-
-          <IdentityCard
+          <GettingStartedChecklist
             pen={config?.config.pen ?? null}
             domain={config?.config.subscription_domain ?? ''}
-            setError={setActionError}
+            runGroups={runGroups}
+          />
+
+          <OrganisationCard
+            pen={config?.config.pen ?? null}
+            domain={config?.config.subscription_domain ?? ''}
+            setError={handleActionError}
           />
 
           <RunGroupsCard
@@ -86,10 +108,8 @@ export function ConfigPage() {
             csipVersions={csipVersions}
             hasDomain={hasDomain}
             onCertAction={handleCertAction}
-            setError={setActionError}
+            setError={handleActionError}
           />
-
-          <UtilityServerCertCard />
         </Flex>
       )}
     </Flex>

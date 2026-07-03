@@ -10,7 +10,7 @@ export function SharedCertButton({
   onCertAction,
 }: {
   hasDomain: boolean;
-  onCertAction: () => void;
+  onCertAction: (message: string) => void;
 }) {
   return (
     <ModalButton
@@ -35,7 +35,9 @@ export function SharedCertButton({
       {(close) => {
         const handleApply = () => {
           close();
-          onCertAction();
+          onCertAction(
+            'Aggregator certificate generated and applied to all run groups — download starting.'
+          );
         };
         return (
           <>

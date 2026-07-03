@@ -1,14 +1,43 @@
-import { Button, Code, Flex, Table, Text, TextField } from '@radix-ui/themes';
-import { IconPlus } from '@tabler/icons-react';
+import { Badge, Button, Code, Flex, IconButton, Link, Table, Text, TextField, Tooltip } from '@radix-ui/themes';
+import { IconPencil, IconPlus, IconX } from '@tabler/icons-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { createRunGroup, deleteRunGroup, updateRunGroupName } from '../../api/config';
 import type { CSIPAusVersionResponse, RunGroupResponse } from '../../api/types';
+import { CopyButton } from '../../components/CopyButton';
 import { InfoPopover } from '../../components/InfoPopover';
 import { SectionCard } from '../../components/SectionCard';
+import { formatRelativeDate } from '../../utils/dates';
 import { CertModal } from './CertModal';
 import { DeleteModal } from './DeleteModal';
 import { SharedCertButton } from './SharedCertButton';
+
+function CertStatusBadge({ runGroup }: { runGroup: RunGroupResponse }) {
+  const hasCert = !!(runGroup.certificate_id && runGroup.certificate_created_at);
+
+  if (!hasCert) {
+    return (
+      <Flex direction="column" gap="1">
+        <Badge color="amber">No certificate</Badge>
+        <Text size="1" color="gray">
+          required before running tests
+        </Text>
+      </Flex>
+    );
+  }
+
+  const certType = runGroup.is_device_cert ? 'Device' : 'Aggregator';
+  const issued = new Date(runGroup.certificate_created_at as string);
+
+  return (
+    <Tooltip content={formatRelativeDate(issued)}>
+      <Badge color="green">
+        {certType} cert · issued {issued.toLocaleDateString('sv')}
+      </Badge>
+    </Tooltip>
+  );
+}
 
 export function RunGroupsCard({
   runGroups,
@@ -20,16 +49,18 @@ export function RunGroupsCard({
   runGroups: RunGroupResponse[];
   csipVersions: CSIPAusVersionResponse[];
   hasDomain: boolean;
-  onCertAction: () => void;
+  onCertAction: (message: string) => void;
   setError: (msg: string | null) => void;
 }) {
   const queryClient = useQueryClient();
-  const [editNames, setEditNames] = useState<Record<number, string>>({});
+  const [editing, setEditing] = useState<{ id: number; draft: string } | null>(null);
   const pendingDeleteRef = useRef<number | null>(null);
 
+  // Returning the invalidation promise keeps each mutation pending (spinners showing) until the
+  // refetched config lands, so the UI never flashes stale data between save and refetch.
   const onSuccess = () => {
     setError(null);
-    void queryClient.invalidateQueries({ queryKey: ['config'] });
+    return queryClient.invalidateQueries({ queryKey: ['config'] });
   };
   const onError = (err: Error) => setError(err.message);
 
@@ -68,7 +99,9 @@ export function RunGroupsCard({
       )}
 
       {runGroups.length === 0 ? (
-        <Text weight="bold">There doesn&apos;t seem to be anything here...</Text>
+        <Text color="gray">
+          No run groups yet — create your first one below to start testing.
+        </Text>
       ) : (
         <Table.Root variant="surface">
           <Table.Header>
@@ -95,49 +128,96 @@ export function RunGroupsCard({
             {runGroups.map((rg) => (
               <Table.Row key={rg.run_group_id}>
                 <Table.Cell>
-                  <CertModal runGroup={rg} hasDomain={hasDomain} onCertAction={onCertAction} />
+                  <Flex direction="column" gap="2" align="start">
+                    <CertStatusBadge runGroup={rg} />
+                    <CertModal runGroup={rg} hasDomain={hasDomain} onCertAction={onCertAction} />
+                  </Flex>
                 </Table.Cell>
                 <Table.Cell>
-                  <Flex gap="2" align="center">
-                    <TextField.Root
-                      value={editNames[rg.run_group_id] ?? rg.name}
-                      onChange={(e) =>
-                        setEditNames((prev) => ({ ...prev, [rg.run_group_id]: e.target.value }))
-                      }
-                      style={{ flex: 1 }}
-                    />
-                    <Button
-                      variant="outline"
-                      loading={
-                        updateNameMutation.isPending &&
-                        updateNameMutation.variables?.id === rg.run_group_id
-                      }
-                      onClick={() =>
-                        updateNameMutation.mutate({
-                          id: rg.run_group_id,
-                          name: editNames[rg.run_group_id] ?? rg.name,
-                        })
-                      }
+                  {editing?.id === rg.run_group_id ? (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const name = editing.draft.trim();
+                        if (name && name !== rg.name) {
+                          updateNameMutation.mutate(
+                            { id: rg.run_group_id, name },
+                            { onSuccess: () => setEditing(null) }
+                          );
+                        }
+                      }}
                     >
-                      Save
-                    </Button>
-                  </Flex>
+                      <Flex gap="2" align="center">
+                        <TextField.Root
+                          autoFocus
+                          value={editing.draft}
+                          onChange={(e) => setEditing({ id: rg.run_group_id, draft: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') setEditing(null);
+                          }}
+                          style={{ flex: 1 }}
+                        />
+                        <Button
+                          type="submit"
+                          variant="outline"
+                          disabled={editing.draft.trim() === '' || editing.draft.trim() === rg.name}
+                          loading={
+                            updateNameMutation.isPending &&
+                            updateNameMutation.variables?.id === rg.run_group_id
+                          }
+                        >
+                          Save
+                        </Button>
+                        <IconButton
+                          type="button"
+                          variant="ghost"
+                          color="gray"
+                          onClick={() => setEditing(null)}
+                          aria-label="Cancel"
+                        >
+                          <IconX size={14} />
+                        </IconButton>
+                      </Flex>
+                    </form>
+                  ) : (
+                    <Flex gap="2" align="center">
+                      <Text>{rg.name}</Text>
+                      <IconButton
+                        type="button"
+                        variant="ghost"
+                        color="gray"
+                        onClick={() => setEditing({ id: rg.run_group_id, draft: rg.name })}
+                        aria-label="Rename"
+                      >
+                        <IconPencil size={14} />
+                      </IconButton>
+                    </Flex>
+                  )}
                 </Table.Cell>
                 <Table.Cell>
                   <Code>{rg.csip_aus_version}</Code>
                 </Table.Cell>
                 <Table.Cell>
                   {rg.static_uri ? (
-                    <Text size="1" style={{ textDecoration: 'underline', wordBreak: 'break-all' }}>
-                      {rg.static_uri}
-                    </Text>
+                    <Flex align="center" gap="1">
+                      <Code size="1" style={{ wordBreak: 'break-all' }}>
+                        {rg.static_uri}
+                      </Code>
+                      <CopyButton value={rg.static_uri} />
+                    </Flex>
                   ) : (
                     <Text size="1" color="gray">
                       —
                     </Text>
                   )}
                 </Table.Cell>
-                <Table.Cell>{rg.total_runs} total run(s)</Table.Cell>
+                <Table.Cell>
+                  <Link asChild>
+                    <RouterLink to={`/group/${rg.run_group_id}/runs`}>
+                      {rg.total_runs} {rg.total_runs === 1 ? 'run' : 'runs'}
+                    </RouterLink>
+                  </Link>
+                </Table.Cell>
                 <Table.Cell>
                   <DeleteModal
                     runGroup={rg}
