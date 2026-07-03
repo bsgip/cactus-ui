@@ -80,6 +80,22 @@ def _strip_titles(node: object) -> None:
             _strip_titles(value)
 
 
+def _normalize_stdlib_enums(defs: dict) -> None:
+    """Pin the `http.HTTPMethod`/`http.HTTPStatus` schemas to a Python-version-independent shape.
+
+    Their stdlib docstrings change between Python versions, and newer versions add alias
+    members that show up as duplicated enum values — either makes the committed schema depend
+    on whichever Python ran this script, which the CI drift check then flags.
+    """
+    for name in ("HTTPMethod", "HTTPStatus"):
+        node = defs.get(name)
+        if not isinstance(node, dict):
+            continue
+        node.pop("description", None)
+        if isinstance(node.get("enum"), list):
+            node["enum"] = list(dict.fromkeys(node["enum"]))
+
+
 def _require_all_properties(node: object) -> None:
     """Mark every object property as `required`.
 
@@ -108,6 +124,7 @@ def build_schema() -> dict:
         defs.update(schema.pop("$defs", {}))
         defs[response_type.__name__] = schema
     _strip_titles(defs)
+    _normalize_stdlib_enums(defs)
     _require_all_properties(defs)
     return {
         "$schema": "http://json-schema.org/draft-07/schema#",
