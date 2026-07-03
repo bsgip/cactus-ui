@@ -136,7 +136,12 @@ export function ComplianceLibrary({
                   </button>
                 );
                 return item.description ? (
-                  <Tooltip key={item.id} content={item.description} side="right" delayDuration={400}>
+                  <Tooltip
+                    key={item.id}
+                    content={item.description}
+                    side="right"
+                    delayDuration={400}
+                  >
                     {cell}
                   </Tooltip>
                 ) : (

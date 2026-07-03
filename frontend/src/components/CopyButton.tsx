@@ -23,7 +23,13 @@ export function CopyButton({ value }: { value: string }) {
 
   return (
     <Tooltip content={TOOLTIPS[state]}>
-      <IconButton type="button" size="1" variant="ghost" color="gray" onClick={() => void handleClick()}>
+      <IconButton
+        type="button"
+        size="1"
+        variant="ghost"
+        color="gray"
+        onClick={() => void handleClick()}
+      >
         {state === 'copied' ? (
           <IconCheck size={14} color="var(--green-9)" />
         ) : state === 'failed' ? (

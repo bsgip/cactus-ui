@@ -1,4 +1,14 @@
-import { Badge, Button, Dialog, Flex, IconButton, Select, Table, Text, TextField } from '@radix-ui/themes';
+import {
+  Badge,
+  Button,
+  Dialog,
+  Flex,
+  IconButton,
+  Select,
+  Table,
+  Text,
+  TextField,
+} from '@radix-ui/themes';
 import { IconDownload, IconEye, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
@@ -54,8 +64,7 @@ export function CompliancePage({ isAdminView }: { isAdminView: boolean }) {
 
   const query = useQuery({
     queryKey,
-    queryFn: () =>
-      isAdminView ? fetchAdminComplianceRequests() : fetchComplianceRequests(),
+    queryFn: () => (isAdminView ? fetchAdminComplianceRequests() : fetchComplianceRequests()),
   });
   const requests: AnyRequest[] = query.data?.requests ?? [];
 
@@ -78,9 +87,12 @@ export function CompliancePage({ isAdminView }: { isAdminView: boolean }) {
   });
 
   function goToRequest(id: number, action: 'edit' | 'view', request: AnyRequest) {
-    navigate(`${requestPath}?prefill=${id}&prefill-classes=true&prefill-runs=true&action=${action}`, {
-      state: { request },
-    });
+    navigate(
+      `${requestPath}?prefill=${id}&prefill-classes=true&prefill-runs=true&action=${action}`,
+      {
+        state: { request },
+      }
+    );
   }
 
   function handleAction(action: ComplianceAction, request: AnyRequest) {
@@ -194,7 +206,10 @@ export function CompliancePage({ isAdminView }: { isAdminView: boolean }) {
                         <ActionButton
                           key={action}
                           action={action}
-                          downloadHref={complianceArtifactUrl(request.compliance_request_id, isAdminView)}
+                          downloadHref={complianceArtifactUrl(
+                            request.compliance_request_id,
+                            isAdminView
+                          )}
                           onClick={() => handleAction(action, request)}
                         />
                       ))}
@@ -212,7 +227,11 @@ export function CompliancePage({ isAdminView }: { isAdminView: boolean }) {
 
 const ACTION_META: Record<
   ComplianceAction,
-  { icon: typeof IconPencil; color: React.ComponentProps<typeof IconButton>['color']; tooltip: string }
+  {
+    icon: typeof IconPencil;
+    color: React.ComponentProps<typeof IconButton>['color'];
+    tooltip: string;
+  }
 > = {
   edit: { icon: IconPencil, color: 'blue', tooltip: 'Review / edit compliance request' },
   view: { icon: IconEye, color: 'gray', tooltip: 'View compliance request' },

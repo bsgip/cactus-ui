@@ -18,8 +18,7 @@ export function RunsRedirect() {
     if (!data) {
       return;
     }
-    const target =
-      data.items.length > 0 ? `/group/${data.items[0].run_group_id}/runs` : '/config';
+    const target = data.items.length > 0 ? `/group/${data.items[0].run_group_id}/runs` : '/config';
     void navigate(target, { replace: true });
   }, [data, navigate]);
 

@@ -44,9 +44,9 @@ export function CertModal({
                   <Code>{runGroup.certificate_id}</Code>) was created <Code>{certDate}</Code>
                   <br />
                   <br />
-                  <strong>Note:</strong> The replace buttons below generate and download a
-                  brand-new certificate, and the current certificate stops working immediately —
-                  your device or client must switch to the new one before its next test run.
+                  <strong>Note:</strong> The replace buttons below generate and download a brand-new
+                  certificate, and the current certificate stops working immediately — your device
+                  or client must switch to the new one before its next test run.
                 </Text>
               ) : (
                 <Text>
@@ -62,10 +62,10 @@ export function CertModal({
                 <InfoPopover title="Device vs Aggregator certificates">
                   <strong>Device</strong> certificates identify a single piece of equipment (e.g. a
                   battery or meter) and sit on the device signing chain. <strong>Aggregator</strong>{' '}
-                  certificates identify an organisation acting on behalf of many devices; they sit on
-                  the aggregator chain and embed your notification domain in the SAN, so the utility
-                  server can deliver subscription notifications back to you. Both chain to the same
-                  root that the utility server trusts.
+                  certificates identify an organisation acting on behalf of many devices; they sit
+                  on the aggregator chain and embed your notification domain in the SAN, so the
+                  utility server can deliver subscription notifications back to you. Both chain to
+                  the same root that the utility server trusts.
                 </InfoPopover>
               </Flex>
 

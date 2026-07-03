@@ -1,4 +1,15 @@
-import { Badge, Button, Code, Flex, IconButton, Link, Table, Text, TextField, Tooltip } from '@radix-ui/themes';
+import {
+  Badge,
+  Button,
+  Code,
+  Flex,
+  IconButton,
+  Link,
+  Table,
+  Text,
+  TextField,
+  Tooltip,
+} from '@radix-ui/themes';
 import { IconPencil, IconPlus, IconX } from '@tabler/icons-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
@@ -99,9 +110,7 @@ export function RunGroupsCard({
       )}
 
       {runGroups.length === 0 ? (
-        <Text color="gray">
-          No run groups yet — create your first one below to start testing.
-        </Text>
+        <Text color="gray">No run groups yet — create your first one below to start testing.</Text>
       ) : (
         <Table.Root variant="surface">
           <Table.Header>
@@ -114,9 +123,9 @@ export function RunGroupsCard({
                   DeviceCapability URI
                   <InfoPopover title="DeviceCapability URI">
                     Each run group has a single, fixed DeviceCapability URI shared across all of its
-                    test runs. Because the URI is fixed per group, only one test run can be active in
-                    a group at a time, and the URI only responds once a run has been started from the
-                    Runs page.
+                    test runs. Because the URI is fixed per group, only one test run can be active
+                    in a group at a time, and the URI only responds once a run has been started from
+                    the Runs page.
                   </InfoPopover>
                 </Flex>
               </Table.ColumnHeaderCell>
@@ -151,7 +160,9 @@ export function RunGroupsCard({
                         <TextField.Root
                           autoFocus
                           value={editing.draft}
-                          onChange={(e) => setEditing({ id: rg.run_group_id, draft: e.target.value })}
+                          onChange={(e) =>
+                            setEditing({ id: rg.run_group_id, draft: e.target.value })
+                          }
                           onKeyDown={(e) => {
                             if (e.key === 'Escape') setEditing(null);
                           }}

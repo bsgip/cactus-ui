@@ -10,7 +10,12 @@ export function StatusDots({ testStatuses }: { testStatuses: PlaylistTestStatus[
       {dots.map((dot, i) => (
         <Tooltip key={i} content={dot.title}>
           <Box
-            style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: RESULT_COLOR[dot.kind] }}
+            style={{
+              width: 14,
+              height: 14,
+              borderRadius: '50%',
+              backgroundColor: RESULT_COLOR[dot.kind],
+            }}
           />
         </Tooltip>
       ))}

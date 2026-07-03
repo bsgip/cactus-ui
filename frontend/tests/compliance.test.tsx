@@ -6,7 +6,9 @@ import type { ComplianceRequestResponse, RunResponse } from '../src/api/types';
 import { server } from './msw-server';
 import { renderApp } from './test-utils';
 
-function makeRequest(overrides: Partial<ComplianceRequestResponse> = {}): ComplianceRequestResponse {
+function makeRequest(
+  overrides: Partial<ComplianceRequestResponse> = {}
+): ComplianceRequestResponse {
   return {
     compliance_request_id: 1,
     created_at: '2024-06-01T00:00:00Z',
@@ -37,6 +39,7 @@ function makeRun(run_id: number, test_procedure_id: string): RunResponse {
     created_at: '2024-06-01T00:00:00Z',
     finalised_at: '2024-06-01T00:00:00Z',
     has_artifacts: true,
+    immediate_start: false,
     is_device_cert: true,
     playlist_execution_id: null,
     playlist_order: null,
@@ -60,8 +63,8 @@ describe('compliance list page', () => {
   it('renders the user requests with status and edit/delete actions', async () => {
     server.use(
       http.get('/api/compliance/requests', () =>
-        HttpResponse.json({ requests: [makeRequest({ compliance_request_id: 42, status: 1 })] }),
-      ),
+        HttpResponse.json({ requests: [makeRequest({ compliance_request_id: 42, status: 1 })] })
+      )
     );
 
     renderApp('/compliance');
@@ -87,8 +90,8 @@ describe('compliance list page', () => {
               updated_by_user: { user_id: 7, subject_id: 's', issuer_id: 'i', user_name: 'Alice' },
             },
           ],
-        }),
-      ),
+        })
+      )
     );
 
     renderApp('/admin/compliance');
@@ -105,11 +108,19 @@ describe('compliance list page', () => {
       http.get('/api/admin/compliance/requests', () =>
         HttpResponse.json({
           requests: [
-            { ...makeRequest({ compliance_request_id: 11 }), created_by_user: { user_id: 1, subject_id: 's', issuer_id: 'i', user_name: 'A' }, updated_by_user: { user_id: 1, subject_id: 's', issuer_id: 'i', user_name: 'A' } },
-            { ...makeRequest({ compliance_request_id: 22 }), created_by_user: { user_id: 2, subject_id: 's', issuer_id: 'i', user_name: 'B' }, updated_by_user: { user_id: 2, subject_id: 's', issuer_id: 'i', user_name: 'B' } },
+            {
+              ...makeRequest({ compliance_request_id: 11 }),
+              created_by_user: { user_id: 1, subject_id: 's', issuer_id: 'i', user_name: 'A' },
+              updated_by_user: { user_id: 1, subject_id: 's', issuer_id: 'i', user_name: 'A' },
+            },
+            {
+              ...makeRequest({ compliance_request_id: 22 }),
+              created_by_user: { user_id: 2, subject_id: 's', issuer_id: 'i', user_name: 'B' },
+              updated_by_user: { user_id: 2, subject_id: 's', issuer_id: 'i', user_name: 'B' },
+            },
           ],
-        }),
-      ),
+        })
+      )
     );
 
     renderApp('/admin/compliance');
@@ -131,7 +142,7 @@ describe('compliance request wizard', () => {
       http.post('/api/compliance/requests', async ({ request }) => {
         posted = await request.json();
         return HttpResponse.json(makeRequest(), { status: 201 });
-      }),
+      })
     );
 
     const { router } = renderApp('/compliance-request');
@@ -166,11 +177,11 @@ describe('compliance request wizard', () => {
     server.use(
       http.get('/api/compliance/form-data', () => HttpResponse.json(FORM_DATA)),
       // Direct navigation (no router state): the wizard fetches the request to prefill.
-      http.get('/api/compliance/requests/1', () => HttpResponse.json(makeRequest())),
+      http.get('/api/compliance/requests/1', () => HttpResponse.json(makeRequest()))
     );
 
     const { router } = renderApp(
-      '/compliance-request?prefill=1&prefill-classes=true&prefill-runs=true&action=view',
+      '/compliance-request?prefill=1&prefill-classes=true&prefill-runs=true&action=view'
     );
 
     // DER step has plain text inputs we can assert are disabled.

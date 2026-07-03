@@ -45,7 +45,11 @@ export function SectionCard({ title, icon, action, children, h, scroll }: Sectio
         {action}
       </Flex>
       <Separator size="4" />
-      <Box px="3" py="3" style={scroll ? { maxHeight: SCROLL_MAX_HEIGHT, overflowY: 'auto' } : undefined}>
+      <Box
+        px="3"
+        py="3"
+        style={scroll ? { maxHeight: SCROLL_MAX_HEIGHT, overflowY: 'auto' } : undefined}
+      >
         {children}
       </Box>
     </Box>

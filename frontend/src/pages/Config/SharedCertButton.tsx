@@ -66,7 +66,11 @@ export function SharedCertButton({
                 </form>
               </Flex>
             </Flex>
-            <iframe name="hiddenFrame-shared" style={{ display: 'none' }} title="shared-cert-download" />
+            <iframe
+              name="hiddenFrame-shared"
+              style={{ display: 'none' }}
+              title="shared-cert-download"
+            />
           </>
         );
       }}

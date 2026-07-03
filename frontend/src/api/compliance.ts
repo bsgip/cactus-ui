@@ -40,7 +40,7 @@ export function fetchComplianceFormData(): Promise<ComplianceFormDataResponse> {
 }
 
 export function createComplianceRequest(
-  payload: ComplianceRequestPayload,
+  payload: ComplianceRequestPayload
 ): Promise<ComplianceRequestResponse> {
   return apiFetch('/api/compliance/requests', {
     method: 'POST',
@@ -51,7 +51,7 @@ export function createComplianceRequest(
 
 export function updateComplianceRequest(
   id: number,
-  payload: ComplianceRequestPayload,
+  payload: ComplianceRequestPayload
 ): Promise<ComplianceRequestResponse> {
   return apiFetch(`/api/compliance/requests/${id}`, {
     method: 'PUT',
@@ -65,7 +65,7 @@ export function updateComplianceRequest(
 export function adminUpdateComplianceRequest(
   id: number,
   status: 'under_review' | 'pushed_back',
-  payload?: Partial<ComplianceRequestPayload>,
+  payload?: Partial<ComplianceRequestPayload>
 ): Promise<ComplianceRequestResponse> {
   return apiFetch(`/api/admin/compliance/requests/${id}`, {
     method: 'PUT',

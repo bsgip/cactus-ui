@@ -54,7 +54,11 @@ export function RequestsCard({ requests, onShowRequest }: Props) {
                       </Badge>
                     </Table.Cell>
                     <Table.Cell>
-                      <Button size="1" variant="outline" onClick={() => onShowRequest(r.request_id)}>
+                      <Button
+                        size="1"
+                        variant="outline"
+                        onClick={() => onShowRequest(r.request_id)}
+                      >
                         Details
                       </Button>
                     </Table.Cell>

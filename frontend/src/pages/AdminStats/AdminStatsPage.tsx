@@ -28,7 +28,8 @@ export function AdminStatsPage() {
   });
 
   if (isPending) return <PageSpinner />;
-  if (error instanceof ApiError && error.status === 403) return <ErrorAlert message="Access denied." />;
+  if (error instanceof ApiError && error.status === 403)
+    return <ErrorAlert message="Access denied." />;
   if (error) return <ErrorAlert message="Failed to retrieve stats." />;
 
   const avgRunsPerUser =

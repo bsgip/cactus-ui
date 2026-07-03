@@ -16,9 +16,7 @@ describe('config page', () => {
     expect(document.title).toBe('Certificates - CACTUS');
     expect(await screen.findByRole('heading', { name: 'Organisation Setup' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Run Groups' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Subscription Notifications' })
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Subscription Notifications' })).toBeInTheDocument();
   });
 
   it('renders run groups from fixture', async () => {
@@ -217,9 +215,7 @@ describe('config page', () => {
     renderApp('/config');
 
     await user.click(await screen.findByRole('button', { name: /Manage Certificate/ }));
-    expect(
-      await screen.findByRole('button', { name: /Aggregator Certificate/ })
-    ).toBeDisabled();
+    expect(await screen.findByRole('button', { name: /Aggregator Certificate/ })).toBeDisabled();
   });
 
   it('renders PEN from fixture', async () => {

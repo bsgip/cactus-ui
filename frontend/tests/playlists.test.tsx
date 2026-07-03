@@ -87,8 +87,6 @@ describe('playlists page', () => {
     );
     renderApp('/group/1/playlists');
 
-    expect(
-      await screen.findByText('Unable to fetch test procedures.')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Unable to fetch test procedures.')).toBeInTheDocument();
   });
 });

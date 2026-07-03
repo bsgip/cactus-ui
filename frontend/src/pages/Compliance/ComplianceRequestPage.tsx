@@ -128,7 +128,7 @@ export function ComplianceRequestPage({ isAdminView }: { isAdminView: boolean })
   const runsByProcedure = useMemo(() => groupRuns(formData?.successful_runs ?? []), [formData]);
   const completedSet = useMemo(
     () => new Set(formData?.completed_test_procedures ?? []),
-    [formData],
+    [formData]
   );
 
   const version = form.csip_aus_version;
@@ -138,7 +138,7 @@ export function ComplianceRequestPage({ isAdminView }: { isAdminView: boolean })
   // Classes that are both selected and valid for the current version.
   const activeClasses = useMemo(
     () => classesForVersion.filter((c) => form.classes.has(c)),
-    [classesForVersion, form.classes],
+    [classesForVersion, form.classes]
   );
 
   // Required-but-incomplete tests, by class (no successful run yet).
@@ -152,7 +152,7 @@ export function ComplianceRequestPage({ isAdminView }: { isAdminView: boolean })
   }, [activeClasses, classMap, completedSet]);
   const missingCount = useMemo(
     () => new Set(Object.values(missingByClass).flat()).size,
-    [missingByClass],
+    [missingByClass]
   );
 
   // Procedures the user has a run for AND that belong to a selected class — these get a run selector.
@@ -193,21 +193,25 @@ export function ComplianceRequestPage({ isAdminView }: { isAdminView: boolean })
   const onError = (err: Error) => setActionError(err.message);
   const goToList = () => navigate(listPath);
 
-  const createMutation = useMutationSafe(() => createComplianceRequest(buildPayload()), goToList, onError);
+  const createMutation = useMutationSafe(
+    () => createComplianceRequest(buildPayload()),
+    goToList,
+    onError
+  );
   const updateMutation = useMutationSafe(
     () => updateComplianceRequest(requestId as number, buildPayload()),
     goToList,
-    onError,
+    onError
   );
   const adminSaveMutation = useMutationSafe(
     () => adminUpdateComplianceRequest(requestId as number, 'under_review', buildPayload()),
     goToList,
-    onError,
+    onError
   );
   const adminPushBackMutation = useMutationSafe(
     () => adminUpdateComplianceRequest(requestId as number, 'pushed_back', buildPayload()),
     goToList,
-    onError,
+    onError
   );
 
   const handleClose = () => {
@@ -261,7 +265,13 @@ export function ComplianceRequestPage({ isAdminView }: { isAdminView: boolean })
         </Tabs.List>
 
         <Tabs.Content value="0">
-          <StandardStep form={form} mode={mode} readOnly={readOnly} versions={formData.csipaus_versions} update={update} />
+          <StandardStep
+            form={form}
+            mode={mode}
+            readOnly={readOnly}
+            versions={formData.csipaus_versions}
+            update={update}
+          />
         </Tabs.Content>
 
         <Tabs.Content value="1">
@@ -299,12 +309,20 @@ export function ComplianceRequestPage({ isAdminView }: { isAdminView: boolean })
         {!isLastStep && <Button onClick={() => setStep(step + 1)}>Next</Button>}
 
         {isLastStep && !isAdminView && mode === 'new' && (
-          <Button disabled={submitDisabled} loading={createMutation.isPending} onClick={() => createMutation.mutate()}>
+          <Button
+            disabled={submitDisabled}
+            loading={createMutation.isPending}
+            onClick={() => createMutation.mutate()}
+          >
             Submit
           </Button>
         )}
         {isLastStep && !isAdminView && mode === 'edit' && (
-          <Button disabled={submitDisabled} loading={updateMutation.isPending} onClick={() => updateMutation.mutate()}>
+          <Button
+            disabled={submitDisabled}
+            loading={updateMutation.isPending}
+            onClick={() => updateMutation.mutate()}
+          >
             Update
           </Button>
         )}
@@ -344,14 +362,18 @@ export function ComplianceRequestPage({ isAdminView }: { isAdminView: boolean })
 }
 
 // useMutation wrapper that keeps the call sites terse (this page fires several near-identical mutations).
-function useMutationSafe(fn: () => Promise<unknown>, onSuccess: () => void, onError: (e: Error) => void) {
+function useMutationSafe(
+  fn: () => Promise<unknown>,
+  onSuccess: () => void,
+  onError: (e: Error) => void
+) {
   return useMutation({ mutationFn: fn, onSuccess, onError });
 }
 
 function buildInitialForm(
   formData: ComplianceFormDataResponse,
   prefill: ComplianceRequestResponse | undefined,
-  opts: { prefillClasses: boolean; prefillRuns: boolean },
+  opts: { prefillClasses: boolean; prefillRuns: boolean }
 ): FormState {
   const form = emptyForm();
   form.csip_aus_version = prefill?.csip_aus_version || formData.csipaus_versions[0] || '';
@@ -375,7 +397,7 @@ function buildInitialForm(
   } else {
     // New request: preselect classes whose required tests all have a successful run.
     form.classes = new Set(
-      Object.keys(classMap).filter((c) => (classMap[c] ?? []).every((p) => completed.has(p))),
+      Object.keys(classMap).filter((c) => (classMap[c] ?? []).every((p) => completed.has(p)))
     );
   }
 
@@ -490,7 +512,7 @@ function ClassesRunsStep({
 }) {
   const descriptions = useMemo(
     () => new Map(formData.compliance_classes.map((c) => [c.name, c.description])),
-    [formData.compliance_classes],
+    [formData.compliance_classes]
   );
 
   return (
@@ -546,7 +568,8 @@ function ClassesRunsStep({
               ))}
             </ul>
             There is a total of <strong>{missingCount}</strong> missing runs. You must complete the
-            required tests or remove the incomplete classes before {isAdminView ? 'finalising' : 'submitting'}.
+            required tests or remove the incomplete classes before{' '}
+            {isAdminView ? 'finalising' : 'submitting'}.
           </Callout.Text>
         </Callout.Root>
       )}
@@ -650,13 +673,25 @@ function DerStep({
         DER
       </Heading>
       <FieldRow label="Brand">
-        <TextField.Root value={form.der_brand} onChange={(e) => update({ der_brand: e.target.value })} disabled={readOnly} />
+        <TextField.Root
+          value={form.der_brand}
+          onChange={(e) => update({ der_brand: e.target.value })}
+          disabled={readOnly}
+        />
       </FieldRow>
       <FieldRow label="OEM">
-        <TextField.Root value={form.der_oem} onChange={(e) => update({ der_oem: e.target.value })} disabled={readOnly} />
+        <TextField.Root
+          value={form.der_oem}
+          onChange={(e) => update({ der_oem: e.target.value })}
+          disabled={readOnly}
+        />
       </FieldRow>
       <FieldRow label="Series" help="The series or product line the DER belongs to.">
-        <TextField.Root value={form.der_series} onChange={(e) => update({ der_series: e.target.value })} disabled={readOnly} />
+        <TextField.Root
+          value={form.der_series}
+          onChange={(e) => update({ der_series: e.target.value })}
+          disabled={readOnly}
+        />
       </FieldRow>
       <FieldRow
         label="Representative Models"
@@ -703,7 +738,10 @@ function SoftwareClientStep({
           </Select.Content>
         </Select.Root>
       </FieldRow>
-      <FieldRow label="Provider(s)" help="The software client may be provided by an OEM or third-party.">
+      <FieldRow
+        label="Provider(s)"
+        help="The software client may be provided by an OEM or third-party."
+      >
         <TextField.Root
           value={form.software_client_providers}
           onChange={(e) => update({ software_client_providers: e.target.value })}

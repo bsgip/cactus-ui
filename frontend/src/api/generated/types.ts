@@ -350,6 +350,7 @@ export interface RunResponse {
   created_at: string;
   finalised_at: string | null;
   has_artifacts: boolean;
+  immediate_start: boolean;
   is_device_cert: boolean;
   playlist_execution_id: string | null;
   playlist_order: number | null;

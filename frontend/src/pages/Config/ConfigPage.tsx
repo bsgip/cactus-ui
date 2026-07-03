@@ -55,7 +55,7 @@ export function ConfigPage() {
 
     setTimeout(
       () => void queryClient.invalidateQueries({ queryKey: ['config'] }),
-      CERT_RELOAD_DELAY_MS,
+      CERT_RELOAD_DELAY_MS
     );
   };
 

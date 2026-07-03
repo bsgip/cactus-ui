@@ -1,4 +1,15 @@
-import { Badge, Box, Button, DropdownMenu, Flex, Heading, Link, Separator, Table, Text } from '@radix-ui/themes';
+import {
+  Badge,
+  Box,
+  Button,
+  DropdownMenu,
+  Flex,
+  Heading,
+  Link,
+  Separator,
+  Table,
+  Text,
+} from '@radix-ui/themes';
 import { IconChevronDown } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
@@ -124,9 +135,7 @@ export function RunGroupPage({ isAdminView }: { isAdminView: boolean }) {
                 {complianceQuery.data.compliance_by_class.map((entry) => (
                   <Table.Row key={entry.class_name}>
                     <Table.Cell
-                      style={
-                        entry.compliant ? { backgroundColor: 'var(--green-9)' } : undefined
-                      }
+                      style={entry.compliant ? { backgroundColor: 'var(--green-9)' } : undefined}
                     />
                     <Table.Cell style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>
                       {entry.class_name}
@@ -167,9 +176,9 @@ export function RunGroupPage({ isAdminView }: { isAdminView: boolean }) {
 
           <Text as="div" mt="2" size="2">
             This compliance table shows whether the criteria for each compliance class has been met.
-            Each test procedure required by a compliance class is shown next to the compliance class.
-            The test procedures are colour-coded by the success of the <i>most recent run</i>, for
-            example <Badge color="green">Passed</Badge> or <Badge color="red">Failed</Badge>.{' '}
+            Each test procedure required by a compliance class is shown next to the compliance
+            class. The test procedures are colour-coded by the success of the <i>most recent run</i>
+            , for example <Badge color="green">Passed</Badge> or <Badge color="red">Failed</Badge>.{' '}
             <Badge color="blue">Active</Badge> indicates the test procedure is currently in progress
             and <Badge color="gray">No Runs</Badge> indicates test procedures that have never been
             run.

@@ -139,7 +139,10 @@ describe('run status playlist banner', () => {
     const banner = screen
       .getByText('Playlist: Smoke Test Playlist')
       .closest('[role="alert"]') as HTMLElement;
-    expect(within(banner).getByRole('link', { name: /ALL-01/ })).toHaveAttribute('href', '/run/201');
+    expect(within(banner).getByRole('link', { name: /ALL-01/ })).toHaveAttribute(
+      'href',
+      '/run/201'
+    );
     expect(within(banner).getByRole('link', { name: 'Download artifacts' })).toHaveAttribute(
       'href',
       '/run/201/artifact'
@@ -203,9 +206,7 @@ describe('run status live panels', () => {
     expect(screen.getByText('edevice-registered')).toBeInTheDocument();
     // Synthetic all-xsd-valid criterion (1 of 3 requests failed validation).
     expect(screen.getByText('all-xsd-valid')).toBeInTheDocument();
-    expect(
-      screen.getByText('1 of 3 request(s) have XSD validation errors')
-    ).toBeInTheDocument();
+    expect(screen.getByText('1 of 3 request(s) have XSD validation errors')).toBeInTheDocument();
     // Steps (POST-DERSTATUS only appears in the steps table) + the Envoy log text.
     expect(screen.getByText('POST-DERSTATUS')).toBeInTheDocument();
     expect(screen.getByText(/GET \/edev -> 200/)).toBeInTheDocument();
@@ -228,9 +229,7 @@ describe('run status live panels', () => {
   it('shows the latest XSD validation error', async () => {
     renderRunStatus('/run/123');
     expect(await screen.findByText('Latest XSD Validation Error')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Element 'rtgMaxW': This element is not expected/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Element 'rtgMaxW': This element is not expected/)).toBeInTheDocument();
   });
 
   it('opens the DER device details modal', async () => {

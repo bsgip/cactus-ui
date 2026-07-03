@@ -38,7 +38,10 @@ let ts = await compile(schema, 'ApiSchemaRoot', {
 // standalone comment blocks and the trailing lines appended inside real docstrings).
 ts = ts.replace(/export interface ApiSchemaRoot \{[\s\S]*?\n\}\n/, '');
 ts = ts.replace(/\/\*\*\n \* This interface was referenced[\s\S]*?\*\/\n/g, '');
-ts = ts.replace(/\n \*\n \* This interface was referenced by[^\n]*\n \* via the `definition`[^\n]*\n/g, '\n');
+ts = ts.replace(
+  /\n \*\n \* This interface was referenced by[^\n]*\n \* via the `definition`[^\n]*\n/g,
+  '\n'
+);
 
 writeFileSync(outPath, ts);
 console.log(`Wrote ${outPath}`);

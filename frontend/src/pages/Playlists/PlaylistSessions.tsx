@@ -1,4 +1,15 @@
-import { Box, Button, Card, Code, DropdownMenu, Flex, Heading, Link, Table, Text } from '@radix-ui/themes';
+import {
+  Box,
+  Button,
+  Card,
+  Code,
+  DropdownMenu,
+  Flex,
+  Heading,
+  Link,
+  Table,
+  Text,
+} from '@radix-ui/themes';
 import { IconDownload, IconPlayerPlay, IconPlayerStop } from '@tabler/icons-react';
 import { Link as RouterLink } from 'react-router-dom';
 import type { PlaylistSession, PlaylistTestStatus } from '../../api/types';

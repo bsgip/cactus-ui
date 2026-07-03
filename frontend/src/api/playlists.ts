@@ -1,9 +1,5 @@
 import { apiFetch } from './client';
-import type {
-  PlaylistSession,
-  PlaylistTestsResponse,
-  RunActionResponse,
-} from './types';
+import type { PlaylistSession, PlaylistTestsResponse, RunActionResponse } from './types';
 
 export function fetchPlaylistTests(runGroupId: number): Promise<PlaylistTestsResponse> {
   return apiFetch(`/api/group/${runGroupId}/playlist_tests`);
@@ -13,10 +9,7 @@ export function fetchPlaylistSessions(runGroupId: number): Promise<PlaylistSessi
   return apiFetch(`/api/group/${runGroupId}/playlist_sessions`);
 }
 
-export function initPlaylist(
-  runGroupId: number,
-  procedures: string[]
-): Promise<RunActionResponse> {
+export function initPlaylist(runGroupId: number, procedures: string[]): Promise<RunActionResponse> {
   return apiFetch(`/api/group/${runGroupId}/playlist`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

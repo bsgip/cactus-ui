@@ -123,9 +123,7 @@ describe('run group compliance page', () => {
 
     renderApp('/group/1');
 
-    expect(
-      await screen.findByText(/Unable to fetch compliance data\./)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Unable to fetch compliance data\./)).toBeInTheDocument();
   });
 
   it('shows empty state when no compliance classes exist', async () => {
@@ -137,9 +135,7 @@ describe('run group compliance page', () => {
 
     renderApp('/group/1');
 
-    expect(
-      await screen.findByText(/No compliance classes found/)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/No compliance classes found/)).toBeInTheDocument();
   });
 
   it('table row has a visible compliant indicator when class is met', async () => {

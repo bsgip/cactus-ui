@@ -103,7 +103,9 @@ describe('admin stats page', () => {
     await user.click(showAllBtn);
 
     expect(screen.getByText('P-25')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /show all 25 procedures/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /show all 25 procedures/i })
+    ).not.toBeInTheDocument();
   });
 
   it('renders user leaderboard from fixture', async () => {
@@ -167,9 +169,7 @@ describe('admin stats page', () => {
 
   it('shows access denied on 403', async () => {
     server.use(
-      http.get('/api/admin/stats', () =>
-        HttpResponse.json({ error: 'forbidden' }, { status: 403 })
-      )
+      http.get('/api/admin/stats', () => HttpResponse.json({ error: 'forbidden' }, { status: 403 }))
     );
 
     renderApp('/admin/stats');

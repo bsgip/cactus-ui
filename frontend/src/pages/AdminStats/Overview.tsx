@@ -59,9 +59,7 @@ export function Overview({ versionCounts, totalPassed, totalFailed }: OverviewPr
                   {passRate}%
                 </Text>
               </Flex>
-              <Flex
-                style={{ height: 24, borderRadius: 'var(--radius-2)', overflow: 'hidden' }}
-              >
+              <Flex style={{ height: 24, borderRadius: 'var(--radius-2)', overflow: 'hidden' }}>
                 <Flex
                   align="center"
                   justify="center"

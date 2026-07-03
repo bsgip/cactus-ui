@@ -80,9 +80,7 @@ describe('admin page', () => {
 
   it('shows access denied on 403', async () => {
     server.use(
-      http.get('/api/admin/users', () =>
-        HttpResponse.json({ error: 'forbidden' }, { status: 403 })
-      )
+      http.get('/api/admin/users', () => HttpResponse.json({ error: 'forbidden' }, { status: 403 }))
     );
 
     renderApp('/admin');

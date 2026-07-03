@@ -17,11 +17,7 @@ function value(v: string | number | null | undefined) {
 }
 
 function notSet(v: string | number | null | undefined) {
-  return v !== null && v !== undefined ? (
-    <>{v}</>
-  ) : (
-    <Text color="gray">Not set</Text>
-  );
+  return v !== null && v !== undefined ? <>{v}</> : <Text color="gray">Not set</Text>;
 }
 
 function unit(v: number | null | undefined, u: string) {
