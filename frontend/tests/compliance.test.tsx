@@ -39,7 +39,6 @@ function makeRun(run_id: number, test_procedure_id: string): RunResponse {
     created_at: '2024-06-01T00:00:00Z',
     finalised_at: '2024-06-01T00:00:00Z',
     has_artifacts: true,
-    immediate_start: false,
     is_device_cert: true,
     playlist_execution_id: null,
     playlist_order: null,

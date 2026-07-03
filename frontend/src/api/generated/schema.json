@@ -1757,10 +1757,6 @@
         "has_artifacts": {
           "type": "boolean"
         },
-        "immediate_start": {
-          "default": false,
-          "type": "boolean"
-        },
         "is_device_cert": {
           "type": "boolean"
         },
@@ -1819,7 +1815,6 @@
         "created_at",
         "finalised_at",
         "has_artifacts",
-        "immediate_start",
         "is_device_cert",
         "playlist_execution_id",
         "playlist_order",
