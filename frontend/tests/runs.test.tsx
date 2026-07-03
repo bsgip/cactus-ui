@@ -104,23 +104,25 @@ describe('runs page', () => {
     expect(await screen.findByRole('button', { name: /ALL-01/ })).toBeInTheDocument();
   });
 
-  it('hides run lifecycle controls in the admin view', async () => {
+  it('disables run lifecycle controls in the admin view', async () => {
     const user = userEvent.setup();
     renderApp('/admin/group/1/runs');
 
-    // Active runs are live -> admin sees a disabled Running... placeholder
-    const running = await screen.findAllByRole('button', { name: 'Running...' });
-    expect(running[0]).toBeDisabled();
+    // Active runs: admins see the status-appropriate action buttons, but disabled
+    // (started -> Finalise, initialised -> Start)
+    expect(await screen.findByRole('button', { name: 'Finalise' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Start' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: /Delete run/ })).not.toBeInTheDocument();
 
     // Admin run links target the admin run status page
     expect(screen.getByRole('link', { name: '123' })).toHaveAttribute('href', '/admin/run/123');
 
-    // Selecting a procedure: no New Test Run, Download uses the admin artifact route
+    // Selecting a procedure: New Test Run is shown but disabled, Download uses the
+    // admin artifact route
     await user.click(await screen.findByRole('button', { name: /ALL-01/ }));
     const downloadButtons = await screen.findAllByRole('link', { name: 'Download' });
     expect(downloadButtons[0]).toHaveAttribute('href', '/admin/run/120/artifact');
-    expect(screen.queryByRole('button', { name: 'New Test Run' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'New Test Run' })).toBeDisabled();
   });
 
   it('shows the empty state when no runs are returned', async () => {

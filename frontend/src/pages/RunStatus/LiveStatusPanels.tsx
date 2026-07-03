@@ -35,7 +35,8 @@ export function LiveStatusPanels({ status, runId, runStatus, runProcedureId, isA
   return (
     <>
       <GeneralCard status={status} runProcedureId={runProcedureId} />
-      {status.precondition_checks != null && (
+      {/* Precondition checks only matter during the init phase; hide them once the run starts. */}
+      {status.precondition_checks != null && !status.timestamp_start && (
         <CheckTableCard title="Precondition Checks" entries={status.precondition_checks} />
       )}
       <CheckTableCard title="Current Criteria" entries={criteriaWithXsd(status)} />

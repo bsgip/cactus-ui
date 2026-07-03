@@ -58,11 +58,15 @@ function ActionButton({
   run: RunResponse;
 }) {
   if (isAdminView) {
-    // Admins shouldn't be starting or finalising tests for other users.
-    if (isLiveStatus(run)) {
+    // Admins shouldn't be starting or finalising tests for other users, so the
+    // action buttons are shown disabled. Download remains functional.
+    if (run.status === 'initialised') {
+      return <Button disabled>Start</Button>;
+    }
+    if (run.status === 'started') {
       return (
-        <Button disabled color="gray">
-          Running...
+        <Button disabled color="amber">
+          Finalise
         </Button>
       );
     }

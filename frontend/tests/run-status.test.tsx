@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import shellFinalised from '../fixtures/run_status_shell_finalised.json';
 import shellLive from '../fixtures/run_status_shell.json';
 import shellPlaylist from '../fixtures/run_status_shell_playlist.json';
+import runnerInitialised from '../fixtures/run_status_runner_initialised.json';
 import { RunStatusPage } from '../src/pages/RunStatus/RunStatusPage';
 import { server } from './msw-server';
 
@@ -193,7 +194,7 @@ describe('run status playlist banner', () => {
 });
 
 describe('run status live panels', () => {
-  it('renders the general, precondition, criteria, steps, requests and log panels', async () => {
+  it('renders the general, criteria, steps, requests and log panels', async () => {
     renderRunStatus('/run/123');
 
     // Procedure heading links to the procedure YAML page.
@@ -202,8 +203,8 @@ describe('run status live panels', () => {
       '/procedure/ALL-08'
     );
     expect(screen.getByText('Test in progress - 1 of 3 steps complete')).toBeInTheDocument();
-    expect(screen.getByText('Precondition Checks')).toBeInTheDocument();
-    expect(screen.getByText('edevice-registered')).toBeInTheDocument();
+    // Preconditions only matter during the init phase; this run has started so they're hidden.
+    expect(screen.queryByText('Precondition Checks')).not.toBeInTheDocument();
     // Synthetic all-xsd-valid criterion (1 of 3 requests failed validation).
     expect(screen.getByText('all-xsd-valid')).toBeInTheDocument();
     expect(screen.getByText('1 of 3 request(s) have XSD validation errors')).toBeInTheDocument();
@@ -212,6 +213,14 @@ describe('run status live panels', () => {
     expect(screen.getByText(/GET \/edev -> 200/)).toBeInTheDocument();
     // Timeline card renders (the chart canvas itself is verified in Playwright).
     expect(screen.getByText('Timeline')).toBeInTheDocument();
+  });
+
+  it('shows precondition checks while the run has not yet started', async () => {
+    server.use(http.get('/api/run/:runId/status', () => HttpResponse.json(runnerInitialised)));
+    renderRunStatus('/run/123');
+
+    expect(await screen.findByText('Precondition Checks')).toBeInTheDocument();
+    expect(screen.getByText('edevice-registered')).toBeInTheDocument();
   });
 
   it('opens the request details modal from the requests table', async () => {

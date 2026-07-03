@@ -204,9 +204,11 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
                 </Text>
               </div>
             )}
-            {selection.kind === 'procedure' && !isAdminView && (
+            {selection.kind === 'procedure' && (
               <Box>
+                {/* Admins shouldn't be starting runs for other users: shown but disabled. */}
                 <Button
+                  disabled={isAdminView}
                   onClick={() => initMutation.mutate(selection.id)}
                   loading={initMutation.isPending}
                 >
