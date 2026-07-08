@@ -24,9 +24,9 @@ import type { AdminComplianceRequestResponse, ComplianceRequestResponse } from '
 import { ErrorAlert } from '../../components/ErrorAlert';
 import { PageHeader } from '../../components/PageHeader';
 import { PageSpinner } from '../../components/PageSpinner';
+import DateCell from '../../components/DateCell';
 import { useConfirm } from '../../components/useConfirm';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
-import { formatDate, formatRelativeDate } from '../../utils/dates';
 import { actionsForStatus, statusLabel, type ComplianceAction } from './status';
 
 type AnyRequest = ComplianceRequestResponse | AdminComplianceRequestResponse;
@@ -35,18 +35,6 @@ function hasUser(r: AnyRequest): r is AdminComplianceRequestResponse {
   return 'created_by_user' in r;
 }
 
-function DateCell({ value }: { value: string }) {
-  const date = new Date(value);
-  return (
-    <>
-      {formatDate(date)}
-      <br />
-      <Text size="1" color="gray">
-        ({formatRelativeDate(date)})
-      </Text>
-    </>
-  );
-}
 
 // One component for both views: isAdminView selects the admin endpoints, columns, status
 // wording, and the per-status action set.
