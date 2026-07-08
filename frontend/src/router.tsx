@@ -2,7 +2,7 @@ import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { AdminPage } from './pages/AdminPage';
 import { AdminStatsPage } from './pages/AdminStats/AdminStatsPage';
-import { CompliancePage } from './pages/Compliance/CompliancePage';
+import { CompliancePage } from './pages/CompliancePage';
 import { ComplianceRequestPage } from './pages/Compliance/ComplianceRequestPage';
 import { ConfigPage } from './pages/Config/ConfigPage';
 import { HomePage } from './pages/HomePage';

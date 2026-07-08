@@ -19,15 +19,15 @@ import {
   deleteComplianceRequest,
   fetchAdminComplianceRequests,
   fetchComplianceRequests,
-} from '../../api/compliance';
-import type { AdminComplianceRequestResponse, ComplianceRequestResponse } from '../../api/types';
-import { ErrorAlert } from '../../components/ErrorAlert';
-import { PageHeader } from '../../components/PageHeader';
-import { PageSpinner } from '../../components/PageSpinner';
-import DateCell from '../../components/DateCell';
-import { useConfirm } from '../../components/useConfirm';
-import { useDocumentTitle } from '../../hooks/useDocumentTitle';
-import { actionsForStatus, statusLabel, type ComplianceAction } from './status';
+} from '../api/compliance';
+import type { AdminComplianceRequestResponse, ComplianceRequestResponse } from '../api/types';
+import { ErrorAlert } from '../components/ErrorAlert';
+import { PageHeader } from '../components/PageHeader';
+import { PageSpinner } from '../components/PageSpinner';
+import DateCell from '../components/DateCell';
+import { useConfirm } from '../components/useConfirm';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { actionsForStatus, statusLabel, type ComplianceAction } from './Compliance/status';
 
 type AnyRequest = ComplianceRequestResponse | AdminComplianceRequestResponse;
 
