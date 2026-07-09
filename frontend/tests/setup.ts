@@ -45,3 +45,9 @@ window.ResizeObserver = window.ResizeObserver ?? ResizeObserverShim;
 // jsdom has no object URLs; apiDownload needs these to hand blobs to the browser.
 window.URL.createObjectURL = window.URL.createObjectURL ?? (() => 'blob:jsdom-stub');
 window.URL.revokeObjectURL = window.URL.revokeObjectURL ?? (() => {});
+
+// apiDownload triggers a download via a real <a> click. jsdom doesn't implement navigation
+// and logs it asynchronously, which can bleed into a later test under CI timing (flaky
+// failures unrelated to the test actually running). Downloads aren't exercised by these
+// tests, so suppress the navigation attempt.
+window.HTMLAnchorElement.prototype.click = () => {};
