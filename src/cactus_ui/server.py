@@ -296,9 +296,12 @@ def _parse_video_start(raw: str | None) -> float | None:
 @admin_role_required
 def admin_run_html_report_page(access_token: str, run_id: int) -> str | Response:
     video_start = _parse_video_start(request.args.get("video_start"))
-    html = orchestrator.admin_fetch_run_power_limit_chart(access_token, run_id, video_start_seconds=video_start)
+    html, error_detail = orchestrator.admin_fetch_run_power_limit_chart(
+        access_token, run_id, video_start_seconds=video_start
+    )
     if html is None:
-        return Response(response="Failed to generate HTML report.", status=HTTPStatus.BAD_GATEWAY)
+        message = error_detail or "Failed to generate HTML report."
+        return Response(response=message, status=HTTPStatus.BAD_GATEWAY)
     return Response(html, mimetype="text/html")
 
 
