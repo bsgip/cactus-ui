@@ -317,8 +317,9 @@ export function HomePage() {
 
         <Step n={4} title="Generate compliance reports">
           <Text as="p">
-            After witness testing is completed, use the <Link href="/compliance">Compliance</Link>{' '}
-            tab to generate the reports we will submit to the CEC.
+            After witness testing is completed, use the{' '}
+            <Link href="/compliance">Compliance tab</Link> to generate the reports we will submit
+            to the CEC.
           </Text>
         </Step>
       </Box>
