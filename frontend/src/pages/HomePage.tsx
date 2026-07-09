@@ -245,8 +245,8 @@ export function HomePage() {
             <li style={{ marginBottom: 8 }}>
               <strong>Test:</strong> On the <Link href="/runs">Runs page</Link> — select a
               test procedure, click 'Start Run', and point your client at the provided test URL.
-              Once you're comfortable, <Link href="/playlists">Playlists</Link> can queue several
-              tests to run back-to-back.
+              Once you're comfortable, the <Link href="/playlists">Playlists page</Link> can queue
+              several tests to run back-to-back.
             </li>
             <li>
               <strong>Results:</strong> Once your test is complete, click 'Finalize' to download
