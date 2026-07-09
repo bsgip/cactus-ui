@@ -22,6 +22,7 @@ import {
   createComplianceRequest,
   fetchComplianceFormData,
   fetchComplianceRequest,
+  finaliseComplianceRequest,
   updateComplianceRequest,
   adminUpdateComplianceRequest,
   type ComplianceRequestPayload,
@@ -213,6 +214,11 @@ export function ComplianceRequestPage({ isAdminView }: { isAdminView: boolean })
     goToList,
     onError
   );
+  const finaliseMutation = useMutationSafe(
+    () => finaliseComplianceRequest(requestId as number),
+    goToList,
+    onError
+  );
 
   const handleClose = () => {
     if (readOnly) {
@@ -342,21 +348,16 @@ export function ComplianceRequestPage({ isAdminView }: { isAdminView: boolean })
             >
               Push Back
             </Button>
-            <form
-              method="POST"
-              action={`/admin/compliance/requests/${requestId}/finalise`}
-              target="complianceFinaliseFrame"
-              onSubmit={() => setTimeout(goToList, 500)}
-              style={{ display: 'inline' }}
+            <Button
+              color="green"
+              loading={finaliseMutation.isPending}
+              onClick={() => finaliseMutation.mutate()}
             >
-              <Button type="submit" color="green">
-                Finalise
-              </Button>
-            </form>
+              Finalise
+            </Button>
           </>
         )}
       </Flex>
-      <iframe name="complianceFinaliseFrame" title="finalise" style={{ display: 'none' }} />
     </Flex>
   );
 }

@@ -1,7 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import { server } from './msw-server';
+
+configure({ asyncUtilTimeout: 5000 });
 
 // Chart.js renders onto a <canvas>, which jsdom does not implement. Stub react-chartjs-2 so
 // the timeline chart mounts without a 2d context; real rendering is covered by Playwright.
@@ -41,3 +43,13 @@ class ResizeObserverShim {
   disconnect() {}
 }
 window.ResizeObserver = window.ResizeObserver ?? ResizeObserverShim;
+
+// jsdom has no object URLs; apiDownload needs these to hand blobs to the browser.
+window.URL.createObjectURL = window.URL.createObjectURL ?? (() => 'blob:jsdom-stub');
+window.URL.revokeObjectURL = window.URL.revokeObjectURL ?? (() => {});
+
+// apiDownload triggers a download via a real <a> click. jsdom doesn't implement navigation
+// and logs it asynchronously, which can bleed into a later test under CI timing (flaky
+// failures unrelated to the test actually running). Downloads aren't exercised by these
+// tests, so suppress the navigation attempt.
+window.HTMLAnchorElement.prototype.click = () => {};

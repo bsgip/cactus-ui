@@ -7,6 +7,7 @@ import type { SessionResponse } from '../api/types';
 const white = { color: 'white' };
 
 const NAV_LINKS = [
+  { to: '/', label: 'Home' },
   { to: '/procedures', label: 'Procedures' },
   { to: '/runs', label: 'Runs' },
   { to: '/playlists', label: 'Playlists' },

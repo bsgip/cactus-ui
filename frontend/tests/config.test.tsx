@@ -594,6 +594,25 @@ describe('config page', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows error when certificate generation fails', async () => {
+    const user = userEvent.setup();
+
+    server.use(
+      http.post('/config/run_group/:runGroupId/cert', () =>
+        HttpResponse.text('Failed to generate certificate.', { status: 502 })
+      )
+    );
+
+    renderApp('/config');
+
+    await user.click((await screen.findAllByRole('button', { name: /Manage Certificate/ }))[0]);
+    await user.click(
+      await screen.findByRole('button', { name: 'Replace with Device Certificate' })
+    );
+
+    expect(await screen.findByText(/Failed to generate certificate/)).toBeInTheDocument();
+  });
+
   it('shows error when delete fails', async () => {
     const user = userEvent.setup();
 

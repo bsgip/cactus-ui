@@ -1042,9 +1042,11 @@ def config_download_run_group_cert(access_token: str, run_group_id: int) -> Resp
         return Response(
             response="Failed to retrieve certificate.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
         )  # noqa: E501
+    # Deliberately NOT application/x-x509-user-cert: Firefox routes that legacy type into its
+    # certificate-install machinery instead of the download path (surfaces as NS_BINDING_ABORTED).
     return send_file(
         io.BytesIO(download_bytes),
-        "application/x-x509-user-cert",
+        "application/x-pem-file",
         True,
         download_name=download_file_name,
     )

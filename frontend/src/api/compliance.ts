@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { apiDownload, apiFetch } from './client';
 import type {
   AdminComplianceRequestsResponse,
   ComplianceFormDataResponse,
@@ -77,6 +77,13 @@ export function adminUpdateComplianceRequest(
 export function deleteComplianceRequest(id: number, isAdminView: boolean): Promise<unknown> {
   const base = isAdminView ? '/api/admin/compliance/requests' : '/api/compliance/requests';
   return apiFetch(`${base}/${id}`, { method: 'DELETE' });
+}
+
+// Finalising returns the finalised compliance report PDF as a download.
+export function finaliseComplianceRequest(id: number): Promise<void> {
+  return apiDownload(`/admin/compliance/requests/${id}/finalise`, `compliance_request_${id}.pdf`, {
+    method: 'POST',
+  });
 }
 
 // Browser-native download URLs (session-cookie auth; the access token never reaches the SPA).

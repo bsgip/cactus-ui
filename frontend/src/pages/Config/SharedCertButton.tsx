@@ -1,5 +1,7 @@
 import { Button, Flex, Text, Tooltip } from '@radix-ui/themes';
 import { IconCertificate } from '@tabler/icons-react';
+import { useMutation } from '@tanstack/react-query';
+import { generateSharedCert } from '../../api/config';
 import { ModalButton } from '../../components/ModalButton';
 
 // First-class action that mints a single aggregator certificate and assigns it to *all* of the
@@ -8,10 +10,14 @@ import { ModalButton } from '../../components/ModalButton';
 export function SharedCertButton({
   hasDomain,
   onCertAction,
+  onCertError,
 }: {
   hasDomain: boolean;
   onCertAction: (message: string) => void;
+  onCertError: (message: string) => void;
 }) {
+  const generateMutation = useMutation({ mutationFn: generateSharedCert });
+
   return (
     <ModalButton
       title="Generate Aggregator Certificate for All Groups"
@@ -34,44 +40,42 @@ export function SharedCertButton({
     >
       {(close) => {
         const handleApply = () => {
-          close();
-          onCertAction(
-            'Aggregator certificate generated and applied to all run groups — download starting.'
-          );
+          generateMutation.mutate(undefined, {
+            onSuccess: () => {
+              close();
+              onCertAction(
+                'Aggregator certificate generated and applied to all run groups — download starting.'
+              );
+            },
+            onError: (err) => {
+              close();
+              onCertError(err.message);
+            },
+          });
         };
         return (
-          <>
-            <Flex direction="column" gap="3">
-              <Text>
-                This mints <em>one</em> aggregator certificate - representing a single organisation
-                identity - and assigns it to <em>all</em> of your run groups.
-                <br />
-                <br />
-                <strong>Note:</strong> this replaces the existing certificate on <em>every</em> run
-                group. Use the per-group options instead if you need different certificates for
-                different groups.
-              </Text>
-              <Flex justify="end">
-                <form
-                  method="POST"
-                  action="/config/shared_cert"
-                  target="hiddenFrame-shared"
-                  onSubmit={handleApply}
-                  style={{ display: 'inline' }}
-                >
-                  <Button type="submit" variant="outline" color="red">
-                    <IconCertificate size={14} />
-                    Generate &amp; apply to all groups
-                  </Button>
-                </form>
-              </Flex>
+          <Flex direction="column" gap="3">
+            <Text>
+              This mints <em>one</em> aggregator certificate - representing a single organisation
+              identity - and assigns it to <em>all</em> of your run groups.
+              <br />
+              <br />
+              <strong>Note:</strong> this replaces the existing certificate on <em>every</em> run
+              group. Use the per-group options instead if you need different certificates for
+              different groups.
+            </Text>
+            <Flex justify="end">
+              <Button
+                variant="outline"
+                color="red"
+                loading={generateMutation.isPending}
+                onClick={handleApply}
+              >
+                <IconCertificate size={14} />
+                Generate &amp; apply to all groups
+              </Button>
             </Flex>
-            <iframe
-              name="hiddenFrame-shared"
-              style={{ display: 'none' }}
-              title="shared-cert-download"
-            />
-          </>
+          </Flex>
         );
       }}
     </ModalButton>

@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { apiDownload, apiFetch } from './client';
 import type { ConfigResponse, RunGroupResponse } from './types';
 
 export function fetchConfig(): Promise<ConfigResponse> {
@@ -39,4 +39,20 @@ export function updateRunGroupName(run_group_id: number, name: string): Promise<
 
 export function deleteRunGroup(run_group_id: number): Promise<Record<string, never>> {
   return apiFetch(`/api/run_groups/${run_group_id}`, { method: 'DELETE' });
+}
+
+// Cert generation returns the new bundle as a ZIP download; the Flask endpoints read
+// form-encoded bodies (they predate the SPA), hence URLSearchParams rather than JSON.
+export function generateRunGroupCert(
+  run_group_id: number,
+  type: 'device' | 'aggregator'
+): Promise<void> {
+  return apiDownload(`/config/run_group/${run_group_id}/cert`, 'certificate.zip', {
+    method: 'POST',
+    body: new URLSearchParams({ type }),
+  });
+}
+
+export function generateSharedCert(): Promise<void> {
+  return apiDownload('/config/shared_cert', 'certificate.zip', { method: 'POST' });
 }
