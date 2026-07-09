@@ -1,7 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import { server } from './msw-server';
+
+configure({ asyncUtilTimeout: 5000 });
 
 // Chart.js renders onto a <canvas>, which jsdom does not implement. Stub react-chartjs-2 so
 // the timeline chart mounts without a 2d context; real rendering is covered by Playwright.
