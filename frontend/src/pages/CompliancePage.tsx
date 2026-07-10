@@ -1,17 +1,13 @@
 import {
   Badge,
-  Button,
-  Dialog,
   Flex,
-  Select,
   Table,
   Text,
   TextField,
 } from '@radix-ui/themes';
-import { IconPlus } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   adminUpdateComplianceRequest,
   complianceArtifactUrl,
@@ -28,13 +24,14 @@ import DateCell from '../components/DateCell';
 import { useConfirm } from '../components/useConfirm';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { actionsForStatus, statusLabel, type ComplianceAction } from './Compliance/status';
+import NewRequestButton from '../components/NewRequestButton';
+import PrefillDialog from '../components/PrefillDialog';
 
 type AnyRequest = ComplianceRequestResponse | AdminComplianceRequestResponse;
 
 function hasUser(r: AnyRequest): r is AdminComplianceRequestResponse {
   return 'created_by_user' in r;
 }
-
 
 // One component for both views: isAdminView selects the admin endpoints, columns, status
 // wording, and the per-status action set.
@@ -118,7 +115,7 @@ export function CompliancePage({ isAdminView }: { isAdminView: boolean }) {
 
       {!isAdminView && (
         <Flex>
-          <NewRequestButton
+          <NewRequestButtonWrapper
             requestPath={requestPath}
             requests={requests as ComplianceRequestResponse[]}
             prefillId={prefillId}
@@ -216,7 +213,7 @@ export function CompliancePage({ isAdminView }: { isAdminView: boolean }) {
 
 // "New Request": navigates straight to a blank wizard, or — when the user has prior requests —
 // offers to prefill the new request's details from an existing one (without copying classes/runs).
-function NewRequestButton({
+function NewRequestButtonWrapper({
   requestPath,
   requests,
   prefillId,
@@ -228,56 +225,11 @@ function NewRequestButton({
   setPrefillId: (id: string) => void;
 }) {
   if (requests.length === 0) {
-    return (
-      <Button asChild size="3">
-        <RouterLink to={requestPath}>
-          <IconPlus size={16} /> New Request
-        </RouterLink>
-      </Button>
-    );
+    return <NewRequestButton requestPath={requestPath} />
   }
 
   const willPrefill = prefillId !== 'none';
   const target = willPrefill ? `${requestPath}?prefill=${prefillId}` : requestPath;
 
-  return (
-    <Dialog.Root>
-      <Dialog.Trigger>
-        <Button size="3">
-          <IconPlus size={16} /> New Request
-        </Button>
-      </Dialog.Trigger>
-      <Dialog.Content maxWidth="500px">
-        <Dialog.Title>New request for compliance</Dialog.Title>
-        <Dialog.Description size="2" mb="3">
-          To save time, a new compliance request can be pre-filled with the details (DER, software
-          client) of an existing request. Classes and runs are not copied.
-        </Dialog.Description>
-        <Text as="label" size="2" weight="bold">
-          Pre-fill from
-        </Text>
-        <Select.Root value={prefillId} onValueChange={setPrefillId}>
-          <Select.Trigger placeholder="No pre-fill" mt="1" />
-          <Select.Content>
-            <Select.Item value="none">No pre-fill</Select.Item>
-            {requests.map((r) => (
-              <Select.Item key={r.compliance_request_id} value={String(r.compliance_request_id)}>
-                Compliance Request #{r.compliance_request_id}
-              </Select.Item>
-            ))}
-          </Select.Content>
-        </Select.Root>
-        <Flex gap="3" mt="4" justify="end">
-          <Dialog.Close>
-            <Button variant="soft" color="gray">
-              Cancel
-            </Button>
-          </Dialog.Close>
-          <Button asChild>
-            <RouterLink to={target}>{prefillId ? 'Pre-fill request' : 'Continue'}</RouterLink>
-          </Button>
-        </Flex>
-      </Dialog.Content>
-    </Dialog.Root>
-  );
+  return <PrefillDialog prefillId={prefillId} setPrefillId={setPrefillId} requests={requests} target={target}/>
 }
