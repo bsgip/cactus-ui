@@ -3,13 +3,12 @@ import {
   Button,
   Dialog,
   Flex,
-  IconButton,
   Select,
   Table,
   Text,
   TextField,
 } from '@radix-ui/themes';
-import { IconDownload, IconEye, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconPlus } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
@@ -21,6 +20,7 @@ import {
   fetchComplianceRequests,
 } from '../api/compliance';
 import type { AdminComplianceRequestResponse, ComplianceRequestResponse } from '../api/types';
+import ActionButton from '../components/ActionButton';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { PageHeader } from '../components/PageHeader';
 import { PageSpinner } from '../components/PageSpinner';
@@ -213,45 +213,6 @@ export function CompliancePage({ isAdminView }: { isAdminView: boolean }) {
   );
 }
 
-const ACTION_META: Record<
-  ComplianceAction,
-  {
-    icon: typeof IconPencil;
-    color: React.ComponentProps<typeof IconButton>['color'];
-    tooltip: string;
-  }
-> = {
-  edit: { icon: IconPencil, color: 'blue', tooltip: 'Review / edit compliance request' },
-  view: { icon: IconEye, color: 'gray', tooltip: 'View compliance request' },
-  download: { icon: IconDownload, color: 'gray', tooltip: 'Download compliance report' },
-  delete: { icon: IconTrash, color: 'red', tooltip: 'Delete compliance request (permanent)' },
-};
-
-function ActionButton({
-  action,
-  downloadHref,
-  onClick,
-}: {
-  action: ComplianceAction;
-  downloadHref: string;
-  onClick: () => void;
-}) {
-  const { icon: Icon, color, tooltip } = ACTION_META[action];
-  if (action === 'download') {
-    return (
-      <IconButton asChild variant="outline" color={color} title={tooltip}>
-        <a href={downloadHref}>
-          <Icon size={16} />
-        </a>
-      </IconButton>
-    );
-  }
-  return (
-    <IconButton variant="outline" color={color} title={tooltip} onClick={onClick}>
-      <Icon size={16} />
-    </IconButton>
-  );
-}
 
 // "New Request": navigates straight to a blank wizard, or — when the user has prior requests —
 // offers to prefill the new request's details from an existing one (without copying classes/runs).
