@@ -6,7 +6,7 @@ import { complianceArtifactUrl } from '../api/compliance';
 import ActionButton from '../components/ActionButton';
 import DateCell from '../components/DateCell';
 import { deleteComplianceRequest } from '../api/compliance';
-import { ComplianceStatus } from '../pages/Compliance/status';
+import { ComplianceStatus } from '../utils/complianceStatus';
 import type { ComplianceAction } from '../pages/Compliance/status';
 import type { ComplianceRequestResponse } from '../api/types';
 
