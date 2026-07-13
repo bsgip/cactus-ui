@@ -85,7 +85,7 @@ describe('run status page chrome', () => {
   });
 
   it('hides the active power chart for immediate-start procedures', async () => {
-    useShell({ ...shellFinalised, is_immediate_start: true });
+    useShell({ ...shellFinalised, run: { ...shellFinalised.run, immediate_start: true } });
     renderRunStatus('/run/120');
     await screen.findByRole('heading', { name: 'Run 120 [Finalised]' });
     expect(screen.queryByRole('button', { name: 'Active Power Chart' })).not.toBeInTheDocument();
@@ -108,7 +108,6 @@ describe('run status page chrome', () => {
     useShell({
       run: null,
       run_is_live: false,
-      is_immediate_start: false,
       playlist_name: null,
       playlist_runs: null,
     });

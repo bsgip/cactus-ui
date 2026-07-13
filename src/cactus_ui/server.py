@@ -79,35 +79,10 @@ else:
 
 logger = logging.getLogger(__name__)
 
-# Test procedures with `immediate_start: true` - these have no init phase and so no meaningful
-# active-power timeline, so the run status page hides the Active Power Chart for them.
-# INTERIM: hardcoded mirror of the cactus-test-definitions client procedures (same hardcoded
-# pattern as presenters._WITNESS_CLASSES). The clean fix is an additive `immediate_start` field
-# on the orchestrator's RunResponse; swap is_immediate_start() to read that when it lands.
-_IMMEDIATE_START_PROCEDURE_IDS = frozenset(
-    {
-        "ALL-01",
-        "ALL-02",
-        "ALL-03",
-        "ALL-03-REJ",
-        "ALL-04",
-        "ALL-05",
-        "ALL-06",
-        "ALL-09",
-        "ALL-14",
-        "DRA-01",
-        "MUL-03",
-        "STO-02",
-    }
-)
 # RunStatusResponse enum values used by RunResponse.status
 _ACTIVE_RUN_STATUSES = frozenset(
     {schema.RunStatusResponse.initialised, schema.RunStatusResponse.started, schema.RunStatusResponse.provisioning}
 )
-
-
-def is_immediate_start(run_response: schema.RunResponse | None) -> bool:
-    return bool(run_response and run_response.test_procedure_id in _IMMEDIATE_START_PROCEDURE_IDS)
 
 
 ENV_FILE = find_dotenv()
@@ -1164,7 +1139,6 @@ def _build_run_status_shell(access_token: str, run_id: str, admin: bool) -> RunS
     return RunStatusShell(
         run=run_response,
         run_is_live=run_is_live,
-        is_immediate_start=is_immediate_start(run_response),
         playlist_name=playlist_name,
         playlist_runs=playlist_runs,
     )

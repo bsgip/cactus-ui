@@ -323,6 +323,7 @@ export interface RunResponse {
   created_at: string;
   finalised_at: string | null;
   has_artifacts: boolean;
+  immediate_start: boolean;
   is_device_cert: boolean;
   playlist_execution_id: string | null;
   playlist_order: number | null;
@@ -581,7 +582,6 @@ export interface RunActionResponse {
  * itself. The remaining fields are things only the BFF knows or computes.
  */
 export interface RunStatusShell {
-  is_immediate_start: boolean;
   playlist_name: string | null;
   playlist_runs: RunResponse[] | null;
   run: RunResponse | null;

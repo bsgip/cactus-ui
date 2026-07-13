@@ -1755,6 +1755,10 @@
         "has_artifacts": {
           "type": "boolean"
         },
+        "immediate_start": {
+          "default": false,
+          "type": "boolean"
+        },
         "is_device_cert": {
           "type": "boolean"
         },
@@ -1813,6 +1817,7 @@
         "created_at",
         "finalised_at",
         "has_artifacts",
+        "immediate_start",
         "is_device_cert",
         "playlist_execution_id",
         "playlist_order",
@@ -1837,9 +1842,6 @@
     "RunStatusShell": {
       "description": "Run-status page shell: the run plus the few extras the orchestrator doesn't supply.\n\n`run` and `playlist_runs` are canonical `RunResponse`s (no reshaping/renaming) \u2014 the\nfrontend reads their fields directly and derives playlist order / active-run / next-run\nitself. The remaining fields are things only the BFF knows or computes.",
       "properties": {
-        "is_immediate_start": {
-          "type": "boolean"
-        },
         "playlist_name": {
           "anyOf": [
             {
@@ -1878,7 +1880,6 @@
         }
       },
       "required": [
-        "is_immediate_start",
         "playlist_name",
         "playlist_runs",
         "run",
