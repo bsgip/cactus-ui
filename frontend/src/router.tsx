@@ -2,6 +2,7 @@ import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { AdminPage } from './pages/AdminPage';
 import { AdminStatsPage } from './pages/AdminStats/AdminStatsPage';
+import { AdminCompliancePage } from './pages/AdminCompliancePage';
 import { CompliancePage } from './pages/CompliancePage';
 import { ComplianceRequestPage } from './pages/Compliance/ComplianceRequestPage';
 import { ConfigPage } from './pages/Config/ConfigPage';
@@ -37,7 +38,7 @@ export const routes: RouteObject[] = [
       { path: 'compliance-request', element: <ComplianceRequestPage isAdminView={false} /> },
       { path: 'admin', element: <AdminPage /> },
       { path: 'admin/stats', element: <AdminStatsPage /> },
-      { path: 'admin/compliance', element: <CompliancePage isAdminView={true} /> },
+      { path: 'admin/compliance', element: <AdminCompliancePage /> },
       { path: 'admin/compliance-request', element: <ComplianceRequestPage isAdminView={true} /> },
     ],
   },
