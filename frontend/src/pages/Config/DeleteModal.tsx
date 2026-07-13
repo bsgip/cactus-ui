@@ -1,4 +1,4 @@
-import { Button, Checkbox, Code, Flex, Text } from '@radix-ui/themes';
+import { Button, Code, Flex, Text, TextField } from '@radix-ui/themes';
 import { IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { RunGroupResponse } from '../../api/types';
@@ -35,8 +35,8 @@ export function DeleteModal({
   );
 }
 
-// Lives inside the dialog body so the acknowledgement resets on every close, however the dialog
-// is dismissed (Cancel, Escape, overlay click) — the checkbox must never stay pre-armed.
+// Lives inside the dialog body so the typed confirmation resets on every close, however the
+// dialog is dismissed (Cancel, Escape, overlay click) — it must never stay pre-armed.
 function DeleteConfirmBody({
   runGroup,
   onDelete,
@@ -48,7 +48,8 @@ function DeleteConfirmBody({
   isDeleting: boolean;
   close: () => void;
 }) {
-  const [acknowledged, setAcknowledged] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const confirmed = confirmText === runGroup.name;
 
   return (
     <Flex direction="column" gap="3">
@@ -58,13 +59,16 @@ function DeleteConfirmBody({
         {runGroup.total_runs} run(s) will be gone forever.
       </Text>
       <Text as="label" size="2">
-        <Flex gap="2" align="center">
-          <Checkbox
-            checked={acknowledged}
-            onCheckedChange={(checked) => setAcknowledged(checked === true)}
-          />
-          I understand this cannot be undone.
-        </Flex>
+        Type <strong>{runGroup.name}</strong> to confirm.
+        <TextField.Root
+          autoFocus
+          mt="1"
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') close();
+          }}
+        />
       </Text>
       <Flex justify="end" gap="2">
         <Button variant="soft" color="gray" onClick={close}>
@@ -72,7 +76,7 @@ function DeleteConfirmBody({
         </Button>
         <Button
           color="red"
-          disabled={!acknowledged}
+          disabled={!confirmed}
           loading={isDeleting}
           onClick={() => {
             onDelete();
