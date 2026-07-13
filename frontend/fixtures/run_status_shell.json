@@ -9,13 +9,13 @@
     "finalised_at": null,
     "is_device_cert": false,
     "has_artifacts": false,
+    "immediate_start": false,
     "playlist_execution_id": null,
     "playlist_order": null,
     "playlist_runs": null,
     "classes": null
   },
   "run_is_live": true,
-  "is_immediate_start": false,
   "playlist_name": null,
   "playlist_runs": null
 }

@@ -9,13 +9,13 @@
     "finalised_at": "2026-06-17T04:30:00+00:00",
     "is_device_cert": false,
     "has_artifacts": true,
+    "immediate_start": false,
     "playlist_execution_id": null,
     "playlist_order": null,
     "playlist_runs": null,
     "classes": null
   },
   "run_is_live": false,
-  "is_immediate_start": false,
   "playlist_name": null,
   "playlist_runs": null
 }

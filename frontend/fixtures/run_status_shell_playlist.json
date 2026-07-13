@@ -9,6 +9,7 @@
     "finalised_at": null,
     "is_device_cert": false,
     "has_artifacts": false,
+    "immediate_start": true,
     "playlist_execution_id": "smoke-exec-1",
     "playlist_order": 1,
     "playlist_runs": [
@@ -31,7 +32,6 @@
     "classes": null
   },
   "run_is_live": true,
-  "is_immediate_start": true,
   "playlist_name": "Smoke Test Playlist",
   "playlist_runs": [
     {
@@ -44,6 +44,7 @@
       "finalised_at": "2026-06-17T04:58:45+00:00",
       "is_device_cert": false,
       "has_artifacts": true,
+      "immediate_start": false,
       "playlist_execution_id": "smoke-exec-1",
       "playlist_order": 0,
       "playlist_runs": null,
@@ -59,6 +60,7 @@
       "finalised_at": null,
       "is_device_cert": false,
       "has_artifacts": false,
+      "immediate_start": true,
       "playlist_execution_id": "smoke-exec-1",
       "playlist_order": 1,
       "playlist_runs": null,
@@ -74,6 +76,7 @@
       "finalised_at": null,
       "is_device_cert": false,
       "has_artifacts": false,
+      "immediate_start": false,
       "playlist_execution_id": "smoke-exec-1",
       "playlist_order": 2,
       "playlist_runs": null,
