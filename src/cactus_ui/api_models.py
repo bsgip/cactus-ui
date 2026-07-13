@@ -274,8 +274,5 @@ class RunStatusShell(FastAPICompatibleWizard):
 
     run: RunResponse | None  # the run, forwarded as-is
     run_is_live: bool  # derived: a runner status exists, or status is provisioning/started
-    # DEBT: this duplicates RunResponse.immediate_start, which exists upstream but not in the
-    # pinned cactus-schema. Drop this field and read `run.immediate_start` after the next bump.
-    is_immediate_start: bool
     playlist_name: str | None  # playlist display name (from the Flask session; not on any run)
     playlist_runs: list[RunResponse] | None  # all runs in the playlist, fetched and joined
