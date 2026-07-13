@@ -177,7 +177,7 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
           runId={runId}
           runStatus={runStatus}
           runHasArtifacts={run?.has_artifacts ?? null}
-          isImmediateStart={shell.is_immediate_start}
+          isImmediateStart={run?.immediate_start ?? false}
           nextPlaylistRunId={nextPlaylistRunId}
           supportEmail={session?.support_email}
           isAdminView={isAdminView}
