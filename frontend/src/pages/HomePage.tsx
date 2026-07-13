@@ -10,8 +10,6 @@ import { useSession } from '../hooks/useSession';
 const HELP_FORM_URL = 'https://tinyurl.com/mrbu8cwt';
 const BOOKING_FORM_URL = 'https://tinyurl.com/BookingFormCSIPAUS';
 const WITNESS_EMAIL = 'csipaus-cert@anu.edu.au';
-// TODO: replace with the real download URL for the Client Information form.
-const CLIENT_INFO_FORM_URL = '#';
 // TODO: replace with the real "Book time with Laura Jones" scheduling URL.
 const SERIES_MEETING_URL = '#';
 
@@ -277,13 +275,6 @@ export function HomePage() {
                 booking form
               </Link>{' '}
               — <strong>one form for each witness test you need</strong>.
-            </li>
-            <li style={{ marginBottom: 8 }}>
-              Registration requires a completed{' '}
-              <Link href={CLIENT_INFO_FORM_URL} target="_blank">
-                Client Information form
-              </Link>
-              .
             </li>
             <li>
               A team member will contact you after you submit the form. Due to high demand, this can

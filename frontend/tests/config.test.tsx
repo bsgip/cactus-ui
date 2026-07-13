@@ -1,10 +1,20 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import configFixture from '../fixtures/config.json';
+import * as configApi from '../src/api/config';
 import { server } from './msw-server';
 import { renderApp } from './test-utils';
+
+// generateRunGroupCert goes through apiDownload (fetch -> blob -> synthetic <a> click), which is
+// real browser download plumbing that jsdom can't faithfully emulate against MSW's fetch
+// interception. That path is covered by Playwright; here we mock the API call and assert on the
+// resulting UI wiring (success/error notice) instead.
+vi.mock('../src/api/config', async (importOriginal) => ({
+  ...(await importOriginal<typeof configApi>()),
+  generateRunGroupCert: vi.fn(),
+}));
 
 describe('config page', () => {
   it('shows heading and section titles', async () => {
@@ -265,10 +275,10 @@ describe('config page', () => {
     const deleteButtons = await screen.findAllByRole('button', { name: /Delete/ });
     await user.click(deleteButtons[0]);
 
-    // Confirm button stays disabled until the "cannot be undone" checkbox is ticked.
+    // Confirm button stays disabled until the run group name is typed in full.
     const confirmBtn = await screen.findByRole('button', { name: /Delete Battery Mk1/ });
     expect(confirmBtn).toBeDisabled();
-    await user.click(screen.getByRole('checkbox'));
+    await user.type(within(screen.getByRole('dialog')).getByRole('textbox'), 'Battery Mk1');
     expect(confirmBtn).toBeEnabled();
     await user.click(confirmBtn);
 
@@ -279,16 +289,16 @@ describe('config page', () => {
     const user = userEvent.setup();
     renderApp('/config');
 
-    // Tick the checkbox, then dismiss the dialog via Escape instead of Cancel.
+    // Type the confirmation, then dismiss the dialog via Escape instead of Cancel.
     await user.click((await screen.findAllByRole('button', { name: /Delete/ }))[0]);
-    await user.click(await screen.findByRole('checkbox'));
+    await user.type(within(await screen.findByRole('dialog')).getByRole('textbox'), 'Battery Mk1');
     expect(screen.getByRole('button', { name: /Delete Battery Mk1/ })).toBeEnabled();
     await user.keyboard('{Escape}');
-    await waitFor(() => expect(screen.queryByRole('checkbox')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 
     // Reopening must not leave the destructive button pre-armed.
     await user.click(screen.getAllByRole('button', { name: /Delete/ })[0]);
-    expect(await screen.findByRole('checkbox')).not.toBeChecked();
+    expect(within(await screen.findByRole('dialog')).getByRole('textbox')).toHaveValue('');
     expect(screen.getByRole('button', { name: /Delete Battery Mk1/ })).toBeDisabled();
   });
 
@@ -568,6 +578,7 @@ describe('config page', () => {
 
   it('shows a success notice after generating a device certificate', async () => {
     const user = userEvent.setup();
+    vi.mocked(configApi.generateRunGroupCert).mockResolvedValueOnce(undefined);
     renderApp('/config');
 
     await user.click((await screen.findAllByRole('button', { name: /Manage Certificate/ }))[0]);
@@ -575,6 +586,7 @@ describe('config page', () => {
       await screen.findByRole('button', { name: 'Replace with Device Certificate' })
     );
 
+    expect(configApi.generateRunGroupCert).toHaveBeenCalledWith(1, 'device');
     expect(
       await screen.findByText(/Certificate generated — your download should begin automatically/)
     ).toBeInTheDocument();
@@ -596,11 +608,8 @@ describe('config page', () => {
 
   it('shows error when certificate generation fails', async () => {
     const user = userEvent.setup();
-
-    server.use(
-      http.post('/config/run_group/:runGroupId/cert', () =>
-        HttpResponse.text('Failed to generate certificate.', { status: 502 })
-      )
+    vi.mocked(configApi.generateRunGroupCert).mockRejectedValueOnce(
+      new Error('Failed to generate certificate.')
     );
 
     renderApp('/config');
@@ -628,7 +637,7 @@ describe('config page', () => {
     await user.click(deleteButtons[0]);
 
     const confirmBtn = await screen.findByRole('button', { name: /Delete Battery Mk1/ });
-    await user.click(screen.getByRole('checkbox'));
+    await user.type(within(screen.getByRole('dialog')).getByRole('textbox'), 'Battery Mk1');
     await user.click(confirmBtn);
 
     expect(await screen.findByText(/Failed to delete run group/)).toBeInTheDocument();
