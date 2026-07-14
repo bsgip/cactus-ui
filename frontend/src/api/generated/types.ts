@@ -9,7 +9,8 @@
  */
 
 /**
- * The `runs_per_week` history is binned by week/fortnight/month to avoid squish
+ * The whole `runs_per_week` history is binned at one consistent granularity, chosen
+ * from the total span of data - never a mix of resolutions in the same chart.
  */
 export type RunsPerWeekGranularity = 'week' | 'fortnight' | 'month';
 export type ClientInteractionType =
