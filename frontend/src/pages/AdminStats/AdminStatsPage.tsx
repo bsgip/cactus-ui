@@ -79,7 +79,7 @@ export function AdminStatsPage() {
         totalPassed={data.total_passed}
         totalFailed={data.total_failed}
       />
-      <WeekBars bars={data.runs_per_week} />
+      <WeekBars bars={data.runs_per_week} granularity={data.runs_per_week_granularity} />
       <ProcedureTable procedures={data.procedures} />
       <UserLeaderboard entries={data.user_leaderboard} />
     </Flex>

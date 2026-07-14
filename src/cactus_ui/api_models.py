@@ -197,9 +197,17 @@ class ProcedureStat(FastAPICompatibleWizard):
     latest_failed: int
 
 
+class RunsPerWeekGranularity(StrEnum):
+    """Bin size for the whole `runs_per_week` chart - one consistent resolution, chosen by total span."""
+
+    week = auto()
+    fortnight = auto()
+    month = auto()
+
+
 @dataclass
 class WeekBar(FastAPICompatibleWizard):
-    """A weekly runs-per-week bar; month/year blanked when same as the previous bar."""
+    """One bar of the runs-per-week chart; month/year blanked when same as the previous bar."""
 
     month: str
     year: str
@@ -221,6 +229,7 @@ class AdminStatsResponse(FastAPICompatibleWizard):
     user_leaderboard: list[UserLeaderboardEntry]
     procedures: list[ProcedureStat]
     runs_per_week: list[WeekBar]
+    runs_per_week_granularity: RunsPerWeekGranularity
 
 
 @dataclass

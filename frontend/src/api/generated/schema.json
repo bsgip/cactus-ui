@@ -131,6 +131,9 @@
           },
           "type": "array"
         },
+        "runs_per_week_granularity": {
+          "$ref": "#/$defs/RunsPerWeekGranularity"
+        },
         "total_failed": {
           "type": "integer"
         },
@@ -163,6 +166,7 @@
         "max_run_number",
         "procedures",
         "runs_per_week",
+        "runs_per_week_granularity",
         "total_failed",
         "total_passed",
         "total_run_groups",
@@ -2019,6 +2023,15 @@
       ],
       "type": "object"
     },
+    "RunsPerWeekGranularity": {
+      "description": "Bin size for the whole `runs_per_week` chart - one consistent resolution, chosen by total span.",
+      "enum": [
+        "week",
+        "fortnight",
+        "month"
+      ],
+      "type": "string"
+    },
     "SessionResponse": {
       "description": "Session/global context for the SPA (GET /api/session).",
       "properties": {
@@ -2414,7 +2427,7 @@
       "type": "object"
     },
     "WeekBar": {
-      "description": "A weekly runs-per-week bar; month/year blanked when same as the previous bar.",
+      "description": "One bar of the runs-per-week chart; month/year blanked when same as the previous bar.",
       "properties": {
         "count": {
           "type": "integer"
