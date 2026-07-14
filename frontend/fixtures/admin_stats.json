@@ -10,15 +10,29 @@
     "1.0": 2
   },
   "user_leaderboard": [
-    { "name": "Alice Example", "run_count": 20 },
-    { "name": "Bob Test", "run_count": 15 },
-    { "name": "Charlie Dev", "run_count": 8 },
-    { "name": "Diana QA", "run_count": 4 }
+    {
+      "name": "Alice Example",
+      "run_count": 20
+    },
+    {
+      "name": "Bob Test",
+      "run_count": 15
+    },
+    {
+      "name": "Charlie Dev",
+      "run_count": 8
+    },
+    {
+      "name": "Diana QA",
+      "run_count": 4
+    }
   ],
   "procedures": [
     {
       "test_procedure_id": "S-ALL-01",
-      "classes": ["DER-A"],
+      "classes": [
+        "DER-A"
+      ],
       "total_runs": 15,
       "passed": 10,
       "failed": 5,
@@ -27,7 +41,10 @@
     },
     {
       "test_procedure_id": "S-ALL-02",
-      "classes": ["DER-A", "DER-G"],
+      "classes": [
+        "DER-A",
+        "DER-G"
+      ],
       "total_runs": 12,
       "passed": 8,
       "failed": 4,
@@ -45,7 +62,9 @@
     },
     {
       "test_procedure_id": "C-PV-01",
-      "classes": ["DER-G"],
+      "classes": [
+        "DER-G"
+      ],
       "total_runs": 5,
       "passed": 2,
       "failed": 3,
@@ -54,7 +73,9 @@
     },
     {
       "test_procedure_id": "C-BESS-01",
-      "classes": ["DER-A"],
+      "classes": [
+        "DER-A"
+      ],
       "total_runs": 3,
       "passed": 2,
       "failed": 1,
@@ -63,13 +84,161 @@
     }
   ],
   "runs_per_week": [
-    { "month": "Jan", "year": "2026", "count": 3 },
-    { "month": "", "year": "", "count": 5 },
-    { "month": "", "year": "", "count": 2 },
-    { "month": "", "year": "", "count": 7 },
-    { "month": "Feb", "year": "2026", "count": 4 },
-    { "month": "", "year": "", "count": 6 },
-    { "month": "", "year": "", "count": 8 },
-    { "month": "", "year": "", "count": 5 }
-  ]
+    {
+      "month": "Jan",
+      "year": "2025",
+      "count": 8
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 240
+    },
+    {
+      "month": "Feb",
+      "year": "",
+      "count": 220
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 426
+    },
+    {
+      "month": "Mar",
+      "year": "",
+      "count": 415
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 246
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 433
+    },
+    {
+      "month": "Apr",
+      "year": "",
+      "count": 712
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 695
+    },
+    {
+      "month": "May",
+      "year": "",
+      "count": 835
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 841
+    },
+    {
+      "month": "Jun",
+      "year": "",
+      "count": 946
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 719
+    },
+    {
+      "month": "Jul",
+      "year": "",
+      "count": 1085
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 976
+    },
+    {
+      "month": "Aug",
+      "year": "",
+      "count": 1097
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 974
+    },
+    {
+      "month": "Sep",
+      "year": "",
+      "count": 1178
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 1354
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 1212
+    },
+    {
+      "month": "Oct",
+      "year": "",
+      "count": 1624
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 1431
+    },
+    {
+      "month": "Nov",
+      "year": "",
+      "count": 1557
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 1630
+    },
+    {
+      "month": "Dec",
+      "year": "",
+      "count": 1748
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 735
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 738
+    },
+    {
+      "month": "Jan",
+      "year": "2026",
+      "count": 1739
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 1694
+    },
+    {
+      "month": "Feb",
+      "year": "",
+      "count": 1840
+    },
+    {
+      "month": "",
+      "year": "",
+      "count": 2029
+    }
+  ],
+  "runs_per_week_granularity": "fortnight"
 }
