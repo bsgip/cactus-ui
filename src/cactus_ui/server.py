@@ -262,8 +262,10 @@ def _week_bar_from_bucket(
     total_count = sum(count for _, _, count in bucket_entries)
     label_dt = bucket_entries[0][0]
     if label_dt is not None:
-        month_key, month_display, year_display = label_dt.strftime("%b %Y"), label_dt.strftime("%b"), label_dt.strftime(
-            "%Y"
+        month_key, month_display, year_display = (
+            label_dt.strftime("%b %Y"),
+            label_dt.strftime("%b"),
+            label_dt.strftime("%Y"),
         )
     else:
         month_key = month_display = bucket_entries[0][1]
