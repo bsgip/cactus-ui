@@ -8,6 +8,10 @@
  *   (cd frontend && npm run generate:types)           # schema.json -> this file
  */
 
+/**
+ * The `runs_per_week` history is binned by week/fortnight/month to avoid squish
+ */
+export type RunsPerWeekGranularity = 'week' | 'fortnight' | 'month';
 export type ClientInteractionType =
   | 'Runner Started'
   | 'Test Procedure Initialised'
@@ -213,6 +217,7 @@ export interface AdminStatsResponse {
   max_run_number: number;
   procedures: ProcedureStat[];
   runs_per_week: WeekBar[];
+  runs_per_week_granularity: RunsPerWeekGranularity;
   total_failed: number;
   total_passed: number;
   total_run_groups: number;
@@ -233,7 +238,7 @@ export interface ProcedureStat {
   total_runs: number;
 }
 /**
- * A weekly runs-per-week bar; month/year blanked when same as the previous bar.
+ * One bar of the runs-per-week chart; month/year blanked when same as the previous bar.
  */
 export interface WeekBar {
   count: number;
