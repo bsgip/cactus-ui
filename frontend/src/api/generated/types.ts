@@ -9,8 +9,7 @@
  */
 
 /**
- * The whole `runs_per_week` history is binned at one consistent granularity, chosen
- * from the total span of data - never a mix of resolutions in the same chart.
+ * Bin size for the whole `runs_per_week` chart - one consistent resolution, chosen by total span.
  */
 export type RunsPerWeekGranularity = 'week' | 'fortnight' | 'month';
 export type ClientInteractionType =
