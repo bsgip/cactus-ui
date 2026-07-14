@@ -4,7 +4,7 @@ import { AdminPage } from './pages/AdminPage';
 import { AdminStatsPage } from './pages/AdminStats/AdminStatsPage';
 import { AdminCompliancePage } from './pages/AdminCompliancePage';
 import { CompliancePage } from './pages/CompliancePage';
-import { ComplianceRequestPage } from './pages/Compliance/ComplianceRequestPage';
+import { ComplianceRequestPage } from './pages/ComplianceRequestPage';
 import { ConfigPage } from './pages/Config/ConfigPage';
 import { HomePage } from './pages/HomePage';
 import { ProceduresPage } from './pages/ProceduresPage';
@@ -34,7 +34,7 @@ export const routes: RouteObject[] = [
       { path: 'playlists', element: <PlaylistsRedirect /> },
       { path: 'group/:runGroupId/playlists', element: <PlaylistsPage /> },
       { path: 'config', element: <ConfigPage /> },
-      { path: 'compliance', element: <CompliancePage isAdminView={false} /> },
+      { path: 'compliance', element: <CompliancePage /> },
       { path: 'compliance-request', element: <ComplianceRequestPage isAdminView={false} /> },
       { path: 'admin', element: <AdminPage /> },
       { path: 'admin/stats', element: <AdminStatsPage /> },

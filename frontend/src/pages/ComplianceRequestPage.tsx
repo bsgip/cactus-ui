@@ -18,6 +18,7 @@ import { IconAlertTriangle } from '@tabler/icons-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+
 import {
   createComplianceRequest,
   fetchComplianceFormData,
@@ -25,16 +26,16 @@ import {
   updateComplianceRequest,
   adminUpdateComplianceRequest,
   type ComplianceRequestPayload,
-} from '../../api/compliance';
+} from '../api/compliance';
 import type {
   ComplianceFormDataResponse,
   ComplianceRequestResponse,
   RunResponse,
-} from '../../api/types';
-import { ErrorAlert } from '../../components/ErrorAlert';
-import { PageSpinner } from '../../components/PageSpinner';
-import { useConfirm } from '../../components/useConfirm';
-import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+} from '../api/types';
+import { ErrorAlert } from '../components/ErrorAlert';
+import { PageSpinner } from '../components/PageSpinner';
+import { useConfirm } from '../components/useConfirm';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 type Mode = 'new' | 'edit' | 'view';
 

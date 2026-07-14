@@ -106,11 +106,11 @@ export const handlers = [
   http.get('/api/compliance/requests/:complianceRequestId', () => HttpResponse.json({ requests: [] })),
   http.get('/api/compliance/form-data', () =>
     HttpResponse.json({
-      csipaus_versions: [],
-      compliance_classes: [],
-      tests_by_version_and_class: {},
-      completed_test_procedures: [],
-      successful_runs: [],
+      csipaus_versions: ["1.2", "1.3"],
+      compliance_classes: ["A", "DER-A"],
+      tests_by_version_and_class: {"1.2":{"A": ["ALL-01"]}},
+      completed_test_procedures: ["ALL-01"],
+      successful_runs: [procedureRunsFixture.items[0], procedureRunsFixture.items[1]],
     })
   ),
   // TODO
