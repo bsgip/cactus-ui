@@ -26,7 +26,7 @@ import RunSelectionStep from '../components/RunSelectionStep';
 import { Mode, FormState } from '../utils/complianceRequestWizard';
 import DerDetailsStep from '../components/DerDetailsStep';
 import SoftwareClientDetailsStep from '../components/SoftwareClientDetailsStep';
-import Wizard from '../components/Wizard';
+import ComplianceRequestWizard from '../components/ComplianceRequestWizard';
 
 
 const STEP_TITLES = ['Compliance Details', 'Run Selection', 'DER Details', 'Software Client Details'];
@@ -235,7 +235,7 @@ export function ComplianceRequestPage({ isAdminView }: { isAdminView: boolean })
 
       {actionError && <ErrorAlert message={actionError} />}
 
-      <Wizard
+      <ComplianceRequestWizard
         step={step}
         setStep={setStep}
         stepTitles={STEP_TITLES}
