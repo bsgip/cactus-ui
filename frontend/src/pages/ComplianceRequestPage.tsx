@@ -2,18 +2,14 @@ import {
   Button,
   Flex,
   Heading,
-  Tabs,
 } from '@radix-ui/themes';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import {
-  createComplianceRequest,
   fetchComplianceFormData,
   fetchComplianceRequest,
-  updateComplianceRequest,
-  adminUpdateComplianceRequest,
   type ComplianceRequestPayload,
 } from '../api/compliance';
 import type {
@@ -30,6 +26,7 @@ import RunSelectionStep from '../components/RunSelectionStep';
 import { Mode, FormState } from '../utils/complianceRequestWizard';
 import DerDetailsStep from '../components/DerDetailsStep';
 import SoftwareClientDetailsStep from '../components/SoftwareClientDetailsStep';
+import Wizard from '../components/Wizard';
 
 
 const STEP_TITLES = ['Compliance Details', 'Run Selection', 'DER Details', 'Software Client Details'];
@@ -170,29 +167,8 @@ export function ComplianceRequestPage({ isAdminView }: { isAdminView: boolean })
     onsite_hardware_details: form.onsite_hardware_details,
   });
 
-  const onError = (err: Error) => setActionError(err.message);
   const goToList = () => navigate(listPath);
 
-  const createMutation = useMutationSafe(
-    () => createComplianceRequest(buildPayload()),
-    goToList,
-    onError
-  );
-  const updateMutation = useMutationSafe(
-    () => updateComplianceRequest(requestId as number, buildPayload()),
-    goToList,
-    onError
-  );
-  const adminSaveMutation = useMutationSafe(
-    () => adminUpdateComplianceRequest(requestId as number, 'under_review', buildPayload()),
-    goToList,
-    onError
-  );
-  const adminPushBackMutation = useMutationSafe(
-    () => adminUpdateComplianceRequest(requestId as number, 'pushed_back', buildPayload()),
-    goToList,
-    onError
-  );
 
   const handleClose = () => {
     if (readOnly) {
@@ -218,8 +194,32 @@ export function ComplianceRequestPage({ isAdminView }: { isAdminView: boolean })
     );
   }
 
-  const isLastStep = step === STEP_TITLES.length - 1;
-  const submitDisabled = !form.witnessed_at || activeClasses.length === 0;
+
+  const wizardSteps = [
+          <StandardStep
+            form={form}
+            mode={mode}
+            readOnly={readOnly}
+            versions={formData.csipaus_versions}
+            update={update}
+          />,
+          <RunSelectionStep
+            form={form}
+            readOnly={readOnly}
+            formData={formData}
+            classesForVersion={classesForVersion}
+            visibleProcedures={visibleProcedures}
+            runsByProcedure={runsByProcedure}
+            missingByClass={missingByClass}
+            missingCount={missingCount}
+            toggleClass={toggleClass}
+            setAllClasses={setAllClasses}
+            update={update}
+            isAdminView={isAdminView}
+          />,
+          <DerDetailsStep form={form} readOnly={readOnly} update={update} />,
+          <SoftwareClientDetailsStep form={form} readOnly={readOnly} update={update} />
+  ]
 
   return (
     <Flex direction="column" gap="4">
@@ -235,120 +235,25 @@ export function ComplianceRequestPage({ isAdminView }: { isAdminView: boolean })
 
       {actionError && <ErrorAlert message={actionError} />}
 
-      <Tabs.Root value={String(step)} onValueChange={(v) => setStep(Number(v))}>
-        <Tabs.List>
-          {STEP_TITLES.map((title, i) => (
-            <Tabs.Trigger key={title} value={String(i)}>
-              {i + 1}. {title}
-            </Tabs.Trigger>
-          ))}
-        </Tabs.List>
+      <Wizard
+        step={step}
+        setStep={setStep}
+        stepTitles={STEP_TITLES}
+        steps={wizardSteps}
+        form={form}
+        activeClasses={activeClasses}
+        isAdminView={isAdminView}
+        mode={mode}
+        setActionError={setActionError}
+        buildPayload={buildPayload}
+        requestId={requestId}
+      />
 
-        <Tabs.Content value="0">
-          <StandardStep
-            form={form}
-            mode={mode}
-            readOnly={readOnly}
-            versions={formData.csipaus_versions}
-            update={update}
-          />
-        </Tabs.Content>
-
-        <Tabs.Content value="1">
-          <RunSelectionStep
-            form={form}
-            readOnly={readOnly}
-            formData={formData}
-            classesForVersion={classesForVersion}
-            visibleProcedures={visibleProcedures}
-            runsByProcedure={runsByProcedure}
-            missingByClass={missingByClass}
-            missingCount={missingCount}
-            toggleClass={toggleClass}
-            setAllClasses={setAllClasses}
-            update={update}
-            isAdminView={isAdminView}
-          />
-        </Tabs.Content>
-
-        <Tabs.Content value="2">
-          <DerDetailsStep form={form} readOnly={readOnly} update={update} />
-        </Tabs.Content>
-
-        <Tabs.Content value="3">
-          <SoftwareClientDetailsStep form={form} readOnly={readOnly} update={update} />
-        </Tabs.Content>
-      </Tabs.Root>
-
-      <Flex justify="end" gap="2" wrap="wrap">
-        {step > 0 && (
-          <Button variant="soft" color="gray" onClick={() => setStep(step - 1)}>
-            Back
-          </Button>
-        )}
-        {!isLastStep && <Button onClick={() => setStep(step + 1)}>Next</Button>}
-
-        {isLastStep && !isAdminView && mode === 'new' && (
-          <Button
-            disabled={submitDisabled}
-            loading={createMutation.isPending}
-            onClick={() => createMutation.mutate()}
-          >
-            Submit
-          </Button>
-        )}
-        {isLastStep && !isAdminView && mode === 'edit' && (
-          <Button
-            disabled={submitDisabled}
-            loading={updateMutation.isPending}
-            onClick={() => updateMutation.mutate()}
-          >
-            Update
-          </Button>
-        )}
-        {isLastStep && isAdminView && mode === 'edit' && (
-          <>
-            <Button
-              variant="soft"
-              loading={adminSaveMutation.isPending}
-              onClick={() => adminSaveMutation.mutate()}
-            >
-              Save &amp; Exit
-            </Button>
-            <Button
-              color="orange"
-              loading={adminPushBackMutation.isPending}
-              onClick={() => adminPushBackMutation.mutate()}
-            >
-              Push Back
-            </Button>
-            <form
-              method="POST"
-              action={`/admin/compliance/requests/${requestId}/finalise`}
-              target="complianceFinaliseFrame"
-              onSubmit={() => setTimeout(goToList, 500)}
-              style={{ display: 'inline' }}
-            >
-              <Button type="submit" color="green">
-                Finalise
-              </Button>
-            </form>
-          </>
-        )}
-      </Flex>
       <iframe name="complianceFinaliseFrame" title="finalise" style={{ display: 'none' }} />
     </Flex>
   );
 }
 
-// useMutation wrapper that keeps the call sites terse (this page fires several near-identical mutations).
-function useMutationSafe(
-  fn: () => Promise<unknown>,
-  onSuccess: () => void,
-  onError: (e: Error) => void
-) {
-  return useMutation({ mutationFn: fn, onSuccess, onError });
-}
 
 function buildInitialForm(
   formData: ComplianceFormDataResponse,
