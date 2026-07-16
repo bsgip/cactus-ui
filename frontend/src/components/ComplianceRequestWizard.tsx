@@ -1,7 +1,7 @@
-
 import type { ReactNode } from 'react';
 import Wizard from './Wizard';
-import WizardPager from './WizardPager';
+import {ClientWizardPager, AdminWizardPager} from './ComplianceRequestWizardPager';
+import { useNavigate } from 'react-router-dom';
 
 interface ComplianceRequestWizardProps {
   step: number;
@@ -19,17 +19,31 @@ interface ComplianceRequestWizardProps {
 
 function ComplianceRequestWizard({ step, setStep, stepTitles, steps, form, activeClasses, isAdminView, mode, setActionError, buildPayload, requestId }: ComplianceRequestWizardProps) {
 
-  const wizardPager = <WizardPager
+  const onError = (err: Error) => setActionError(err.message);
+  const navigate = useNavigate();
+
+  const wizardPager = isAdminView ?
+    <AdminWizardPager
+        step={step}
+        stepCount={stepTitles.length}
+        setStep={setStep}
+        mode={mode}
+        buildPayload={buildPayload}
+        requestId={requestId}
+        gotoComplianceRequests={() => navigate('/admin/compliance')}
+        onError={onError}
+      /> :
+     <ClientWizardPager
         step={step}
         stepCount={stepTitles.length}
         form={form}
         activeClasses={activeClasses}
         setStep={setStep}
-        isAdminView={isAdminView}
         mode={mode}
-        setActionError={setActionError}
         buildPayload={buildPayload}
         requestId={requestId}
+        gotoComplianceRequests={() => navigate('/compliance')}
+        onError={onError}
       />
 
   return (
