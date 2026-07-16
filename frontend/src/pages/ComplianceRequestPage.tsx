@@ -23,31 +23,14 @@ import { useConfirm } from '../components/useConfirm';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import StandardStep from '../components/StandardStep';
 import RunSelectionStep from '../components/RunSelectionStep';
-import { Mode, FormState } from '../utils/complianceRequestWizard';
+import { Mode, FormState, emptyForm } from '../utils/complianceRequestWizard';
 import DerDetailsStep from '../components/DerDetailsStep';
 import SoftwareClientDetailsStep from '../components/SoftwareClientDetailsStep';
 import ComplianceRequestWizard from '../components/ComplianceRequestWizard';
 
 
-const STEP_TITLES = ['Compliance Details', 'Run Selection', 'DER Details', 'Software Client Details'];
 
 
-function emptyForm(): FormState {
-  return {
-    csip_aus_version: '',
-    witnessed_at: '',
-    classes: new Set(),
-    runByProcedure: {},
-    der_brand: '',
-    der_oem: '',
-    der_series: '',
-    der_representative_models: '',
-    software_client_type: 'direct',
-    software_client_providers: '',
-    software_client_versions: '',
-    onsite_hardware_details: '',
-  };
-}
 
 // Runs grouped by their test procedure, for the per-procedure run selectors.
 function groupRuns(runs: RunResponse[]): Record<string, RunResponse[]> {
@@ -87,7 +70,6 @@ export function ComplianceRequestPage({ isAdminView }: { isAdminView: boolean })
   });
   const prefillRequest = stateRequest ?? prefillQuery.data;
 
-  const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [actionError, setActionError] = useState<string | null>(null);
   const initialised = useRef(false);
@@ -236,9 +218,6 @@ export function ComplianceRequestPage({ isAdminView }: { isAdminView: boolean })
       {actionError && <ErrorAlert message={actionError} />}
 
       <ComplianceRequestWizard
-        step={step}
-        setStep={setStep}
-        stepTitles={STEP_TITLES}
         steps={wizardSteps}
         form={form}
         activeClasses={activeClasses}

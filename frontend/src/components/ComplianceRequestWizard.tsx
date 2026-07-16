@@ -2,11 +2,9 @@ import type { ReactNode } from 'react';
 import Wizard from './Wizard';
 import {ClientWizardPager, AdminWizardPager} from './ComplianceRequestWizardPager';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 
 interface ComplianceRequestWizardProps {
-  step: number;
-  setStep: any;
-  stepTitles: string[];
   steps: ReactNode[];
   form: any;
   activeClasses: any;
@@ -17,7 +15,11 @@ interface ComplianceRequestWizardProps {
   requestId: number | null;
 }
 
-function ComplianceRequestWizard({ step, setStep, stepTitles, steps, form, activeClasses, isAdminView, mode, setActionError, buildPayload, requestId }: ComplianceRequestWizardProps) {
+function ComplianceRequestWizard({ steps, form, activeClasses, isAdminView, mode, setActionError, buildPayload, requestId }: ComplianceRequestWizardProps) {
+
+  const [step, setStep] = useState(0);
+  const stepTitles = ['Compliance Details', 'Run Selection', 'DER Details', 'Software Client Details'];
+
 
   const onError = (err: Error) => setActionError(err.message);
   const navigate = useNavigate();
