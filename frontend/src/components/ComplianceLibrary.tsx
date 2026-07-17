@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 import type { ComplianceClass } from '../api/types';
 import { CategoryAccordion } from './CategoryAccordion';
 import { ComplianceFilter } from './ComplianceFilter';
+import { InfoPopover } from './InfoPopover';
 import { ModalButton } from './ModalButton';
 import styles from './complianceLibrary.module.css';
 
@@ -109,7 +110,26 @@ export function ComplianceLibrary({
 
       <div>
         {categories.map(([category, items]) => (
-          <CategoryAccordion key={category} title={category} count={items.length}>
+          <CategoryAccordion
+            key={category}
+            title={
+              category.toLowerCase() === 'provisional' ? (
+                <Flex gap="1" align="center">
+                  <span>{category}</span>
+                  <span onClick={(e) => e.preventDefault()}>
+                    <InfoPopover title="Provisional tests" label="What are provisional tests?">
+                      Provisional tests aren&apos;t required for CSIP-Aus compliance. They&apos;re
+                      drawn from real-world integration issues seen in the field, and we strongly
+                      recommend running them to catch problems before deployment.
+                    </InfoPopover>
+                  </span>
+                </Flex>
+              ) : (
+                category
+              )
+            }
+            count={items.length}
+          >
             <Grid columns={columns} gap="0">
               {items.map((item) => {
                 const selected = selectedIds.has(item.id);

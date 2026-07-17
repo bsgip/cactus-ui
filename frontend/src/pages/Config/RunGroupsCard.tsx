@@ -220,7 +220,10 @@ export function RunGroupsCard({
                 <Table.Cell>
                   {rg.static_uri ? (
                     <Flex align="center" gap="1">
-                      <Code size="1" style={{ wordBreak: 'break-all' }}>
+                      <Code
+                        size="1"
+                        style={{ whiteSpace: 'nowrap', overflowX: 'auto', maxWidth: 380 }}
+                      >
                         {rg.static_uri}
                       </Code>
                       <CopyButton value={rg.static_uri} />

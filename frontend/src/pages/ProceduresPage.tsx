@@ -1,9 +1,10 @@
-import { Heading, Link, Table } from '@radix-ui/themes';
+import { Flex, Heading, Link, Table } from '@radix-ui/themes';
 import { useQuery } from '@tanstack/react-query';
 import { Link as RouterLink } from 'react-router-dom';
 import { fetchProcedures } from '../api/procedures';
 import { Banner } from '../components/Banner';
 import { ErrorAlert } from '../components/ErrorAlert';
+import { InfoPopover } from '../components/InfoPopover';
 import { PageSpinner } from '../components/PageSpinner';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useSession } from '../hooks/useSession';
@@ -54,7 +55,21 @@ export function ProceduresPage() {
                     </Link>
                   </Table.Cell>
                   <Table.Cell>{procedure.description}</Table.Cell>
-                  <Table.Cell>{procedure.category}</Table.Cell>
+                  <Table.Cell>
+                    {procedure.category.toLowerCase() === 'provisional' ? (
+                      <Flex gap="1" align="center">
+                        <span>{procedure.category}</span>
+                        <InfoPopover title="Provisional tests" label="What are provisional tests?">
+                          Provisional tests aren&apos;t required for CSIP-Aus compliance.
+                          They&apos;re drawn from real-world integration issues seen in the field,
+                          and we strongly recommend running them to catch problems before
+                          deployment.
+                        </InfoPopover>
+                      </Flex>
+                    ) : (
+                      procedure.category
+                    )}
+                  </Table.Cell>
                 </Table.Row>
               ))
             )}
