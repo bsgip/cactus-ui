@@ -103,7 +103,11 @@ export const handlers = [
   // ---- Compliance ----
   http.get('/api/compliance/requests', () => HttpResponse.json({requests: complianceRequestsFixture.items})),
   http.get('/api/admin/compliance/requests', () => HttpResponse.json({requests: adminComplianceRequestsFixture.items})),
-  http.get('/api/compliance/requests/:complianceRequestId', () => HttpResponse.json({ requests: [] })),
+  http.get('/api/compliance/requests/:complianceRequestId', ({params}) =>
+  {
+      const result = complianceRequestsFixture.items.filter((r) => `${r.compliance_request_id}` == params.complianceRequestId);
+      return result.length > 0 ? HttpResponse.json(result[0]) : new HttpResponse();
+  }),
   http.get('/api/compliance/form-data', () =>
     HttpResponse.json({
       csipaus_versions: ["1.2", "1.3"],
