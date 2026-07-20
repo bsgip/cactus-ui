@@ -117,9 +117,17 @@ export const handlers = [
       successful_runs: [procedureRunsFixture.items[0], procedureRunsFixture.items[1]],
     })
   ),
+  // The following puts don't modify any data (since there is no db backing this)
+  http.put('/api/compliance/requests/:complianceRequestId', ({ params }) => {
+    const result = complianceRequestsFixture.items.filter((r) => `${r.compliance_request_id}` == params.complianceRequestId);
+    return result.length > 0 ? HttpResponse.json(result[0]) : new HttpResponse();
+  }),
+  http.put('/api/admin/compliance/requests/:complianceRequestId', ({ params }) => {
+    const result = complianceRequestsFixture.items.filter((r) => `${r.compliance_request_id}` == params.complianceRequestId);
+    return result.length > 0 ? HttpResponse.json(result[0]) : new HttpResponse();
+  }),
   // TODO
   // http.post('/api/compliance/requests', ({ params }) => HttpResponse.json({ })),
-  // http.put('/api/compliance/requests/:complianceRequestId', ({ params }) => HttpResponse.json({ })),
   // http.put('/api/admin/compliance/requests/:complianceRequestId', ({ params }) => HttpResponse.json({ })),
   // http.delete('/api/compliance/requests/:complianceRequestId', ({ params }) => HttpResponse.json({ })),
   // http.delete('/api/admin/compliance/requests/:complianceRequestId', ({ params }) => HttpResponse.json({ })),
