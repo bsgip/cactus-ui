@@ -6,7 +6,7 @@ import {
   TextField,
 } from '@radix-ui/themes';
 
-import { FormState } from '../utils/complianceRequestWizard';
+import { FormState } from '../utils/complianceRequestForm';
 import FieldRow from '../components/FieldRow';
 
 function SoftwareClientDetailsStep({

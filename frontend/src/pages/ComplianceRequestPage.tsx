@@ -18,7 +18,7 @@ import { ErrorAlert } from '../components/ErrorAlert';
 import { PageSpinner } from '../components/PageSpinner';
 import { useConfirm } from '../components/useConfirm';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { Mode } from '../utils/complianceRequestWizard';
+import { Mode } from '../utils/complianceRequestForm';
 import ComplianceRequestWizard from '../components/ComplianceRequestWizard';
 
 

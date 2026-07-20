@@ -14,7 +14,7 @@ import {
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useMemo } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { FormState } from '../utils/complianceRequestWizard';
+import { FormState } from '../utils/complianceRequestForm';
 import type {
   ComplianceFormDataResponse,
   RunResponse,

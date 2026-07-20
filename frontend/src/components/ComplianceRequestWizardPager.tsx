@@ -6,7 +6,7 @@ import {
   adminUpdateComplianceRequest,
 } from '../api/compliance';
 import useMutationSafe from '../hooks/useMutationSafe';
-import { FormState } from '../utils/complianceRequestWizard';
+import { FormState } from '../utils/complianceRequestMode';
 import WizardPager from './WizardPager';
 
 interface ClientWizardPagerProps {

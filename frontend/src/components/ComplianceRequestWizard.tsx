@@ -9,7 +9,7 @@ import StandardStep from '../components/StandardStep';
 import RunSelectionStep from '../components/RunSelectionStep';
 import DerDetailsStep from '../components/DerDetailsStep';
 import SoftwareClientDetailsStep from '../components/SoftwareClientDetailsStep';
-import { Mode, FormState, emptyForm, buildInitialForm } from '../utils/complianceRequestWizard';
+import { Mode, FormState, emptyForm, buildInitialForm } from '../utils/complianceRequestForm';
 
 // Runs grouped by their test procedure, for the per-procedure run selectors.
 function groupRuns(runs: RunResponse[]): Record<string, RunResponse[]> {

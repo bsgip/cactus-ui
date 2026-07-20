@@ -8,7 +8,7 @@ import {
 } from '@radix-ui/themes';
 import { IconAlertTriangle } from '@tabler/icons-react';
 
-import { Mode, FormState } from '../utils/complianceRequestWizard';
+import { Mode, FormState } from '../utils/complianceRequestForm';
 
 interface StandardStepProps {
   form: FormState;
