@@ -21,6 +21,16 @@ import adminComplianceRequestsFixture from '../../fixtures/admin_compliance_requ
 
 const session = import.meta.env.VITE_MOCK_ADMIN === 'true' ? sessionAdminFixture : sessionFixture;
 
+// File-producing POST endpoints (cert generation, compliance finalise) — a stub attachment is
+// enough; apiDownload only needs a blob and a Content-Disposition filename.
+const attachmentResponse = (filename: string, contentType: string) => () =>
+  new HttpResponse('stub-file-content', {
+    headers: {
+      'Content-Type': contentType,
+      'Content-Disposition': `attachment; filename=${filename}`,
+    },
+  });
+
 export const handlers = [
   // ---- Session ----
   http.get('/api/session', () => HttpResponse.json(session)),
@@ -29,6 +39,11 @@ export const handlers = [
   http.get('/api/config', () => HttpResponse.json(configFixture)),
   http.post('/api/config/pen', () => HttpResponse.json({})),
   http.post('/api/config/domain', () => HttpResponse.json({})),
+  http.post(
+    '/config/run_group/:runGroupId/cert',
+    attachmentResponse('certificate.zip', 'application/zip')
+  ),
+  http.post('/config/shared_cert', attachmentResponse('certificate.zip', 'application/zip')),
 
   // ---- Run Groups ----
   http.post('/api/run_groups', () =>
@@ -126,6 +141,10 @@ export const handlers = [
     const result = complianceRequestsFixture.items.filter((r) => `${r.compliance_request_id}` == params.complianceRequestId);
     return result.length > 0 ? HttpResponse.json(result[0]) : new HttpResponse();
   }),
+  http.post(
+    '/admin/compliance/requests/:requestId/finalise',
+    attachmentResponse('compliance.pdf', 'application/pdf')
+  ),
   // TODO
   // http.post('/api/compliance/requests', ({ params }) => HttpResponse.json({ })),
   // http.put('/api/admin/compliance/requests/:complianceRequestId', ({ params }) => HttpResponse.json({ })),
@@ -133,7 +152,6 @@ export const handlers = [
   // http.delete('/api/admin/compliance/requests/:complianceRequestId', ({ params }) => HttpResponse.json({ })),
   // http.get('/compliance/requests/:complianceRequestId/artifact', () => HttpResponse.json({ })),
   // http.get('/admin/compliance/requests/:complianceRequestId/artifact', () => HttpResponse.json({ })),
-  // http.post('/admin/compliance/requests/:complianceRequestId/finalise', ({ params }) => HttpResponse.json({ })),
 
 
   // ---- Admin (other) ----

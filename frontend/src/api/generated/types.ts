@@ -8,6 +8,10 @@
  *   (cd frontend && npm run generate:types)           # schema.json -> this file
  */
 
+/**
+ * Bin size for the whole `runs_per_week` chart - one consistent resolution, chosen by total span.
+ */
+export type RunsPerWeekGranularity = 'week' | 'fortnight' | 'month';
 export type ClientInteractionType =
   | 'Runner Started'
   | 'Test Procedure Initialised'
@@ -213,6 +217,7 @@ export interface AdminStatsResponse {
   max_run_number: number;
   procedures: ProcedureStat[];
   runs_per_week: WeekBar[];
+  runs_per_week_granularity: RunsPerWeekGranularity;
   total_failed: number;
   total_passed: number;
   total_run_groups: number;
@@ -233,7 +238,7 @@ export interface ProcedureStat {
   total_runs: number;
 }
 /**
- * A weekly runs-per-week bar; month/year blanked when same as the previous bar.
+ * One bar of the runs-per-week chart; month/year blanked when same as the previous bar.
  */
 export interface WeekBar {
   count: number;
@@ -323,6 +328,7 @@ export interface RunResponse {
   created_at: string;
   finalised_at: string | null;
   has_artifacts: boolean;
+  immediate_start: boolean;
   is_device_cert: boolean;
   playlist_execution_id: string | null;
   playlist_order: number | null;
@@ -581,7 +587,6 @@ export interface RunActionResponse {
  * itself. The remaining fields are things only the BFF knows or computes.
  */
 export interface RunStatusShell {
-  is_immediate_start: boolean;
   playlist_name: string | null;
   playlist_runs: RunResponse[] | null;
   run: RunResponse | null;

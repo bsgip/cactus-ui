@@ -22,8 +22,7 @@ describe('home page (logged in)', () => {
     // Regular users must not see the admin dropdown
     expect(screen.queryByRole('button', { name: 'Admin' })).not.toBeInTheDocument();
 
-    // support_email present in fixture => Need Help section renders
-    expect(screen.getByRole('heading', { name: 'Need Help?' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Help & Resources' })).toBeInTheDocument();
 
     // Footer version link
     expect(screen.getByRole('link', { name: 'v1.6.3' })).toHaveAttribute(

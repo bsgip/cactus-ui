@@ -7,6 +7,7 @@ import { CompliancePage } from './pages/CompliancePage';
 import { ComplianceRequestPage } from './pages/ComplianceRequestPage';
 import { ConfigPage } from './pages/Config/ConfigPage';
 import { HomePage } from './pages/HomePage';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { ProceduresPage } from './pages/ProceduresPage';
 import { PlaylistsPage } from './pages/Playlists/PlaylistsPage';
 import { PlaylistsRedirect } from './pages/Playlists/PlaylistsRedirect';
@@ -40,6 +41,7 @@ export const routes: RouteObject[] = [
       { path: 'admin/stats', element: <AdminStatsPage /> },
       { path: 'admin/compliance', element: <AdminCompliancePage /> },
       { path: 'admin/compliance-request', element: <ComplianceRequestPage isAdminView={true} /> },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ];

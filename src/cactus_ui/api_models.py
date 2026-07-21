@@ -197,9 +197,17 @@ class ProcedureStat(FastAPICompatibleWizard):
     latest_failed: int
 
 
+class RunsPerWeekGranularity(StrEnum):
+    """Bin size for the whole `runs_per_week` chart - one consistent resolution, chosen by total span."""
+
+    week = auto()
+    fortnight = auto()
+    month = auto()
+
+
 @dataclass
 class WeekBar(FastAPICompatibleWizard):
-    """A weekly runs-per-week bar; month/year blanked when same as the previous bar."""
+    """One bar of the runs-per-week chart; month/year blanked when same as the previous bar."""
 
     month: str
     year: str
@@ -221,6 +229,7 @@ class AdminStatsResponse(FastAPICompatibleWizard):
     user_leaderboard: list[UserLeaderboardEntry]
     procedures: list[ProcedureStat]
     runs_per_week: list[WeekBar]
+    runs_per_week_granularity: RunsPerWeekGranularity
 
 
 @dataclass
@@ -274,8 +283,5 @@ class RunStatusShell(FastAPICompatibleWizard):
 
     run: RunResponse | None  # the run, forwarded as-is
     run_is_live: bool  # derived: a runner status exists, or status is provisioning/started
-    # DEBT: this duplicates RunResponse.immediate_start, which exists upstream but not in the
-    # pinned cactus-schema. Drop this field and read `run.immediate_start` after the next bump.
-    is_immediate_start: bool
     playlist_name: str | None  # playlist display name (from the Flask session; not on any run)
     playlist_runs: list[RunResponse] | None  # all runs in the playlist, fetched and joined

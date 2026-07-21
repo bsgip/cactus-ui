@@ -45,6 +45,7 @@ from cactus_ui.api_models import (
     ProcedureStat,
     ProcedureYamlResponse,
     RunActionResponse,
+    RunsPerWeekGranularity,
     RunStatusShell,
     SessionResponse,
     UserConfig,
@@ -79,35 +80,10 @@ else:
 
 logger = logging.getLogger(__name__)
 
-# Test procedures with `immediate_start: true` - these have no init phase and so no meaningful
-# active-power timeline, so the run status page hides the Active Power Chart for them.
-# INTERIM: hardcoded mirror of the cactus-test-definitions client procedures (same hardcoded
-# pattern as presenters._WITNESS_CLASSES). The clean fix is an additive `immediate_start` field
-# on the orchestrator's RunResponse; swap is_immediate_start() to read that when it lands.
-_IMMEDIATE_START_PROCEDURE_IDS = frozenset(
-    {
-        "ALL-01",
-        "ALL-02",
-        "ALL-03",
-        "ALL-03-REJ",
-        "ALL-04",
-        "ALL-05",
-        "ALL-06",
-        "ALL-09",
-        "ALL-14",
-        "DRA-01",
-        "MUL-03",
-        "STO-02",
-    }
-)
 # RunStatusResponse enum values used by RunResponse.status
 _ACTIVE_RUN_STATUSES = frozenset(
     {schema.RunStatusResponse.initialised, schema.RunStatusResponse.started, schema.RunStatusResponse.provisioning}
 )
-
-
-def is_immediate_start(run_response: schema.RunResponse | None) -> bool:
-    return bool(run_response and run_response.test_procedure_id in _IMMEDIATE_START_PROCEDURE_IDS)
 
 
 ENV_FILE = find_dotenv()
@@ -212,6 +188,93 @@ def api_session() -> Response | tuple[Response, int]:
     )
 
 
+# One consistent granularity for the whole chart (never mixed) keeps bar width and label
+# spacing uniform; re-binning coarser as history grows keeps the bar count bounded.
+_WEEKLY_MAX_SPAN_WEEKS = 52
+_FORTNIGHTLY_MAX_SPAN_WEEKS = 130
+
+_WeekEntry = tuple[datetime | None, str, int]
+
+
+def _parse_week_entries(runs_per_week: dict[str, int]) -> list[_WeekEntry]:
+    entries: list[_WeekEntry] = []
+    for week_str, count in sorted(runs_per_week.items()):
+        try:
+            yr_s, wk_s = week_str.split("-W")
+            dt = datetime.strptime(f"{yr_s}-W{int(wk_s):02d}-1", "%G-W%V-%u")
+        except (ValueError, AttributeError):
+            dt = None
+        entries.append((dt, week_str, count))
+    return entries
+
+
+def _chart_granularity(entries: list[_WeekEntry]) -> RunsPerWeekGranularity:
+    dated = [dt for dt, _, _ in entries if dt is not None]
+    if not dated:
+        return RunsPerWeekGranularity.week
+    span_weeks = (max(dated) - min(dated)).days // 7
+    if span_weeks <= _WEEKLY_MAX_SPAN_WEEKS:
+        return RunsPerWeekGranularity.week
+    if span_weeks <= _FORTNIGHTLY_MAX_SPAN_WEEKS:
+        return RunsPerWeekGranularity.fortnight
+    return RunsPerWeekGranularity.month
+
+
+def _bucket_key(dt: datetime | None, week_str: str, granularity: RunsPerWeekGranularity) -> tuple:
+    if dt is None:
+        return ("raw", week_str)
+    if granularity == RunsPerWeekGranularity.week:
+        return ("week", week_str)
+    if granularity == RunsPerWeekGranularity.fortnight:
+        iso = dt.isocalendar()
+        return ("fortnight", iso.year, iso.week // 2)
+    return ("month", dt.year, dt.month)
+
+
+def _week_bar_from_bucket(
+    bucket_entries: list[_WeekEntry], last_month_key: str | None, last_year: str | None
+) -> tuple[WeekBar, str, str]:
+    total_count = sum(count for _, _, count in bucket_entries)
+    label_dt = bucket_entries[0][0]
+    if label_dt is not None:
+        month_key, month_display, year_display = (
+            label_dt.strftime("%b %Y"),
+            label_dt.strftime("%b"),
+            label_dt.strftime("%Y"),
+        )
+    else:
+        month_key = month_display = bucket_entries[0][1]
+        year_display = ""
+    bar = WeekBar(
+        month=month_display if month_key != last_month_key else "",
+        year=year_display if year_display != last_year else "",
+        count=total_count,
+    )
+    return bar, month_key, year_display
+
+
+def _bucket_runs_per_week(runs_per_week: dict[str, int]) -> tuple[list[WeekBar], RunsPerWeekGranularity]:
+    entries = _parse_week_entries(runs_per_week)
+    granularity = _chart_granularity(entries)
+
+    buckets: dict[tuple, list[_WeekEntry]] = {}
+    bucket_order: list[tuple] = []
+    for dt, week_str, count in entries:
+        key = _bucket_key(dt, week_str, granularity)
+        if key not in buckets:
+            buckets[key] = []
+            bucket_order.append(key)
+        buckets[key].append((dt, week_str, count))
+
+    week_bars: list[WeekBar] = []
+    last_month_key: str | None = None
+    last_year: str | None = None
+    for key in bucket_order:
+        bar, last_month_key, last_year = _week_bar_from_bucket(buckets[key], last_month_key, last_year)
+        week_bars.append(bar)
+    return week_bars, granularity
+
+
 @app.route("/api/admin/stats", methods=["GET"])
 @api_login_required
 @api_admin_role_required
@@ -225,29 +288,7 @@ def api_admin_stats(access_token: str) -> Response | tuple[Response, int]:
         for name, count in sorted(stats.runs_per_user.items(), key=lambda x: x[1], reverse=True)
     ]
 
-    week_bars: list[WeekBar] = []
-    last_month: str | None = None
-    last_year: str | None = None
-    for week_str, count in sorted(stats.runs_per_week.items()):
-        try:
-            yr_s, wk_s = week_str.split("-W")
-            dt = datetime.strptime(f"{yr_s}-W{int(wk_s):02d}-1", "%G-W%V-%u")
-            month_key = dt.strftime("%b %Y")
-            month_display = dt.strftime("%b")
-            year_display = dt.strftime("%Y")
-        except (ValueError, AttributeError):
-            month_key = week_str
-            month_display = week_str
-            year_display = ""
-        week_bars.append(
-            WeekBar(
-                month=month_display if month_key != last_month else "",
-                year=year_display if year_display != last_year else "",
-                count=count,
-            )
-        )
-        last_month = month_key
-        last_year = year_display
+    week_bars, week_bars_granularity = _bucket_runs_per_week(stats.runs_per_week)
 
     procedures = [
         ProcedureStat.from_dict(p) for p in sorted(stats.procedures, key=lambda p: p.get("total_runs", 0), reverse=True)
@@ -265,6 +306,7 @@ def api_admin_stats(access_token: str) -> Response | tuple[Response, int]:
             user_leaderboard=user_leaderboard,
             procedures=procedures,
             runs_per_week=week_bars,
+            runs_per_week_granularity=week_bars_granularity,
         ).to_dict()
     )
 
@@ -296,9 +338,12 @@ def _parse_video_start(raw: str | None) -> float | None:
 @admin_role_required
 def admin_run_html_report_page(access_token: str, run_id: int) -> str | Response:
     video_start = _parse_video_start(request.args.get("video_start"))
-    html = orchestrator.admin_fetch_run_power_limit_chart(access_token, run_id, video_start_seconds=video_start)
+    html, error_detail = orchestrator.admin_fetch_run_power_limit_chart(
+        access_token, run_id, video_start_seconds=video_start
+    )
     if html is None:
-        return Response(response="Failed to generate HTML report.", status=HTTPStatus.BAD_GATEWAY)
+        message = error_detail or "Failed to generate HTML report."
+        return Response(response=message, status=HTTPStatus.BAD_GATEWAY)
     return Response(html, mimetype="text/html")
 
 
@@ -1039,9 +1084,11 @@ def config_download_run_group_cert(access_token: str, run_group_id: int) -> Resp
         return Response(
             response="Failed to retrieve certificate.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
         )  # noqa: E501
+    # Deliberately NOT application/x-x509-user-cert: Firefox routes that legacy type into its
+    # certificate-install machinery instead of the download path (surfaces as NS_BINDING_ABORTED).
     return send_file(
         io.BytesIO(download_bytes),
-        "application/x-x509-user-cert",
+        "application/x-pem-file",
         True,
         download_name=download_file_name,
     )
@@ -1159,7 +1206,6 @@ def _build_run_status_shell(access_token: str, run_id: str, admin: bool) -> RunS
     return RunStatusShell(
         run=run_response,
         run_is_live=run_is_live,
-        is_immediate_start=is_immediate_start(run_response),
         playlist_name=playlist_name,
         playlist_runs=playlist_runs,
     )

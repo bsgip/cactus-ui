@@ -13,9 +13,6 @@ import { GettingStartedChecklist } from './GettingStartedChecklist';
 import { OrganisationCard } from './OrganisationCard';
 import { RunGroupsCard } from './RunGroupsCard';
 
-// After a cert form submission (which downloads a file via hidden iframe), wait briefly
-// then refetch so the run group list reflects any cert changes.
-const CERT_RELOAD_DELAY_MS = 1500;
 const NOTICE_AUTO_DISMISS_MS = 6000;
 
 export function ConfigPage() {
@@ -53,10 +50,9 @@ export function ConfigPage() {
     if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
     noticeTimeoutRef.current = setTimeout(() => setActionNotice(null), NOTICE_AUTO_DISMISS_MS);
 
-    setTimeout(
-      () => void queryClient.invalidateQueries({ queryKey: ['config'] }),
-      CERT_RELOAD_DELAY_MS
-    );
+    // The cert download has already completed by the time this fires, so the refetched
+    // config reflects the new certificate immediately.
+    void queryClient.invalidateQueries({ queryKey: ['config'] });
   };
 
   return (

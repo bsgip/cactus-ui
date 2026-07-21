@@ -43,7 +43,7 @@ def test_api_run_status_unauthenticated(client):
 
 def test_api_run_status_live_run(client, monkeypatch):
     login(client)
-    run = make_run(status=schema.RunStatusResponse.started, test_procedure_id="ALL-08")
+    run = make_run(status=schema.RunStatusResponse.started, test_procedure_id="ALL-08", immediate_start=False)
     monkeypatch.setattr(server.orchestrator, "fetch_run_status", lambda access_token, run_id: '{"status_summary": "x"}')
     monkeypatch.setattr(server.orchestrator, "fetch_individual_run", lambda access_token, run_id: run)
 
@@ -57,19 +57,18 @@ def test_api_run_status_live_run(client, monkeypatch):
     assert body["run"]["status"] == "started"
     assert body["run"]["test_url"] == run.test_url
     assert body["run"]["test_procedure_id"] == run.test_procedure_id
-    # ALL-08 is not an immediate_start procedure, so the Active Power Chart is shown.
-    assert body["is_immediate_start"] is False
+    assert body["run"]["immediate_start"] is False
     assert body["playlist_name"] is None
     assert body["playlist_runs"] is None
 
 
 def test_api_run_status_immediate_start_procedure(client, monkeypatch):
     login(client)
-    run = make_run(status=schema.RunStatusResponse.finalised, test_procedure_id="ALL-01")
+    run = make_run(status=schema.RunStatusResponse.finalised, test_procedure_id="ALL-01", immediate_start=True)
     monkeypatch.setattr(server.orchestrator, "fetch_run_status", lambda access_token, run_id: None)
     monkeypatch.setattr(server.orchestrator, "fetch_individual_run", lambda access_token, run_id: run)
 
-    assert client.get("/api/run/1").get_json()["is_immediate_start"] is True
+    assert client.get("/api/run/1").get_json()["run"]["immediate_start"] is True
 
 
 def test_api_run_status_not_found(client, monkeypatch):
@@ -83,7 +82,6 @@ def test_api_run_status_not_found(client, monkeypatch):
     body = response.get_json()
     assert body["run_is_live"] is False
     assert body["run"] is None
-    assert body["is_immediate_start"] is False
 
 
 def test_api_run_status_finalised_not_live(client, monkeypatch):

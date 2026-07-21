@@ -105,7 +105,11 @@ export function RunGroupsCard({
 
       {runGroups.length > 0 && (
         <Flex gap="2" align="center" mb="3">
-          <SharedCertButton hasDomain={hasDomain} onCertAction={onCertAction} />
+          <SharedCertButton
+            hasDomain={hasDomain}
+            onCertAction={onCertAction}
+            onCertError={setError}
+          />
         </Flex>
       )}
 
@@ -139,7 +143,12 @@ export function RunGroupsCard({
                 <Table.Cell>
                   <Flex direction="column" gap="2" align="start">
                     <CertStatusBadge runGroup={rg} />
-                    <CertModal runGroup={rg} hasDomain={hasDomain} onCertAction={onCertAction} />
+                    <CertModal
+                      runGroup={rg}
+                      hasDomain={hasDomain}
+                      onCertAction={onCertAction}
+                      onCertError={setError}
+                    />
                   </Flex>
                 </Table.Cell>
                 <Table.Cell>
@@ -211,7 +220,10 @@ export function RunGroupsCard({
                 <Table.Cell>
                   {rg.static_uri ? (
                     <Flex align="center" gap="1">
-                      <Code size="1" style={{ wordBreak: 'break-all' }}>
+                      <Code
+                        size="1"
+                        style={{ whiteSpace: 'nowrap', overflowX: 'auto', maxWidth: 380 }}
+                      >
                         {rg.static_uri}
                       </Code>
                       <CopyButton value={rg.static_uri} />
