@@ -7,7 +7,7 @@ import ActionButton from '../components/ActionButton';
 import DateCell from '../components/DateCell';
 import { deleteComplianceRequest } from '../api/compliance';
 import { ComplianceStatus } from '../utils/complianceStatus';
-import type { ComplianceAction } from '../pages/Compliance/status';
+import { type ComplianceAction } from '../utils/complianceStatus';
 import type { ComplianceRequestResponse } from '../api/types';
 
 
@@ -70,7 +70,7 @@ function ComplianceRequestTable({requests, refresh, setActionError, requestPath,
         return `Unknown status: ${status}`;
     }
   };
-    
+
   function actionsForStatus(status: number): ComplianceAction[] {
     switch (status) {
       case ComplianceStatus.SUBMITTED:

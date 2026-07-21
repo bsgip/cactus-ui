@@ -1,5 +1,5 @@
 import { IconDownload, IconEye, IconPencil, IconTrash } from '@tabler/icons-react';
-import { type ComplianceAction } from '../pages/Compliance/status';
+import { type ComplianceAction } from '../utils/complianceStatus';
 
 import {
   IconButton,

@@ -8,7 +8,7 @@ import ActionButton from '../components/ActionButton';
 import DateCell from '../components/DateCell';
 import { adminUpdateComplianceRequest, deleteComplianceRequest } from '../api/compliance';
 import { ComplianceStatus } from '../utils/complianceStatus';
-import type { ComplianceAction } from '../pages/Compliance/status';
+import { type ComplianceAction } from '../utils/complianceStatus';
 import type { AdminComplianceRequestResponse, ComplianceRequestResponse } from '../api/types';
 
 
@@ -78,7 +78,7 @@ function AdminComplianceRequestTable({requests, filter, refresh, setActionError,
   function hasUser(r: AdminComplianceRequestResponse): boolean {
     return 'created_by_user' in r;
   }
-  
+
   function statusLabel(status: number): string {
     switch (status) {
       case ComplianceStatus.SUBMITTED:
