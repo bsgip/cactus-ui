@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Dispatch, SetStateAction } from 'react';
 
 import {
+  type ComplianceRequestPayload,
   adminUpdateComplianceRequest,
 } from '../api/compliance';
 import useMutationSafe from '../hooks/useMutationSafe';
@@ -11,8 +12,8 @@ interface WizardPagerProps {
   stepCount: number;
   setStep: Dispatch<SetStateAction<number>>;
   mode: string;
-  setActionError: any;
-  buildPayload: any;
+  setActionError: Dispatch<SetStateAction<string | null>>;
+  buildPayload: () => ComplianceRequestPayload;
   requestId: number | null;
 }
 

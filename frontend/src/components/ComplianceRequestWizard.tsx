@@ -1,10 +1,10 @@
 import Wizard from './Wizard';
 import { ClientWizardPager, AdminWizardPager } from './ComplianceRequestWizardPager';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, Dispatch, SetStateAction } from 'react';
 
 import { type ComplianceRequestPayload } from '../api/compliance';
-import type { RunResponse, ComplianceFormDataResponse } from '../api/types';
+import type { RunResponse, ComplianceFormDataResponse, ComplianceRequestResponse } from '../api/types';
 import StandardStep from '../components/StandardStep';
 import RunSelectionStep from '../components/RunSelectionStep';
 import DerDetailsStep from '../components/DerDetailsStep';
@@ -22,9 +22,9 @@ function groupRuns(runs: RunResponse[]): Record<string, RunResponse[]> {
 
 interface ComplianceRequestWizardProps {
   isAdminView: boolean;
-  setActionError: any;
+  setActionError: Dispatch<SetStateAction<string | null>>;
   formData: ComplianceFormDataResponse,
-  prefillRequest: any;
+  prefillRequest: ComplianceRequestResponse | undefined;
 }
 
 function ComplianceRequestWizard({ isAdminView, setActionError, formData, prefillRequest }: ComplianceRequestWizardProps) {

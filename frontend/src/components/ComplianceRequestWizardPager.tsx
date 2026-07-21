@@ -2,6 +2,7 @@ import { Button } from '@radix-ui/themes';
 import { Dispatch, SetStateAction } from 'react';
 
 import {
+  type ComplianceRequestPayload,
   createComplianceRequest,
   updateComplianceRequest,
   adminUpdateComplianceRequest,
@@ -15,13 +16,13 @@ interface ClientWizardPagerProps {
   step: number;
   stepCount: number;
   form: FormState;
-  activeClasses: any;
+  activeClasses: string[];
   setStep: Dispatch<SetStateAction<number>>;
   mode: string;
-  buildPayload: any;
+  buildPayload: () => ComplianceRequestPayload;
   requestId: number | null;
-  gotoComplianceRequests: any;
-  onError: any;
+  gotoComplianceRequests: () => void | Promise<void>;
+  onError: (err: Error) => void;
 }
 
 export function ClientWizardPager({ step, stepCount, form, activeClasses, setStep, mode, buildPayload, requestId, gotoComplianceRequests, onError }: ClientWizardPagerProps) {
@@ -68,10 +69,10 @@ interface AdminWizardPagerProps {
   stepCount: number;
   setStep: Dispatch<SetStateAction<number>>;
   mode: string;
-  buildPayload: any;
+  buildPayload: () => ComplianceRequestPayload;
   requestId: number | null;
-  gotoComplianceRequests: any;
-  onError: any;
+  gotoComplianceRequests: () => void | Promise<void>;
+  onError: (err: Error) => void;
 }
 
 export function AdminWizardPager({ step, stepCount, setStep, mode, buildPayload, requestId, gotoComplianceRequests, onError }: AdminWizardPagerProps) {

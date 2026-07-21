@@ -10,6 +10,7 @@ import { adminUpdateComplianceRequest, deleteComplianceRequest } from '../api/co
 import { ComplianceStatus } from '../utils/complianceStatus';
 import { type ComplianceAction } from '../utils/complianceStatus';
 import type { AdminComplianceRequestResponse, ComplianceRequestResponse } from '../api/types';
+import { type ConfirmOptions } from '../components/useConfirm';
 
 
 interface AdminComplianceRequestTableProps {
@@ -18,7 +19,7 @@ interface AdminComplianceRequestTableProps {
   refresh: () => void;
   setActionError: React.Dispatch<React.SetStateAction<string|null>>;
   requestPath: string;
-  confirm: any;
+  confirm: (opts: ConfirmOptions) => void;
 }
 
 function AdminComplianceRequestTable({requests, filter, refresh, setActionError, requestPath, confirm} : AdminComplianceRequestTableProps) {

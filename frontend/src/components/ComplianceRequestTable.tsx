@@ -8,7 +8,8 @@ import DateCell from '../components/DateCell';
 import { deleteComplianceRequest } from '../api/compliance';
 import { ComplianceStatus } from '../utils/complianceStatus';
 import { type ComplianceAction } from '../utils/complianceStatus';
-import type { ComplianceRequestResponse } from '../api/types';
+import { type ComplianceRequestResponse } from '../api/types';
+import { type ConfirmOptions } from '../components/useConfirm';
 
 
 interface ComplianceRequestTableProps {
@@ -16,7 +17,7 @@ interface ComplianceRequestTableProps {
   refresh: () => void;
   setActionError: React.Dispatch<React.SetStateAction<string|null>>;
   requestPath: string;
-  confirm: any;
+  confirm: (opts: ConfirmOptions) => void;
 }
 
 function ComplianceRequestTable({requests, refresh, setActionError, requestPath, confirm} : ComplianceRequestTableProps) {
