@@ -102,8 +102,6 @@ export function ComplianceRequestPage({ isAdminView }: { isAdminView: boolean })
         formData={formData}
         prefillRequest={prefillRequest}
       />
-
-      <iframe name="complianceFinaliseFrame" title="finalise" style={{ display: 'none' }} />
     </Flex>
   );
 }

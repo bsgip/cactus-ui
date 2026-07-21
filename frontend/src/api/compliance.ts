@@ -80,12 +80,9 @@ export function deleteComplianceRequest(id: number, isAdminView: boolean = false
 }
 
 // Finalising returns the finalised compliance report PDF as a download.
-export function finaliseComplianceRequest(id: number, payload: ComplianceRequestPayload): Promise<void> {
-  console.log(payload);
-  return apiFetch(`/admin/compliance/requests/${id}/finalise`, {
+export function finaliseComplianceRequest(id: number): Promise<void> {
+  return apiDownload(`/admin/compliance/requests/${id}/finalise`, `compliance_request_${id}.pdf`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
   });
 }
 

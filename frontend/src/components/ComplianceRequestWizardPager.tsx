@@ -87,7 +87,7 @@ export function AdminWizardPager({ step, stepCount, setStep, mode, buildPayload,
     onError
   );
   const adminFinaliseMutation = useMutationSafe(
-    () => finaliseComplianceRequest(requestId as number, buildPayload()),
+    () => finaliseComplianceRequest(requestId as number),
     gotoComplianceRequests,
     onError
   );
@@ -104,18 +104,12 @@ export function AdminWizardPager({ step, stepCount, setStep, mode, buildPayload,
             Save &amp; Exit
           </Button>
           <Button
-            color="orange"
+            variant="soft"
             loading={adminPushBackMutation.isPending}
             onClick={() => adminPushBackMutation.mutate()}
           >
             Push Back
           </Button>
-          {/* <form */}
-          {/*   method="POST" */}
-          {/*   action={`/admin/compliance/requests/${requestId}/finalise`} */}
-          {/*   target="complianceFinaliseFrame" */}
-          {/*   onSubmit={() => setTimeout(gotoComplianceRequests, 500)} */}
-          {/*   style={{ display: 'inline' }} */}
           <Button
               color="green"
               loading={adminFinaliseMutation.isPending}
