@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, Dispatch, SetStateAction } from 'react';
 import { Tabs } from '@radix-ui/themes';
 
 
@@ -16,7 +16,7 @@ function WizardStepper({ stepTitles }: { stepTitles: string[] }) {
 
 
 function WizardBody({ steps }: { steps: ReactNode[] }) {
-  let children: ReactNode[] = [];
+  const children: ReactNode[] = [];
   steps.forEach((stepComponent, i) => {
     children.push(
       <Tabs.Content value={'' + i} key={i}>
@@ -33,7 +33,7 @@ function WizardBody({ steps }: { steps: ReactNode[] }) {
 
 interface WizardProps {
   step: number;
-  setStep: any;
+  setStep: Dispatch<SetStateAction<number>>;
   stepTitles: string[];
   steps: ReactNode[];
   wizardPager: ReactNode;

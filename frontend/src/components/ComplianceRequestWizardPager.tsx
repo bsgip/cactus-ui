@@ -1,4 +1,5 @@
 import { Button } from '@radix-ui/themes';
+import { Dispatch, SetStateAction } from 'react';
 
 import {
   createComplianceRequest,
@@ -15,7 +16,7 @@ interface ClientWizardPagerProps {
   stepCount: number;
   form: FormState;
   activeClasses: any;
-  setStep: any;
+  setStep: Dispatch<SetStateAction<number>>;
   mode: string;
   buildPayload: any;
   requestId: number | null;
@@ -65,7 +66,7 @@ export function ClientWizardPager({ step, stepCount, form, activeClasses, setSte
 interface AdminWizardPagerProps {
   step: number;
   stepCount: number;
-  setStep: any;
+  setStep: Dispatch<SetStateAction<number>>;
   mode: string;
   buildPayload: any;
   requestId: number | null;

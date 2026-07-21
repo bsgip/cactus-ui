@@ -1,9 +1,10 @@
 import { Flex, Button } from '@radix-ui/themes';
+import {Dispatch, SetStateAction} from 'react';
 
 interface WizardPagerProps {
   step: number;
   stepCount: number;
-  setStep: any;
+  setStep: Dispatch<SetStateAction<number>>;
   children: React.ReactNode;
 }
 

@@ -1,5 +1,6 @@
 import { Flex, Button } from '@radix-ui/themes';
 import { useNavigate } from 'react-router-dom';
+import { Dispatch, SetStateAction } from 'react';
 
 import {
   adminUpdateComplianceRequest,
@@ -8,7 +9,7 @@ import useMutationSafe from '../hooks/useMutationSafe';
 interface WizardPagerProps {
   step: number;
   stepCount: number;
-  setStep: any;
+  setStep: Dispatch<SetStateAction<number>>;
   mode: string;
   setActionError: any;
   buildPayload: any;
