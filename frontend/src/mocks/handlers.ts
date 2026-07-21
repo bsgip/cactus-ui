@@ -141,10 +141,12 @@ export const handlers = [
     const result = complianceRequestsFixture.items.filter((r) => `${r.compliance_request_id}` == params.complianceRequestId);
     return result.length > 0 ? HttpResponse.json(result[0]) : new HttpResponse();
   }),
-  http.post(
-    '/admin/compliance/requests/:requestId/finalise',
-    attachmentResponse('compliance.pdf', 'application/pdf')
-  ),
+  http.post('/admin/compliance/requests/:requestId/finalise', ({params, request}) => {
+    console.log(params);
+    console.log(request);
+    // return attachmentResponse('compliance.pdf', 'application/pdf')
+    return HttpResponse.json({});
+  }),
   // TODO
   // http.post('/api/compliance/requests', ({ params }) => HttpResponse.json({ })),
   // http.put('/api/admin/compliance/requests/:complianceRequestId', ({ params }) => HttpResponse.json({ })),

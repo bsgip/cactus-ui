@@ -4,9 +4,10 @@ import {
   createComplianceRequest,
   updateComplianceRequest,
   adminUpdateComplianceRequest,
+  finaliseComplianceRequest,
 } from '../api/compliance';
 import useMutationSafe from '../hooks/useMutationSafe';
-import { FormState } from '../utils/complianceRequestMode';
+import { FormState } from '../utils/complianceRequestForm';
 import WizardPager from './WizardPager';
 
 interface ClientWizardPagerProps {
@@ -85,6 +86,11 @@ export function AdminWizardPager({ step, stepCount, setStep, mode, buildPayload,
     gotoComplianceRequests,
     onError
   );
+  const adminFinaliseMutation = useMutationSafe(
+    () => finaliseComplianceRequest(requestId as number, buildPayload()),
+    gotoComplianceRequests,
+    onError
+  );
 
   return (
     <WizardPager step={step} stepCount={stepCount} setStep={setStep}>
@@ -104,17 +110,18 @@ export function AdminWizardPager({ step, stepCount, setStep, mode, buildPayload,
           >
             Push Back
           </Button>
-          <form
-            method="POST"
-            action={`/admin/compliance/requests/${requestId}/finalise`}
-            target="complianceFinaliseFrame"
-            onSubmit={() => setTimeout(gotoComplianceRequests, 500)}
-            style={{ display: 'inline' }}
-          >
-            <Button type="submit" color="green">
-              Finalise
-            </Button>
-          </form>
+          {/* <form */}
+          {/*   method="POST" */}
+          {/*   action={`/admin/compliance/requests/${requestId}/finalise`} */}
+          {/*   target="complianceFinaliseFrame" */}
+          {/*   onSubmit={() => setTimeout(gotoComplianceRequests, 500)} */}
+          {/*   style={{ display: 'inline' }} */}
+          <Button
+              color="green"
+              loading={adminFinaliseMutation.isPending}
+              onClick={() => adminFinaliseMutation.mutate()} >
+            Finalise
+          </Button>
         </>
       )}
     </WizardPager>
