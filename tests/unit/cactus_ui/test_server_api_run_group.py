@@ -5,7 +5,6 @@ import cactus_schema.orchestrator as schema
 import jwt
 import pytest
 from assertical.fake.generator import generate_class_instance
-from cactus_test_definitions.client.test_procedures import TestProcedureId
 
 import cactus_ui.server as server
 
@@ -40,7 +39,7 @@ def make_summary(
 ) -> schema.TestProcedureRunSummaryResponse:
     return generate_class_instance(
         schema.TestProcedureRunSummaryResponse,
-        test_procedure_id=TestProcedureId(test_procedure_id),
+        test_procedure_id=test_procedure_id,
         classes=classes,
         run_count=run_count,
         latest_run_status=latest_run_status,
