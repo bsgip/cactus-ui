@@ -2127,93 +2127,6 @@
       ],
       "type": "object"
     },
-    "TestProcedureId": {
-      "description": "The set of all available test ID's\n\nThis should be kept in sync with the current set of client test procedures loaded from the procedures directory",
-      "enum": [
-        "ALL-01",
-        "ALL-02",
-        "ALL-03",
-        "ALL-03-REJ",
-        "ALL-04",
-        "ALL-05",
-        "ALL-06",
-        "ALL-07",
-        "ALL-08",
-        "ALL-09",
-        "ALL-10",
-        "ALL-11",
-        "ALL-12",
-        "ALL-13",
-        "ALL-14",
-        "ALL-15",
-        "ALL-16",
-        "ALL-17",
-        "ALL-18",
-        "ALL-19",
-        "ALL-20",
-        "ALL-21",
-        "ALL-22",
-        "ALL-23",
-        "ALL-24",
-        "ALL-25",
-        "ALL-25-EXT",
-        "ALL-26",
-        "ALL-27",
-        "ALL-28",
-        "ALL-29",
-        "ALL-30",
-        "DRA-01",
-        "DRA-02",
-        "DRD-01",
-        "DRL-01",
-        "DRG-01",
-        "GEN-01",
-        "GEN-02",
-        "GEN-03",
-        "GEN-04",
-        "GEN-05",
-        "GEN-06",
-        "GEN-07",
-        "GEN-08",
-        "GEN-09",
-        "GEN-10",
-        "GEN-11",
-        "GEN-12",
-        "GEN-13",
-        "LOA-01",
-        "LOA-02",
-        "LOA-03",
-        "LOA-04",
-        "LOA-05",
-        "LOA-06",
-        "LOA-07",
-        "LOA-08",
-        "LOA-09",
-        "LOA-10",
-        "LOA-11",
-        "LOA-12",
-        "LOA-13",
-        "MUL-01",
-        "MUL-02",
-        "MUL-03",
-        "P-01",
-        "P-02",
-        "ALT-ALL-29",
-        "ALT-LOA-13",
-        "STO-01",
-        "STO-02",
-        "STO-03",
-        "STO-04",
-        "STO-05",
-        "STO-06",
-        "PRC-01",
-        "PRC-02",
-        "PRC-03",
-        "PRC-04",
-        "PRC-05"
-      ],
-      "type": "string"
-    },
     "TestProcedureResponse": {
       "properties": {
         "category": {
@@ -2235,7 +2148,7 @@
           "type": "array"
         },
         "test_procedure_id": {
-          "$ref": "#/$defs/TestProcedureId"
+          "type": "string"
         }
       },
       "required": [
@@ -2317,7 +2230,7 @@
           "type": "integer"
         },
         "test_procedure_id": {
-          "$ref": "#/$defs/TestProcedureId"
+          "type": "string"
         }
       },
       "required": [
@@ -2368,6 +2281,28 @@
           },
           "type": "array"
         },
+        "lower_max_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "lower_max_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "now_offset": {
           "type": "string"
         },
@@ -2380,12 +2315,38 @@
               "type": "null"
             }
           ]
+        },
+        "upper_max_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "upper_max_w": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
         "data_streams",
+        "lower_max_label",
+        "lower_max_w",
         "now_offset",
-        "set_max_w"
+        "set_max_w",
+        "upper_max_label",
+        "upper_max_w"
       ],
       "type": "object"
     },
