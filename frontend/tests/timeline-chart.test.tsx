@@ -101,12 +101,28 @@ describe('createChartAnnotations', () => {
     expect(now.value).toBe(42);
     expect(now.label.content).toBe('Now');
     const contents = annotations.map((a) => (a.label as { content: string }).content);
-    expect(contents).toContain('Max: 5000W');
-    expect(contents).toContain('Min: -5000W');
+    expect(contents).toContain('setMaxW: 5000W');
+    expect(contents).toContain('setMaxW: -5000W');
   });
 
   it('omits the max/min lines when set_max_w is null', () => {
     expect(createChartAnnotations({ set_max_w: null } as TimelineStatus, 0)).toHaveLength(1);
+  });
+
+  it('prefers the direction-specific device max and label over set_max_w when present', () => {
+    const annotations = createChartAnnotations(
+      {
+        set_max_w: 5000,
+        upper_max_w: 4000,
+        upper_max_label: 'setMaxDischargeRateW',
+        lower_max_w: 3000,
+        lower_max_label: 'setMaxChargeRateW',
+      } as TimelineStatus,
+      0
+    );
+    const contents = annotations.map((a) => (a.label as { content: string }).content);
+    expect(contents).toContain('setMaxDischargeRateW: 4000W');
+    expect(contents).toContain('setMaxChargeRateW: -3000W');
   });
 });
 

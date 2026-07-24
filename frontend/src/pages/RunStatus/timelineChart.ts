@@ -185,22 +185,41 @@ export function createChartAnnotations(
     },
   ];
 
-  if (timeline?.set_max_w != null) {
-    const maxW = timeline.set_max_w;
-    [maxW, -maxW].forEach((value, idx) => {
-      annotations.push({
-        type: 'line',
-        borderColor: 'black',
-        borderWidth: 3,
-        borderDash: [5, 5],
-        scaleID: 'y',
-        value,
-        label: {
-          display: true,
-          content: idx === 0 ? `Max: ${maxW}W` : `Min: -${maxW}W`,
-          position: 'end',
-        },
-      });
+  // Prefer the direction-specific device max (accounts for asymmetric setMaxDischargeRateW /
+  // setMaxChargeRateW); fall back to the flat setMaxW for older runners that don't send them.
+  const upperMaxW = timeline?.upper_max_w ?? timeline?.set_max_w ?? null;
+  const upperMaxLabel = timeline?.upper_max_w != null ? timeline.upper_max_label : 'setMaxW';
+  const lowerMaxW = timeline?.lower_max_w ?? timeline?.set_max_w ?? null;
+  const lowerMaxLabel = timeline?.lower_max_w != null ? timeline.lower_max_label : 'setMaxW';
+
+  if (upperMaxW != null) {
+    annotations.push({
+      type: 'line',
+      borderColor: 'black',
+      borderWidth: 3,
+      borderDash: [5, 5],
+      scaleID: 'y',
+      value: upperMaxW,
+      label: {
+        display: true,
+        content: `${upperMaxLabel ?? 'Device max'}: ${upperMaxW}W`,
+        position: 'end',
+      },
+    });
+  }
+  if (lowerMaxW != null) {
+    annotations.push({
+      type: 'line',
+      borderColor: 'black',
+      borderWidth: 3,
+      borderDash: [5, 5],
+      scaleID: 'y',
+      value: -lowerMaxW,
+      label: {
+        display: true,
+        content: `${lowerMaxLabel ?? 'Device max'}: -${lowerMaxW}W`,
+        position: 'end',
+      },
     });
   }
 
