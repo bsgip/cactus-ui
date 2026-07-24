@@ -23,93 +23,6 @@ export type ClientInteractionType =
  */
 export type ComplianceStatus = 'active' | 'failed' | 'success' | 'runless' | 'unknown';
 export type RunStatusResponse = 'initialised' | 'started' | 'finalised' | 'provisioning' | 'skipped';
-/**
- * The set of all available test ID's
- *
- * This should be kept in sync with the current set of client test procedures loaded from the procedures directory
- */
-export type TestProcedureId =
-  | 'ALL-01'
-  | 'ALL-02'
-  | 'ALL-03'
-  | 'ALL-03-REJ'
-  | 'ALL-04'
-  | 'ALL-05'
-  | 'ALL-06'
-  | 'ALL-07'
-  | 'ALL-08'
-  | 'ALL-09'
-  | 'ALL-10'
-  | 'ALL-11'
-  | 'ALL-12'
-  | 'ALL-13'
-  | 'ALL-14'
-  | 'ALL-15'
-  | 'ALL-16'
-  | 'ALL-17'
-  | 'ALL-18'
-  | 'ALL-19'
-  | 'ALL-20'
-  | 'ALL-21'
-  | 'ALL-22'
-  | 'ALL-23'
-  | 'ALL-24'
-  | 'ALL-25'
-  | 'ALL-25-EXT'
-  | 'ALL-26'
-  | 'ALL-27'
-  | 'ALL-28'
-  | 'ALL-29'
-  | 'ALL-30'
-  | 'DRA-01'
-  | 'DRA-02'
-  | 'DRD-01'
-  | 'DRL-01'
-  | 'DRG-01'
-  | 'GEN-01'
-  | 'GEN-02'
-  | 'GEN-03'
-  | 'GEN-04'
-  | 'GEN-05'
-  | 'GEN-06'
-  | 'GEN-07'
-  | 'GEN-08'
-  | 'GEN-09'
-  | 'GEN-10'
-  | 'GEN-11'
-  | 'GEN-12'
-  | 'GEN-13'
-  | 'LOA-01'
-  | 'LOA-02'
-  | 'LOA-03'
-  | 'LOA-04'
-  | 'LOA-05'
-  | 'LOA-06'
-  | 'LOA-07'
-  | 'LOA-08'
-  | 'LOA-09'
-  | 'LOA-10'
-  | 'LOA-11'
-  | 'LOA-12'
-  | 'LOA-13'
-  | 'MUL-01'
-  | 'MUL-02'
-  | 'MUL-03'
-  | 'P-01'
-  | 'P-02'
-  | 'ALT-ALL-29'
-  | 'ALT-LOA-13'
-  | 'STO-01'
-  | 'STO-02'
-  | 'STO-03'
-  | 'STO-04'
-  | 'STO-05'
-  | 'STO-06'
-  | 'PRC-01'
-  | 'PRC-02'
-  | 'PRC-03'
-  | 'PRC-04'
-  | 'PRC-05';
 export type HTTPMethod = 'CONNECT' | 'DELETE' | 'GET' | 'HEAD' | 'OPTIONS' | 'PATCH' | 'POST' | 'PUT' | 'TRACE';
 export type HTTPStatus =
   | 100
@@ -476,7 +389,7 @@ export interface TestProcedureRunSummaryResponse {
   latest_run_status: number | null;
   latest_run_timestamp: string | null;
   run_count: number;
-  test_procedure_id: TestProcedureId;
+  test_procedure_id: string;
 }
 /**
  * One playlist execution (active or completed), grouped from its runs.
@@ -553,7 +466,7 @@ export interface TestProcedureResponse {
   classes: string[];
   description: string;
   target_versions: string[];
-  test_procedure_id: TestProcedureId;
+  test_procedure_id: string;
 }
 export interface ProceedResponse {
   handled: boolean;
@@ -618,8 +531,12 @@ export interface StepEventStatus {
 }
 export interface TimelineStatus {
   data_streams: TimelineDataStreamEntry[];
+  lower_max_label: string | null;
+  lower_max_w: number | null;
   now_offset: string;
   set_max_w: number | null;
+  upper_max_label: string | null;
+  upper_max_w: number | null;
 }
 export interface TimelineDataStreamEntry {
   dashed: boolean;
