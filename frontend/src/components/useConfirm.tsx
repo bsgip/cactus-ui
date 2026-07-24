@@ -1,7 +1,7 @@
 import { AlertDialog, Button, Flex } from '@radix-ui/themes';
 import { useCallback, useState, type ReactNode } from 'react';
 
-interface ConfirmOptions {
+export interface ConfirmOptions {
   title: ReactNode;
   // Optional explanatory body shown above the action buttons.
   body?: ReactNode;

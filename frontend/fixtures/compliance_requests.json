@@ -1,0 +1,50 @@
+{
+  "total_pages": 1,
+  "total_items": 2,
+  "page_size": 100,
+  "current_page": 1,
+  "prev_page": null,
+  "next_page": null,
+  "items": [
+    {
+      "compliance_request_id": 1,
+      "created_at": "2026-07-10T01:12:13.996071Z",
+      "created_by": 1,
+      "updated_at": "2026-07-10T01:12:13.996079Z",
+      "updated_by": 1,
+      "status": 1,
+      "classes": ["A"],
+      "runs": [1],
+      "csip_aus_version": "1.2",
+      "witnessed_at": "2026-07-10T01:12:13.996080Z",
+      "der_brand": "brand",
+      "der_oem": "oem",
+      "der_series": "series",
+      "der_representative_models": "rep models",
+      "software_client_type": "client type",
+      "software_client_providers": "client providers",
+      "software_client_versions": "client versions",
+      "onsite_hardware_details": "hardware details"
+    },
+    {
+      "compliance_request_id": 2,
+      "created_at": "2026-07-10T01:12:13.996095Z",
+      "created_by": 1,
+      "updated_at": "2026-07-10T01:12:13.996096Z",
+      "updated_by": 1,
+      "status": 2,
+      "classes": ["A"],
+      "runs": [1],
+      "csip_aus_version": "1.2",
+      "witnessed_at": "2026-07-10T01:12:13.996096Z",
+      "der_brand": "brand",
+      "der_oem": "oem",
+      "der_series": "series",
+      "der_representative_models": "rep models",
+      "software_client_type": "client type",
+      "software_client_providers": "client providers",
+      "software_client_versions": "client versions",
+      "onsite_hardware_details": "hardware details"
+    }
+  ]
+}

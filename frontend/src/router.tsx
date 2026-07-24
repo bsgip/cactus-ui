@@ -2,8 +2,9 @@ import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { AdminPage } from './pages/AdminPage';
 import { AdminStatsPage } from './pages/AdminStats/AdminStatsPage';
-import { CompliancePage } from './pages/Compliance/CompliancePage';
-import { ComplianceRequestPage } from './pages/Compliance/ComplianceRequestPage';
+import { AdminCompliancePage } from './pages/AdminCompliancePage';
+import { CompliancePage } from './pages/CompliancePage';
+import { ComplianceRequestPage } from './pages/ComplianceRequestPage';
 import { ConfigPage } from './pages/Config/ConfigPage';
 import { HomePage } from './pages/HomePage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -34,11 +35,11 @@ export const routes: RouteObject[] = [
       { path: 'playlists', element: <PlaylistsRedirect /> },
       { path: 'group/:runGroupId/playlists', element: <PlaylistsPage /> },
       { path: 'config', element: <ConfigPage /> },
-      { path: 'compliance', element: <CompliancePage isAdminView={false} /> },
+      { path: 'compliance', element: <CompliancePage /> },
       { path: 'compliance-request', element: <ComplianceRequestPage isAdminView={false} /> },
       { path: 'admin', element: <AdminPage /> },
       { path: 'admin/stats', element: <AdminStatsPage /> },
-      { path: 'admin/compliance', element: <CompliancePage isAdminView={true} /> },
+      { path: 'admin/compliance', element: <AdminCompliancePage /> },
       { path: 'admin/compliance-request', element: <ComplianceRequestPage isAdminView={true} /> },
       { path: '*', element: <NotFoundPage /> },
     ],

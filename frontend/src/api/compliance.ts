@@ -74,7 +74,7 @@ export function adminUpdateComplianceRequest(
   });
 }
 
-export function deleteComplianceRequest(id: number, isAdminView: boolean): Promise<unknown> {
+export function deleteComplianceRequest(id: number, isAdminView: boolean = false): Promise<unknown> {
   const base = isAdminView ? '/api/admin/compliance/requests' : '/api/compliance/requests';
   return apiFetch(`${base}/${id}`, { method: 'DELETE' });
 }
@@ -87,7 +87,7 @@ export function finaliseComplianceRequest(id: number): Promise<void> {
 }
 
 // Browser-native download URLs (session-cookie auth; the access token never reaches the SPA).
-export function complianceArtifactUrl(id: number, isAdminView: boolean): string {
+export function complianceArtifactUrl(id: number, isAdminView: boolean = false): string {
   const base = isAdminView ? '/admin/compliance/requests' : '/compliance/requests';
   return `${base}/${id}/artifact`;
 }

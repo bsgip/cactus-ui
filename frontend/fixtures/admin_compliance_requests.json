@@ -1,0 +1,106 @@
+{
+  "total_pages": 1,
+  "total_items": 3,
+  "page_size": 100,
+  "current_page": 1,
+  "prev_page": null,
+  "next_page": null,
+  "items": [
+    {
+      "compliance_request_id": 1,
+      "created_at": "2026-07-10T01:12:13.997816Z",
+      "created_by": 1,
+      "created_by_user": {
+        "user_id": 1,
+        "subject_id": "subject_id_1",
+        "issuer_id": "issuer_id_1",
+        "user_name": "user1@cactus.com"
+      },
+      "updated_at": "2026-07-10T01:12:13.997828Z",
+      "updated_by": 1,
+      "updated_by_user": {
+        "user_id": 1,
+        "subject_id": "subject_id_1",
+        "issuer_id": "issuer_id_1",
+        "user_name": "user1@cactus.com"
+      },
+      "status": 1,
+      "classes": ["A"],
+      "runs": [1],
+      "csip_aus_version": "1.2",
+      "witnessed_at": "2026-07-10T01:12:13.997831Z",
+      "der_brand": "brand",
+      "der_oem": "oem",
+      "der_series": "series",
+      "der_representative_models": "rep models",
+      "software_client_type": "client type",
+      "software_client_providers": "client providers",
+      "software_client_versions": "client versions",
+      "onsite_hardware_details": "hardware details"
+    },
+    {
+      "compliance_request_id": 2,
+      "created_at": "2026-07-10T01:12:13.997843Z",
+      "created_by": 1,
+      "created_by_user": {
+        "user_id": 2,
+        "subject_id": "subject_id_2",
+        "issuer_id": "issuer_id_2",
+        "user_name": "user2@cactus.com"
+      },
+      "updated_at": "2026-07-10T01:12:13.997845Z",
+      "updated_by": 1,
+      "updated_by_user": {
+        "user_id": 2,
+        "subject_id": "subject_id_2",
+        "issuer_id": "issuer_id_2",
+        "user_name": "user2@cactus.com"
+      },
+      "status": 2,
+      "classes": ["A"],
+      "runs": [1],
+      "csip_aus_version": "1.2",
+      "witnessed_at": "2026-07-10T01:12:13.997847Z",
+      "der_brand": "brand",
+      "der_oem": "oem",
+      "der_series": "series",
+      "der_representative_models": "rep models",
+      "software_client_type": "client type",
+      "software_client_providers": "client providers",
+      "software_client_versions": "client versions",
+      "onsite_hardware_details": "hardware details"
+    },
+    {
+      "compliance_request_id": 3,
+      "created_at": "2026-07-10T01:12:13.997850Z",
+      "created_by": 2,
+      "created_by_user": {
+        "user_id": 3,
+        "subject_id": "subject_id_3",
+        "issuer_id": "issuer_id_3",
+        "user_name": "user3@cactus.com"
+      },
+      "updated_at": "2026-07-10T01:12:13.997852Z",
+      "updated_by": 2,
+      "updated_by_user": {
+        "user_id": 3,
+        "subject_id": "subject_id_3",
+        "issuer_id": "issuer_id_3",
+        "user_name": "user3@cactus.com"
+      },
+      "status": 1,
+      "classes": ["A"],
+      "runs": [1],
+      "csip_aus_version": "1.2",
+      "witnessed_at": "2026-07-10T01:12:13.997853Z",
+      "der_brand": "brand",
+      "der_oem": "oem",
+      "der_series": "series",
+      "der_representative_models": "rep models",
+      "software_client_type": "client type",
+      "software_client_providers": "client providers",
+      "software_client_versions": "client versions",
+      "onsite_hardware_details": "hardware details"
+    }
+  ]
+}

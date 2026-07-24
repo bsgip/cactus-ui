@@ -16,6 +16,8 @@ import runStatusRunnerFixture from '../../fixtures/run_status_runner.json';
 import runStatusShellFixture from '../../fixtures/run_status_shell.json';
 import sessionFixture from '../../fixtures/session.json';
 import sessionAdminFixture from '../../fixtures/session_admin.json';
+import complianceRequestsFixture from '../../fixtures/compliance_requests.json';
+import adminComplianceRequestsFixture from '../../fixtures/admin_compliance_requests.json';
 
 const session = import.meta.env.VITE_MOCK_ADMIN === 'true' ? sessionAdminFixture : sessionFixture;
 
@@ -30,10 +32,20 @@ const attachmentResponse = (filename: string, contentType: string) => () =>
   });
 
 export const handlers = [
+  // ---- Session ----
   http.get('/api/session', () => HttpResponse.json(session)),
+
+  // ---- Config ----
   http.get('/api/config', () => HttpResponse.json(configFixture)),
   http.post('/api/config/pen', () => HttpResponse.json({})),
   http.post('/api/config/domain', () => HttpResponse.json({})),
+  http.post(
+    '/config/run_group/:runGroupId/cert',
+    attachmentResponse('certificate.zip', 'application/zip')
+  ),
+  http.post('/config/shared_cert', attachmentResponse('certificate.zip', 'application/zip')),
+
+  // ---- Run Groups ----
   http.post('/api/run_groups', () =>
     HttpResponse.json(configFixture.run_groups[0], { status: 201 })
   ),
@@ -41,32 +53,42 @@ export const handlers = [
     HttpResponse.json({ ...configFixture.run_groups[0], run_group_id: Number(params.runGroupId) })
   ),
   http.delete('/api/run_groups/:runGroupId', () => HttpResponse.json({})),
-  http.get('/api/procedures', () => HttpResponse.json(proceduresFixture)),
+  http.get('/api/run_groups', () => HttpResponse.json(runGroupsFixture)),
+  http.get('/api/admin/run_groups', () => HttpResponse.json(runGroupsFixture)),
+
+  // ---- Procedure ----
   http.get('/api/procedure/:testProcedureId', ({ params }) =>
     HttpResponse.json({ ...procedureYamlFixture, test_procedure_id: params.testProcedureId })
   ),
-  http.get('/api/run_groups', () => HttpResponse.json(runGroupsFixture)),
-  http.get('/api/admin/users', () => HttpResponse.json(adminUsersFixture)),
-  http.get('/api/admin/stats', () => HttpResponse.json(adminStatsFixture)),
-  http.get('/api/admin/run_groups', () => HttpResponse.json(runGroupsFixture)),
+
+  // ---- Procedures ----
+  http.get('/api/procedures', () => HttpResponse.json(proceduresFixture)),
+
+  // ---- Group ----
   http.get('/api/group/:runGroupId/procedure_summaries', () =>
     HttpResponse.json(procedureSummariesFixture)
   ),
-  http.get('/api/admin/group/:runGroupId/procedure_summaries', () =>
-    HttpResponse.json(procedureSummariesFixture)
-  ),
-  // The fixture holds ALL-01 runs; close enough for any requested procedure.
   http.get('/api/group/:runGroupId/procedure_runs/:testProcedureId', () =>
     HttpResponse.json(procedureRunsFixture)
+  ),
+  http.get('/api/group/:runGroupId/active_runs', () => HttpResponse.json(activeRunsFixture)),
+  http.get('/api/group/:runGroupId/compliance', () => HttpResponse.json(complianceFixture)),
+  http.post('/api/group/:runGroupId/runs', () => HttpResponse.json({ run_id: 991 })),
+  http.get('/api/group/:runGroupId/playlist_tests', () => HttpResponse.json(playlistTestsFixture)),
+  http.get('/api/group/:runGroupId/playlist_sessions', () =>
+    HttpResponse.json(playlistSessionsFixture)
+  ),
+  http.post('/api/group/:runGroupId/playlist', () => HttpResponse.json({ run_id: 301 })),
+  http.get('/api/admin/group/:runGroupId/procedure_summaries', () =>
+    HttpResponse.json(procedureSummariesFixture)
   ),
   http.get('/api/admin/group/:runGroupId/procedure_runs/:testProcedureId', () =>
     HttpResponse.json(procedureRunsFixture)
   ),
-  http.get('/api/group/:runGroupId/active_runs', () => HttpResponse.json(activeRunsFixture)),
   http.get('/api/admin/group/:runGroupId/active_runs', () => HttpResponse.json(activeRunsFixture)),
-  http.get('/api/group/:runGroupId/compliance', () => HttpResponse.json(complianceFixture)),
   http.get('/api/admin/group/:runGroupId/compliance', () => HttpResponse.json(complianceFixture)),
-  http.post('/api/group/:runGroupId/runs', () => HttpResponse.json({ run_id: 991 })),
+
+  // ---- Runs ----
   http.post('/api/runs/:runId/start', ({ params }) =>
     HttpResponse.json({ run_id: Number(params.runId) })
   ),
@@ -76,43 +98,61 @@ export const handlers = [
   http.delete('/api/runs/:runId', ({ params }) =>
     HttpResponse.json({ run_id: Number(params.runId) })
   ),
-  http.get('/api/group/:runGroupId/playlist_tests', () => HttpResponse.json(playlistTestsFixture)),
-  http.get('/api/group/:runGroupId/playlist_sessions', () =>
-    HttpResponse.json(playlistSessionsFixture)
-  ),
-  http.post('/api/group/:runGroupId/playlist', () => HttpResponse.json({ run_id: 301 })),
-  http.post('/api/runs/:runId/finalise_playlist', ({ params }) =>
-    HttpResponse.json({ run_id: Number(params.runId) })
-  ),
-  // Run status page. The shell defaults to a live standalone run; tests override with
-  // server.use() for the finalised / playlist / not-found variants.
+
+  // ---- Run ----
   http.get('/api/run/:runId', () => HttpResponse.json(runStatusShellFixture)),
-  http.get('/api/admin/run/:runId', () => HttpResponse.json(runStatusShellFixture)),
   http.get('/api/run/:runId/status', () => HttpResponse.json(runStatusRunnerFixture)),
-  http.get('/api/admin/run/:runId/status', () => HttpResponse.json(runStatusRunnerFixture)),
   http.get('/api/run/:runId/requests/:requestId', () =>
     HttpResponse.json(runRequestDetailsFixture)
   ),
+  http.get('/api/admin/run/:runId', () => HttpResponse.json(runStatusShellFixture)),
+  http.get('/api/admin/run/:runId/status', () => HttpResponse.json(runStatusRunnerFixture)),
+
+  // ---- Runs ----
+  http.post('/api/runs/:runId/finalise_playlist', ({ params }) =>
+    HttpResponse.json({ run_id: Number(params.runId) })
+  ),
   http.post('/api/runs/:runId/proceed', () => HttpResponse.json({ handled: true })),
   http.post('/api/admin/runs/:runId/proceed', () => HttpResponse.json({ handled: true })),
-  http.get('/api/compliance/requests', () => HttpResponse.json({ requests: [] })),
-  http.get('/api/admin/compliance/requests', () => HttpResponse.json({ requests: [] })),
-  http.post(
-    '/config/run_group/:runGroupId/cert',
-    attachmentResponse('certificate.zip', 'application/zip')
-  ),
-  http.post('/config/shared_cert', attachmentResponse('certificate.zip', 'application/zip')),
-  http.post(
-    '/admin/compliance/requests/:requestId/finalise',
-    attachmentResponse('compliance.pdf', 'application/pdf')
-  ),
+
+  // ---- Compliance ----
+  http.get('/api/compliance/requests', () => HttpResponse.json({requests: complianceRequestsFixture.items})),
+  http.get('/api/admin/compliance/requests', () => HttpResponse.json({requests: adminComplianceRequestsFixture.items})),
+  http.get('/api/compliance/requests/:complianceRequestId', ({params}) =>
+  {
+      const result = complianceRequestsFixture.items.filter((r) => `${r.compliance_request_id}` == params.complianceRequestId);
+      return result.length > 0 ? HttpResponse.json(result[0]) : new HttpResponse();
+  }),
   http.get('/api/compliance/form-data', () =>
     HttpResponse.json({
-      csipaus_versions: [],
-      compliance_classes: [],
-      tests_by_version_and_class: {},
-      completed_test_procedures: [],
-      successful_runs: [],
+      csipaus_versions: ["1.2", "1.3"],
+      compliance_classes: ["A", "DER-A"],
+      tests_by_version_and_class: {"1.2":{"A": ["ALL-01"]}},
+      completed_test_procedures: ["ALL-01"],
+      successful_runs: [procedureRunsFixture.items[0], procedureRunsFixture.items[1]],
     })
   ),
+  // The following puts don't modify any data (since there is no db backing this)
+  http.put('/api/compliance/requests/:complianceRequestId', ({ params }) => {
+    const result = complianceRequestsFixture.items.filter((r) => `${r.compliance_request_id}` == params.complianceRequestId);
+    return result.length > 0 ? HttpResponse.json(result[0]) : new HttpResponse();
+  }),
+  http.put('/api/admin/compliance/requests/:complianceRequestId', ({ params }) => {
+    const result = complianceRequestsFixture.items.filter((r) => `${r.compliance_request_id}` == params.complianceRequestId);
+    return result.length > 0 ? HttpResponse.json(result[0]) : new HttpResponse();
+  }),
+  http.post('/admin/compliance/requests/:requestId/finalise', attachmentResponse('compliance.pdf', 'application/pdf')),
+  // TODO
+  // http.post('/api/compliance/requests', ({ params }) => HttpResponse.json({ })),
+  // http.put('/api/admin/compliance/requests/:complianceRequestId', ({ params }) => HttpResponse.json({ })),
+  // http.delete('/api/compliance/requests/:complianceRequestId', ({ params }) => HttpResponse.json({ })),
+  // http.delete('/api/admin/compliance/requests/:complianceRequestId', ({ params }) => HttpResponse.json({ })),
+  // http.get('/compliance/requests/:complianceRequestId/artifact', () => HttpResponse.json({ })),
+  // http.get('/admin/compliance/requests/:complianceRequestId/artifact', () => HttpResponse.json({ })),
+
+
+  // ---- Admin (other) ----
+  http.get('/api/admin/users', () => HttpResponse.json(adminUsersFixture)),
+  http.get('/api/admin/stats', () => HttpResponse.json(adminStatsFixture)),
+
 ];

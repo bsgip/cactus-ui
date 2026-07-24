@@ -12,6 +12,7 @@ import json
 import os
 import shutil
 import subprocess
+from datetime import UTC, datetime
 from pathlib import Path
 
 # server.py reads these at import time; values are irrelevant for fixture generation
@@ -197,6 +198,68 @@ def admin_user(
     )
 
 
+def compliance_user(
+    user_id: int, subject_id: str | None = None, issuer_id: str | None = None, user_name: str | None = None
+) -> schema.ComplianceRequestUser:
+    subject_id = f"subject_id_{user_id}" if subject_id is None else subject_id
+    issuer_id = f"issuer_id_{user_id}" if issuer_id is None else issuer_id
+    user_name = f"user{user_id}@cactus.com" if user_name is None else user_name
+    return schema.ComplianceRequestUser(
+        user_id=user_id,
+        subject_id=subject_id,
+        issuer_id=issuer_id,
+        user_name=user_name,
+    )
+
+
+def compliance_request(id: int, user_id: int, status: int) -> schema.ComplianceRequestResponse:
+    return schema.ComplianceRequestResponse(
+        compliance_request_id=id,
+        created_at=datetime.now(UTC),
+        created_by=user_id,
+        updated_at=datetime.now(UTC),
+        updated_by=user_id,
+        csip_aus_version="1.2",
+        witnessed_at=datetime.now(UTC),
+        status=status,
+        classes={"A"},
+        runs={1},
+        der_brand="brand",
+        der_oem="oem",
+        der_series="series",
+        der_representative_models="rep models",
+        software_client_type="client type",
+        software_client_providers="client providers",
+        software_client_versions="client versions",
+        onsite_hardware_details="hardware details",
+    )
+
+
+def admin_compliance_request(id: int, user_id: int, status: int) -> schema.AdminComplianceRequestResponse:
+    return schema.AdminComplianceRequestResponse(
+        compliance_request_id=id,
+        created_at=datetime.now(UTC),
+        created_by=user_id,
+        created_by_user=compliance_user(user_id=id),
+        updated_at=datetime.now(UTC),
+        updated_by=user_id,
+        updated_by_user=compliance_user(user_id=id),
+        csip_aus_version="1.2",
+        witnessed_at=datetime.now(UTC),
+        status=status,
+        classes={"A"},
+        runs={1},
+        der_brand="brand",
+        der_oem="oem",
+        der_series="series",
+        der_representative_models="rep models",
+        software_client_type="client type",
+        software_client_providers="client providers",
+        software_client_versions="client versions",
+        onsite_hardware_details="hardware details",
+    )
+
+
 def main() -> None:
     # procedures.json - the real procedure definitions, as /api/procedures serves them
     procedures = [
@@ -313,6 +376,22 @@ def main() -> None:
 
     # compliance.json - computed from the same summaries, as /api/group/<id>/compliance serves it
     write("compliance.json", server.build_compliance(summaries).to_dict())
+
+    # compliance_requests.json
+    write(
+        "compliance_requests.json",
+        single_page([compliance_request(id=1, user_id=1, status=1), compliance_request(id=2, user_id=1, status=2)]),
+    )
+    write(
+        "admin_compliance_requests.json",
+        single_page(
+            [
+                admin_compliance_request(id=1, user_id=1, status=1),
+                admin_compliance_request(id=2, user_id=1, status=2),
+                admin_compliance_request(id=3, user_id=2, status=1),
+            ]
+        ),
+    )
 
     # playlist_tests.json - tests-by-category + classes, as /api/group/<id>/playlist_tests serves it
     all_classes: set[str] = set()
