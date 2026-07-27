@@ -37,10 +37,22 @@ The fastest way to look at and iterate on the UI. MSW intercepts every `/api` ca
 ```bash
 cd frontend
 npm run dev:mock                # http://localhost:5173, served from fixtures
-npm run dev:mock:admin          # same, but signed in as an admin-scoped user
+```
+
+Same as the above, but signed in as an admin-scoped user:
+
+```bash
+cd frontend
+npm run dev:mock:admin
 ```
 
 Fixtures live in `frontend/src/mocks/` (`handlers.ts`).
+
+In order to serve the static resources (favicons, reset.css), you also need to start the flask server (from the project root):
+
+```bash
+uv run python src/cactus_ui/server.py
+```
 
 ### 2. Full stack (Point at a real orchestrator backend)
 
