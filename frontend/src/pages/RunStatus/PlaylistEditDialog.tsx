@@ -1,27 +1,17 @@
-import {
-  Box,
-  Button,
-  Callout,
-  Code,
-  Dialog,
-  Flex,
-  IconButton,
-  Separator,
-  Spinner,
-  Text,
-} from '@radix-ui/themes';
-import { IconAlertTriangle, IconGripVertical, IconPencil, IconX } from '@tabler/icons-react';
+import { Button, Callout, Dialog, Flex, Spinner, Text } from '@radix-ui/themes';
+import { IconAlertTriangle, IconPencil } from '@tabler/icons-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Fragment, useState } from 'react';
+import { useState } from 'react';
 import { ApiError } from '../../api/client';
 import { fetchPlaylistTests, updatePlaylist } from '../../api/playlists';
+import { DraggableTestList } from '../Playlists/DraggableTestList';
 import { TestLibrary } from '../Playlists/TestLibrary';
 import type { PlaylistRunRow } from './runStatusModel';
 
 interface Props {
   runId: number;
   upcomingRuns: PlaylistRunRow[]; // status === 'initialised', in playlist order
-  activeRunId: number | null;
+  activeRunId: number;
   runGroupId: number | null;
   onUpdated: () => void; // called after a successful save, or on 409 to refetch the stale playlist
 }
@@ -29,12 +19,16 @@ interface Props {
 // Edits the upcoming (not-yet-run) tail of a playlist: reorder, remove, and add tests from the
 // same catalog used to build playlists. The active and completed entries are never touched -
 // the orchestrator deletes and recreates only the upcoming rows, so their run_ids change on save.
-export function PlaylistEditDialog({ runId, upcomingRuns, activeRunId, runGroupId, onUpdated }: Props) {
+export function PlaylistEditDialog({
+  runId,
+  upcomingRuns,
+  activeRunId,
+  runGroupId,
+  onUpdated,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [tail, setTail] = useState<string[]>([]);
   const [conflict, setConflict] = useState(false);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [overIndex, setOverIndex] = useState<number | null>(null);
 
   const testsQuery = useQuery({
     queryKey: ['playlist_tests', runGroupId],
@@ -43,7 +37,7 @@ export function PlaylistEditDialog({ runId, upcomingRuns, activeRunId, runGroupI
   });
 
   const mutation = useMutation({
-    mutationFn: () => updatePlaylist(runId, tail, activeRunId as number),
+    mutationFn: () => updatePlaylist(runId, tail, activeRunId),
     onMutate: () => setConflict(false),
     onSuccess: () => {
       setOpen(false);
@@ -71,25 +65,13 @@ export function PlaylistEditDialog({ runId, upcomingRuns, activeRunId, runGroupI
   };
 
   const removeAt = (i: number) => setTail((t) => t.filter((_, idx) => idx !== i));
-  const endDrag = () => {
-    setDragIndex(null);
-    setOverIndex(null);
-  };
-  const handleDrop = () => {
-    if (dragIndex !== null && overIndex !== null && dragIndex !== overIndex) {
-      setTail((t) => {
-        const next = t.slice();
-        const [moved] = next.splice(dragIndex, 1);
-        next.splice(overIndex, 0, moved);
-        return next;
-      });
-    }
-    endDrag();
-  };
-
-  if (activeRunId == null) {
-    return null;
-  }
+  const reorder = (from: number, to: number) =>
+    setTail((t) => {
+      const next = t.slice();
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
 
   return (
     <>
@@ -142,51 +124,13 @@ export function PlaylistEditDialog({ runId, upcomingRuns, activeRunId, runGroupI
               </Callout.Text>
             </Callout.Root>
           ) : (
-            <Box style={{ border: '1px solid var(--gray-5)', borderRadius: 'var(--radius-2)' }} mb="3">
-              {tail.map((testProcedureId, i) => (
-                <Fragment key={i}>
-                  {i > 0 && <Separator size="4" />}
-                  <Flex
-                    gap="2"
-                    align="center"
-                    draggable
-                    onDragStart={() => setDragIndex(i)}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setOverIndex(i);
-                    }}
-                    onDrop={handleDrop}
-                    onDragEnd={endDrag}
-                    style={{
-                      padding: '5px 10px',
-                      cursor: 'grab',
-                      opacity: dragIndex === i ? 0.4 : 1,
-                      background:
-                        dragIndex !== null && overIndex === i && dragIndex !== i
-                          ? 'var(--gray-3)'
-                          : undefined,
-                    }}
-                  >
-                    <IconGripVertical size={14} color="var(--gray-8)" aria-hidden />
-                    <Text size="1" color="gray" style={{ width: '1.5em', textAlign: 'right' }}>
-                      {i + 1}
-                    </Text>
-                    <Text as="span" style={{ flex: 1 }}>
-                      <Code>{testProcedureId}</Code>
-                    </Text>
-                    <IconButton
-                      variant="outline"
-                      color="red"
-                      size="1"
-                      aria-label={`Remove ${testProcedureId}`}
-                      onClick={() => removeAt(i)}
-                    >
-                      <IconX size={14} />
-                    </IconButton>
-                  </Flex>
-                </Fragment>
-              ))}
-            </Box>
+            <Flex direction="column" mb="3">
+              <DraggableTestList
+                items={tail.map((id) => ({ id }))}
+                onReorder={reorder}
+                onRemove={removeAt}
+              />
+            </Flex>
           )}
 
           {testsQuery.isLoading && (

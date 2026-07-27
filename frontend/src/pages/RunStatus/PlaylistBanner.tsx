@@ -9,16 +9,13 @@ import {
   IconRotateClockwise,
   IconX,
 } from '@tabler/icons-react';
-import { useMutation } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { ApiError } from '../../api/client';
-import { updatePlaylist } from '../../api/playlists';
-import { finaliseRun } from '../../api/runs';
+import { Link as RouterLink } from 'react-router-dom';
 import { useConfirm } from '../../components/useConfirm';
 import { formatDate } from '../../utils/dates';
 import { PlaylistEditDialog } from './PlaylistEditDialog';
 import type { CurrentActiveRun, PlaylistRunRow, PlaylistView } from './runStatusModel';
+import { usePlaylistRetry } from './usePlaylistRetry';
 
 interface Props {
   playlistView: PlaylistView;
@@ -52,7 +49,6 @@ export function PlaylistBanner({
   onPlaylistUpdated,
 }: Props) {
   const { confirm, confirmDialog } = useConfirm();
-  const navigate = useNavigate();
   const adminPrefix = isAdminView ? '/admin' : '';
   const isComplete =
     playlistView.runs.filter((r) => TERMINAL_STATUSES.includes(r.status)).length ===
@@ -72,44 +68,12 @@ export function PlaylistBanner({
       onConfirm: onEndPlaylist,
     });
 
-  // Retry queues the same test again at the front of the upcoming tail; the active/completed
-  // entries (including the failed run itself) are untouched.
-  const retryMutation = useMutation({
-    mutationFn: (testProcedureId: string) =>
-      updatePlaylist(
-        runId,
-        [testProcedureId, ...upcomingRuns.map((r) => r.test_procedure_id)],
-        activeRunId as number
-      ),
-    onSuccess: onPlaylistUpdated,
-    onError: (error: Error) => {
-      // The playlist advanced mid-click; refetch so the badges reflect reality.
-      if (error instanceof ApiError && error.status === 409) {
-        onPlaylistUpdated();
-      }
-    },
-  });
-
-  // "Finalise & retry" on the running test: queue the same test at the front of the tail, then
-  // finalise the current run so the orchestrator hands straight over to the fresh attempt.
-  const retryNowMutation = useMutation({
-    mutationFn: async (testProcedureId: string) => {
-      const updated = await updatePlaylist(
-        runId,
-        [testProcedureId, ...upcomingRuns.map((r) => r.test_procedure_id)],
-        activeRunId as number
-      );
-      await finaliseRun(activeRunId as number);
-      return updated.playlist_runs[0]?.run_id ?? null;
-    },
-    onSuccess: (nextRunId) => {
-      onPlaylistUpdated();
-      if (nextRunId != null) {
-        void navigate(`${adminPrefix}/run/${nextRunId}`);
-      }
-    },
-    // The tail may have been replaced even if the finalise step failed - refetch either way.
-    onError: () => onPlaylistUpdated(),
+  const { retry, retryNow, isRetrying, retryError } = usePlaylistRetry({
+    runId,
+    upcomingRuns,
+    activeRunId,
+    adminPrefix,
+    onPlaylistUpdated,
   });
 
   const confirmRetryNow = (testProcedureId: string) =>
@@ -118,19 +82,8 @@ export function PlaylistBanner({
       body: `This will end the running ${testProcedureId} test now (its result is recorded as-is) and immediately start ${testProcedureId} again.`,
       confirmLabel: 'Finalise & Retry',
       cancelLabel: 'Cancel',
-      onConfirm: () => retryNowMutation.mutate(testProcedureId),
+      onConfirm: () => retryNow(testProcedureId),
     });
-
-  const is409 = (error: Error | null) => error instanceof ApiError && error.status === 409;
-  const retryError = retryMutation.isError
-    ? is409(retryMutation.error)
-      ? 'The playlist advanced before the retry could be queued - the view has been refreshed. Please try again.'
-      : 'Failed to queue the retry. Please try again.'
-    : retryNowMutation.isError
-      ? is409(retryNowMutation.error)
-        ? 'The playlist advanced before the retry could be queued - the view has been refreshed. Please try again.'
-        : 'Failed to finalise and retry the running test. Please try again.'
-      : null;
 
   return (
     <Box
@@ -190,15 +143,13 @@ export function PlaylistBanner({
             run={run}
             isCurrent={index === playlistView.current_order}
             adminPrefix={adminPrefix}
-            onRetry={
-              activeRunId != null ? () => retryMutation.mutate(run.test_procedure_id) : undefined
-            }
+            onRetry={activeRunId != null ? () => retry(run.test_procedure_id) : undefined}
             onRetryNow={
               !isAdminView && run.run_id === activeRunId
                 ? () => confirmRetryNow(run.test_procedure_id)
                 : undefined
             }
-            isRetrying={retryMutation.isPending || retryNowMutation.isPending}
+            isRetrying={isRetrying}
           />
         ))}
       </Flex>
