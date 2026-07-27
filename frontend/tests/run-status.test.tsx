@@ -171,6 +171,81 @@ describe('run status playlist banner', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/playlists'));
   });
 
+  it('edits the upcoming tail: removes a queued test, adds another, and saves', async () => {
+    useShell({ ...shellPlaylist, run: { ...shellPlaylist.run, run_group_id: 5 } });
+    const updateBody = vi.fn();
+    server.use(
+      http.post('/api/run/:runId/playlist', async ({ request }) => {
+        const body = (await request.json()) as { test_procedure_ids: string[] };
+        updateBody(body);
+        return HttpResponse.json({ playlist_runs: [] });
+      })
+    );
+    const user = userEvent.setup();
+    renderRunStatus('/run/202');
+
+    await user.click(await screen.findByRole('button', { name: 'Edit Playlist' }));
+    const dialog = await screen.findByRole('dialog');
+    // ALL-03 is the only upcoming (initialised) run - remove it, then add ALL-04 from the library.
+    await user.click(within(dialog).getByRole('button', { name: /Remove ALL-03/ }));
+    await user.click(await within(dialog).findByText('ALL-04'));
+    await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() =>
+      expect(updateBody).toHaveBeenCalledWith({
+        test_procedure_ids: ['ALL-04'],
+        expected_active_run_id: 202,
+      })
+    );
+  });
+
+  it('retries a failed completed test by queuing it at the front of the upcoming tail', async () => {
+    useShell({
+      ...shellPlaylist,
+      playlist_runs: [
+        { ...shellPlaylist.playlist_runs[0], all_criteria_met: false },
+        shellPlaylist.playlist_runs[1],
+        shellPlaylist.playlist_runs[2],
+      ],
+    });
+    const updateBody = vi.fn();
+    server.use(
+      http.post('/api/run/:runId/playlist', async ({ request }) => {
+        const body = (await request.json()) as { test_procedure_ids: string[] };
+        updateBody(body);
+        return HttpResponse.json({ playlist_runs: [] });
+      })
+    );
+    const user = userEvent.setup();
+    renderRunStatus('/run/202');
+
+    await user.click(await screen.findByRole('button', { name: 'Retry' }));
+
+    await waitFor(() =>
+      expect(updateBody).toHaveBeenCalledWith({
+        test_procedure_ids: ['ALL-01', 'ALL-03'],
+        expected_active_run_id: 202,
+      })
+    );
+  });
+
+  it('shows a conflict notice and refreshes when the playlist advanced mid-edit', async () => {
+    useShell(shellPlaylist);
+    server.use(
+      http.post('/api/run/:runId/playlist', () =>
+        HttpResponse.json({ error: 'Playlist has advanced. Refresh and try again.', conflict: true }, { status: 409 })
+      )
+    );
+    const user = userEvent.setup();
+    renderRunStatus('/run/202');
+
+    await user.click(await screen.findByRole('button', { name: 'Edit Playlist' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
+
+    expect(await within(dialog).findByText(/playlist advanced/i)).toBeInTheDocument();
+  });
+
   it('warns and links to the active test when viewing a not-yet-active run', async () => {
     useShell({
       ...shellPlaylist,
