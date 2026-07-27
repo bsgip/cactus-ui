@@ -34,6 +34,10 @@ export function PlaylistsIntro() {
               DERControls are cancelled. Clients receive notifications of the cancelled DERControls
               and can still see them when polling.
             </Text>
+            <Text as="p" size="2">
+              Playlists aren&apos;t locked in once started &mdash; from the run page you can retry a
+              failed test or add, remove and reorder the tests that haven&apos;t run yet.
+            </Text>
           </Flex>
         )}
       </ModalButton>

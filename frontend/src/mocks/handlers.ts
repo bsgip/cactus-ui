@@ -14,6 +14,13 @@ import runGroupsFixture from '../../fixtures/run_groups.json';
 import runRequestDetailsFixture from '../../fixtures/run_request_details.json';
 import runStatusRunnerFixture from '../../fixtures/run_status_runner.json';
 import runStatusShellFixture from '../../fixtures/run_status_shell.json';
+import runStatusShellPlaylistFixture from '../../fixtures/run_status_shell_playlist.json';
+
+// Mutable copy of the playlist shell so playlist edits/retries made in mock mode stick across
+// refetches. The templates keep the original fixture's queued-run shape for newly added tests.
+const playlistShell = structuredClone(runStatusShellPlaylistFixture);
+const upcomingRunTemplate = runStatusShellPlaylistFixture.playlist_runs[2];
+const upcomingSummaryTemplate = runStatusShellPlaylistFixture.run.playlist_runs[2];
 import sessionFixture from '../../fixtures/session.json';
 import sessionAdminFixture from '../../fixtures/session_admin.json';
 import complianceRequestsFixture from '../../fixtures/compliance_requests.json';
@@ -100,7 +107,11 @@ export const handlers = [
   ),
 
   // ---- Run ----
-  http.get('/api/run/:runId', () => HttpResponse.json(runStatusShellFixture)),
+  // Runs 201+ belong to the playlist fixture so the playlist banner (retry / edit playlist)
+  // can be exercised in mock mode; any other id gets the standalone shell.
+  http.get('/api/run/:runId', ({ params }) =>
+    HttpResponse.json(Number(params.runId) >= 201 ? playlistShell : runStatusShellFixture)
+  ),
   http.get('/api/run/:runId/status', () => HttpResponse.json(runStatusRunnerFixture)),
   http.get('/api/run/:runId/requests/:requestId', () =>
     HttpResponse.json(runRequestDetailsFixture)
@@ -114,13 +125,26 @@ export const handlers = [
   ),
   http.post('/api/run/:runId/playlist', async ({ request }) => {
     const body = (await request.json()) as { test_procedure_ids: string[] };
-    return HttpResponse.json({
-      playlist_runs: body.test_procedure_ids.map((test_procedure_id, i) => ({
-        run_id: 900 + i,
-        test_procedure_id,
-        status: 'initialised',
+    const summaryTail = body.test_procedure_ids.map((test_procedure_id, i) => ({
+      ...upcomingSummaryTemplate,
+      run_id: 900 + i,
+      test_procedure_id,
+    }));
+    // Reflect the new tail in the mock shell so the banner shows the edit on refetch.
+    playlistShell.playlist_runs = [
+      ...playlistShell.playlist_runs.filter((r) => r.status !== 'initialised'),
+      ...summaryTail.map((s) => ({
+        ...upcomingRunTemplate,
+        run_id: s.run_id,
+        test_procedure_id: s.test_procedure_id,
+        test_url: `https://cactus.example/run/${s.run_id}`,
       })),
-    });
+    ];
+    playlistShell.run.playlist_runs = [
+      ...playlistShell.run.playlist_runs.filter((r) => r.status !== 'initialised'),
+      ...summaryTail,
+    ];
+    return HttpResponse.json({ playlist_runs: summaryTail });
   }),
   http.post('/api/runs/:runId/proceed', () => HttpResponse.json({ handled: true })),
   http.post('/api/admin/runs/:runId/proceed', () => HttpResponse.json({ handled: true })),

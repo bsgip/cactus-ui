@@ -1,9 +1,16 @@
-import { Box, Button, Callout, Code, Dialog, Flex, IconButton, Separator, Text } from '@radix-ui/themes';
 import {
-  IconAlertTriangle,
-  IconGripVertical,
-  IconX,
-} from '@tabler/icons-react';
+  Box,
+  Button,
+  Callout,
+  Code,
+  Dialog,
+  Flex,
+  IconButton,
+  Separator,
+  Spinner,
+  Text,
+} from '@radix-ui/themes';
+import { IconAlertTriangle, IconGripVertical, IconPencil, IconX } from '@tabler/icons-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Fragment, useState } from 'react';
 import { ApiError } from '../../api/client';
@@ -37,6 +44,7 @@ export function PlaylistEditDialog({ runId, upcomingRuns, activeRunId, runGroupI
 
   const mutation = useMutation({
     mutationFn: () => updatePlaylist(runId, tail, activeRunId as number),
+    onMutate: () => setConflict(false),
     onSuccess: () => {
       setOpen(false);
       onUpdated();
@@ -48,6 +56,13 @@ export function PlaylistEditDialog({ runId, upcomingRuns, activeRunId, runGroupI
       }
     },
   });
+
+  const toggleTest = (testProcedureId: string) =>
+    setTail((t) =>
+      t.includes(testProcedureId)
+        ? t.filter((id) => id !== testProcedureId)
+        : [...t, testProcedureId]
+    );
 
   const openDialog = () => {
     setTail(upcomingRuns.map((r) => r.test_procedure_id));
@@ -79,14 +94,16 @@ export function PlaylistEditDialog({ runId, upcomingRuns, activeRunId, runGroupI
   return (
     <>
       <Button size="1" variant="soft" onClick={openDialog}>
+        <IconPencil size={14} />
         Edit Playlist
       </Button>
       <Dialog.Root open={open} onOpenChange={(o) => !o && setOpen(false)}>
         <Dialog.Content maxWidth="700px">
           <Dialog.Title>Edit upcoming tests</Dialog.Title>
           <Dialog.Description size="2" mb="3">
-            Reorder or remove queued tests, or add more from the library below. The active and
-            completed tests are not affected.
+            Change which tests run after the current one finishes &mdash; click a test in the
+            library to add or remove it. Tests that have already run, and the test running now, are
+            not affected.
           </Dialog.Description>
 
           {conflict && (
@@ -100,10 +117,29 @@ export function PlaylistEditDialog({ runId, upcomingRuns, activeRunId, runGroupI
               </Callout.Text>
             </Callout.Root>
           )}
+          {mutation.isError && !conflict && (
+            <Callout.Root color="red" mb="3">
+              <Callout.Icon>
+                <IconAlertTriangle size={16} />
+              </Callout.Icon>
+              <Callout.Text>Failed to save the playlist. Please try again.</Callout.Text>
+            </Callout.Root>
+          )}
 
+          <Flex align="baseline" gap="2" mb="1">
+            <Text weight="medium">Up next</Text>
+            {tail.length > 0 && (
+              <Text size="1" color="gray">
+                runs top to bottom &mdash; drag to reorder
+              </Text>
+            )}
+          </Flex>
           {tail.length === 0 ? (
             <Callout.Root color="gray" mb="3">
-              <Callout.Text>No upcoming tests queued.</Callout.Text>
+              <Callout.Text>
+                No tests queued &mdash; the playlist will finish after the current test. Add tests
+                from the library below to keep it going.
+              </Callout.Text>
             </Callout.Root>
           ) : (
             <Box style={{ border: '1px solid var(--gray-5)', borderRadius: 'var(--radius-2)' }} mb="3">
@@ -153,12 +189,25 @@ export function PlaylistEditDialog({ runId, upcomingRuns, activeRunId, runGroupI
             </Box>
           )}
 
+          {testsQuery.isLoading && (
+            <Flex align="center" gap="2" mb="3">
+              <Spinner size="1" />
+              <Text size="2" color="gray">
+                Loading test library&hellip;
+              </Text>
+            </Flex>
+          )}
+          {testsQuery.isError && (
+            <Callout.Root color="red" mb="3">
+              <Callout.Text>Failed to load the test library.</Callout.Text>
+            </Callout.Root>
+          )}
           {testsQuery.data && (
             <TestLibrary
               testsByCategory={testsQuery.data.tests_by_category}
               classes={testsQuery.data.classes}
-              queuedIds={new Set()}
-              onToggle={(test) => setTail((t) => [...t, test.id])}
+              queuedIds={new Set(tail)}
+              onToggle={(test) => toggleTest(test.id)}
             />
           )}
 

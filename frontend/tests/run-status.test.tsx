@@ -199,6 +199,34 @@ describe('run status playlist banner', () => {
     );
   });
 
+  it('unqueues an upcoming test by clicking it in the library', async () => {
+    useShell({ ...shellPlaylist, run: { ...shellPlaylist.run, run_group_id: 5 } });
+    const updateBody = vi.fn();
+    server.use(
+      http.post('/api/run/:runId/playlist', async ({ request }) => {
+        updateBody(await request.json());
+        return HttpResponse.json({ playlist_runs: [] });
+      })
+    );
+    const user = userEvent.setup();
+    renderRunStatus('/run/202');
+
+    await user.click(await screen.findByRole('button', { name: 'Edit Playlist' }));
+    const dialog = await screen.findByRole('dialog');
+    // ALL-03 is queued, so its library cell renders checked; clicking it removes it from the tail.
+    const libraryCell = await within(dialog).findByRole('button', { name: 'ALL-03' });
+    expect(libraryCell).toHaveAttribute('aria-pressed', 'true');
+    await user.click(libraryCell);
+    await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() =>
+      expect(updateBody).toHaveBeenCalledWith({
+        test_procedure_ids: [],
+        expected_active_run_id: 202,
+      })
+    );
+  });
+
   it('retries a failed completed test by queuing it at the front of the upcoming tail', async () => {
     useShell({
       ...shellPlaylist,

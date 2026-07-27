@@ -12,6 +12,7 @@ import {
 import { useMutation } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
+import { ApiError } from '../../api/client';
 import { updatePlaylist } from '../../api/playlists';
 import { useConfirm } from '../../components/useConfirm';
 import { formatDate } from '../../utils/dates';
@@ -79,7 +80,19 @@ export function PlaylistBanner({
         activeRunId as number
       ),
     onSuccess: onPlaylistUpdated,
+    onError: (error: Error) => {
+      // The playlist advanced mid-click; refetch so the badges reflect reality.
+      if (error instanceof ApiError && error.status === 409) {
+        onPlaylistUpdated();
+      }
+    },
   });
+  const retryError =
+    retryMutation.error instanceof ApiError && retryMutation.error.status === 409
+      ? 'The playlist advanced before the retry could be queued - the view has been refreshed. Please try again.'
+      : retryMutation.isError
+        ? 'Failed to queue the retry. Please try again.'
+        : null;
 
   return (
     <Box
@@ -147,6 +160,12 @@ export function PlaylistBanner({
         ))}
       </Flex>
 
+      {retryError && (
+        <Text as="div" size="1" color="red" mb="1">
+          {retryError}
+        </Text>
+      )}
+
       {playlistView.current_order != null && (
         <Text as="div" size="2" color="gray">
           Viewing: Test {playlistView.current_order + 1} of {playlistView.total} &mdash;{' '}
@@ -159,6 +178,17 @@ export function PlaylistBanner({
           <Separator size="4" my="1" />
           <Text as="div" size="2" color="gray">
             This is the final test in the playlist.
+          </Text>
+        </>
+      )}
+
+      {!isComplete && activeRunId != null && (
+        <>
+          <Separator size="4" my="1" />
+          <Text as="div" size="1" color="gray">
+            You can still change this playlist while it runs: retry a failed test with its{' '}
+            <IconRotateClockwise size={11} style={{ verticalAlign: 'middle' }} aria-hidden /> button,
+            or use Edit Playlist to add, remove or reorder the upcoming tests.
           </Text>
         </>
       )}
@@ -210,7 +240,7 @@ function PlaylistRunBadge({
           </Tooltip>
         )}
         {!passed && onRetry && (
-          <Tooltip content="Retry: queue this test again next">
+          <Tooltip content="Run this test again - it will be queued to run next">
             <IconButton
               variant="outline"
               color="red"
