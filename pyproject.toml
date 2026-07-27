@@ -41,6 +41,7 @@ where = ["src"]
     "static/*.png",
     "static/*.ico",
     "static/site.webmanifest",
+    "static/reset.css",
 ]
 
 [tool.setuptools.dynamic]
