@@ -39,6 +39,7 @@ from cactus_ui.api_models import (
     AdminUsersResponse,
     ComplianceRequestsResponse,
     ConfigResponse,
+    PlaylistRunInfo,
     PlaylistSession,
     PlaylistTestsResponse,
     ProceduresResponse,
@@ -46,8 +47,10 @@ from cactus_ui.api_models import (
     ProcedureYamlResponse,
     RunActionResponse,
     RunsPerWeekGranularity,
+    RunStatusResponse,
     RunStatusShell,
     SessionResponse,
+    UpdatePlaylistResponse,
     UserConfig,
     UserLeaderboardEntry,
     WeekBar,
@@ -932,6 +935,38 @@ def api_finalise_playlist(access_token: str, run_id: int) -> Response:
     """Finalise a playlist early: finalises current test and marks remaining as skipped."""
     orchestrator.finalise_playlist(access_token, str(run_id))
     return jsonify(RunActionResponse(run_id=run_id).to_dict())
+
+
+@app.route("/api/run/<int:run_id>/playlist", methods=["POST"])
+@api_login_required
+def api_update_playlist(access_token: str, run_id: int) -> Response | tuple[Response, int]:
+    """Replace the upcoming (not-yet-run) tail of run_id's playlist. Active/completed runs are untouched.
+
+    409 (with `{"error": ..., "conflict": true}`) means the playlist advanced since the caller last
+    fetched it — the frontend should refetch and let the user retry.
+    """
+    body = request.get_json(silent=True) or {}
+    test_procedure_ids = body.get("test_procedure_ids")
+    expected_active_run_id = body.get("expected_active_run_id")
+    if not isinstance(test_procedure_ids, list) or not isinstance(expected_active_run_id, int):
+        return jsonify({"error": "test_procedure_ids and expected_active_run_id are required."}), HTTPStatus.BAD_REQUEST
+
+    result = orchestrator.update_playlist(access_token, str(run_id), test_procedure_ids, expected_active_run_id)
+    if result.conflict:
+        return jsonify({"error": result.error_message, "conflict": True}), HTTPStatus.CONFLICT
+    if result.response is None:
+        return jsonify({"error": result.error_message}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(
+        UpdatePlaylistResponse(
+            playlist_runs=[
+                PlaylistRunInfo(
+                    run_id=r.run_id, test_procedure_id=r.test_procedure_id, status=RunStatusResponse(r.status.value)
+                )
+                for r in result.response.playlist_runs
+            ]
+        ).to_dict()
+    )
 
 
 @app.route("/api/config", methods=["GET"])

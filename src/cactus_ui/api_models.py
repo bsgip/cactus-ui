@@ -64,6 +64,22 @@ class RunActionResponse(FastAPICompatibleWizard):
 
 
 @dataclass
+class PlaylistRunInfo(FastAPICompatibleWizard):
+    """Summary info for a run within a playlist. Mirrors cactus_schema.orchestrator.PlaylistRunInfo."""
+
+    run_id: int
+    test_procedure_id: str
+    status: RunStatusResponse
+
+
+@dataclass
+class UpdatePlaylistResponse(FastAPICompatibleWizard):
+    """POST /api/run/<id>/playlist — the full playlist, in order, after replacing the upcoming tail."""
+
+    playlist_runs: list[PlaylistRunInfo]
+
+
+@dataclass
 class GroupedProcedures(FastAPICompatibleWizard):
     """One category's procedure run summaries, in definition order."""
 
