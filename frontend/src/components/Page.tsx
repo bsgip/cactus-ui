@@ -6,8 +6,8 @@ import PageBanner from './PageBanner';
 
 interface PageProps {
   title: string;
-  includeBanner: boolean;
-  children: ReactNode;
+  includeBanner?: boolean;
+  children?: ReactNode;
 };
 
 function Page({title, includeBanner, children}: PageProps) {
