@@ -16,11 +16,36 @@ import runStatusRunnerFixture from '../../fixtures/run_status_runner.json';
 import runStatusShellFixture from '../../fixtures/run_status_shell.json';
 import runStatusShellPlaylistFixture from '../../fixtures/run_status_shell_playlist.json';
 
-// Mutable copy of the playlist shell so playlist edits/retries made in mock mode stick across
-// refetches. The templates keep the original fixture's queued-run shape for newly added tests.
+// Mutable copy of the playlist shell so playlist edits/retries/finalises made in mock mode stick
+// across refetches. The templates keep the original fixture's queued-run shape for added tests.
 const playlistShell = structuredClone(runStatusShellPlaylistFixture);
 const upcomingRunTemplate = runStatusShellPlaylistFixture.playlist_runs[2];
 const upcomingSummaryTemplate = runStatusShellPlaylistFixture.run.playlist_runs[2];
+
+const syncPlaylistSummary = () => {
+  playlistShell.run.playlist_runs = playlistShell.playlist_runs.map(
+    ({ run_id, test_procedure_id, status }) => ({ run_id, test_procedure_id, status })
+  );
+};
+
+// Compose the shell for one run of the mock playlist, so navigating between playlist runs works.
+const playlistShellForRun = (runId: number) => {
+  const index = playlistShell.playlist_runs.findIndex((r) => r.run_id === runId);
+  if (index === -1) {
+    return playlistShell;
+  }
+  const row = playlistShell.playlist_runs[index];
+  return {
+    ...playlistShell,
+    run: {
+      ...playlistShell.run,
+      ...row,
+      playlist_order: index,
+      playlist_runs: playlistShell.run.playlist_runs,
+    },
+    run_is_live: row.status === 'started' || row.status === 'provisioning',
+  };
+};
 import sessionFixture from '../../fixtures/session.json';
 import sessionAdminFixture from '../../fixtures/session_admin.json';
 import complianceRequestsFixture from '../../fixtures/compliance_requests.json';
@@ -99,18 +124,32 @@ export const handlers = [
   http.post('/api/runs/:runId/start', ({ params }) =>
     HttpResponse.json({ run_id: Number(params.runId) })
   ),
-  http.post('/api/runs/:runId/finalise', ({ params }) =>
-    HttpResponse.json({ run_id: Number(params.runId) })
-  ),
+  http.post('/api/runs/:runId/finalise', ({ params }) => {
+    // Finalising a mock playlist run records it and hands over to the next queued test.
+    const row = playlistShell.playlist_runs.find((r) => r.run_id === Number(params.runId));
+    if (row) {
+      row.status = 'finalised';
+      row.all_criteria_met = row.all_criteria_met ?? false;
+      row.finalised_at = new Date().toISOString();
+      const next = playlistShell.playlist_runs.find((r) => r.status === 'initialised');
+      if (next) {
+        next.status = 'started';
+      }
+      syncPlaylistSummary();
+    }
+    return HttpResponse.json({ run_id: Number(params.runId) });
+  }),
   http.delete('/api/runs/:runId', ({ params }) =>
     HttpResponse.json({ run_id: Number(params.runId) })
   ),
 
   // ---- Run ----
-  // Runs 201+ belong to the playlist fixture so the playlist banner (retry / edit playlist)
-  // can be exercised in mock mode; any other id gets the standalone shell.
+  // Runs 201+ belong to the playlist fixture so the playlist banner (retry / edit playlist /
+  // finalise-and-retry) can be exercised in mock mode; any other id gets the standalone shell.
   http.get('/api/run/:runId', ({ params }) =>
-    HttpResponse.json(Number(params.runId) >= 201 ? playlistShell : runStatusShellFixture)
+    HttpResponse.json(
+      Number(params.runId) >= 201 ? playlistShellForRun(Number(params.runId)) : runStatusShellFixture
+    )
   ),
   http.get('/api/run/:runId/status', () => HttpResponse.json(runStatusRunnerFixture)),
   http.get('/api/run/:runId/requests/:requestId', () =>
@@ -140,10 +179,7 @@ export const handlers = [
         test_url: `https://cactus.example/run/${s.run_id}`,
       })),
     ];
-    playlistShell.run.playlist_runs = [
-      ...playlistShell.run.playlist_runs.filter((r) => r.status !== 'initialised'),
-      ...summaryTail,
-    ];
+    syncPlaylistSummary();
     return HttpResponse.json({ playlist_runs: summaryTail });
   }),
   http.post('/api/runs/:runId/proceed', () => HttpResponse.json({ handled: true })),

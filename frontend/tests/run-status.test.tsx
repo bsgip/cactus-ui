@@ -257,6 +257,42 @@ describe('run status playlist banner', () => {
     );
   });
 
+  it('finalises the running test and immediately retries it after confirmation', async () => {
+    useShell(shellPlaylist);
+    const updateBody = vi.fn();
+    const finalised = vi.fn();
+    server.use(
+      http.post('/api/run/:runId/playlist', async ({ request }) => {
+        updateBody(await request.json());
+        return HttpResponse.json({
+          playlist_runs: [
+            { run_id: 900, test_procedure_id: 'ALL-02', status: 'initialised' },
+            { run_id: 901, test_procedure_id: 'ALL-03', status: 'initialised' },
+          ],
+        });
+      }),
+      http.post('/api/runs/:runId/finalise', ({ params }) => {
+        finalised(Number(params.runId));
+        return HttpResponse.json({ run_id: Number(params.runId) });
+      })
+    );
+    const user = userEvent.setup();
+    const { router } = renderRunStatus('/run/202');
+
+    await user.click(await screen.findByRole('button', { name: 'Finalise and retry' }));
+    const dialog = await screen.findByRole('alertdialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Finalise & Retry' }));
+
+    // ALL-02 (the running test) is queued at the front of the tail, then run 202 is finalised
+    // and the page navigates to the fresh attempt.
+    await waitFor(() => expect(finalised).toHaveBeenCalledWith(202));
+    expect(updateBody).toHaveBeenCalledWith({
+      test_procedure_ids: ['ALL-02', 'ALL-03'],
+      expected_active_run_id: 202,
+    });
+    await waitFor(() => expect(router.state.location.pathname).toBe('/run/900'));
+  });
+
   it('shows a conflict notice and refreshes when the playlist advanced mid-edit', async () => {
     useShell(shellPlaylist);
     server.use(

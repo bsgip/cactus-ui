@@ -11,9 +11,10 @@ import {
 } from '@tabler/icons-react';
 import { useMutation } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { ApiError } from '../../api/client';
 import { updatePlaylist } from '../../api/playlists';
+import { finaliseRun } from '../../api/runs';
 import { useConfirm } from '../../components/useConfirm';
 import { formatDate } from '../../utils/dates';
 import { PlaylistEditDialog } from './PlaylistEditDialog';
@@ -51,6 +52,7 @@ export function PlaylistBanner({
   onPlaylistUpdated,
 }: Props) {
   const { confirm, confirmDialog } = useConfirm();
+  const navigate = useNavigate();
   const adminPrefix = isAdminView ? '/admin' : '';
   const isComplete =
     playlistView.runs.filter((r) => TERMINAL_STATUSES.includes(r.status)).length ===
@@ -87,12 +89,48 @@ export function PlaylistBanner({
       }
     },
   });
-  const retryError =
-    retryMutation.error instanceof ApiError && retryMutation.error.status === 409
+
+  // "Finalise & retry" on the running test: queue the same test at the front of the tail, then
+  // finalise the current run so the orchestrator hands straight over to the fresh attempt.
+  const retryNowMutation = useMutation({
+    mutationFn: async (testProcedureId: string) => {
+      const updated = await updatePlaylist(
+        runId,
+        [testProcedureId, ...upcomingRuns.map((r) => r.test_procedure_id)],
+        activeRunId as number
+      );
+      await finaliseRun(activeRunId as number);
+      return updated.playlist_runs[0]?.run_id ?? null;
+    },
+    onSuccess: (nextRunId) => {
+      onPlaylistUpdated();
+      if (nextRunId != null) {
+        void navigate(`${adminPrefix}/run/${nextRunId}`);
+      }
+    },
+    // The tail may have been replaced even if the finalise step failed - refetch either way.
+    onError: () => onPlaylistUpdated(),
+  });
+
+  const confirmRetryNow = (testProcedureId: string) =>
+    confirm({
+      title: 'Finalise and retry',
+      body: `This will end the running ${testProcedureId} test now (its result is recorded as-is) and immediately start ${testProcedureId} again.`,
+      confirmLabel: 'Finalise & Retry',
+      cancelLabel: 'Cancel',
+      onConfirm: () => retryNowMutation.mutate(testProcedureId),
+    });
+
+  const is409 = (error: Error | null) => error instanceof ApiError && error.status === 409;
+  const retryError = retryMutation.isError
+    ? is409(retryMutation.error)
       ? 'The playlist advanced before the retry could be queued - the view has been refreshed. Please try again.'
-      : retryMutation.isError
-        ? 'Failed to queue the retry. Please try again.'
-        : null;
+      : 'Failed to queue the retry. Please try again.'
+    : retryNowMutation.isError
+      ? is409(retryNowMutation.error)
+        ? 'The playlist advanced before the retry could be queued - the view has been refreshed. Please try again.'
+        : 'Failed to finalise and retry the running test. Please try again.'
+      : null;
 
   return (
     <Box
@@ -155,7 +193,12 @@ export function PlaylistBanner({
             onRetry={
               activeRunId != null ? () => retryMutation.mutate(run.test_procedure_id) : undefined
             }
-            isRetrying={retryMutation.isPending}
+            onRetryNow={
+              !isAdminView && run.run_id === activeRunId
+                ? () => confirmRetryNow(run.test_procedure_id)
+                : undefined
+            }
+            isRetrying={retryMutation.isPending || retryNowMutation.isPending}
           />
         ))}
       </Flex>
@@ -186,9 +229,10 @@ export function PlaylistBanner({
         <>
           <Separator size="4" my="1" />
           <Text as="div" size="1" color="gray">
-            You can still change this playlist while it runs: retry a failed test with its{' '}
-            <IconRotateClockwise size={11} style={{ verticalAlign: 'middle' }} aria-hidden /> button,
-            or use Edit Playlist to add, remove or reorder the upcoming tests.
+            You can still change this playlist while it runs: use the{' '}
+            <IconRotateClockwise size={11} style={{ verticalAlign: 'middle' }} aria-hidden /> button
+            to retry a failed test &mdash; or to cut short and rerun the one in progress &mdash; or
+            use Edit Playlist to add, remove or reorder the upcoming tests.
           </Text>
         </>
       )}
@@ -201,12 +245,14 @@ function PlaylistRunBadge({
   isCurrent,
   adminPrefix,
   onRetry,
+  onRetryNow,
   isRetrying,
 }: {
   run: PlaylistRunRow;
   isCurrent: boolean;
   adminPrefix: string;
   onRetry?: () => void;
+  onRetryNow?: () => void;
   isRetrying: boolean;
 }) {
   const href = `${adminPrefix}/run/${run.run_id}`;
@@ -257,14 +303,30 @@ function PlaylistRunBadge({
     );
   } else if (run.status === 'started' || run.status === 'provisioning') {
     badge = (
-      <Tooltip content="Running">
-        <Badge asChild color="blue">
-          <RouterLink to={href} style={{ cursor: 'pointer' }}>
-            <IconPlayerPlay size={12} />
-            {run.test_procedure_id}
-          </RouterLink>
-        </Badge>
-      </Tooltip>
+      <Flex gap="1" align="center">
+        <Tooltip content="Running">
+          <Badge asChild color="blue">
+            <RouterLink to={href} style={{ cursor: 'pointer' }}>
+              <IconPlayerPlay size={12} />
+              {run.test_procedure_id}
+            </RouterLink>
+          </Badge>
+        </Tooltip>
+        {onRetryNow && (
+          <Tooltip content="Going badly? Finalise this test now and run it again">
+            <IconButton
+              variant="outline"
+              color="blue"
+              size="1"
+              aria-label="Finalise and retry"
+              loading={isRetrying}
+              onClick={onRetryNow}
+            >
+              <IconRotateClockwise size={12} />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Flex>
     );
   } else if (run.status === 'skipped') {
     badge = (
