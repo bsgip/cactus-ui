@@ -6,12 +6,16 @@ import {
   IconDownload,
   IconPlayerPlay,
   IconPlayerStop,
+  IconRotateClockwise,
   IconX,
 } from '@tabler/icons-react';
+import { useMutation } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
+import { updatePlaylist } from '../../api/playlists';
 import { useConfirm } from '../../components/useConfirm';
 import { formatDate } from '../../utils/dates';
+import { PlaylistEditDialog } from './PlaylistEditDialog';
 import type { CurrentActiveRun, PlaylistRunRow, PlaylistView } from './runStatusModel';
 
 interface Props {
@@ -22,6 +26,7 @@ interface Props {
   isAdminView: boolean;
   isEnding: boolean;
   onEndPlaylist: () => void;
+  onPlaylistUpdated: () => void;
 }
 
 const TERMINAL_STATUSES = ['finalised', 'skipped'];
@@ -42,6 +47,7 @@ export function PlaylistBanner({
   isAdminView,
   isEnding,
   onEndPlaylist,
+  onPlaylistUpdated,
 }: Props) {
   const { confirm, confirmDialog } = useConfirm();
   const adminPrefix = isAdminView ? '/admin' : '';
@@ -50,6 +56,8 @@ export function PlaylistBanner({
     playlistView.total;
   const isFinalTest =
     playlistView.current_order != null && playlistView.current_order >= playlistView.total - 1;
+  const upcomingRuns = playlistView.runs.filter((r) => r.status === 'initialised');
+  const activeRunId = currentActiveRun?.run_id ?? null;
 
   const confirmEndPlaylist = () =>
     confirm({
@@ -60,6 +68,18 @@ export function PlaylistBanner({
       confirmColor: 'red',
       onConfirm: onEndPlaylist,
     });
+
+  // Retry queues the same test again at the front of the upcoming tail; the active/completed
+  // entries (including the failed run itself) are untouched.
+  const retryMutation = useMutation({
+    mutationFn: (testProcedureId: string) =>
+      updatePlaylist(
+        runId,
+        [testProcedureId, ...upcomingRuns.map((r) => r.test_procedure_id)],
+        activeRunId as number
+      ),
+    onSuccess: onPlaylistUpdated,
+  });
 
   return (
     <Box
@@ -86,6 +106,15 @@ export function PlaylistBanner({
               </RouterLink>
             </Button>
           )}
+          {!isComplete && activeRunId != null && (
+            <PlaylistEditDialog
+              runId={runId}
+              upcomingRuns={upcomingRuns}
+              activeRunId={activeRunId}
+              runGroupId={playlistView.run_group_id}
+              onUpdated={onPlaylistUpdated}
+            />
+          )}
           {!isComplete && (
             <Button size="1" color="red" loading={isEnding} onClick={confirmEndPlaylist}>
               <IconPlayerStop size={14} />
@@ -110,6 +139,10 @@ export function PlaylistBanner({
             run={run}
             isCurrent={index === playlistView.current_order}
             adminPrefix={adminPrefix}
+            onRetry={
+              activeRunId != null ? () => retryMutation.mutate(run.test_procedure_id) : undefined
+            }
+            isRetrying={retryMutation.isPending}
           />
         ))}
       </Flex>
@@ -137,10 +170,14 @@ function PlaylistRunBadge({
   run,
   isCurrent,
   adminPrefix,
+  onRetry,
+  isRetrying,
 }: {
   run: PlaylistRunRow;
   isCurrent: boolean;
   adminPrefix: string;
+  onRetry?: () => void;
+  isRetrying: boolean;
 }) {
   const href = `${adminPrefix}/run/${run.run_id}`;
   const passed = run.all_criteria_met;
@@ -169,6 +206,20 @@ function PlaylistRunBadge({
               <a href={`${adminPrefix}/run/${run.run_id}/artifact`}>
                 <IconDownload size={12} />
               </a>
+            </IconButton>
+          </Tooltip>
+        )}
+        {!passed && onRetry && (
+          <Tooltip content="Retry: queue this test again next">
+            <IconButton
+              variant="outline"
+              color="red"
+              size="1"
+              aria-label="Retry"
+              loading={isRetrying}
+              onClick={onRetry}
+            >
+              <IconRotateClockwise size={12} />
             </IconButton>
           </Tooltip>
         )}

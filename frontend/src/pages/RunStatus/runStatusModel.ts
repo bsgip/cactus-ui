@@ -23,6 +23,7 @@ export interface PlaylistView {
   runs: PlaylistRunRow[];
   current_order: number | null;
   total: number;
+  run_group_id: number | null;
 }
 
 export interface CurrentActiveRun {
@@ -55,6 +56,7 @@ export function derivePlaylistView(shell: RunStatusShell): PlaylistView | null {
     runs,
     current_order: shell.run?.playlist_order ?? null,
     total: summary.length,
+    run_group_id: shell.run?.run_group_id ?? null,
   };
 }
 

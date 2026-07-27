@@ -112,6 +112,16 @@ export const handlers = [
   http.post('/api/runs/:runId/finalise_playlist', ({ params }) =>
     HttpResponse.json({ run_id: Number(params.runId) })
   ),
+  http.post('/api/run/:runId/playlist', async ({ request }) => {
+    const body = (await request.json()) as { test_procedure_ids: string[] };
+    return HttpResponse.json({
+      playlist_runs: body.test_procedure_ids.map((test_procedure_id, i) => ({
+        run_id: 900 + i,
+        test_procedure_id,
+        status: 'initialised',
+      })),
+    });
+  }),
   http.post('/api/runs/:runId/proceed', () => HttpResponse.json({ handled: true })),
   http.post('/api/admin/runs/:runId/proceed', () => HttpResponse.json({ handled: true })),
 
