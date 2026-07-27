@@ -215,24 +215,24 @@ export function HomePage() {
     <>
       <Banner message={session.banner_message} />
 
-      <Box mb="4" style={{ textAlign: 'center' }}>
+      <Box my="4" style={{ textAlign: 'center' }}>
         <Heading as="h1" size="8" weight="light">
           Welcome to CACTUS
         </Heading>
         <Text as="div" size="5" color="gray">
           CSIP-Australia client testing for utility services
         </Text>
-        <Text as="div" size="3" color="gray" mt="2">
-          This page is your guide to CSIP-AUS certification — return to it anytime via{' '}
-          <strong>Home</strong> in the navigation bar.
+        <Text as="div" size="3" color="gray" mt="5">
+          This page is your guide to CSIP-AUS certification — return to it anytime by clicking{' '}
+          🌵<strong>CACTUS</strong> in the navigation bar.
         </Text>
       </Box>
 
-      <Separator my="5" size="4" />
+      <Separator my="7" size="4" />
 
       <Box style={{ maxWidth: 850, margin: '0 auto' }}>
-        <Heading as="h2" size="7" mb="5" style={{ textAlign: 'center' }}>
-          Your path to certification
+        <Heading as="h2" size="7" mb="7" style={{ textAlign: 'center' }}>
+          Your Path to Certification
         </Heading>
 
         <Step n={1} title="Self-test your device">
@@ -315,9 +315,9 @@ export function HomePage() {
         </Step>
       </Box>
 
-      <Separator my="5" size="4" />
+      <Separator my="7" size="4" />
 
-      <Heading as="h2" size="6" mb="3">
+      <Heading as="h2" size="6" mb="7">
         Help & Resources
       </Heading>
 
