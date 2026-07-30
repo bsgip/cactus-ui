@@ -59,7 +59,7 @@ export function OrganisationCard({
 
         <Flex direction="column" gap="1">
           <Heading as="h4" size="2">
-            Subscription Notifications
+            Subscription-based Notifications
           </Heading>
           <Text size="2" color="gray">
             For aggregators that subscribe to resources: the utility server delivers notifications

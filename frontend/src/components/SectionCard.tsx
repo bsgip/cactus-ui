@@ -31,7 +31,7 @@ export function SectionCard({ title, icon, action, children, h, scroll }: Sectio
         backgroundColor: 'var(--color-panel-solid)',
       }}
     >
-      <Flex justify="between" align="center" px="3" py="2">
+      <Flex justify="between" align="center" px="3" py="2" style={{backgroundColor: 'var(--gray-a2)'}}>
         {typeof title === 'string' ? (
           <Flex align="center" gap="2">
             {icon}

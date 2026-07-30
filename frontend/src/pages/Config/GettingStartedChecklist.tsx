@@ -1,5 +1,5 @@
 import { Box, Flex, Text } from '@radix-ui/themes';
-import { IconCircle, IconCircleCheck } from '@tabler/icons-react';
+import { IconInfoCircle, IconCircle, IconCircleCheck } from '@tabler/icons-react';
 import type { RunGroupResponse } from '../../api/types';
 
 // Tinted alert box (Callout.Text renders as <p>, which can't hold the block-level rows below).
@@ -77,7 +77,7 @@ export function GettingStartedChecklist({
           Generate a device or aggregator certificate for it
         </ChecklistRow>
         <Text size="1" color="gray">
-          Use the (i) icons for more detail on each step.
+          Use the <IconInfoCircle size={16} style={{display: "inline", position: "relative", top: "4px"}}/> icons for more detail on each step.
         </Text>
       </Flex>
     </AlertBox>
