@@ -26,13 +26,13 @@ export function SharedCertButton({
         hasDomain ? (
           <Button variant="soft" onClick={open}>
             <IconCertificate size={14} />
-            Aggregator cert for all groups
+            Set SHARED Aggregator Certificate for ALL groups
           </Button>
         ) : (
           <Tooltip content="Set a notification domain first - an aggregator certificate requires it.">
             <Button variant="soft" disabled>
               <IconCertificate size={14} />
-              Aggregator cert for all groups
+              Set SHARED Aggregator Certificate for ALL groups
             </Button>
           </Tooltip>
         )

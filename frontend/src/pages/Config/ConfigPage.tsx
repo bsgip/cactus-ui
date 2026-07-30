@@ -6,6 +6,7 @@ import { fetchConfig } from '../../api/config';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { GettingStartedChecklist } from './GettingStartedChecklist';
 import { OrganisationCard } from './OrganisationCard';
+import { NotificationsCard } from './NotificationsCard';
 import { RunGroupsCard } from './RunGroupsCard';
 import Page from '../../components/Page';
 import { ErrorAlert } from '../../components/ErrorAlert';
@@ -55,7 +56,7 @@ export function ConfigPage() {
 
   return (
     <Page title="Certificates & Configuration" includeBanner={true}>
-      <Box mb="3">
+      <Box mb="6">
         <Text>
           Set up the identity and certificates used by all future{' '}
           <Link asChild>
@@ -84,6 +85,11 @@ export function ConfigPage() {
           />
 
           <OrganisationCard
+            pen={config?.config.pen ?? null}
+            domain={config?.config.subscription_domain ?? ''}
+            setError={handleActionError}
+          />
+          <NotificationsCard
             pen={config?.config.pen ?? null}
             domain={config?.config.subscription_domain ?? ''}
             setError={handleActionError}
