@@ -1,7 +1,6 @@
 import {
   Badge,
   Button,
-  Code,
   Flex,
   IconButton,
   Link,
@@ -169,7 +168,7 @@ function RunGroupNameCell({ rg, updateNameMutation, editing, setEditing }: { rg:
 function CsipAusVersionCell({ rg }: { rg: RunGroupResponse }) {
   return (
     <Table.Cell>
-      <Code>{rg.csip_aus_version}</Code>
+      <Text>{rg.csip_aus_version}</Text>
     </Table.Cell>
   );
 };
@@ -179,12 +178,11 @@ function DeviceCapabilityUriCell({ rg }: { rg: RunGroupResponse }) {
     <Table.Cell>
       {rg.static_uri ? (
         <Flex align="center" gap="1">
-          <Code
-            size="1"
+          <Text
             style={{ whiteSpace: 'nowrap', overflowX: 'auto', maxWidth: 380 }}
           >
             {rg.static_uri}
-          </Code>
+          </Text>
           <CopyButton value={rg.static_uri} />
         </Flex>
       ) : (
