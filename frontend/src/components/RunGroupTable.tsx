@@ -11,9 +11,10 @@ import {
   Tooltip,
 } from '@radix-ui/themes';
 import { IconPencil, IconX } from '@tabler/icons-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
+import { Dispatch, SetStateAction, useRef, useState, RefObject } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
+
 import { deleteRunGroup, updateRunGroupName } from '../api/config';
 import { CopyButton } from './CopyButton';
 import { InfoPopover } from './InfoPopover';
@@ -73,16 +74,19 @@ function RunGroupTableHeader() {
 }
 
 interface RunGroupTableRowProps {
-  rg: any;
-  setError: any;
-  hasDomain: any;
-  onCertAction: any;
-  deleteMutation: any;
-  editing: any;
-  setEditing: any;
-  pendingDeleteRef: any;
-  updateNameMutation: any
-};
+  rg: RunGroupResponse;
+  hasDomain: boolean;
+  onCertAction: (message: string) => void;
+  setError: (msg: string | null) => void;
+  deleteMutation: UseMutationResult<Record<string, never>, Error, number, unknown>;
+  editing: {id: number; draft: string;} | null;
+  setEditing: Dispatch<SetStateAction<{id: number; draft: string;} | null>>;
+  pendingDeleteRef: RefObject<number | null>;
+  updateNameMutation: UseMutationResult<RunGroupResponse, Error, {id: number; name: string;}, unknown>};
+
+interface RunGroupTableProps {
+
+}
 
 function RunGroupTableRow({ rg, hasDomain, onCertAction, deleteMutation, editing, setEditing, pendingDeleteRef, updateNameMutation, setError }: RunGroupTableRowProps) {
   return (
@@ -204,7 +208,15 @@ function RunGroupTableRow({ rg, hasDomain, onCertAction, deleteMutation, editing
   );
 }
 
-function RunGroupTable({ runGroups, hasDomain, onCertAction, setError }: { runGroups: any, hasDomain: any, onCertAction: any, setError: any }) {
+
+interface RunGroupTableProps {
+  runGroups: RunGroupResponse[];
+  hasDomain: boolean;
+  onCertAction: (message: string) => void;
+  setError: (msg: string | null) => void;
+}
+
+function RunGroupTable({ runGroups, hasDomain, onCertAction, setError }: RunGroupTableProps) {
   const queryClient = useQueryClient();
 
   // Returning the invalidation promise keeps each mutation pending (spinners showing) until the
