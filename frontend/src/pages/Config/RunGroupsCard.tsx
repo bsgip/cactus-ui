@@ -10,7 +10,7 @@ import { createRunGroup } from '../../api/config';
 import type { CSIPAusVersionResponse, RunGroupResponse } from '../../api/types';
 import { SharedCertButton } from './SharedCertButton';
 import { Section } from '../../components/Section';
-import RunGroupTable from '../../components/RunGroupTable';
+import RunGroupConfigTable from '../../components/RunGroupConfigTable';
 import Highlight from '../../components/Highlight';
 
 
@@ -60,7 +60,7 @@ export function RunGroupsCard({
       {runGroups.length === 0 ? (
         <Text color="gray">No run groups yet — create your first one below to start testing.</Text>
       ) : (
-        <RunGroupTable setError={setError} runGroups={runGroups} hasDomain={hasDomain} onCertAction={onCertAction} />
+        <RunGroupConfigTable setError={setError} runGroups={runGroups} hasDomain={hasDomain} onCertAction={onCertAction} />
       )}
 
       <Flex justify="between" mt="4">

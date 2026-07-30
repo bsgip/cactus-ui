@@ -49,7 +49,7 @@ function CertStatusBadge({ runGroup }: { runGroup: RunGroupResponse }) {
   );
 }
 
-function RunGroupTableHeader() {
+function RunGroupConfigTableHeader() {
   return (
     <Table.Header>
       <Table.Row>
@@ -228,7 +228,7 @@ function DeleteRunGroupCell({ rg, deleteMutation, pendingDeleteRef }: { rg: RunG
   );
 };
 
-interface RunGroupTableRowProps {
+interface RunGroupConfigTableRowProps {
   rg: RunGroupResponse;
   hasDomain: boolean;
   onCertAction: (message: string) => void;
@@ -240,7 +240,7 @@ interface RunGroupTableRowProps {
   updateNameMutation: UseMutationResult<RunGroupResponse, Error, { id: number; name: string; }, unknown>
 };
 
-function RunGroupTableRow({ rg, hasDomain, onCertAction, deleteMutation, editing, setEditing, pendingDeleteRef, updateNameMutation, setError }: RunGroupTableRowProps) {
+function RunGroupConfigTableRow({ rg, hasDomain, onCertAction, deleteMutation, editing, setEditing, pendingDeleteRef, updateNameMutation, setError }: RunGroupConfigTableRowProps) {
   return (
     <Table.Row key={rg.run_group_id}>
       <CertificateCell rg={rg} hasDomain={hasDomain} onCertAction={onCertAction} setError={setError} />
@@ -254,14 +254,14 @@ function RunGroupTableRow({ rg, hasDomain, onCertAction, deleteMutation, editing
 }
 
 
-interface RunGroupTableProps {
+interface RunGroupConfigTableProps {
   runGroups: RunGroupResponse[];
   hasDomain: boolean;
   onCertAction: (message: string) => void;
   setError: (msg: string | null) => void;
 }
 
-function RunGroupTable({ runGroups, hasDomain, onCertAction, setError }: RunGroupTableProps) {
+function RunGroupConfigTable({ runGroups, hasDomain, onCertAction, setError }: RunGroupConfigTableProps) {
   const queryClient = useQueryClient();
 
   // Returning the invalidation promise keeps each mutation pending (spinners showing) until the
@@ -289,14 +289,14 @@ function RunGroupTable({ runGroups, hasDomain, onCertAction, setError }: RunGrou
 
   return (
     <Table.Root variant="surface">
-      <RunGroupTableHeader />
+      <RunGroupConfigTableHeader />
       <Table.Body>
         {runGroups.map((rg) => (
-          <RunGroupTableRow rg={rg} hasDomain={hasDomain} onCertAction={onCertAction} deleteMutation={deleteMutation} editing={editing} setEditing={setEditing} pendingDeleteRef={pendingDeleteRef} updateNameMutation={updateNameMutation} setError={setError} />
+          <RunGroupConfigTableRow rg={rg} hasDomain={hasDomain} onCertAction={onCertAction} deleteMutation={deleteMutation} editing={editing} setEditing={setEditing} pendingDeleteRef={pendingDeleteRef} updateNameMutation={updateNameMutation} setError={setError} />
         ))}
       </Table.Body>
     </Table.Root>
   );
 }
 
-export default RunGroupTable
+export default RunGroupConfigTable
