@@ -48,6 +48,7 @@ function CertStatusBadge({ runGroup }: { runGroup: RunGroupResponse }) {
     </Tooltip>
   );
 }
+
 function RunGroupTableHeader() {
   return (
     <Table.Header>
@@ -73,137 +74,181 @@ function RunGroupTableHeader() {
   );
 }
 
+
+function CertificateCell({ rg, hasDomain, onCertAction, setError }:
+  {
+    rg: RunGroupResponse;
+    hasDomain: boolean;
+    onCertAction: (message: string) => void;
+    setError: (msg: string | null) => void;
+  }
+) {
+  return (
+    <Table.Cell>
+      <Flex direction="column" gap="2" align="start">
+        <CertStatusBadge runGroup={rg} />
+        <CertModal
+          runGroup={rg}
+          hasDomain={hasDomain}
+          onCertAction={onCertAction}
+          onCertError={setError}
+        />
+      </Flex>
+    </Table.Cell>
+  );
+};
+
+function RunGroupNameCell({ rg, updateNameMutation, editing, setEditing }: { rg: RunGroupResponse, updateNameMutation: UseMutationResult<RunGroupResponse, Error, { id: number; name: string; }, unknown>, editing: { id: number; draft: string; } | null, setEditing: Dispatch<SetStateAction<{ id: number; draft: string; } | null>> }) {
+  return (
+    <Table.Cell>
+      {editing?.id === rg.run_group_id ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const name = editing.draft.trim();
+            if (name && name !== rg.name) {
+              updateNameMutation.mutate(
+                { id: rg.run_group_id, name },
+                { onSuccess: () => setEditing(null) }
+              );
+            }
+          }}
+        >
+          <Flex gap="2" align="center">
+            <TextField.Root
+              autoFocus
+              value={editing.draft}
+              onChange={(e) =>
+                setEditing({ id: rg.run_group_id, draft: e.target.value })
+              }
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setEditing(null);
+              }}
+              style={{ flex: 1 }}
+            />
+            <Button
+              type="submit"
+              variant="outline"
+              disabled={editing.draft.trim() === '' || editing.draft.trim() === rg.name}
+              loading={
+                updateNameMutation.isPending &&
+                updateNameMutation.variables?.id === rg.run_group_id
+              }
+            >
+              Save
+            </Button>
+            <IconButton
+              type="button"
+              variant="ghost"
+              color="gray"
+              onClick={() => setEditing(null)}
+              aria-label="Cancel"
+            >
+              <IconX size={14} />
+            </IconButton>
+          </Flex>
+        </form>
+      ) : (
+        <Flex gap="2" align="center">
+          <Text>{rg.name}</Text>
+          <IconButton
+            type="button"
+            variant="ghost"
+            color="gray"
+            onClick={() => setEditing({ id: rg.run_group_id, draft: rg.name })}
+            aria-label="Rename"
+          >
+            <IconPencil size={14} />
+          </IconButton>
+        </Flex>
+      )}
+    </Table.Cell>
+  );
+};
+
+function CsipAusVersionCell({ rg }: { rg: RunGroupResponse }) {
+  return (
+    <Table.Cell>
+      <Code>{rg.csip_aus_version}</Code>
+    </Table.Cell>
+  );
+};
+
+function DeviceCapabilityUriCell({ rg }: { rg: RunGroupResponse }) {
+  return (
+    <Table.Cell>
+      {rg.static_uri ? (
+        <Flex align="center" gap="1">
+          <Code
+            size="1"
+            style={{ whiteSpace: 'nowrap', overflowX: 'auto', maxWidth: 380 }}
+          >
+            {rg.static_uri}
+          </Code>
+          <CopyButton value={rg.static_uri} />
+        </Flex>
+      ) : (
+        <Text size="1" color="gray">
+          —
+        </Text>
+      )}
+    </Table.Cell>
+
+  );
+};
+
+function RunsCell({ rg }: { rg: RunGroupResponse }) {
+  return (
+    <Table.Cell>
+      <Link asChild>
+        <RouterLink to={`/group/${rg.run_group_id}/runs`}>
+          {rg.total_runs} {rg.total_runs === 1 ? 'run' : 'runs'}
+        </RouterLink>
+      </Link>
+    </Table.Cell>
+
+  );
+};
+
+function DeleteRunGroupCell({ rg, deleteMutation, pendingDeleteRef }: { rg: RunGroupResponse, deleteMutation: UseMutationResult<Record<string, never>, Error, number, unknown>, pendingDeleteRef: RefObject<number | null> }) {
+  return (
+    <Table.Cell>
+      <DeleteModal
+        runGroup={rg}
+        isDeleting={
+          deleteMutation.isPending && pendingDeleteRef.current === rg.run_group_id
+        }
+        onDelete={() => {
+          pendingDeleteRef.current = rg.run_group_id;
+          deleteMutation.mutate(rg.run_group_id);
+        }}
+      />
+    </Table.Cell>
+
+  );
+};
+
 interface RunGroupTableRowProps {
   rg: RunGroupResponse;
   hasDomain: boolean;
   onCertAction: (message: string) => void;
   setError: (msg: string | null) => void;
   deleteMutation: UseMutationResult<Record<string, never>, Error, number, unknown>;
-  editing: {id: number; draft: string;} | null;
-  setEditing: Dispatch<SetStateAction<{id: number; draft: string;} | null>>;
+  editing: { id: number; draft: string; } | null;
+  setEditing: Dispatch<SetStateAction<{ id: number; draft: string; } | null>>;
   pendingDeleteRef: RefObject<number | null>;
-  updateNameMutation: UseMutationResult<RunGroupResponse, Error, {id: number; name: string;}, unknown>};
-
-interface RunGroupTableProps {
-
-}
+  updateNameMutation: UseMutationResult<RunGroupResponse, Error, { id: number; name: string; }, unknown>
+};
 
 function RunGroupTableRow({ rg, hasDomain, onCertAction, deleteMutation, editing, setEditing, pendingDeleteRef, updateNameMutation, setError }: RunGroupTableRowProps) {
   return (
     <Table.Row key={rg.run_group_id}>
-      <Table.Cell>
-        <Flex direction="column" gap="2" align="start">
-          <CertStatusBadge runGroup={rg} />
-          <CertModal
-            runGroup={rg}
-            hasDomain={hasDomain}
-            onCertAction={onCertAction}
-            onCertError={setError}
-          />
-        </Flex>
-      </Table.Cell>
-      <Table.Cell>
-        {editing?.id === rg.run_group_id ? (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const name = editing.draft.trim();
-              if (name && name !== rg.name) {
-                updateNameMutation.mutate(
-                  { id: rg.run_group_id, name },
-                  { onSuccess: () => setEditing(null) }
-                );
-              }
-            }}
-          >
-            <Flex gap="2" align="center">
-              <TextField.Root
-                autoFocus
-                value={editing.draft}
-                onChange={(e) =>
-                  setEditing({ id: rg.run_group_id, draft: e.target.value })
-                }
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') setEditing(null);
-                }}
-                style={{ flex: 1 }}
-              />
-              <Button
-                type="submit"
-                variant="outline"
-                disabled={editing.draft.trim() === '' || editing.draft.trim() === rg.name}
-                loading={
-                  updateNameMutation.isPending &&
-                  updateNameMutation.variables?.id === rg.run_group_id
-                }
-              >
-                Save
-              </Button>
-              <IconButton
-                type="button"
-                variant="ghost"
-                color="gray"
-                onClick={() => setEditing(null)}
-                aria-label="Cancel"
-              >
-                <IconX size={14} />
-              </IconButton>
-            </Flex>
-          </form>
-        ) : (
-          <Flex gap="2" align="center">
-            <Text>{rg.name}</Text>
-            <IconButton
-              type="button"
-              variant="ghost"
-              color="gray"
-              onClick={() => setEditing({ id: rg.run_group_id, draft: rg.name })}
-              aria-label="Rename"
-            >
-              <IconPencil size={14} />
-            </IconButton>
-          </Flex>
-        )}
-      </Table.Cell>
-      <Table.Cell>
-        <Code>{rg.csip_aus_version}</Code>
-      </Table.Cell>
-      <Table.Cell>
-        {rg.static_uri ? (
-          <Flex align="center" gap="1">
-            <Code
-              size="1"
-              style={{ whiteSpace: 'nowrap', overflowX: 'auto', maxWidth: 380 }}
-            >
-              {rg.static_uri}
-            </Code>
-            <CopyButton value={rg.static_uri} />
-          </Flex>
-        ) : (
-          <Text size="1" color="gray">
-            —
-          </Text>
-        )}
-      </Table.Cell>
-      <Table.Cell>
-        <Link asChild>
-          <RouterLink to={`/group/${rg.run_group_id}/runs`}>
-            {rg.total_runs} {rg.total_runs === 1 ? 'run' : 'runs'}
-          </RouterLink>
-        </Link>
-      </Table.Cell>
-      <Table.Cell>
-        <DeleteModal
-          runGroup={rg}
-          isDeleting={
-            deleteMutation.isPending && pendingDeleteRef.current === rg.run_group_id
-          }
-          onDelete={() => {
-            pendingDeleteRef.current = rg.run_group_id;
-            deleteMutation.mutate(rg.run_group_id);
-          }}
-        />
-      </Table.Cell>
+      <CertificateCell rg={rg} hasDomain={hasDomain} onCertAction={onCertAction} setError={setError} />
+      <RunGroupNameCell rg={rg} updateNameMutation={updateNameMutation} editing={editing} setEditing={setEditing} />
+      <CsipAusVersionCell rg={rg} />
+      <DeviceCapabilityUriCell rg={rg} />
+      <RunsCell rg={rg} />
+      <DeleteRunGroupCell rg={rg} deleteMutation={deleteMutation} pendingDeleteRef={pendingDeleteRef} />
     </Table.Row>
   );
 }
