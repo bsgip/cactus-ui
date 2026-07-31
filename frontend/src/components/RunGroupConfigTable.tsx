@@ -179,7 +179,7 @@ function DeviceCapabilityUriCell({ rg }: { rg: RunGroupResponse }) {
       {rg.static_uri ? (
         <Flex align="center" gap="1">
           <Text
-            style={{ whiteSpace: 'nowrap', overflowX: 'auto', maxWidth: 380 }}
+            style={{ whiteSpace: 'nowrap', overflowX: 'auto', maxWidth: 220, scrollbarWidth: "thin" }}
           >
             {rg.static_uri}
           </Text>

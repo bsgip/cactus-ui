@@ -26,6 +26,7 @@ dev = [
     "types-requests",
     "types-Authlib",
     "pydantic",
+    "cactus-test-definitions==1.15.0", # Required by frontend/fixture/generate.py
 ]
 test = ["assertical", "pytest", "pytest-env", "pytest-xdist", "pytest-cov", "pydantic"]
 

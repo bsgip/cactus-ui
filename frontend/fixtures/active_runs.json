@@ -19,7 +19,11 @@
       "playlist_execution_id": null,
       "playlist_order": null,
       "playlist_runs": null,
-      "classes": ["A", "G"]
+      "classes": [
+        "A",
+        "G"
+      ],
+      "immediate_start": false
     },
     {
       "run_id": 110,
@@ -34,7 +38,11 @@
       "playlist_execution_id": null,
       "playlist_order": null,
       "playlist_runs": null,
-      "classes": ["A", "G"]
+      "classes": [
+        "A",
+        "G"
+      ],
+      "immediate_start": false
     }
   ]
 }

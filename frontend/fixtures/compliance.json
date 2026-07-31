@@ -139,6 +139,12 @@
           "description": "Extended operations",
           "latest_run_id": null,
           "status": "runless"
+        },
+        {
+          "test_procedure_id": "SDVN-01",
+          "description": "Service Discovey and Version Negotiation",
+          "latest_run_id": null,
+          "status": "runless"
         }
       ]
     },
