@@ -86,11 +86,9 @@ export function ConfigPage() {
 
           <OrganisationCard
             pen={config?.config.pen ?? null}
-            domain={config?.config.subscription_domain ?? ''}
             setError={handleActionError}
           />
           <NotificationsCard
-            pen={config?.config.pen ?? null}
             domain={config?.config.subscription_domain ?? ''}
             setError={handleActionError}
           />
