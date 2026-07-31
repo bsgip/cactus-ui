@@ -75,7 +75,7 @@ export function ConfigPage() {
           <Skeleton height="200px" />
         </Flex>
       ) : configQuery.error ? (
-        <ErrorAlert message="Unable to communicate with the server. Please try refreshing the page or re-logging in." />
+        <ErrorAlert message="Unable to communicate with test server. Please try refreshing the page or re-logging in." />
       ) : (
         <Flex direction="column" gap="6">
           <GettingStartedChecklist
