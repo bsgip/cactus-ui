@@ -1,4 +1,4 @@
-import { Box, Flex, Heading, Separator } from '@radix-ui/themes';
+import { Box, Flex, Heading } from '@radix-ui/themes';
 import type { ReactNode } from 'react';
 
 interface SectionCardProps {
