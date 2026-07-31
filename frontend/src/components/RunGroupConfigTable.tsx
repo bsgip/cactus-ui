@@ -240,7 +240,7 @@ interface RunGroupConfigTableRowProps {
 
 function RunGroupConfigTableRow({ rg, hasDomain, onCertAction, deleteMutation, editing, setEditing, pendingDeleteRef, updateNameMutation, setError }: RunGroupConfigTableRowProps) {
   return (
-    <Table.Row key={rg.run_group_id}>
+    <Table.Row>
       <CertificateCell rg={rg} hasDomain={hasDomain} onCertAction={onCertAction} setError={setError} />
       <RunGroupNameCell rg={rg} updateNameMutation={updateNameMutation} editing={editing} setEditing={setEditing} />
       <CsipAusVersionCell rg={rg} />
@@ -290,7 +290,7 @@ function RunGroupConfigTable({ runGroups, hasDomain, onCertAction, setError }: R
       <RunGroupConfigTableHeader />
       <Table.Body>
         {runGroups.map((rg) => (
-          <RunGroupConfigTableRow rg={rg} hasDomain={hasDomain} onCertAction={onCertAction} deleteMutation={deleteMutation} editing={editing} setEditing={setEditing} pendingDeleteRef={pendingDeleteRef} updateNameMutation={updateNameMutation} setError={setError} />
+          <RunGroupConfigTableRow key={rg.run_group_id} rg={rg} hasDomain={hasDomain} onCertAction={onCertAction} deleteMutation={deleteMutation} editing={editing} setEditing={setEditing} pendingDeleteRef={pendingDeleteRef} updateNameMutation={updateNameMutation} setError={setError} />
         ))}
       </Table.Body>
     </Table.Root>
