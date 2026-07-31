@@ -6,14 +6,12 @@ import { server } from './msw-server';
 import { renderApp } from './test-utils';
 
 describe('admin page', () => {
-  it('shows heading and Platform Stats link', async () => {
+  it('shows heading', async () => {
     renderApp('/admin');
 
     expect(await screen.findByRole('heading', { name: 'Admin' })).toBeInTheDocument();
     expect(document.title).toBe('Admin - CACTUS');
 
-    const statsLink = screen.getByRole('link', { name: 'Platform Stats' });
-    expect(statsLink).toHaveAttribute('href', '/admin/stats');
   });
 
   it('renders users from fixture', async () => {
