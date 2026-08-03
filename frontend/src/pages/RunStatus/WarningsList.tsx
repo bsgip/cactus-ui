@@ -18,7 +18,11 @@ export function WarningsList({ warnings }: { warnings: WarningEntry[] }) {
       <Table.Root>
         <Table.Body>
           {warnings.map((w) => (
-            <Table.Row key={w.type} style={{ cursor: 'pointer' }} onClick={() => setOpenWarning(w)}>
+            <Table.Row
+              key={`${w.type}-${w.timestamp}`}
+              style={{ cursor: 'pointer' }}
+              onClick={() => setOpenWarning(w)}
+            >
               <Table.Cell>
                 <Flex align="center" gap="2">
                   <IconAlertTriangle size={14} color="var(--amber-9)" />
