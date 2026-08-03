@@ -1,14 +1,15 @@
-import { IconClock } from '@tabler/icons-react';
+import { IconAlertTriangle, IconClock } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import type { StepEventStatus } from '../../api/types';
 import { activeStep, allStepsComplete } from './statusHelpers';
 
 interface Props {
   stepStatus: Record<string, StepEventStatus> | null;
+  warningCount: number;
 }
 
 // Fixed bottom bar: a live wall clock and the currently-active step.
-export function StatusBanner({ stepStatus }: Props) {
+export function StatusBanner({ stepStatus, warningCount }: Props) {
   const [clock, setClock] = useState(() => new Date().toTimeString().slice(0, 8));
 
   useEffect(() => {
@@ -48,6 +49,11 @@ export function StatusBanner({ stepStatus }: Props) {
             ? 'All steps complete'
             : 'No active step'}
       </span>
+      {warningCount > 0 && (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--amber-9)' }}>
+          <IconAlertTriangle size={16} /> {warningCount} warning{warningCount === 1 ? '' : 's'}
+        </span>
+      )}
     </div>
   );
 }

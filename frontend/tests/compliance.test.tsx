@@ -44,10 +44,12 @@ function makeRun(run_id: number, test_procedure_id: string): RunResponse {
     playlist_execution_id: null,
     playlist_order: null,
     playlist_runs: null,
+    run_group_id: null,
     run_id,
     status: 'finalised',
     test_procedure_id,
     test_url: '',
+    warnings: null,
   };
 }
 

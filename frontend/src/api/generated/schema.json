@@ -1540,6 +1540,7 @@
       "type": "object"
     },
     "ProceedResponse": {
+      "description": "Shared between orchestrator and runner - lives here to avoid a circular import.",
       "properties": {
         "handled": {
           "type": "boolean"
@@ -1802,6 +1803,17 @@
           ],
           "default": null
         },
+        "run_group_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "run_id": {
           "type": "integer"
         },
@@ -1813,6 +1825,20 @@
         },
         "test_url": {
           "type": "string"
+        },
+        "warnings": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/WarningEntry"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -1826,10 +1852,12 @@
         "playlist_execution_id",
         "playlist_order",
         "playlist_runs",
+        "run_group_id",
         "run_id",
         "status",
         "test_procedure_id",
-        "test_url"
+        "test_url",
+        "warnings"
       ],
       "type": "object"
     },
@@ -2002,6 +2030,12 @@
         "timestamp_status": {
           "format": "date-time",
           "type": "string"
+        },
+        "warnings": {
+          "items": {
+            "$ref": "#/$defs/WarningEntry"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -2019,7 +2053,8 @@
         "timeline",
         "timestamp_initialise",
         "timestamp_start",
-        "timestamp_status"
+        "timestamp_status",
+        "warnings"
       ],
       "type": "object"
     },
@@ -2384,6 +2419,30 @@
       "required": [
         "name",
         "run_count"
+      ],
+      "type": "object"
+    },
+    "WarningEntry": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "description",
+        "message",
+        "timestamp",
+        "type"
       ],
       "type": "object"
     },

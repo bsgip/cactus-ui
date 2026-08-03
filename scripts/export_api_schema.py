@@ -16,7 +16,7 @@ diffs the output to catch drift.
 import json
 from pathlib import Path
 
-from cactus_schema.orchestrator.schema import ProceedResponse
+from cactus_schema.common import ProceedResponse
 from cactus_schema.runner.schema import RequestData, RunnerStatus
 from pydantic import TypeAdapter
 from pydantic.json_schema import GenerateJsonSchema

@@ -9,22 +9,22 @@ export enum AlertVariant {
 
 export function Alert({ message, variant }: { message: string, variant: AlertVariant }) {
   const alertIconSize = 16;
-  let alertColor = null;
-  let alertRole = null;
-  let alertIcon = null;
+  let alertColor: 'red' | 'green';
+  let alertRole: string;
+  let alertIcon: React.ReactNode;
   switch (variant) {
     case AlertVariant.error:
-      alertColor="red" as const;
-      alertRole = "alert";
-      alertIcon=<IconAlertTriangle size={alertIconSize} />;
+      alertColor = 'red';
+      alertRole = 'alert';
+      alertIcon = <IconAlertTriangle size={alertIconSize} />;
       break;
     case AlertVariant.notice:
-      alertColor="green" as const;
-      alertRole = "status";
+      alertColor = 'green';
+      alertRole = 'status';
       alertIcon = <IconCircleCheck size={alertIconSize} />;
       break;
     default:
-      return;
+      return null;
   }
   return (
     <Callout.Root color={alertColor} role={alertRole} mb="3">

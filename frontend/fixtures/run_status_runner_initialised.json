@@ -17,6 +17,7 @@
       "details": "EndDevice 1 registered"
     }
   ],
+  "warnings": [],
   "instructions": ["Ensure the device is powered on before starting the test"],
   "test_procedure_name": "ALL-01",
   "step_status": null,

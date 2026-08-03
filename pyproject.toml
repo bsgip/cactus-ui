@@ -13,7 +13,7 @@ dependencies = [
     "authlib",
     "requests",
     "pyjwt",
-    "cactus-schema==1.3.0",
+    "cactus-schema @ git+https://github.com/bsgip/cactus-schema.git@v1.3.2",
 ]
 
 
