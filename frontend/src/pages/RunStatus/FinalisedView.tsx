@@ -1,14 +1,13 @@
 import { Box, Button, Flex, Heading, Link, Text, TextField } from '@radix-ui/themes';
 import { IconArrowRight, IconCircleCheck } from '@tabler/icons-react';
 import { Link as RouterLink } from 'react-router-dom';
-import type { RunStatus } from '../../api/types';
+import type { RunResponse } from '../../api/types';
 import { useDisclosure } from '../../hooks/useDisclosure';
+import { RunSummaryPanel } from './RunSummaryPanel';
 
 interface Props {
   runId: number;
-  runStatus: RunStatus | null;
-  runHasArtifacts: boolean | null;
-  isImmediateStart: boolean;
+  run: RunResponse | null;
   nextPlaylistRunId: number | null;
   supportEmail: string | undefined;
   isAdminView: boolean;
@@ -42,14 +41,15 @@ function AlertBox({
 // an immediate-start procedure, an optional Active Power Chart with a video-start offset.
 export function FinalisedView({
   runId,
-  runStatus,
-  runHasArtifacts,
-  isImmediateStart,
+  run,
   nextPlaylistRunId,
   supportEmail,
   isAdminView,
 }: Props) {
   const adminPrefix = isAdminView ? '/admin' : '';
+  const runStatus = run?.status ?? null;
+  const runHasArtifacts = run?.has_artifacts ?? null;
+  const isImmediateStart = run?.immediate_start ?? false;
 
   return (
     <Flex direction="column" gap="3">
@@ -81,6 +81,7 @@ export function FinalisedView({
           <Heading as="h2" size="6">
             Run {runId} [Finalised]
           </Heading>
+          {run && <RunSummaryPanel run={run} />}
           {runHasArtifacts ? (
             <AlertBox color="blue">
               <Text as="p">This run has been finalised and is no longer active.</Text>

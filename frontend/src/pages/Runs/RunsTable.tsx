@@ -1,5 +1,5 @@
-import { Button, Flex, IconButton, Link, Spinner, Table, Text } from '@radix-ui/themes';
-import { IconCheck, IconQuestionMark, IconTrash, IconX } from '@tabler/icons-react';
+import { Badge, Button, Flex, IconButton, Link, Spinner, Table, Text, Tooltip } from '@radix-ui/themes';
+import { IconAlertTriangle, IconCheck, IconQuestionMark, IconTrash, IconX } from '@tabler/icons-react';
 import { Link as RouterLink } from 'react-router-dom';
 import type { RunResponse } from '../../api/types';
 import { formatDate, formatRelativeDate } from '../../utils/dates';
@@ -46,6 +46,20 @@ function ResultIcon({ run }: { run: RunResponse }) {
     return <IconQuestionMark size={16} color={RESULT_COLOR.skipped} aria-label="result unknown" />;
   }
   return null;
+}
+
+function WarningBadge({ run }: { run: RunResponse }) {
+  const count = run.warnings?.length ?? 0;
+  if (count === 0) {
+    return null;
+  }
+  return (
+    <Tooltip content={`${count} warning${count === 1 ? '' : 's'}`}>
+      <Badge color="amber" ml="2">
+        <IconAlertTriangle size={12} /> {count}
+      </Badge>
+    </Tooltip>
+  );
 }
 
 function ActionButton({
@@ -165,7 +179,10 @@ export function RunsTable({
           </Table.Cell>
           <Table.Cell>{run.status}</Table.Cell>
           <Table.Cell>
-            <ResultIcon run={run} />
+            <Flex align="center">
+              <ResultIcon run={run} />
+              <WarningBadge run={run} />
+            </Flex>
           </Table.Cell>
           <Table.Cell>
             <ActionButton
