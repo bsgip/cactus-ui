@@ -626,6 +626,10 @@ def main() -> None:
             ],
             "set_max_w": 5000,
             "now_offset": "1m0s",
+            "upper_max_w": 5000,
+            "upper_max_label": "setMaxW",
+            "lower_max_w": None,
+            "lower_max_label": None,
         },
         "end_device_metadata": {
             "edevid": 1,
@@ -694,6 +698,7 @@ def main() -> None:
         "precondition_checks": [
             {"success": True, "type": "edevice-registered", "details": "EndDevice 1 registered"},
         ],
+        "warnings": [],
         "instructions": ["Ensure the device is powered on before starting the test"],
         "test_procedure_name": "ALL-01",
         "step_status": None,
@@ -719,6 +724,7 @@ def main() -> None:
         playlist_execution_id: str | None = None,
         playlist_order: int | None = None,
         playlist_runs: list[schema.PlaylistRunInfo] | None = None,
+        warnings: list[runner_schema.WarningEntry] | None = None,
     ) -> schema.RunResponse:
         return schema.RunResponse(
             run_id=run_id,
@@ -734,6 +740,7 @@ def main() -> None:
             playlist_order=playlist_order,
             playlist_runs=playlist_runs,
             classes=None,
+            warnings=warnings,
         )
 
     st = schema.RunStatusResponse
@@ -753,7 +760,24 @@ def main() -> None:
         "run_status_shell_finalised.json",
         models.RunStatusShell(
             run=shell_run(
-                120, "ALL-08", st.finalised, True, True, "2026-06-17T04:00:00+00:00", "2026-06-17T04:30:00+00:00"
+                120,
+                "ALL-08",
+                st.finalised,
+                True,
+                True,
+                "2026-06-17T04:00:00+00:00",
+                "2026-06-17T04:30:00+00:00",
+                warnings=[
+                    runner_schema.WarningEntry(
+                        type="der-settings.set-max-w-varied",
+                        description="setMaxW changed during the test",
+                        message=(
+                            "setMaxW was changed from 5000W to 4500W at 2026-06-17T04:15:00+00:00. "
+                            "A best-practice client should not vary its DER settings mid-test."
+                        ),
+                        timestamp=datetime.fromisoformat("2026-06-17T04:15:00+00:00"),
+                    )
+                ],
             ),
             run_is_live=False,
             is_immediate_start=False,

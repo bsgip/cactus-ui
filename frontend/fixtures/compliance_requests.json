@@ -8,9 +8,9 @@
   "items": [
     {
       "compliance_request_id": 1,
-      "created_at": "2026-08-03T03:38:01.663638Z",
+      "created_at": "2026-08-03T03:39:21.967327Z",
       "created_by": 1,
-      "updated_at": "2026-08-03T03:38:01.663647Z",
+      "updated_at": "2026-08-03T03:39:21.967340Z",
       "updated_by": 1,
       "status": 1,
       "classes": [
@@ -20,7 +20,7 @@
         1
       ],
       "csip_aus_version": "1.2",
-      "witnessed_at": "2026-08-03T03:38:01.663648Z",
+      "witnessed_at": "2026-08-03T03:39:21.967342Z",
       "der_brand": "brand",
       "der_oem": "oem",
       "der_series": "series",
@@ -32,9 +32,9 @@
     },
     {
       "compliance_request_id": 2,
-      "created_at": "2026-08-03T03:38:01.663665Z",
+      "created_at": "2026-08-03T03:39:21.967370Z",
       "created_by": 1,
-      "updated_at": "2026-08-03T03:38:01.663666Z",
+      "updated_at": "2026-08-03T03:39:21.967371Z",
       "updated_by": 1,
       "status": 2,
       "classes": [
@@ -44,7 +44,7 @@
         1
       ],
       "csip_aus_version": "1.2",
-      "witnessed_at": "2026-08-03T03:38:01.663667Z",
+      "witnessed_at": "2026-08-03T03:39:21.967372Z",
       "der_brand": "brand",
       "der_oem": "oem",
       "der_series": "series",
