@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    proxy: Object.fromEntries(FLASK_PATHS.map((path) => [path, 'http://localhost:3000'])),
+    proxy: Object.fromEntries(FLASK_PATHS.map((path) => [path, 'http://localhost:5000'])),
   },
   test: {
     // Custom jsdom env that restores native AbortController/AbortSignal so undici (msw +

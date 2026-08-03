@@ -1,8 +1,8 @@
 import { Button, Code, Flex, Text, TextField } from '@radix-ui/themes';
 import { IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
-import type { RunGroupResponse } from '../../api/types';
-import { ModalButton } from '../../components/ModalButton';
+import type { RunGroupResponse } from '../api/types';
+import { ModalButton } from './ModalButton';
 
 export function DeleteModal({
   runGroup,

@@ -12,7 +12,7 @@ describe('home page (logged in)', () => {
     renderApp();
 
     expect(await screen.findByRole('heading', { name: 'Welcome to CACTUS' })).toBeInTheDocument();
-    expect(screen.getByText('User: Test User')).toBeInTheDocument();
+    expect(screen.getByText('Test User')).toBeInTheDocument();
 
     for (const link of ['Procedures', 'Runs', 'Playlists', 'Compliance', 'Config']) {
       expect(screen.getByRole('link', { name: link })).toBeInTheDocument();

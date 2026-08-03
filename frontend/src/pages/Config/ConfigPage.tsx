@@ -1,23 +1,21 @@
-import { Callout, Flex, Link, Separator, Skeleton, Text } from '@radix-ui/themes';
-import { IconCircleCheck } from '@tabler/icons-react';
+import { Box, Flex, Link, Skeleton, Text } from '@radix-ui/themes';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { fetchConfig } from '../../api/config';
-import { Banner } from '../../components/Banner';
-import { ErrorAlert } from '../../components/ErrorAlert';
-import { PageHeader } from '../../components/PageHeader';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
-import { useSession } from '../../hooks/useSession';
 import { GettingStartedChecklist } from './GettingStartedChecklist';
 import { OrganisationCard } from './OrganisationCard';
+import { NotificationsCard } from './NotificationsCard';
 import { RunGroupsCard } from './RunGroupsCard';
+import Page from '../../components/Page';
+import { ErrorAlert } from '../../components/ErrorAlert';
+import NoticeAlert from '../../components/NoticeAlert';
 
 const NOTICE_AUTO_DISMISS_MS = 6000;
 
 export function ConfigPage() {
   useDocumentTitle('Certificates - CACTUS');
-  const { data: session } = useSession();
   const queryClient = useQueryClient();
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
@@ -55,28 +53,21 @@ export function ConfigPage() {
     void queryClient.invalidateQueries({ queryKey: ['config'] });
   };
 
+
   return (
-    <Flex direction="column" gap="3">
-      <Banner message={session?.banner_message} />
-      <PageHeader title="Certificates & Configuration" />
-      <Text>
-        Set up the identity and certificates used by all future{' '}
-        <Link asChild>
-          <RouterLink to="/runs">Runs</RouterLink>
-        </Link>
-        .
-      </Text>
-      <Separator size="4" />
+    <Page title="Certificates & Configuration" includeBanner={true}>
+      <Box mb="6">
+        <Text>
+          Set up the identity and certificates used by all future{' '}
+          <Link asChild>
+            <RouterLink to="/runs">runs</RouterLink>
+          </Link>
+          .
+        </Text>
+      </Box>
 
       {actionError && <ErrorAlert message={actionError} />}
-      {actionNotice && (
-        <Callout.Root color="green" role="status" mb="3">
-          <Callout.Icon>
-            <IconCircleCheck size={16} />
-          </Callout.Icon>
-          <Callout.Text>{actionNotice}</Callout.Text>
-        </Callout.Root>
-      )}
+      {actionNotice && <NoticeAlert message={actionNotice} />}
 
       {configQuery.isPending ? (
         <Flex direction="column" gap="3">
@@ -86,7 +77,7 @@ export function ConfigPage() {
       ) : configQuery.error ? (
         <ErrorAlert message="Unable to communicate with test server. Please try refreshing the page or re-logging in." />
       ) : (
-        <Flex direction="column" gap="3">
+        <Flex direction="column" gap="6">
           <GettingStartedChecklist
             pen={config?.config.pen ?? null}
             domain={config?.config.subscription_domain ?? ''}
@@ -95,10 +86,12 @@ export function ConfigPage() {
 
           <OrganisationCard
             pen={config?.config.pen ?? null}
+            setError={handleActionError}
+          />
+          <NotificationsCard
             domain={config?.config.subscription_domain ?? ''}
             setError={handleActionError}
           />
-
           <RunGroupsCard
             runGroups={runGroups}
             csipVersions={csipVersions}
@@ -108,6 +101,7 @@ export function ConfigPage() {
           />
         </Flex>
       )}
-    </Flex>
+
+    </Page>
   );
 }

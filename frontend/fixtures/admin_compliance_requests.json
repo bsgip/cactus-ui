@@ -8,7 +8,7 @@
   "items": [
     {
       "compliance_request_id": 1,
-      "created_at": "2026-07-10T01:12:13.997816Z",
+      "created_at": "2026-07-31T01:55:55.259539Z",
       "created_by": 1,
       "created_by_user": {
         "user_id": 1,
@@ -16,7 +16,7 @@
         "issuer_id": "issuer_id_1",
         "user_name": "user1@cactus.com"
       },
-      "updated_at": "2026-07-10T01:12:13.997828Z",
+      "updated_at": "2026-07-31T01:55:55.259552Z",
       "updated_by": 1,
       "updated_by_user": {
         "user_id": 1,
@@ -25,10 +25,14 @@
         "user_name": "user1@cactus.com"
       },
       "status": 1,
-      "classes": ["A"],
-      "runs": [1],
+      "classes": [
+        "A"
+      ],
+      "runs": [
+        1
+      ],
       "csip_aus_version": "1.2",
-      "witnessed_at": "2026-07-10T01:12:13.997831Z",
+      "witnessed_at": "2026-07-31T01:55:55.259556Z",
       "der_brand": "brand",
       "der_oem": "oem",
       "der_series": "series",
@@ -40,7 +44,7 @@
     },
     {
       "compliance_request_id": 2,
-      "created_at": "2026-07-10T01:12:13.997843Z",
+      "created_at": "2026-07-31T01:55:55.259571Z",
       "created_by": 1,
       "created_by_user": {
         "user_id": 2,
@@ -48,7 +52,7 @@
         "issuer_id": "issuer_id_2",
         "user_name": "user2@cactus.com"
       },
-      "updated_at": "2026-07-10T01:12:13.997845Z",
+      "updated_at": "2026-07-31T01:55:55.259574Z",
       "updated_by": 1,
       "updated_by_user": {
         "user_id": 2,
@@ -57,10 +61,14 @@
         "user_name": "user2@cactus.com"
       },
       "status": 2,
-      "classes": ["A"],
-      "runs": [1],
+      "classes": [
+        "A"
+      ],
+      "runs": [
+        1
+      ],
       "csip_aus_version": "1.2",
-      "witnessed_at": "2026-07-10T01:12:13.997847Z",
+      "witnessed_at": "2026-07-31T01:55:55.259577Z",
       "der_brand": "brand",
       "der_oem": "oem",
       "der_series": "series",
@@ -72,7 +80,7 @@
     },
     {
       "compliance_request_id": 3,
-      "created_at": "2026-07-10T01:12:13.997850Z",
+      "created_at": "2026-07-31T01:55:55.259581Z",
       "created_by": 2,
       "created_by_user": {
         "user_id": 3,
@@ -80,7 +88,7 @@
         "issuer_id": "issuer_id_3",
         "user_name": "user3@cactus.com"
       },
-      "updated_at": "2026-07-10T01:12:13.997852Z",
+      "updated_at": "2026-07-31T01:55:55.259584Z",
       "updated_by": 2,
       "updated_by_user": {
         "user_id": 3,
@@ -89,10 +97,14 @@
         "user_name": "user3@cactus.com"
       },
       "status": 1,
-      "classes": ["A"],
-      "runs": [1],
+      "classes": [
+        "A"
+      ],
+      "runs": [
+        1
+      ],
       "csip_aus_version": "1.2",
-      "witnessed_at": "2026-07-10T01:12:13.997853Z",
+      "witnessed_at": "2026-07-31T01:55:55.259586Z",
       "der_brand": "brand",
       "der_oem": "oem",
       "der_series": "series",

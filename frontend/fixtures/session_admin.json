@@ -1,5 +1,5 @@
 {
-  "username": "Admin User",
+  "username": "admin@cactus.com",
   "permissions": ["user:all", "admin:all"],
   "version": "v1.6.3",
   "support_email": "support@bsgip.com",

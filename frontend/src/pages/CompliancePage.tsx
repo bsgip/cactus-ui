@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { fetchComplianceRequests } from '../api/compliance';
 import { ErrorAlert } from '../components/ErrorAlert';
-import { PageHeader } from '../components/PageHeader';
 import { PageSpinner } from '../components/PageSpinner';
 import { useConfirm } from '../components/useConfirm';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -11,6 +10,7 @@ import NewRequestButton from '../components/NewRequestButton';
 import PrefillDialog from '../components/PrefillDialog';
 import ComplianceRequestTable from '../components/ComplianceRequestTable';
 import type { ComplianceRequestResponse } from '../api/types';
+import Page from '../components/Page';
 
 
 export function CompliancePage() {
@@ -33,14 +33,14 @@ export function CompliancePage() {
   const target = willPrefill ? `${requestPath}?prefill=${prefillId}` : requestPath;
 
   return (
-    <Flex direction="column" gap="3">
+    <Page title="Compliance" >
+
       {confirmDialog}
-      <PageHeader title="Compliance" />
 
       {actionError && <ErrorAlert message={actionError} />}
 
-      <Flex>
-        {requests.length === 0 
+      <Flex mb="4">
+        {requests.length === 0
         ? <NewRequestButton requestPath={requestPath} />
         : <PrefillDialog prefillId={prefillId} setPrefillId={setPrefillId} requests={requests} target={target}/>
         }
@@ -54,7 +54,7 @@ export function CompliancePage() {
       ) : (
         <ComplianceRequestTable requests={requests} refresh={refresh} setActionError={setActionError} requestPath={requestPath} confirm={confirm}/>
       )}
-    </Flex>
+    </Page>
   );
 }
 

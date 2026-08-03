@@ -9,6 +9,7 @@ export function Footer({ session }: { session: SessionResponse }) {
         padding: '16px 0',
         textAlign: 'center',
         borderTop: '1px solid var(--gray-5)',
+        backgroundColor: 'var(--gray-a2)',
       }}
     >
       {session.hosted_images.length > 0 && (

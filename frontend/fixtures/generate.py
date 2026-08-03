@@ -456,7 +456,7 @@ def main() -> None:
                     "v1.2",
                     created_at="2026-05-01T00:00:00+00:00",
                     is_static_uri=True,
-                    static_uri="https://example.com/dcap/static/1",
+                    static_uri="https://reallyreallyreallylongtopleveldomainhere.com/dcap/static/1",
                     is_device_cert=True,
                     certificate_id=11,
                     certificate_created_at="2026-05-01T00:05:00+00:00",
