@@ -14,6 +14,11 @@ import runGroupsFixture from '../../fixtures/run_groups.json';
 import runRequestDetailsFixture from '../../fixtures/run_request_details.json';
 import runStatusRunnerFixture from '../../fixtures/run_status_runner.json';
 import runStatusShellFixture from '../../fixtures/run_status_shell.json';
+import {
+  finaliseMockPlaylistRun,
+  playlistShellForRun,
+  replaceMockPlaylistTail,
+} from './playlistShell';
 import sessionFixture from '../../fixtures/session.json';
 import sessionAdminFixture from '../../fixtures/session_admin.json';
 import complianceRequestsFixture from '../../fixtures/compliance_requests.json';
@@ -92,15 +97,22 @@ export const handlers = [
   http.post('/api/runs/:runId/start', ({ params }) =>
     HttpResponse.json({ run_id: Number(params.runId) })
   ),
-  http.post('/api/runs/:runId/finalise', ({ params }) =>
-    HttpResponse.json({ run_id: Number(params.runId) })
-  ),
+  http.post('/api/runs/:runId/finalise', ({ params }) => {
+    finaliseMockPlaylistRun(Number(params.runId));
+    return HttpResponse.json({ run_id: Number(params.runId) });
+  }),
   http.delete('/api/runs/:runId', ({ params }) =>
     HttpResponse.json({ run_id: Number(params.runId) })
   ),
 
   // ---- Run ----
-  http.get('/api/run/:runId', () => HttpResponse.json(runStatusShellFixture)),
+  // Runs 201+ belong to the playlist fixture so the playlist banner (retry / edit playlist /
+  // finalise-and-retry) can be exercised in mock mode; any other id gets the standalone shell.
+  http.get('/api/run/:runId', ({ params }) =>
+    HttpResponse.json(
+      Number(params.runId) >= 201 ? playlistShellForRun(Number(params.runId)) : runStatusShellFixture
+    )
+  ),
   http.get('/api/run/:runId/status', () => HttpResponse.json(runStatusRunnerFixture)),
   http.get('/api/run/:runId/requests/:requestId', () =>
     HttpResponse.json(runRequestDetailsFixture)
@@ -112,6 +124,10 @@ export const handlers = [
   http.post('/api/runs/:runId/finalise_playlist', ({ params }) =>
     HttpResponse.json({ run_id: Number(params.runId) })
   ),
+  http.post('/api/run/:runId/playlist', async ({ request }) => {
+    const body = (await request.json()) as { test_procedure_ids: string[] };
+    return HttpResponse.json({ playlist_runs: replaceMockPlaylistTail(body.test_procedure_ids) });
+  }),
   http.post('/api/runs/:runId/proceed', () => HttpResponse.json({ handled: true })),
   http.post('/api/admin/runs/:runId/proceed', () => HttpResponse.json({ handled: true })),
 
