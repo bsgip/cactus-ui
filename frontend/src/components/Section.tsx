@@ -1,4 +1,4 @@
-import { Box, Flex, Heading, Separator } from '@radix-ui/themes';
+import { Box, Flex, Heading } from '@radix-ui/themes';
 import type { ReactNode } from 'react';
 
 interface SectionCardProps {
@@ -20,22 +20,19 @@ const SCROLL_MAX_HEIGHT = 600;
 
 // A bordered card with a titled header strip and a full-width separator. Replaces the repeated
 // "panel with a heading bar" pattern (was Mantine's Card.Section).
-export function SectionCard({ title, icon, action, children, h, scroll }: SectionCardProps) {
+export function Section({ title, icon, action, children, h, scroll }: SectionCardProps) {
   return (
     <Box
       style={{
         height: h,
-        border: '1px solid var(--gray-5)',
-        borderRadius: 'var(--radius-3)',
         overflow: 'hidden',
-        backgroundColor: 'var(--color-panel-solid)',
       }}
     >
-      <Flex justify="between" align="center" px="3" py="2" style={{backgroundColor: 'var(--gray-a2)'}}>
+      <Flex justify="between" align="center">
         {typeof title === 'string' ? (
-          <Flex align="center" gap="2">
+          <Flex align="center" gap="2" pb="3" style={{borderBottom:"2px solid var(--green-9)"}} >
             {icon}
-            <Heading as="h3" size="3">
+            <Heading as="h3" size="3" >
               {title}
             </Heading>
           </Flex>
@@ -44,10 +41,9 @@ export function SectionCard({ title, icon, action, children, h, scroll }: Sectio
         )}
         {action}
       </Flex>
-      <Separator size="4" />
       <Box
-        px="3"
-        py="3"
+        px="6"
+        py="6"
         style={scroll ? { maxHeight: SCROLL_MAX_HEIGHT, overflowY: 'auto' } : undefined}
       >
         {children}

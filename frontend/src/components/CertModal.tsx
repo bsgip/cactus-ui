@@ -1,10 +1,10 @@
 import { Button, Code, Flex, Text, Tooltip } from '@radix-ui/themes';
 import { IconDownload, IconPlus, IconRecycle } from '@tabler/icons-react';
 import { useMutation } from '@tanstack/react-query';
-import { generateRunGroupCert } from '../../api/config';
-import type { RunGroupResponse } from '../../api/types';
-import { InfoPopover } from '../../components/InfoPopover';
-import { ModalButton } from '../../components/ModalButton';
+import { generateRunGroupCert } from '../api/config';
+import type { RunGroupResponse } from '../api/types';
+import { InfoPopover } from './InfoPopover';
+import { ModalButton } from './ModalButton';
 
 type CertType = 'device' | 'aggregator';
 

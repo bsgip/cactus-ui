@@ -89,6 +89,20 @@ wheels = [
 ]
 
 [[package]]
+name = "cactus-test-definitions"
+version = "1.15.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "dataclass-wizard" },
+    { name = "pyyaml" },
+    { name = "pyyaml-include" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ca/3e/2761a13c8c20736eaaca13bd2e964f39ae64ee69302bb256f43645befa2b/cactus_test_definitions-1.15.0.tar.gz", hash = "sha256:b6f8783579c8d76184be9c9150e30dd8c57b248a6afe6344dcbb5beb64692d75", size = 178077, upload-time = "2026-07-21T01:52:26.593Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0c/b9/cb06d1585ec4917e1cdd491e65f3e11763b6cddddaf058ba4171324c35e8/cactus_test_definitions-1.15.0-py3-none-any.whl", hash = "sha256:c4276362faa32a8049b8b720f7823eb4670d8f9116fbba532f3896df71b7ec32", size = 352224, upload-time = "2026-07-21T01:52:24.661Z" },
+]
+
+[[package]]
 name = "cactus-ui"
 source = { editable = "." }
 dependencies = [
@@ -103,6 +117,7 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "bandit" },
+    { name = "cactus-test-definitions" },
     { name = "coverage" },
     { name = "pydantic" },
     { name = "ruff" },
@@ -125,6 +140,7 @@ requires-dist = [
     { name = "authlib" },
     { name = "bandit", marker = "extra == 'dev'" },
     { name = "cactus-schema", specifier = "==1.3.1" },
+    { name = "cactus-test-definitions", marker = "extra == 'dev'", specifier = "==1.15.0" },
     { name = "coverage", marker = "extra == 'dev'" },
     { name = "flask" },
     { name = "pydantic", marker = "extra == 'dev'" },
@@ -476,6 +492,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/26/00/35d85dcce6c57fdc871f3867d465d780f302a175ea360f62533f12b27e2b/flask-3.1.3.tar.gz", hash = "sha256:0ef0e52b8a9cd932855379197dd8f94047b359ca0a78695144304cb45f87c9eb", size = 759004, upload-time = "2026-02-19T05:00:57.678Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7f/9c/34f6962f9b9e9c71f6e5ed806e0d0ff03c9d1b0b2340088a0cf4bce09b18/flask-3.1.3-py3-none-any.whl", hash = "sha256:f4bcbefc124291925f1a26446da31a5178f9483862233b23c0c96a20701f670c", size = 103424, upload-time = "2026-02-19T05:00:56.027Z" },
+]
+
+[[package]]
+name = "fsspec"
+version = "2026.7.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/00/78/f34251dadb8f3921264a1d9b8946f5e542014ee2614b285261b4e40e6775/fsspec-2026.7.0.tar.gz", hash = "sha256:c803c40f4cf860b49dea58ee3e1c33cb9c790520e233537e1340049f89b82a88", size = 317040, upload-time = "2026-07-28T16:34:51.052Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fd/3c/6a2bf344106328fd04963664a60b9bb6496fc25df8e962fcdc1367285fb9/fsspec-2026.7.0-py3-none-any.whl", hash = "sha256:b57ddbafedfaef7018c1ecab32aa200a9d7ca26b77965f64e48b70061249d279", size = 206583, upload-time = "2026-07-28T16:34:49.538Z" },
 ]
 
 [[package]]
@@ -907,6 +932,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/da/92/1446574745d74df0c92e6aa4a7b0b3130706a4142b2d1a5869f2eaa423c6/pyyaml-6.0.3-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:16249ee61e95f858e83976573de0f5b2893b3677ba71c9dd36b9cf8be9ac6d65", size = 829923, upload-time = "2025-09-25T21:32:54.537Z" },
     { url = "https://files.pythonhosted.org/packages/f0/7a/1c7270340330e575b92f397352af856a8c06f230aa3e76f86b39d01b416a/pyyaml-6.0.3-cp314-cp314t-win_amd64.whl", hash = "sha256:4ad1906908f2f5ae4e5a8ddfce73c320c2a1429ec52eafd27138b7f1cbe341c9", size = 174062, upload-time = "2025-09-25T21:32:55.767Z" },
     { url = "https://files.pythonhosted.org/packages/f1/12/de94a39c2ef588c7e6455cfbe7343d3b2dc9d6b6b2f40c4c6565744c873d/pyyaml-6.0.3-cp314-cp314t-win_arm64.whl", hash = "sha256:ebc55a14a21cb14062aa4162f906cd962b28e2e9ea38f9b4391244cd8de4ae0b", size = 149341, upload-time = "2025-09-25T21:32:56.828Z" },
+]
+
+[[package]]
+name = "pyyaml-include"
+version = "2.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "fsspec" },
+    { name = "pyyaml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0f/8c/4bdc1bd9676e9eb49237b3750562e9794b7585281448909fa1837c92ca27/pyyaml_include-2.2.tar.gz", hash = "sha256:6f0c7e2ac56cdd9cc305b04122817b55514e6ce8584869fae2bc2a4ef2e0d40f", size = 29854, upload-time = "2024-11-09T09:36:16.915Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/56/1f/ae83ff547e70cd3aeefe2ebaeeef41c4e1fd5ed2453396d249d17c3a7ead/pyyaml_include-2.2-py3-none-any.whl", hash = "sha256:489fff69f78bad8b9509d006297a0140fd91382a66775b8b1da0ce7e126c1815", size = 29565, upload-time = "2024-11-09T09:36:15.241Z" },
 ]
 
 [[package]]

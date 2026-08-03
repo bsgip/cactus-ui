@@ -1,4 +1,4 @@
-import { Box, Container } from '@radix-ui/themes';
+import { Flex, Box, Container } from '@radix-ui/themes';
 import { Outlet } from 'react-router-dom';
 import { UnauthenticatedError } from '../api/client';
 import type { UnauthenticatedResponse } from '../api/types';
@@ -32,14 +32,14 @@ export function Layout() {
   }
 
   return (
-    <Box style={{ minHeight: '100vh' }}>
-      <NavBar session={session} />
-      <Container size="4">
-        <Box px="4" py="6">
-          <Outlet />
-        </Box>
-      </Container>
-      <Footer session={session} />
-    </Box>
+      <Flex direction="column" style={{ minHeight: '100vh' }}>
+        <NavBar session={session} />
+        <Container size="4" flexGrow="1">
+          <Box px="4" py="6">
+            <Outlet />
+          </Box>
+        </Container>
+        <Footer session={session} />
+      </Flex>
   );
 }

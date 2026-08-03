@@ -24,9 +24,9 @@ describe('config page', () => {
       await screen.findByRole('heading', { name: 'Certificates & Configuration' })
     ).toBeInTheDocument();
     expect(document.title).toBe('Certificates - CACTUS');
-    expect(await screen.findByRole('heading', { name: 'Organisation Setup' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Run Groups' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Subscription Notifications' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'IDENTITY' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'RUN GROUPS & CERTIFICATES' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'SUBSCRIPTION-BASED NOTIFICATIONS' })).toBeInTheDocument();
   });
 
   it('renders run groups from fixture', async () => {
@@ -103,9 +103,10 @@ describe('config page', () => {
 
     expect(await screen.findByText(/Getting started/)).toBeInTheDocument();
     expect(screen.getByText(/Set your organisation identity/)).toBeInTheDocument();
+    expect(screen.getByText(/Set your notification domain/)).toBeInTheDocument();
     expect(screen.getByText(/Create a run group/)).toBeInTheDocument();
     expect(screen.getByText(/Generate a device or aggregator certificate/)).toBeInTheDocument();
-    expect(screen.getAllByRole('img', { name: 'To do' })).toHaveLength(3);
+    expect(screen.getAllByRole('img', { name: 'To do' })).toHaveLength(4);
     expect(screen.queryByRole('img', { name: 'Done' })).not.toBeInTheDocument();
   });
 
@@ -137,14 +138,14 @@ describe('config page', () => {
 
     expect(await screen.findByText(/Getting started/)).toBeInTheDocument();
     // Identity and certificate steps are still to do; only the run-group step is done.
-    expect(screen.getAllByRole('img', { name: 'To do' })).toHaveLength(2);
+    expect(screen.getAllByRole('img', { name: 'To do' })).toHaveLength(3);
     expect(screen.getAllByRole('img', { name: 'Done' })).toHaveLength(1);
   });
 
   it('hides the getting-started checklist once a run group and certificate both exist', async () => {
     renderApp('/config');
 
-    await screen.findByRole('heading', { name: 'Run Groups' });
+    await screen.findByRole('heading', { name: 'RUN GROUPS & CERTIFICATES' });
     expect(screen.queryByText(/Getting started/)).not.toBeInTheDocument();
   });
 
@@ -162,7 +163,7 @@ describe('config page', () => {
 
     // Default fixture has a subscription domain, so the shared-cert action is enabled.
     expect(
-      await screen.findByRole('button', { name: /Aggregator cert for all groups/ })
+      await screen.findByRole('button', { name: /Set SHARED Aggregator Certificate for ALL groups/ })
     ).toBeEnabled();
   });
 
@@ -178,7 +179,7 @@ describe('config page', () => {
               csip_aus_version: 'v1.2',
               created_at: '2026-05-01T00:00:00+00:00',
               is_static_uri: true,
-              static_uri: 'https://example.com/dcap/static/1',
+              static_uri: "https://reallyreallyreallylongtopleveldomainhere.com/dcap/static/1",
               is_device_cert: true,
               certificate_id: 11,
               certificate_created_at: '2026-05-01T00:05:00+00:00',
@@ -193,7 +194,7 @@ describe('config page', () => {
     renderApp('/config');
 
     expect(
-      await screen.findByRole('button', { name: /Aggregator cert for all groups/ })
+      await screen.findByRole('button', { name: /Set SHARED Aggregator Certificate for ALL groups/ })
     ).toBeDisabled();
   });
 
@@ -210,7 +211,7 @@ describe('config page', () => {
               csip_aus_version: 'v1.2',
               created_at: '2026-05-01T00:00:00+00:00',
               is_static_uri: true,
-              static_uri: 'https://example.com/dcap/static/1',
+              static_uri: "https://reallyreallyreallylongtopleveldomainhere.com/dcap/static/1",
               is_device_cert: true,
               certificate_id: 11,
               certificate_created_at: '2026-05-01T00:05:00+00:00',
@@ -244,8 +245,8 @@ describe('config page', () => {
   it('shows each run group DeviceCapability URI from fixture', async () => {
     renderApp('/config');
 
-    expect(await screen.findByText('https://example.com/dcap/static/1')).toBeInTheDocument();
-    expect(screen.getByText('https://example.com/dcap/static/2')).toBeInTheDocument();
+    expect(await screen.findByText('https://reallyreallyreallylongtopleveldomainhere.com/dcap/static/1')).toBeInTheDocument();
+    expect(screen.getByText('—')).toBeInTheDocument();
   });
 
   it('shows error alert when config fetch fails', async () => {
@@ -596,7 +597,7 @@ describe('config page', () => {
     const user = userEvent.setup();
     renderApp('/config');
 
-    await user.click(await screen.findByRole('button', { name: /Aggregator cert for all groups/ }));
+    await user.click(await screen.findByRole('button', { name: /Set SHARED Aggregator Certificate for ALL groups/ }));
     await user.click(await screen.findByRole('button', { name: /Generate & apply to all groups/ }));
 
     expect(
