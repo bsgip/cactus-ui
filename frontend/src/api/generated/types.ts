@@ -246,10 +246,12 @@ export interface RunResponse {
   playlist_execution_id: string | null;
   playlist_order: number | null;
   playlist_runs: PlaylistRunInfo[] | null;
+  run_group_id: number | null;
   run_id: number;
   status: RunStatusResponse;
   test_procedure_id: string;
   test_url: string;
+  warnings: WarningEntry[] | null;
 }
 /**
  * Summary info for a run within a playlist
@@ -258,6 +260,12 @@ export interface PlaylistRunInfo {
   run_id: number;
   status: RunStatusResponse;
   test_procedure_id: string;
+}
+export interface WarningEntry {
+  description: string;
+  message: string;
+  timestamp: string;
+  type: string;
 }
 export interface ComplianceRequestResponse {
   classes: string[];
@@ -468,6 +476,9 @@ export interface TestProcedureResponse {
   target_versions: string[];
   test_procedure_id: string;
 }
+/**
+ * Shared between orchestrator and runner - lives here to avoid a circular import.
+ */
 export interface ProceedResponse {
   handled: boolean;
 }
@@ -523,6 +534,7 @@ export interface RunnerStatus {
   timestamp_initialise: string | null;
   timestamp_start: string | null;
   timestamp_status: string;
+  warnings: WarningEntry[];
 }
 export interface StepEventStatus {
   completed_at: string | null;
