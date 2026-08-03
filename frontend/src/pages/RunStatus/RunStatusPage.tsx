@@ -148,6 +148,7 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
             isAdminView={isAdminView}
             isStarting={startMutation.isPending}
             isFinalising={finaliseMutation.isPending}
+            warningCount={statusQuery.data?.warnings.length ?? 0}
             onStart={() => startMutation.mutate()}
             onFinalise={() => finaliseMutation.mutate()}
           />
@@ -170,7 +171,10 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
 
           {/* Spacer so the fixed bottom banner never overlaps the last card. */}
           <div style={{ height: 60 }} />
-          <StatusBanner stepStatus={statusQuery.data?.step_status ?? null} />
+          <StatusBanner
+            stepStatus={statusQuery.data?.step_status ?? null}
+            warningCount={statusQuery.data?.warnings.length ?? 0}
+          />
         </>
       ) : (
         <FinalisedView

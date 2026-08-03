@@ -1,9 +1,9 @@
-import { Badge, Dialog, Flex, Table, Text } from '@radix-ui/themes';
+import { Badge, Table, Text } from '@radix-ui/themes';
 import { IconAlertTriangle } from '@tabler/icons-react';
-import { useState } from 'react';
-import type { RunResponse, WarningEntry } from '../../api/types';
+import type { RunResponse } from '../../api/types';
 import { SectionCard } from '../../components/SectionCard';
 import { formatDate } from '../../utils/dates';
+import { WarningsList } from './WarningsList';
 
 interface Props {
   run: RunResponse;
@@ -22,7 +22,6 @@ function ResultText({ run }: { run: RunResponse }) {
 // Run-level metadata that's otherwise only visible by downloading the artifact zip/PDF —
 // surfaced directly on the run status page so a glance is enough.
 export function RunSummaryPanel({ run }: Props) {
-  const [openWarning, setOpenWarning] = useState<WarningEntry | null>(null);
   const warnings = run.warnings ?? [];
 
   return (
@@ -89,38 +88,9 @@ export function RunSummaryPanel({ run }: Props) {
           <Text as="p" weight="medium" mt="4" mb="2">
             Warnings
           </Text>
-          <Table.Root>
-            <Table.Body>
-              {warnings.map((w) => (
-                <Table.Row
-                  key={w.type}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => setOpenWarning(w)}
-                >
-                  <Table.Cell>
-                    <Flex align="center" gap="2">
-                      <IconAlertTriangle size={14} color="var(--amber-9)" />
-                      {w.description}
-                    </Flex>
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-            </Table.Body>
-          </Table.Root>
+          <WarningsList warnings={warnings} />
         </>
       )}
-
-      <Dialog.Root open={openWarning !== null} onOpenChange={(o) => !o && setOpenWarning(null)}>
-        <Dialog.Content maxWidth="600px">
-          <Dialog.Title>{openWarning?.description}</Dialog.Title>
-          <Text as="p" mb="2" style={{ whiteSpace: 'pre-wrap' }}>
-            {openWarning?.message}
-          </Text>
-          <Text as="p" size="1" color="gray">
-            {openWarning && formatDate(new Date(openWarning.timestamp))}
-          </Text>
-        </Dialog.Content>
-      </Dialog.Root>
     </SectionCard>
   );
 }
