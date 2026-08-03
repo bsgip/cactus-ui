@@ -23,7 +23,9 @@
         "A",
         "G"
       ],
-      "immediate_start": false
+      "immediate_start": false,
+      "run_group_id": null,
+      "warnings": null
     },
     {
       "run_id": 110,
@@ -42,7 +44,9 @@
         "A",
         "G"
       ],
-      "immediate_start": false
+      "immediate_start": false,
+      "run_group_id": null,
+      "warnings": null
     }
   ]
 }

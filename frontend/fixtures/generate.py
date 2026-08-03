@@ -543,6 +543,17 @@ def main() -> None:
             {"success": True, "type": "edevice-registered", "details": "EndDevice 1 registered"},
             {"success": True, "type": "der-present", "details": "DER discovered on the EndDevice"},
         ],
+        "warnings": [
+            {
+                "type": "der-settings.set-max-w-varied",
+                "description": "setMaxW changed during the test",
+                "message": (
+                    "setMaxW was changed from 5000W to 4500W at 2026-06-17T05:01:40+00:00. "
+                    "A best-practice client should not vary its DER settings mid-test."
+                ),
+                "timestamp": "2026-06-17T05:01:40+00:00",
+            }
+        ],
         "instructions": [
             "Ensure the device is powered on and connected to the utility server",
             "Confirm the inverter is exporting before proceeding",
