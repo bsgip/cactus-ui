@@ -91,7 +91,7 @@ describe('run status page chrome', () => {
 
     expect(await screen.findByRole('heading', { name: 'Run Summary' })).toBeInTheDocument();
     expect(screen.getByText('ALL-08')).toBeInTheDocument();
-    expect(screen.getByText('Passed')).toBeInTheDocument();
+    expect(screen.getByText('Passed (with warnings)')).toBeInTheDocument();
     expect(screen.getByText('1 warning')).toBeInTheDocument();
     expect(screen.getByText('setMaxW changed during the test')).toBeInTheDocument();
 
