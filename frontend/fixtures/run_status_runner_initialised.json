@@ -18,9 +18,7 @@
     }
   ],
   "warnings": [],
-  "instructions": [
-    "Ensure the device is powered on before starting the test"
-  ],
+  "instructions": ["Ensure the device is powered on before starting the test"],
   "test_procedure_name": "ALL-01",
   "step_status": null,
   "request_history": [],

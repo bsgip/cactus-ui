@@ -55,7 +55,7 @@ function WarningBadge({ run }: { run: RunResponse }) {
   }
   return (
     <Tooltip content={`${count} warning${count === 1 ? '' : 's'}`}>
-      <Badge color="amber" ml="2">
+      <Badge color="amber" ml="2" aria-label={`${count} warning${count === 1 ? '' : 's'}`}>
         <IconAlertTriangle size={12} /> {count}
       </Badge>
     </Tooltip>

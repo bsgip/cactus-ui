@@ -9,9 +9,23 @@ interface Props {
   run: RunResponse;
 }
 
+function resultTint(run: RunResponse): 'green' | 'red' | 'amber' | 'gray' {
+  if (run.all_criteria_met === true) {
+    return (run.warnings ?? []).length > 0 ? 'amber' : 'green';
+  }
+  if (run.all_criteria_met === false) {
+    return 'red';
+  }
+  return 'gray';
+}
+
 function ResultText({ run }: { run: RunResponse }) {
   if (run.all_criteria_met === true) {
-    return <Text color="green">Passed</Text>;
+    return (run.warnings ?? []).length > 0 ? (
+      <Text color="amber">Passed (with warnings)</Text>
+    ) : (
+      <Text color="green">Passed</Text>
+    );
   }
   if (run.all_criteria_met === false) {
     return <Text color="red">Failed</Text>;
@@ -27,6 +41,7 @@ export function RunSummaryPanel({ run }: Props) {
   return (
     <SectionCard
       title="Run Summary"
+      tint={resultTint(run)}
       action={
         warnings.length > 0 ? (
           <Badge color="amber">

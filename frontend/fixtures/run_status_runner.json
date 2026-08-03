@@ -157,10 +157,7 @@
     "timezone_id": "Australia/Brisbane",
     "der_capability": {
       "der_type": "COMBINED_PV_AND_STORAGE",
-      "modes_supported": [
-        "OP_MOD_FIXED_W",
-        "OP_MOD_VOLT_VAR"
-      ],
+      "modes_supported": ["OP_MOD_FIXED_W", "OP_MOD_VOLT_VAR"],
       "max_w": 5000,
       "max_va": 5500,
       "max_var": 3000,
@@ -169,15 +166,10 @@
       "max_charge_rate_w": 5000,
       "max_discharge_rate_w": 5000,
       "max_wh": 13500,
-      "doe_modes_supported": [
-        "OP_MOD_EXPORT_LIMIT_W",
-        "OP_MOD_IMPORT_LIMIT_W"
-      ]
+      "doe_modes_supported": ["OP_MOD_EXPORT_LIMIT_W", "OP_MOD_IMPORT_LIMIT_W"]
     },
     "der_settings": {
-      "modes_enabled": [
-        "OP_MOD_FIXED_W"
-      ],
+      "modes_enabled": ["OP_MOD_FIXED_W"],
       "max_w": 5000,
       "max_va": 5500,
       "max_var": 3000,
@@ -185,20 +177,14 @@
       "max_charge_rate_w": 5000,
       "max_discharge_rate_w": 5000,
       "grad_w": 100,
-      "doe_modes_enabled": [
-        "OP_MOD_EXPORT_LIMIT_W"
-      ]
+      "doe_modes_enabled": ["OP_MOD_EXPORT_LIMIT_W"]
     },
     "der_status": {
       "alarm_status": [],
       "inverter_status": "NORMAL",
       "operational_mode_status": "GRID_FOLLOWING",
-      "generator_connect_status": [
-        "CONNECTED"
-      ],
-      "storage_connect_status": [
-        "CONNECTED"
-      ],
+      "generator_connect_status": ["CONNECTED"],
+      "storage_connect_status": ["CONNECTED"],
       "storage_mode_status": "CHARGING",
       "state_of_charge_status": 62,
       "local_control_mode_status": "REMOTE",

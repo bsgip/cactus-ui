@@ -84,6 +84,22 @@ describe('run status page chrome', () => {
     expect(screen.getByLabelText('Video timestamp')).toBeInTheDocument();
   });
 
+  it('shows the run summary panel with metadata and warnings for a finalised run', async () => {
+    useShell(shellFinalised);
+    const user = userEvent.setup();
+    renderRunStatus('/run/120');
+
+    expect(await screen.findByRole('heading', { name: 'Run Summary' })).toBeInTheDocument();
+    expect(screen.getByText('ALL-08')).toBeInTheDocument();
+    expect(screen.getByText('Passed')).toBeInTheDocument();
+    expect(screen.getByText('1 warning')).toBeInTheDocument();
+    expect(screen.getByText('setMaxW changed during the test')).toBeInTheDocument();
+
+    // Clicking the warning row opens a popup with the full message and timestamp.
+    await user.click(screen.getByText('setMaxW changed during the test'));
+    expect(await screen.findByText(/setMaxW was changed from 5000W to 4500W/)).toBeInTheDocument();
+  });
+
   it('hides the active power chart for immediate-start procedures', async () => {
     useShell({ ...shellFinalised, run: { ...shellFinalised.run, immediate_start: true } });
     renderRunStatus('/run/120');

@@ -139,6 +139,7 @@ def run(
     has_artifacts: bool,
     created_at: str,
     finalised_at: str | None = None,
+    warnings: list[runner_schema.WarningEntry] | None = None,
 ) -> schema.RunResponse:
     return schema.RunResponse(
         run_id=run_id,
@@ -154,6 +155,7 @@ def run(
         playlist_order=None,
         playlist_runs=None,
         classes=["A", "G"],
+        warnings=warnings,
     )
 
 
@@ -339,6 +341,14 @@ def main() -> None:
                     True,
                     "2026-06-10T03:15:00+00:00",
                     "2026-06-10T04:00:00+00:00",
+                    warnings=[
+                        runner_schema.WarningEntry(
+                            type="der-settings.set-max-w-varied",
+                            description="setMaxW changed during the test",
+                            message="setMaxW was changed from 5000W to 4500W mid-test.",
+                            timestamp=datetime.fromisoformat("2026-06-10T03:45:00+00:00"),
+                        )
+                    ],
                 ),
                 run(
                     117,
@@ -725,6 +735,7 @@ def main() -> None:
         playlist_order: int | None = None,
         playlist_runs: list[schema.PlaylistRunInfo] | None = None,
         warnings: list[runner_schema.WarningEntry] | None = None,
+        immediate_start: bool = False,
     ) -> schema.RunResponse:
         return schema.RunResponse(
             run_id=run_id,
@@ -741,6 +752,7 @@ def main() -> None:
             playlist_runs=playlist_runs,
             classes=None,
             warnings=warnings,
+            immediate_start=immediate_start,
         )
 
     st = schema.RunStatusResponse
@@ -749,7 +761,6 @@ def main() -> None:
         models.RunStatusShell(
             run=shell_run(123, "ALL-08", st.started, None, False, "2026-06-17T05:00:00+00:00"),
             run_is_live=True,
-            is_immediate_start=False,
             playlist_name=None,
             playlist_runs=None,
         ).to_dict(),
@@ -780,7 +791,6 @@ def main() -> None:
                 ],
             ),
             run_is_live=False,
-            is_immediate_start=False,
             playlist_name=None,
             playlist_runs=None,
         ).to_dict(),
@@ -803,9 +813,9 @@ def main() -> None:
                 playlist_execution_id="smoke-exec-1",
                 playlist_order=1,
                 playlist_runs=playlist_summary,
+                immediate_start=True,
             ),
             run_is_live=True,
-            is_immediate_start=True,
             playlist_name="Smoke Test Playlist",
             playlist_runs=[
                 shell_run(
