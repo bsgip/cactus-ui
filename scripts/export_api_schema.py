@@ -16,7 +16,7 @@ diffs the output to catch drift.
 import json
 from pathlib import Path
 
-from cactus_schema.orchestrator.schema import ProceedResponse
+from cactus_schema.orchestrator import ProceedResponse
 from cactus_schema.runner.schema import RequestData, RunnerStatus
 from pydantic import TypeAdapter
 from pydantic.json_schema import GenerateJsonSchema
@@ -34,6 +34,7 @@ from cactus_ui.api_models import (
     ProceduresResponse,
     ProcedureSummariesResponse,
     ProcedureYamlResponse,
+    ReleaseNotesResponse,
     RunActionResponse,
     RunStatusShell,
     SessionResponse,
@@ -59,6 +60,7 @@ RESPONSE_TYPES = [
     PlaylistTestsResponse,
     PlaylistSession,
     RunStatusShell,
+    ReleaseNotesResponse,
     RunnerStatus,
     RequestData,
     ProceedResponse,
@@ -67,14 +69,18 @@ RESPONSE_TYPES = [
 SCHEMA_PATH = Path(__file__).resolve().parent.parent / "frontend" / "src" / "api" / "generated" / "schema.json"
 
 
-def _strip_titles(node: object) -> None:
+def _strip_titles(node: object, in_properties: bool = False) -> None:
     """Drop pydantic's per-field `title`s. They make json-schema-to-typescript promote
     every property into its own noisy named alias; the `$defs` keys are the names we want.
+
+    Inside a `properties` map the keys are field names, not schema keywords, so a field
+    genuinely called `title` must survive — hence the flag rather than an unconditional pop.
     """
     if isinstance(node, dict):
-        node.pop("title", None)
-        for value in node.values():
-            _strip_titles(value)
+        if not in_properties:
+            node.pop("title", None)
+        for key, value in node.items():
+            _strip_titles(value, in_properties=key == "properties")
     elif isinstance(node, list):
         for value in node:
             _strip_titles(value)
