@@ -178,6 +178,21 @@ def fetch_config(access_token: str) -> orchestrator.UserConfigurationResponse | 
         return parsed_body
 
 
+def fetch_deploy_releases(access_token: str) -> list[orchestrator.DeployReleaseResponse] | None:
+    """Fetch the recorded deploy history, most recent first"""
+    uri = generate_uri(orchestrator.uri.DeployReleaseList)
+
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    parsed_body = orchestrator.DeployReleaseResponse.from_json(response.text)
+    if not isinstance(parsed_body, list):
+        return [parsed_body]
+    else:
+        return parsed_body
+
+
 def update_config(
     access_token: str,
     subscription_domain: str | None = None,
