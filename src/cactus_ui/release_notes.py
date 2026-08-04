@@ -1,7 +1,7 @@
 import json
 import logging
 import time
-from typing import Any
+from typing import Any, cast
 
 import requests
 
@@ -58,12 +58,14 @@ def _fetch_release_notes() -> list[dict[str, Any]] | None:
     for release in releases:
         if not isinstance(release, dict):
             continue
+        release = cast(dict[str, Any], release)
         asset_url = _asset_url(release)
         if asset_url is None:
             continue
         data = _get_json(asset_url)
         if not isinstance(data, dict):
             continue
+        data = cast(dict[str, Any], data)
         # The asset knows the release's content; only GitHub knows how it was published.
         data["html_url"] = release.get("html_url")
         data["published_at"] = release.get("published_at")
