@@ -116,9 +116,6 @@ CACTUS_PLATFORM_SUPPORT_EMAIL = env["CACTUS_PLATFORM_SUPPORT_EMAIL"]
 BANNER_MESSAGE = env.get("BANNER_MESSAGE")
 LOGIN_BANNER_MESSAGE = env.get("LOGIN_BANNER_MESSAGE")
 
-# How many cactus-deploy releases the release notes page shows.
-RELEASE_NOTES_LIMIT = 5
-
 # Built React SPA (frontend/dist). Overridable for tests/deployments where dist lives elsewhere.
 FRONTEND_DIST_DIR = Path(
     env.get("CACTUS_UI_FRONTEND_DIST", Path(__file__).resolve().parents[2] / "frontend" / "dist")
@@ -947,7 +944,7 @@ def api_release_notes(access_token: str) -> Response:
     GitHub being unreachable yields no releases (the page shows empty).
     Orchestrator failure loses the deploy timestamps but still can render the page.
     """
-    releases = release_notes.fetch_releases(RELEASE_NOTES_LIMIT)
+    releases = release_notes.fetch_releases()
     deploy_releases = orchestrator.fetch_deploy_releases(access_token)
     return jsonify(build_release_notes(releases, deploy_releases or []).to_dict())
 
