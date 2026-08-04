@@ -10,6 +10,7 @@ import procedureRunsFixture from '../../fixtures/procedure_runs.json';
 import procedureSummariesFixture from '../../fixtures/procedure_summaries.json';
 import procedureYamlFixture from '../../fixtures/procedure_yaml.json';
 import proceduresFixture from '../../fixtures/procedures.json';
+import releaseNotesFixture from '../../fixtures/release_notes.json';
 import runGroupsFixture from '../../fixtures/run_groups.json';
 import runRequestDetailsFixture from '../../fixtures/run_request_details.json';
 import runStatusRunnerFixture from '../../fixtures/run_status_runner.json';
@@ -154,5 +155,8 @@ export const handlers = [
   // ---- Admin (other) ----
   http.get('/api/admin/users', () => HttpResponse.json(adminUsersFixture)),
   http.get('/api/admin/stats', () => HttpResponse.json(adminStatsFixture)),
+
+  // ---- Release Notes ----
+  http.get('/api/release-notes', () => HttpResponse.json(releaseNotesFixture)),
 
 ];
