@@ -979,6 +979,23 @@
       ],
       "type": "object"
     },
+    "DeployReleaseResponse": {
+      "description": "A single record of a cactus-deploy release being deployed to this environment. Append only - a rollback\nappends a new record with the older tag, so ordering is by created_at, not by release_tag.",
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "release_tag": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "created_at",
+        "release_tag"
+      ],
+      "type": "object"
+    },
     "EndDeviceMetadata": {
       "properties": {
         "aggregator_id": {
@@ -1421,6 +1438,37 @@
       ],
       "type": "object"
     },
+    "ProcedureCounts": {
+      "description": "How many client test procedure files moved between two cactus-test-definitions versions.",
+      "properties": {
+        "added": {
+          "type": "integer"
+        },
+        "modified": {
+          "type": "integer"
+        },
+        "removed": {
+          "type": "integer"
+        },
+        "total": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "added",
+        "modified",
+        "removed",
+        "total"
+      ],
+      "type": "object"
+    },
     "ProcedureStat": {
       "properties": {
         "classes": {
@@ -1540,6 +1588,7 @@
       "type": "object"
     },
     "ProceedResponse": {
+      "description": "Shared between orchestrator and runner - lives here to avoid a circular import.",
       "properties": {
         "handled": {
           "type": "boolean"
@@ -1547,6 +1596,237 @@
       },
       "required": [
         "handled"
+      ],
+      "type": "object"
+    },
+    "Release": {
+      "description": "One cactus-deploy release: its release-notes.json asset, plus when it was deployed here (added by backend).",
+      "properties": {
+        "components": {
+          "items": {
+            "$ref": "#/$defs/ReleaseComponent"
+          },
+          "type": "array"
+        },
+        "deployed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "html_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "previous_tag": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "published_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "tag": {
+          "type": "string"
+        },
+        "test_definitions": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReleaseTestDefinitions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "components",
+        "deployed_at",
+        "html_url",
+        "previous_tag",
+        "published_at",
+        "tag",
+        "test_definitions",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "ReleaseChange": {
+      "description": "One merged pull request, as listed in a component's auto-generated release notes.",
+      "properties": {
+        "pr": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "pr",
+        "title",
+        "url"
+      ],
+      "type": "object"
+    },
+    "ReleaseComponent": {
+      "description": "One deployed component's version at this release, and what changed if it moved.",
+      "properties": {
+        "changed": {
+          "type": "boolean"
+        },
+        "changes": {
+          "items": {
+            "$ref": "#/$defs/ReleaseChange"
+          },
+          "type": "array"
+        },
+        "current": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "previous": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "repo": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "changed",
+        "changes",
+        "current",
+        "name",
+        "notes",
+        "previous",
+        "repo"
+      ],
+      "type": "object"
+    },
+    "ReleaseNotesResponse": {
+      "description": "GET /api/release-notes \u2014 recent releases joined to this environment's deploy history.",
+      "properties": {
+        "deploy_history": {
+          "items": {
+            "$ref": "#/$defs/DeployReleaseResponse"
+          },
+          "type": "array"
+        },
+        "releases": {
+          "items": {
+            "$ref": "#/$defs/Release"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "deploy_history",
+        "releases"
+      ],
+      "type": "object"
+    },
+    "ReleaseTestDefinitions": {
+      "description": "The test procedure version transition for a release, if it moved.",
+      "properties": {
+        "changes": {
+          "items": {
+            "$ref": "#/$defs/ReleaseChange"
+          },
+          "type": "array"
+        },
+        "current": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "previous": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "procedures": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProcedureCounts"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "changes",
+        "current",
+        "notes",
+        "previous",
+        "procedures"
       ],
       "type": "object"
     },
@@ -1802,6 +2082,17 @@
           ],
           "default": null
         },
+        "run_group_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "run_id": {
           "type": "integer"
         },
@@ -1813,6 +2104,20 @@
         },
         "test_url": {
           "type": "string"
+        },
+        "warnings": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/WarningEntry"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -1826,10 +2131,12 @@
         "playlist_execution_id",
         "playlist_order",
         "playlist_runs",
+        "run_group_id",
         "run_id",
         "status",
         "test_procedure_id",
-        "test_url"
+        "test_url",
+        "warnings"
       ],
       "type": "object"
     },
@@ -2002,6 +2309,12 @@
         "timestamp_status": {
           "format": "date-time",
           "type": "string"
+        },
+        "warnings": {
+          "items": {
+            "$ref": "#/$defs/WarningEntry"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -2019,7 +2332,8 @@
         "timeline",
         "timestamp_initialise",
         "timestamp_start",
-        "timestamp_status"
+        "timestamp_status",
+        "warnings"
       ],
       "type": "object"
     },
@@ -2384,6 +2698,30 @@
       "required": [
         "name",
         "run_count"
+      ],
+      "type": "object"
+    },
+    "WarningEntry": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "description",
+        "message",
+        "timestamp",
+        "type"
       ],
       "type": "object"
     },

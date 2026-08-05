@@ -13,6 +13,7 @@ express cleanly, kept as a small hand-written generic in the frontend's `api/typ
 """
 
 from dataclasses import dataclass
+from datetime import datetime
 from enum import StrEnum, auto
 
 from cactus_schema.orchestrator.compliance import ComplianceClass
@@ -20,6 +21,7 @@ from cactus_schema.orchestrator.schema import (
     AdminComplianceRequestResponse,
     ComplianceRequestResponse,
     CSIPAusVersionResponse,
+    DeployReleaseResponse,
     FastAPICompatibleWizard,
     RunGroupResponse,
     RunResponse,
@@ -285,3 +287,73 @@ class RunStatusShell(FastAPICompatibleWizard):
     run_is_live: bool  # derived: a runner status exists, or status is provisioning/started
     playlist_name: str | None  # playlist display name (from the Flask session; not on any run)
     playlist_runs: list[RunResponse] | None  # all runs in the playlist, fetched and joined
+
+
+# The next four mirror cactus-deploy's release-notes.json asset field for field, so a release
+# parses with a plain Release.from_dict. Keep in step with release_notes.py in cactus-deploy.
+
+
+@dataclass
+class ReleaseChange(FastAPICompatibleWizard):
+    """One merged pull request, as listed in a component's auto-generated release notes."""
+
+    title: str
+    pr: int
+    url: str
+
+
+@dataclass
+class ReleaseComponent(FastAPICompatibleWizard):
+    """One deployed component's version at this release, and what changed if it moved."""
+
+    name: str
+    repo: str
+    previous: str | None  # None the first time a component appears in versions.lock
+    current: str
+    changed: bool
+    changes: list[ReleaseChange]
+    notes: list[str]  # degradations, e.g. a tag with no published GitHub release
+
+
+@dataclass
+class ProcedureCounts(FastAPICompatibleWizard):
+    """How many client test procedure files moved between two cactus-test-definitions versions."""
+
+    modified: int
+    added: int
+    removed: int
+    total: int | None
+
+
+@dataclass
+class ReleaseTestDefinitions(FastAPICompatibleWizard):
+    """The test procedure version transition for a release, if it moved."""
+
+    previous: str | None
+    current: str | None
+    procedures: ProcedureCounts | None
+    changes: list[ReleaseChange]
+    notes: list[str]
+
+
+@dataclass
+class Release(FastAPICompatibleWizard):
+    """One cactus-deploy release: its release-notes.json asset, plus when it was deployed here (added by backend)."""
+
+    tag: str
+    previous_tag: str | None
+    components: list[ReleaseComponent]
+    test_definitions: ReleaseTestDefinitions | None
+    warnings: list[str]
+    # Not part of the asset itself, so all three default rather than failing the parse.
+    html_url: str | None = None
+    published_at: str | None = None
+    deployed_at: datetime | None = None  # None when this tag was never deployed to this environment
+
+
+@dataclass
+class ReleaseNotesResponse(FastAPICompatibleWizard):
+    """GET /api/release-notes — recent releases joined to this environment's deploy history."""
+
+    releases: list[Release]
+    deploy_history: list[DeployReleaseResponse]

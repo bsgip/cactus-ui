@@ -1,0 +1,397 @@
+{
+  "releases": [
+    {
+      "tag": "release-177",
+      "previous_tag": "release-176",
+      "published_at": "2026-07-24T06:48:51Z",
+      "deployed_at": "2026-07-24T07:15:03+00:00",
+      "components": [
+        {
+          "name": "Orchestrator",
+          "repo": "bsgip/cactus-orchestrator",
+          "previous": "v2.2.0",
+          "current": "v2.2.1",
+          "changed": true,
+          "changes": [
+            {
+              "title": "Add .well-known route to traefik",
+              "pr": 185,
+              "url": "https://github.com/bsgip/cactus-orchestrator/pull/185"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "name": "Web UI",
+          "repo": "bsgip/cactus-ui",
+          "previous": "v2.1.0",
+          "current": "v2.1.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Client Notifications",
+          "repo": "bsgip/cactus-client-notifications",
+          "previous": "v0.1.1",
+          "current": "v0.1.1",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Test Runner (v1.2)",
+          "repo": "bsgip/cactus-runner",
+          "previous": "v1.13.0",
+          "current": "v1.13.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Utility Server (v1.2)",
+          "repo": "bsgip/envoy",
+          "previous": "v1.5.0",
+          "current": "v1.5.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Test Runner (v1.3-storage-beta)",
+          "repo": "synergy-au/cactus-runner",
+          "previous": "v2.4.3-storage.0.13.0",
+          "current": "v2.4.3-storage.0.13.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Utility Server (v1.3-storage-beta)",
+          "repo": "synergy-au/envoy",
+          "previous": "v2.2.0-storage.0.9.0",
+          "current": "v2.2.0-storage.0.9.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Test Runner (v1.3)",
+          "repo": "bsgip/cactus-runner",
+          "previous": "v2.5.0",
+          "current": "v2.5.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Utility Server (v1.3)",
+          "repo": "bsgip/envoy",
+          "previous": "v2.2.0",
+          "current": "v2.2.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        }
+      ],
+      "test_definitions": null,
+      "warnings": [],
+      "html_url": "https://github.com/bsgip/cactus-deploy/releases/tag/release-177"
+    },
+    {
+      "tag": "release-176",
+      "previous_tag": "release-175",
+      "published_at": "2026-07-24T02:46:23Z",
+      "deployed_at": "2026-07-24T03:10:47+00:00",
+      "components": [
+        {
+          "name": "Orchestrator",
+          "repo": "bsgip/cactus-orchestrator",
+          "previous": "v2.1.0",
+          "current": "v2.2.0",
+          "changed": true,
+          "changes": [
+            {
+              "title": "Update to cactus-schema v1.3.0",
+              "pr": 183,
+              "url": "https://github.com/bsgip/cactus-orchestrator/pull/183"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "name": "Web UI",
+          "repo": "bsgip/cactus-ui",
+          "previous": "v2.0.1",
+          "current": "v2.1.0",
+          "changed": true,
+          "changes": [
+            {
+              "title": "Not found page",
+              "pr": 96,
+              "url": "https://github.com/bsgip/cactus-ui/pull/96"
+            },
+            {
+              "title": "Cleanup Compliance Request Page",
+              "pr": 97,
+              "url": "https://github.com/bsgip/cactus-ui/pull/97"
+            },
+            {
+              "title": "Update to cactus-schema v1.3.0",
+              "pr": 98,
+              "url": "https://github.com/bsgip/cactus-ui/pull/98"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "name": "Client Notifications",
+          "repo": "bsgip/cactus-client-notifications",
+          "previous": "v0.1.1",
+          "current": "v0.1.1",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Test Runner (v1.2)",
+          "repo": "bsgip/cactus-runner",
+          "previous": "v1.13.0",
+          "current": "v1.13.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Utility Server (v1.2)",
+          "repo": "bsgip/envoy",
+          "previous": "v1.5.0",
+          "current": "v1.5.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Test Runner (v1.3-storage-beta)",
+          "repo": "synergy-au/cactus-runner",
+          "previous": "v2.4.3-storage.0.13.0",
+          "current": "v2.4.3-storage.0.13.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Utility Server (v1.3-storage-beta)",
+          "repo": "synergy-au/envoy",
+          "previous": "v2.2.0-storage.0.9.0",
+          "current": "v2.2.0-storage.0.9.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Test Runner (v1.3)",
+          "repo": "bsgip/cactus-runner",
+          "previous": "v2.5.0",
+          "current": "v2.5.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Utility Server (v1.3)",
+          "repo": "bsgip/envoy",
+          "previous": "v2.2.0",
+          "current": "v2.2.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        }
+      ],
+      "test_definitions": null,
+      "warnings": [],
+      "html_url": "https://github.com/bsgip/cactus-deploy/releases/tag/release-176"
+    },
+    {
+      "tag": "release-175",
+      "previous_tag": "release-174",
+      "published_at": "2026-07-24T01:55:45Z",
+      "deployed_at": "2026-07-24T02:20:16+00:00",
+      "components": [
+        {
+          "name": "Orchestrator",
+          "repo": "bsgip/cactus-orchestrator",
+          "previous": "v2.0.4",
+          "current": "v2.1.0",
+          "changed": true,
+          "changes": [
+            {
+              "title": "Local dev runner ports",
+              "pr": 180,
+              "url": "https://github.com/bsgip/cactus-orchestrator/pull/180"
+            },
+            {
+              "title": "Pod terminated",
+              "pr": 181,
+              "url": "https://github.com/bsgip/cactus-orchestrator/pull/181"
+            },
+            {
+              "title": "Updating cactus-test-defns v1.15.0",
+              "pr": 182,
+              "url": "https://github.com/bsgip/cactus-orchestrator/pull/182"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "name": "Web UI",
+          "repo": "bsgip/cactus-ui",
+          "previous": "v2.0.1",
+          "current": "v2.0.1",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Client Notifications",
+          "repo": "bsgip/cactus-client-notifications",
+          "previous": "v0.1.1",
+          "current": "v0.1.1",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Test Runner (v1.2)",
+          "repo": "bsgip/cactus-runner",
+          "previous": "v1.12.4",
+          "current": "v1.13.0",
+          "changed": true,
+          "changes": [
+            {
+              "title": "Support for Service Discovery Version Negotiation",
+              "pr": 196,
+              "url": "https://github.com/bsgip/cactus-runner/pull/196"
+            },
+            {
+              "title": "Fixes variable list expression resolution",
+              "pr": 197,
+              "url": "https://github.com/bsgip/cactus-runner/pull/197"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "name": "Utility Server (v1.2)",
+          "repo": "bsgip/envoy",
+          "previous": "v1.5.0",
+          "current": "v1.5.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Test Runner (v1.3-storage-beta)",
+          "repo": "synergy-au/cactus-runner",
+          "previous": "v2.4.3-storage.0.13.0",
+          "current": "v2.4.3-storage.0.13.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Utility Server (v1.3-storage-beta)",
+          "repo": "synergy-au/envoy",
+          "previous": "v2.2.0-storage.0.9.0",
+          "current": "v2.2.0-storage.0.9.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        },
+        {
+          "name": "Test Runner (v1.3)",
+          "repo": "bsgip/cactus-runner",
+          "previous": "v2.4.3",
+          "current": "v2.5.0",
+          "changed": true,
+          "changes": [
+            {
+              "title": "Save request times",
+              "pr": 195,
+              "url": "https://github.com/bsgip/cactus-runner/pull/195"
+            },
+            {
+              "title": "Support for Service Discovery Version Negotiation",
+              "pr": 196,
+              "url": "https://github.com/bsgip/cactus-runner/pull/196"
+            },
+            {
+              "title": "Fixes variable list expression resolution",
+              "pr": 197,
+              "url": "https://github.com/bsgip/cactus-runner/pull/197"
+            },
+            {
+              "title": "Add support for .well-known route / actions",
+              "pr": 198,
+              "url": "https://github.com/bsgip/cactus-runner/pull/198"
+            }
+          ],
+          "notes": []
+        },
+        {
+          "name": "Utility Server (v1.3)",
+          "repo": "bsgip/envoy",
+          "previous": "v2.2.0",
+          "current": "v2.2.0",
+          "changed": false,
+          "changes": [],
+          "notes": []
+        }
+      ],
+      "test_definitions": {
+        "previous": "1.14.8",
+        "current": "1.15.0",
+        "procedures": {
+          "modified": 28,
+          "added": 1,
+          "removed": 0,
+          "total": 82
+        },
+        "changes": [
+          {
+            "title": "add agg check",
+            "pr": 216,
+            "url": "https://github.com/bsgip/cactus-test-definitions/pull/216"
+          },
+          {
+            "title": "Cirg defaults addition - ALL tests",
+            "pr": 217,
+            "url": "https://github.com/bsgip/cactus-test-definitions/pull/217"
+          },
+          {
+            "title": "Added Service Discovery Version Negotiation Test",
+            "pr": 219,
+            "url": "https://github.com/bsgip/cactus-test-definitions/pull/219"
+          }
+        ],
+        "notes": []
+      },
+      "warnings": [],
+      "html_url": "https://github.com/bsgip/cactus-deploy/releases/tag/release-175"
+    }
+  ],
+  "deploy_history": [
+    {
+      "release_tag": "177",
+      "created_at": "2026-07-24T07:15:03+00:00"
+    },
+    {
+      "release_tag": "176",
+      "created_at": "2026-07-24T03:10:47+00:00"
+    },
+    {
+      "release_tag": "175",
+      "created_at": "2026-07-24T02:20:16+00:00"
+    }
+  ]
+}

@@ -7,10 +7,14 @@ compliance-by-class, pagination shaping, playlist test lists). Returning the typ
 (rather than raw dicts) keeps the wire format tied to the generated TS types.
 """
 
+import logging
 from collections import defaultdict
+from datetime import datetime
+from typing import Any
 
 import cactus_schema.orchestrator as schema
 from cactus_schema.orchestrator.compliance import ComplianceClass, fetch_compliance_classes
+from dataclass_wizard.errors import JSONWizardError
 
 from cactus_ui.api_models import (
     ComplianceClassEntry,
@@ -22,7 +26,11 @@ from cactus_ui.api_models import (
     PlaylistTest,
     PlaylistTestStatus,
     ProcedureSummariesResponse,
+    Release,
+    ReleaseNotesResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 _ACTIVE_RUN_STATUS_INTS = [1, 2, 6]  # initialised, started, provisioning
 _FINALIZED_RUN_STATUS_INTS = [3, 4]  # finalised by user, finalised by timeout
@@ -183,3 +191,31 @@ def build_compliance(procedures: list[schema.TestProcedureRunSummaryResponse]) -
             )
         )
     return ComplianceResponse(compliance_by_class=compliance_by_class)
+
+
+def _deploy_key(release_tag: str) -> str:
+    """update.sh records the orchestrator image tag (`177`), the release is tagged `release-177`."""
+    return release_tag.removeprefix("release-")
+
+
+def build_release_notes(
+    raw_releases: list[dict[str, Any]],
+    deploy_releases: list[schema.DeployReleaseResponse],
+) -> ReleaseNotesResponse:
+    """Join raw release-notes.json assets to the deploy history. Releases stay newest-first."""
+    # Most recent deploy per tag. A tag can appear several times (rollback, then redeploy).
+    deployed_at: dict[str, datetime] = {}
+    for deploy in deploy_releases:
+        deployed_at.setdefault(_deploy_key(deploy.release_tag), deploy.created_at)
+
+    releases = []
+    for raw in raw_releases:
+        try:
+            release = Release.from_dict(raw)
+        except (JSONWizardError, KeyError, TypeError, ValueError):
+            logger.warning("release notes: skipping unparseable asset for %s", raw.get("tag"), exc_info=True)
+            continue
+        release.deployed_at = deployed_at.get(_deploy_key(release.tag))
+        releases.append(release)
+
+    return ReleaseNotesResponse(releases=releases, deploy_history=deploy_releases)

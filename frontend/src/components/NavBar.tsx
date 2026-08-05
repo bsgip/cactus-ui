@@ -43,6 +43,7 @@ function NavLinks() {
     { to: '/playlists', label: 'Playlists' },
     { to: '/compliance', label: 'Compliance' },
     { to: '/config', label: 'Config' },
+    { to: '/release-notes', label: 'Release Notes' },
   ];
 
   return (
