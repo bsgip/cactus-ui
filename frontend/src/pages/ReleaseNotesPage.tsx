@@ -37,14 +37,19 @@ function ChangeList({ changes }: { changes: { title: string; pr: number; url: st
   );
 }
 
-const componentBlockStyle = {
-  borderLeft: '3px solid var(--accent-6)',
-  paddingLeft: 'var(--space-3)',
-};
-
-function ComponentBlock({ name, version, children }: { name: string; version: string; children?: ReactNode }) {
+function ComponentBlock({
+  name,
+  version,
+  color = 'accent',
+  children,
+}: {
+  name: string;
+  version: string;
+  color?: 'accent' | 'orange';
+  children?: ReactNode;
+}) {
   return (
-    <Box style={componentBlockStyle} py="1">
+    <Box style={{ borderLeft: `3px solid var(--${color}-6)`, paddingLeft: 'var(--space-3)' }} py="1">
       <Flex gap="2" align="baseline" wrap="wrap" mb="1">
         <Heading as="h5" size="2">
           {name}
@@ -71,12 +76,16 @@ function ComponentRow({ component }: { component: ReleaseComponent }) {
 
 function TestDefinitionsRow({ testDefinitions }: { testDefinitions: NonNullable<Release['test_definitions']> }) {
   return (
-    <ComponentBlock name="Test Procedures" version={`${testDefinitions.previous} → ${testDefinitions.current}`}>
+    <ComponentBlock
+      name="Test Procedures"
+      version={`${testDefinitions.previous} → ${testDefinitions.current}`}
+      color="orange"
+    >
       {testDefinitions.procedures && (
         <Text as="p" size="2">
           {testDefinitions.procedures.modified} tests modified, {testDefinitions.procedures.added} added,{' '}
           {testDefinitions.procedures.removed} removed
-          {testDefinitions.procedures.total !== null && ` (${testDefinitions.procedures.total} total)`}
+          {testDefinitions.procedures.total !== null && ` (of ${testDefinitions.procedures.total} tests in repository)`}
         </Text>
       )}
       {testDefinitions.notes.map((note) => (
