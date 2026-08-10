@@ -75,6 +75,20 @@ function StandardStep({
           The date when in-person witness testing was performed.
         </Text>
       </label>
+      <label>
+        <Text as="div" size="2" weight="bold" mb="1">
+          CACTUS Platform Version
+        </Text>
+        <TextField.Root
+          type="text"
+          value={form.cactus_version}
+          onChange={(e) => update({ cactus_version: e.target.value })}
+          disabled={readOnly}
+        />
+        <Text as="div" size="1" color="gray" mt="1">
+          The CACTUS platform version. If in doubt, leave this unchanged.
+        </Text>
+      </label>
     </Flex>
   );
 }

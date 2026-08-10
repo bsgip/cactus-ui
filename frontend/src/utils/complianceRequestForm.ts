@@ -1,8 +1,10 @@
 import { type ComplianceFormDataResponse, type ComplianceRequestResponse } from '../api/types';
+import { useSession } from '../hooks/useSession';
 
 export type Mode = 'new' | 'edit' | 'view';
 
 export interface FormState {
+  cactus_version: string;
   csip_aus_version: string;
   witnessed_at: string;
   classes: Set<string>;
@@ -19,6 +21,7 @@ export interface FormState {
 
 export function emptyForm(): FormState {
   return {
+    cactus_version: '',
     csip_aus_version: '',
     witnessed_at: '',
     classes: new Set(),
@@ -37,9 +40,11 @@ export function emptyForm(): FormState {
 export function buildInitialForm(
   formData: ComplianceFormDataResponse,
   prefill: ComplianceRequestResponse | undefined,
-  opts: { prefillClasses: boolean; prefillRuns: boolean }
+  opts: { prefillClasses: boolean; prefillRuns: boolean },
+  cactus_version: string,
 ): FormState {
   const form = emptyForm();
+  form.cactus_version = cactus_version
   form.csip_aus_version = prefill?.csip_aus_version || formData.csipaus_versions[0] || '';
   if (prefill) {
     form.witnessed_at = prefill.witnessed_at.split('T')[0];

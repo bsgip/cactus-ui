@@ -2,6 +2,7 @@ import Wizard from './Wizard';
 import { ClientWizardPager, AdminWizardPager } from './ComplianceRequestWizardPager';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState, Dispatch, SetStateAction } from 'react';
+import { useSession } from '../hooks/useSession';
 
 import { type ComplianceRequestPayload } from '../api/compliance';
 import type { RunResponse, ComplianceFormDataResponse, ComplianceRequestResponse } from '../api/types';
@@ -51,12 +52,14 @@ function ComplianceRequestWizard({ isAdminView, setActionError, formData, prefil
   const [form, setForm] = useState<FormState>(emptyForm);
   const initialised = useRef(false);
 
+  const { data: session } = useSession();
+
   // Initialise the form once both the supporting data and any prefill request are available.
   useEffect(() => {
     if (initialised.current || !formData) return;
     if (requestId !== null && !prefillRequest) return; // still waiting on the prefill request
     initialised.current = true;
-    setForm(buildInitialForm(formData, prefillRequest, { prefillClasses, prefillRuns }));
+    setForm(buildInitialForm(formData, prefillRequest, { prefillClasses, prefillRuns }, session.version));
   }, [formData, prefillRequest, requestId, prefillClasses, prefillRuns]);
 
   const runsByProcedure = useMemo(() => groupRuns(formData?.successful_runs ?? []), [formData]);
