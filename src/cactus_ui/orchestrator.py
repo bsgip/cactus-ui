@@ -691,6 +691,7 @@ def fetch_compliance_request(
 def create_compliance_request(
     access_token: str,
     csip_aus_version: str,
+    cactus_version: str,
     witnessed_at: datetime,
     classes: set[str],
     runs: set[int],
@@ -699,7 +700,7 @@ def create_compliance_request(
     der_series: str,
     der_representative_models: str,
     software_client_type: str,
-    software_client_providers: str,
+    software_client_name: str,
     software_client_versions: str,
     onsite_hardware_details: str,
 ) -> orchestrator.ComplianceRequestResponse | None:
@@ -712,6 +713,7 @@ def create_compliance_request(
         CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
         json=orchestrator.ComplianceRequestRequest(
             csip_aus_version=csip_aus_version,
+            cactus_version=cactus_version,
             witnessed_at=witnessed_at,
             classes=classes,
             runs=runs,
@@ -720,7 +722,7 @@ def create_compliance_request(
             der_series=der_series,
             der_representative_models=der_representative_models,
             software_client_type=software_client_type,
-            software_client_providers=software_client_providers,
+            software_client_name=software_client_name,
             software_client_versions=software_client_versions,
             onsite_hardware_details=onsite_hardware_details,
         ).to_dict(),

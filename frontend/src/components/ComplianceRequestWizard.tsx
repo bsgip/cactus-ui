@@ -115,6 +115,7 @@ function ComplianceRequestWizard({ isAdminView, setActionError, formData, prefil
 
   const buildPayload = (): ComplianceRequestPayload => ({
     csip_aus_version: form.csip_aus_version,
+    cactus_version: form.cactus_version,
     witnessed_at: form.witnessed_at,
     classes: activeClasses,
     runs: visibleProcedures.map((p) => form.runByProcedure[p]).filter((r): r is number => !!r),
@@ -123,7 +124,7 @@ function ComplianceRequestWizard({ isAdminView, setActionError, formData, prefil
     der_series: form.der_series,
     der_representative_models: form.der_representative_models,
     software_client_type: form.software_client_type,
-    software_client_providers: form.software_client_providers,
+    software_client_name: form.software_client_name,
     software_client_versions: form.software_client_versions,
     onsite_hardware_details: form.onsite_hardware_details,
   });

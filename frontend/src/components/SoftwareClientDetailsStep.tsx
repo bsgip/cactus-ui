@@ -40,12 +40,12 @@ function SoftwareClientDetailsStep({
         </Select.Root>
       </FieldRow>
       <FieldRow
-        label="Provider(s)"
-        help="The software client may be provided by an OEM or third-party."
+        label="Name"
+        help="This is how the Software Client is listed and referred to. Suggested format: ProviderName PlatformName e.g. GoodClient GoodCloud. "
       >
         <TextField.Root
-          value={form.software_client_providers}
-          onChange={(e) => update({ software_client_providers: e.target.value })}
+          value={form.software_client_name}
+          onChange={(e) => update({ software_client_name: e.target.value })}
           disabled={readOnly}
         />
       </FieldRow>

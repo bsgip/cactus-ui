@@ -95,13 +95,14 @@ export interface AdminComplianceRequestResponse {
   created_by: number;
   created_by_user: ComplianceRequestUser;
   csip_aus_version: string;
+  cactus_version: string;
   der_brand: string;
   der_oem: string;
   der_representative_models: string;
   der_series: string;
   onsite_hardware_details: string;
   runs: number[];
-  software_client_providers: string;
+  software_client_name: string;
   software_client_type: string;
   software_client_versions: string;
   status: number;
@@ -264,6 +265,7 @@ export interface ComplianceRequestResponse {
   compliance_request_id: number;
   created_at: string;
   created_by: number;
+  cactus_version: string;
   csip_aus_version: string;
   der_brand: string;
   der_oem: string;
@@ -271,7 +273,7 @@ export interface ComplianceRequestResponse {
   der_series: string;
   onsite_hardware_details: string;
   runs: number[];
-  software_client_providers: string;
+  software_client_name: string;
   software_client_type: string;
   software_client_versions: string;
   status: number;

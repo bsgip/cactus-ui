@@ -220,6 +220,7 @@ def compliance_request(id: int, user_id: int, status: int) -> schema.ComplianceR
         updated_at=datetime.now(UTC),
         updated_by=user_id,
         csip_aus_version="1.2",
+        cactus_version="v1.0.0",
         witnessed_at=datetime.now(UTC),
         status=status,
         classes={"A"},
@@ -229,7 +230,7 @@ def compliance_request(id: int, user_id: int, status: int) -> schema.ComplianceR
         der_series="series",
         der_representative_models="rep models",
         software_client_type="client type",
-        software_client_providers="client providers",
+        software_client_name="provider_platform",
         software_client_versions="client versions",
         onsite_hardware_details="hardware details",
     )
@@ -245,6 +246,7 @@ def admin_compliance_request(id: int, user_id: int, status: int) -> schema.Admin
         updated_by=user_id,
         updated_by_user=compliance_user(user_id=id),
         csip_aus_version="1.2",
+        cactus_version="v1.0.0",
         witnessed_at=datetime.now(UTC),
         status=status,
         classes={"A"},
@@ -254,7 +256,7 @@ def admin_compliance_request(id: int, user_id: int, status: int) -> schema.Admin
         der_series="series",
         der_representative_models="rep models",
         software_client_type="client type",
-        software_client_providers="client providers",
+        software_client_name="client providers",
         software_client_versions="client versions",
         onsite_hardware_details="hardware details",
     )

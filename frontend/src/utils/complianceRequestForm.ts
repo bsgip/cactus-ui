@@ -14,7 +14,7 @@ export interface FormState {
   der_series: string;
   der_representative_models: string;
   software_client_type: string;
-  software_client_providers: string;
+  software_client_name: string;
   software_client_versions: string;
   onsite_hardware_details: string;
 }
@@ -31,7 +31,7 @@ export function emptyForm(): FormState {
     der_series: '',
     der_representative_models: '',
     software_client_type: 'direct',
-    software_client_providers: '',
+    software_client_name: '',
     software_client_versions: '',
     onsite_hardware_details: '',
   };
@@ -53,7 +53,7 @@ export function buildInitialForm(
     form.der_series = prefill.der_series;
     form.der_representative_models = prefill.der_representative_models;
     form.software_client_type = prefill.software_client_type || 'direct';
-    form.software_client_providers = prefill.software_client_providers;
+    form.software_client_name = prefill.software_client_name;
     form.software_client_versions = prefill.software_client_versions;
     form.onsite_hardware_details = prefill.onsite_hardware_details;
   }

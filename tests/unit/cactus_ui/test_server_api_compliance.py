@@ -103,6 +103,7 @@ def test_api_create_compliance_request_maps_payload(client, monkeypatch):
 
     payload = {
         "csip_aus_version": "v1.3",
+        "cactus_version": "v1.0.0",
         "witnessed_at": "2024-06-15",
         "classes": ["DECEW", "DRGW"],
         "runs": [10, 11],
@@ -111,7 +112,7 @@ def test_api_create_compliance_request_maps_payload(client, monkeypatch):
         "der_series": "S1",
         "der_representative_models": "M1, M2",
         "software_client_type": "direct",
-        "software_client_providers": "P",
+        "software_client_name": "P",
         "software_client_versions": "1.0",
         "onsite_hardware_details": "gateway",
     }
