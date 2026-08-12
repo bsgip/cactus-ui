@@ -49,6 +49,7 @@ function makeRun(run_id: number, test_procedure_id: string): RunResponse {
     status: 'finalised',
     test_procedure_id,
     test_url: '',
+    warnings: null,
   };
 }
 

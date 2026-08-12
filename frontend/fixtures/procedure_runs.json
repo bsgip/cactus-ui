@@ -19,11 +19,17 @@
       "playlist_execution_id": null,
       "playlist_order": null,
       "playlist_runs": null,
-      "classes": [
-        "A",
-        "G"
-      ],
-      "immediate_start": false
+      "classes": ["A", "G"],
+      "immediate_start": false,
+      "run_group_id": null,
+      "warnings": [
+        {
+          "type": "der-settings.set-max-w-varied",
+          "description": "setMaxW changed during the test",
+          "message": "setMaxW was changed from 5000W to 4500W mid-test.",
+          "timestamp": "2026-06-10T03:45:00Z"
+        }
+      ]
     },
     {
       "run_id": 117,
@@ -38,11 +44,10 @@
       "playlist_execution_id": null,
       "playlist_order": null,
       "playlist_runs": null,
-      "classes": [
-        "A",
-        "G"
-      ],
-      "immediate_start": false
+      "classes": ["A", "G"],
+      "immediate_start": false,
+      "run_group_id": null,
+      "warnings": null
     },
     {
       "run_id": 110,
@@ -57,11 +62,10 @@
       "playlist_execution_id": null,
       "playlist_order": null,
       "playlist_runs": null,
-      "classes": [
-        "A",
-        "G"
-      ],
-      "immediate_start": false
+      "classes": ["A", "G"],
+      "immediate_start": false,
+      "run_group_id": null,
+      "warnings": null
     },
     {
       "run_id": 104,
@@ -76,11 +80,10 @@
       "playlist_execution_id": null,
       "playlist_order": null,
       "playlist_runs": null,
-      "classes": [
-        "A",
-        "G"
-      ],
-      "immediate_start": false
+      "classes": ["A", "G"],
+      "immediate_start": false,
+      "run_group_id": null,
+      "warnings": null
     }
   ]
 }

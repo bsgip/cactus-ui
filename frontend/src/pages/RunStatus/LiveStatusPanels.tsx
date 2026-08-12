@@ -17,6 +17,7 @@ import {
   stepPhase,
 } from './statusHelpers';
 import { TimelineChart } from './TimelineChart';
+import { WarningsList } from './WarningsList';
 import { XsdErrorsCard } from './XsdErrorsCard';
 
 interface Props {
@@ -40,6 +41,11 @@ export function LiveStatusPanels({ status, runId, runStatus, runProcedureId, isA
         <CheckTableCard title="Precondition Checks" entries={status.precondition_checks} />
       )}
       <CheckTableCard title="Current Criteria" entries={criteriaWithXsd(status)} />
+      {status.warnings.length > 0 && (
+        <SectionCard scroll title="Warnings">
+          <WarningsList warnings={status.warnings} />
+        </SectionCard>
+      )}
       <StepsCard status={status} runStatus={runStatus} runId={runId} isAdminView={isAdminView} />
       <TimelineChart
         timeline={status.timeline}

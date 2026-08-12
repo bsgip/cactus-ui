@@ -1,8 +1,10 @@
 import { http, HttpResponse } from 'msw';
 import activeRunsFixture from '../../fixtures/active_runs.json';
+import adminComplianceRequestsFixture from '../../fixtures/admin_compliance_requests.json';
 import adminStatsFixture from '../../fixtures/admin_stats.json';
 import adminUsersFixture from '../../fixtures/admin_users.json';
 import complianceFixture from '../../fixtures/compliance.json';
+import complianceRequestsFixture from '../../fixtures/compliance_requests.json';
 import configFixture from '../../fixtures/config.json';
 import playlistSessionsFixture from '../../fixtures/playlist_sessions.json';
 import playlistTestsFixture from '../../fixtures/playlist_tests.json';
@@ -14,17 +16,25 @@ import runGroupsFixture from '../../fixtures/run_groups.json';
 import runRequestDetailsFixture from '../../fixtures/run_request_details.json';
 import runStatusRunnerFixture from '../../fixtures/run_status_runner.json';
 import runStatusShellFixture from '../../fixtures/run_status_shell.json';
+import runStatusShellFinalisedFixture from '../../fixtures/run_status_shell_finalised.json';
+import runStatusShellPlaylistFixture from '../../fixtures/run_status_shell_playlist.json';
+import sessionFixture from '../../fixtures/session.json';
+import sessionAdminFixture from '../../fixtures/session_admin.json';
 import {
   finaliseMockPlaylistRun,
   playlistShellForRun,
   replaceMockPlaylistTail,
 } from './playlistShell';
-import sessionFixture from '../../fixtures/session.json';
-import sessionAdminFixture from '../../fixtures/session_admin.json';
-import complianceRequestsFixture from '../../fixtures/compliance_requests.json';
-import adminComplianceRequestsFixture from '../../fixtures/admin_compliance_requests.json';
 
 const session = import.meta.env.VITE_MOCK_ADMIN === 'true' ? sessionAdminFixture : sessionFixture;
+
+// Picks the run-status shell fixture matching the requested run id, falling back to the
+// live/in-progress fixture for any other id.
+const runStatusShellById: Record<number, unknown> = {
+  [runStatusShellFinalisedFixture.run.run_id]: runStatusShellFinalisedFixture,
+  [runStatusShellPlaylistFixture.run.run_id]: runStatusShellPlaylistFixture,
+};
+const runStatusShellForId = (runId: number) => runStatusShellById[runId] ?? runStatusShellFixture;
 
 // File-producing POST endpoints (cert generation, compliance finalise) — a stub attachment is
 // enough; apiDownload only needs a blob and a Content-Disposition filename.
@@ -110,14 +120,16 @@ export const handlers = [
   // finalise-and-retry) can be exercised in mock mode; any other id gets the standalone shell.
   http.get('/api/run/:runId', ({ params }) =>
     HttpResponse.json(
-      Number(params.runId) >= 201 ? playlistShellForRun(Number(params.runId)) : runStatusShellFixture
+      Number(params.runId) >= 201 ? playlistShellForRun(Number(params.runId)) : runStatusShellForId(Number(params.runId))
     )
   ),
   http.get('/api/run/:runId/status', () => HttpResponse.json(runStatusRunnerFixture)),
   http.get('/api/run/:runId/requests/:requestId', () =>
     HttpResponse.json(runRequestDetailsFixture)
   ),
-  http.get('/api/admin/run/:runId', () => HttpResponse.json(runStatusShellFixture)),
+  http.get('/api/admin/run/:runId', ({ params }) =>
+    HttpResponse.json(runStatusShellForId(Number(params.runId)))
+  ),
   http.get('/api/admin/run/:runId/status', () => HttpResponse.json(runStatusRunnerFixture)),
 
   // ---- Runs ----

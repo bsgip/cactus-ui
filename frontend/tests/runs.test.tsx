@@ -77,6 +77,9 @@ describe('runs page', () => {
     expect(screen.getAllByRole('button', { name: /Delete run/ })).toHaveLength(
       procedureRunsFixture.items.length
     );
+
+    // Run 120 carries a warning in the fixture -> amber badge with the count
+    expect(screen.getByLabelText('1 warning')).toBeInTheDocument();
   });
 
   it('filters procedures by compliance class', async () => {

@@ -9,6 +9,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    strictPort: true,
     proxy: Object.fromEntries(FLASK_PATHS.map((path) => [path, 'http://localhost:5000'])),
   },
   test: {

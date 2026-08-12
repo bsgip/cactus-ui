@@ -9,7 +9,6 @@
     "finalised_at": null,
     "is_device_cert": false,
     "has_artifacts": false,
-    "immediate_start": true,
     "playlist_execution_id": "smoke-exec-1",
     "playlist_order": 1,
     "run_group_id": 1,
@@ -30,7 +29,10 @@
         "status": "initialised"
       }
     ],
-    "classes": null
+    "classes": null,
+    "immediate_start": true,
+    "run_group_id": null,
+    "warnings": null
   },
   "run_is_live": true,
   "playlist_name": "Smoke Test Playlist",
@@ -45,11 +47,13 @@
       "finalised_at": "2026-06-17T04:58:45+00:00",
       "is_device_cert": false,
       "has_artifacts": true,
-      "immediate_start": false,
       "playlist_execution_id": "smoke-exec-1",
       "playlist_order": 0,
       "playlist_runs": null,
-      "classes": null
+      "classes": null,
+      "immediate_start": false,
+      "run_group_id": null,
+      "warnings": null
     },
     {
       "run_id": 202,
@@ -61,11 +65,13 @@
       "finalised_at": null,
       "is_device_cert": false,
       "has_artifacts": false,
-      "immediate_start": true,
       "playlist_execution_id": "smoke-exec-1",
       "playlist_order": 1,
       "playlist_runs": null,
-      "classes": null
+      "classes": null,
+      "immediate_start": false,
+      "run_group_id": null,
+      "warnings": null
     },
     {
       "run_id": 203,
@@ -77,11 +83,13 @@
       "finalised_at": null,
       "is_device_cert": false,
       "has_artifacts": false,
-      "immediate_start": false,
       "playlist_execution_id": "smoke-exec-1",
       "playlist_order": 2,
       "playlist_runs": null,
-      "classes": null
+      "classes": null,
+      "immediate_start": false,
+      "run_group_id": null,
+      "warnings": null
     }
   ]
 }
