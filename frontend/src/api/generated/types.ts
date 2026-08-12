@@ -365,6 +365,14 @@ export interface DataStreamPoint {
   offset: string;
   watts: number | null;
 }
+/**
+ * A single record of a cactus-deploy release being deployed to this environment. Append only - a rollback
+ * appends a new record with the older tag, so ordering is by created_at, not by release_tag.
+ */
+export interface DeployReleaseResponse {
+  created_at: string;
+  release_tag: string;
+}
 export interface EndDeviceMetadata {
   aggregator_id: number | null;
   der_capability: DERCapabilityInfo | null;
@@ -443,6 +451,15 @@ export interface PreconditionCheckEntry {
   type: string;
 }
 /**
+ * How many client test procedure files moved between two cactus-test-definitions versions.
+ */
+export interface ProcedureCounts {
+  added: number;
+  modified: number;
+  removed: number;
+  total: number | null;
+}
+/**
  * GET /api/group/<id>/procedure_summaries — summaries grouped by category plus the
  * compliance-class filter maps the runs table uses.
  */
@@ -481,6 +498,56 @@ export interface TestProcedureResponse {
  */
 export interface ProceedResponse {
   handled: boolean;
+}
+/**
+ * One cactus-deploy release: its release-notes.json asset, plus when it was deployed here (added by backend).
+ */
+export interface Release {
+  components: ReleaseComponent[];
+  deployed_at: string | null;
+  html_url: string | null;
+  previous_tag: string | null;
+  published_at: string | null;
+  tag: string;
+  test_definitions: ReleaseTestDefinitions | null;
+  warnings: string[];
+}
+/**
+ * One deployed component's version at this release, and what changed if it moved.
+ */
+export interface ReleaseComponent {
+  changed: boolean;
+  changes: ReleaseChange[];
+  current: string;
+  name: string;
+  notes: string[];
+  previous: string | null;
+  repo: string;
+}
+/**
+ * One merged pull request, as listed in a component's auto-generated release notes.
+ */
+export interface ReleaseChange {
+  pr: number;
+  title: string;
+  url: string;
+}
+/**
+ * The test procedure version transition for a release, if it moved.
+ */
+export interface ReleaseTestDefinitions {
+  changes: ReleaseChange[];
+  current: string | null;
+  notes: string[];
+  previous: string | null;
+  procedures: ProcedureCounts | null;
+}
+/**
+ * GET /api/release-notes — recent releases joined to this environment's deploy history.
+ */
+export interface ReleaseNotesResponse {
+  deploy_history: DeployReleaseResponse[];
+  releases: Release[];
 }
 export interface RequestData {
   request: string | null;

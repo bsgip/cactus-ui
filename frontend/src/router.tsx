@@ -12,6 +12,7 @@ import { ProceduresPage } from './pages/ProceduresPage';
 import { PlaylistsPage } from './pages/Playlists/PlaylistsPage';
 import { PlaylistsRedirect } from './pages/Playlists/PlaylistsRedirect';
 import { ProcedureYamlPage } from './pages/ProcedureYamlPage';
+import { ReleaseNotesPage } from './pages/ReleaseNotesPage';
 import { RunGroupPage } from './pages/RunGroupPage';
 import { RunsPage } from './pages/Runs/RunsPage';
 import { RunsRedirect } from './pages/Runs/RunsRedirect';
@@ -35,6 +36,7 @@ export const routes: RouteObject[] = [
       { path: 'playlists', element: <PlaylistsRedirect /> },
       { path: 'group/:runGroupId/playlists', element: <PlaylistsPage /> },
       { path: 'config', element: <ConfigPage /> },
+      { path: 'release-notes', element: <ReleaseNotesPage /> },
       { path: 'compliance', element: <CompliancePage /> },
       { path: 'compliance-request', element: <ComplianceRequestPage isAdminView={false} /> },
       { path: 'admin', element: <AdminPage /> },

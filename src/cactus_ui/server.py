@@ -32,6 +32,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.wrappers.response import Response
 
 import cactus_ui.orchestrator as orchestrator
+import cactus_ui.release_notes as release_notes
 from cactus_ui.api_models import (
     AdminComplianceRequestsResponse,
     AdminStatsResponse,
@@ -69,6 +70,7 @@ from cactus_ui.presenters import (
     build_compliance_form_data,
     build_playlist_tests_by_category,
     build_procedure_summaries,
+    build_release_notes,
     build_test_status,
     paginated_json,
 )
@@ -967,6 +969,19 @@ def api_update_playlist(access_token: str, run_id: int) -> Response | tuple[Resp
             ]
         ).to_dict()
     )
+
+
+@app.route("/api/release-notes", methods=["GET"])
+@api_login_required
+def api_release_notes(access_token: str) -> Response:
+    """Recent cactus-deploy releases, joined to this environment's deploy history.
+
+    GitHub being unreachable yields no releases (the page shows empty).
+    Orchestrator failure loses the deploy timestamps but still can render the page.
+    """
+    releases = release_notes.fetch_releases()
+    deploy_releases = orchestrator.fetch_deploy_releases(access_token)
+    return jsonify(build_release_notes(releases, deploy_releases or []).to_dict())
 
 
 @app.route("/api/config", methods=["GET"])

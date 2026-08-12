@@ -78,14 +78,14 @@ wheels = [
 
 [[package]]
 name = "cactus-schema"
-version = "1.3.2"
+version = "1.3.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dataclass-wizard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cb/39/98af65ae2255528b23439db5a8ef77a2486c6d3d10a849e19933b9b85ce0/cactus_schema-1.3.2.tar.gz", hash = "sha256:e8e1640f66c010d1214c765f387e4be285431ea3d4751eb88425eaaba68c52c6", size = 11669, upload-time = "2026-07-30T06:07:37.554Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9e/d0/d99e93a82ac1ea6f69ab28238baf3ef7b41d08da199a337bd9fc2be94e65/cactus_schema-1.3.3.tar.gz", hash = "sha256:d8b6ae479158898cc03b1043d741edd21991911772bc3d5bfecec105a920d69b", size = 11857, upload-time = "2026-08-04T03:34:13.195Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c0/32/53c188273509a610ceceac400779328b3e1da324cee22f2e4f79cc5949fe/cactus_schema-1.3.2-py3-none-any.whl", hash = "sha256:59270727a766a4723bea8d96fd639f7e377efd15a12a7b0d2b23a4fb30c3949a", size = 13634, upload-time = "2026-07-30T06:07:36.312Z" },
+    { url = "https://files.pythonhosted.org/packages/e4/88/0456bc6e9aa798412469d97ac501ca66ec88f5b1908aa6a33ec378529064/cactus_schema-1.3.3-py3-none-any.whl", hash = "sha256:eb4e5c8c59d59199d94c79a1bbe3252c9a19906c01c7207283b7c33924eb1799", size = 13826, upload-time = "2026-08-04T03:34:11.787Z" },
 ]
 
 [[package]]
@@ -139,7 +139,7 @@ requires-dist = [
     { name = "assertical", marker = "extra == 'test'" },
     { name = "authlib" },
     { name = "bandit", marker = "extra == 'dev'" },
-    { name = "cactus-schema", specifier = "==1.3.2" },
+    { name = "cactus-schema", specifier = "==1.3.3" },
     { name = "cactus-test-definitions", marker = "extra == 'dev'", specifier = "==1.15.0" },
     { name = "coverage", marker = "extra == 'dev'" },
     { name = "flask" },
