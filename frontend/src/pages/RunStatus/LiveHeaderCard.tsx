@@ -1,4 +1,5 @@
-import { Box, Button, Card, Code, Heading, Text } from '@radix-ui/themes';
+import { Badge, Box, Button, Card, Code, Flex, Heading, Text } from '@radix-ui/themes';
+import { IconAlertTriangle } from '@tabler/icons-react';
 import type { RunStatus } from '../../api/types';
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
   isAdminView: boolean;
   isStarting: boolean;
   isFinalising: boolean;
+  warningCount: number;
   onStart: () => void;
   onFinalise: () => void;
 }
@@ -24,14 +26,22 @@ export function LiveHeaderCard({
   isAdminView,
   isStarting,
   isFinalising,
+  warningCount,
   onStart,
   onFinalise,
 }: Props) {
   return (
     <Card>
-      <Heading as="h4" size="4">
-        Run {runId} ({runStatus})
-      </Heading>
+      <Flex align="center" gap="2">
+        <Heading as="h4" size="4">
+          Run {runId} ({runStatus})
+        </Heading>
+        {warningCount > 0 && (
+          <Badge color="amber">
+            <IconAlertTriangle size={12} /> {warningCount} warning{warningCount === 1 ? '' : 's'}
+          </Badge>
+        )}
+      </Flex>
 
       <Text as="p" my="2">
         <Code

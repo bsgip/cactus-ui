@@ -33,6 +33,14 @@
       "details": "DER discovered on the EndDevice"
     }
   ],
+  "warnings": [
+    {
+      "type": "der-settings.set-max-w-varied",
+      "description": "setMaxW changed during the test",
+      "message": "setMaxW was changed from 5000W to 4500W at 2026-06-17T05:01:40+00:00. A best-practice client should not vary its DER settings mid-test.",
+      "timestamp": "2026-06-17T05:01:40+00:00"
+    }
+  ],
   "instructions": [
     "Ensure the device is powered on and connected to the utility server",
     "Confirm the inverter is exporting before proceeding"
@@ -131,7 +139,11 @@
       }
     ],
     "set_max_w": 5000,
-    "now_offset": "1m0s"
+    "now_offset": "1m0s",
+    "upper_max_w": 5000,
+    "upper_max_label": "setMaxW",
+    "lower_max_w": null,
+    "lower_max_label": null
   },
   "end_device_metadata": {
     "edevid": 1,

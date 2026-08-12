@@ -14,24 +14,32 @@ interface SectionCardProps {
   // When true, the body scrolls internally (up to SCROLL_MAX_HEIGHT) while the header stays
   // pinned above it — used by the long, frequently-polled run-status tables.
   scroll?: boolean;
+  // Optional accent colour for the border and header strip, e.g. to reflect a pass/fail result.
+  tint?: 'green' | 'red' | 'amber' | 'gray';
 }
 
 const SCROLL_MAX_HEIGHT = 600;
 
 // A bordered card with a titled header strip and a full-width separator. Replaces the repeated
 // "panel with a heading bar" pattern (was Mantine's Card.Section).
-export function SectionCard({ title, icon, action, children, h, scroll }: SectionCardProps) {
+export function SectionCard({ title, icon, action, children, h, scroll, tint }: SectionCardProps) {
   return (
     <Box
       style={{
         height: h,
-        border: '1px solid var(--gray-5)',
+        border: tint ? `1px solid var(--${tint}-7)` : '1px solid var(--gray-5)',
         borderRadius: 'var(--radius-3)',
         overflow: 'hidden',
         backgroundColor: 'var(--color-panel-solid)',
       }}
     >
-      <Flex justify="between" align="center" px="3" py="2" style={{backgroundColor: 'var(--gray-a2)'}}>
+      <Flex
+        justify="between"
+        align="center"
+        px="3"
+        py="2"
+        style={{ backgroundColor: tint ? `var(--${tint}-4)` : 'var(--gray-a2)' }}
+      >
         {typeof title === 'string' ? (
           <Flex align="center" gap="2">
             {icon}

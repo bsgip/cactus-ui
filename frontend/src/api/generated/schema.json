@@ -1282,7 +1282,7 @@
       "type": "object"
     },
     "PlaylistRunInfo": {
-      "description": "Summary info for a run within a playlist",
+      "description": "Summary info for a run within a playlist. Mirrors cactus_schema.orchestrator.PlaylistRunInfo.",
       "properties": {
         "run_id": {
           "type": "integer"
@@ -2661,6 +2661,21 @@
         "set_max_w",
         "upper_max_label",
         "upper_max_w"
+      ],
+      "type": "object"
+    },
+    "UpdatePlaylistResponse": {
+      "description": "POST /api/run/<id>/playlist \u2014 the full playlist, in order, after replacing the upcoming tail.",
+      "properties": {
+        "playlist_runs": {
+          "items": {
+            "$ref": "#/$defs/PlaylistRunInfo"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "playlist_runs"
       ],
       "type": "object"
     },
