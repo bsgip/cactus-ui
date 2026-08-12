@@ -254,7 +254,7 @@ export interface RunResponse {
   warnings: WarningEntry[] | null;
 }
 /**
- * Summary info for a run within a playlist
+ * Summary info for a run within a playlist. Mirrors cactus_schema.orchestrator.PlaylistRunInfo.
  */
 export interface PlaylistRunInfo {
   run_id: number;
@@ -566,4 +566,10 @@ export interface SessionResponse {
   support_email: string;
   username: string | null;
   version: string;
+}
+/**
+ * POST /api/run/<id>/playlist — the full playlist, in order, after replacing the upcoming tail.
+ */
+export interface UpdatePlaylistResponse {
+  playlist_runs: PlaylistRunInfo[];
 }

@@ -127,6 +127,7 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
           isAdminView={isAdminView}
           isEnding={endPlaylistMutation.isPending}
           onEndPlaylist={() => endPlaylistMutation.mutate()}
+          onPlaylistUpdated={invalidateShell}
         />
       )}
 

@@ -7,7 +7,7 @@ import pytest
 from assertical.fake.generator import generate_class_instance
 
 import cactus_ui.server as server
-from cactus_ui.orchestrator import InitialiseRunFailureType, InitRunResult
+from cactus_ui.orchestrator import InitialiseRunFailureType, InitRunResult, UpdatePlaylistResult
 
 
 @pytest.fixture
@@ -253,6 +253,91 @@ def test_api_finalise_playlist(client, monkeypatch):
     assert response.status_code == HTTPStatus.OK
     assert response.get_json() == {"run_id": 55}
     assert calls["run_id"] == "55"
+
+
+# POST /api/run/<id>/playlist
+
+
+def test_api_update_playlist_requires_fields(client):
+    login(client)
+
+    response = client.post("/api/run/55/playlist", json={"test_procedure_ids": ["ALL-01"]})
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.get_json() == {"error": "test_procedure_ids and expected_active_run_id are required."}
+
+
+def test_api_update_playlist_success(client, monkeypatch):
+    login(client)
+    captured = {}
+    update_response = generate_class_instance(
+        schema.UpdatePlaylistResponse,
+        playlist_runs=[
+            generate_class_instance(
+                schema.PlaylistRunInfo, run_id=55, test_procedure_id="ALL-01", status=schema.RunStatusResponse.started
+            ),
+            generate_class_instance(
+                schema.PlaylistRunInfo,
+                run_id=56,
+                test_procedure_id="ALL-02",
+                status=schema.RunStatusResponse.initialised,
+            ),
+        ],
+    )
+
+    def fake_update(access_token, run_id, test_procedure_ids, expected_active_run_id):
+        captured["run_id"] = run_id
+        captured["test_procedure_ids"] = test_procedure_ids
+        captured["expected_active_run_id"] = expected_active_run_id
+        return UpdatePlaylistResult(response=update_response, conflict=False, error_message=None)
+
+    monkeypatch.setattr(server.orchestrator, "update_playlist", fake_update)
+
+    response = client.post(
+        "/api/run/55/playlist", json={"test_procedure_ids": ["ALL-01", "ALL-02"], "expected_active_run_id": 55}
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    body = response.get_json()
+    assert [r["run_id"] for r in body["playlist_runs"]] == [55, 56]
+    assert [r["status"] for r in body["playlist_runs"]] == ["started", "initialised"]
+    assert captured == {"run_id": "55", "test_procedure_ids": ["ALL-01", "ALL-02"], "expected_active_run_id": 55}
+
+
+def test_api_update_playlist_conflict(client, monkeypatch):
+    login(client)
+    monkeypatch.setattr(
+        server.orchestrator,
+        "update_playlist",
+        lambda access_token, run_id, test_procedure_ids, expected_active_run_id: UpdatePlaylistResult(
+            response=None, conflict=True, error_message="Playlist has advanced. Refresh and try again."
+        ),
+    )
+
+    response = client.post(
+        "/api/run/55/playlist", json={"test_procedure_ids": ["ALL-01"], "expected_active_run_id": 54}
+    )
+
+    assert response.status_code == HTTPStatus.CONFLICT
+    assert response.get_json() == {"error": "Playlist has advanced. Refresh and try again.", "conflict": True}
+
+
+def test_api_update_playlist_orchestrator_failure(client, monkeypatch):
+    login(client)
+    monkeypatch.setattr(
+        server.orchestrator,
+        "update_playlist",
+        lambda access_token, run_id, test_procedure_ids, expected_active_run_id: UpdatePlaylistResult(
+            response=None, conflict=False, error_message="Unexpected error updating the playlist."
+        ),
+    )
+
+    response = client.post(
+        "/api/run/55/playlist", json={"test_procedure_ids": ["ALL-01"], "expected_active_run_id": 55}
+    )
+
+    assert response.status_code == HTTPStatus.BAD_GATEWAY
+    assert response.get_json() == {"error": "Unexpected error updating the playlist."}
 
 
 # GET /playlist/artifacts (browser-native download)
