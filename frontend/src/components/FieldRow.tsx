@@ -6,7 +6,7 @@ function FormFieldGroup({
   children,
 }: {
   label: string;
-  help?: string;
+  help?: string | React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -15,11 +15,12 @@ function FormFieldGroup({
         {label}
       </Text>
       {children}
-      {help && (
+      {typeof help==="string" && (
         <Text as="div" size="1" color="gray" mt="1">
           {help}
         </Text>
       )}
+      {typeof help==="object" && help}
     </label>
   );
 }

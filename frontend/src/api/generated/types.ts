@@ -98,7 +98,9 @@ export interface AdminComplianceRequestResponse {
   cactus_version: string;
   der_brand: string;
   der_oem: string;
-  der_representative_models: string;
+  der_cec_listed_models: string;
+  der_unlisted_models: string;
+  der_white_listed_models: string;
   der_series: string;
   onsite_hardware_details: string;
   runs: number[];
@@ -269,7 +271,9 @@ export interface ComplianceRequestResponse {
   csip_aus_version: string;
   der_brand: string;
   der_oem: string;
-  der_representative_models: string;
+  der_cec_listed_models: string;
+  der_unlisted_models: string;
+  der_white_listed_models: string;
   der_series: string;
   onsite_hardware_details: string;
   runs: number[];
