@@ -12,6 +12,7 @@
     "immediate_start": true,
     "playlist_execution_id": "smoke-exec-1",
     "playlist_order": 1,
+    "run_group_id": 1,
     "playlist_runs": [
       {
         "run_id": 201,
@@ -39,7 +40,7 @@
       "test_procedure_id": "ALL-01",
       "test_url": "https://cactus.example/run/201",
       "status": "finalised",
-      "all_criteria_met": true,
+      "all_criteria_met": false,
       "created_at": "2026-06-17T04:58:00+00:00",
       "finalised_at": "2026-06-17T04:58:45+00:00",
       "is_device_cert": false,

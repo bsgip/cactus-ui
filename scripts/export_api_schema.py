@@ -37,6 +37,7 @@ from cactus_ui.api_models import (
     RunActionResponse,
     RunStatusShell,
     SessionResponse,
+    UpdatePlaylistResponse,
 )
 
 # Top-level response types the SPA depends on. Nested types (the embedded RunResponse,
@@ -62,6 +63,7 @@ RESPONSE_TYPES = [
     RunnerStatus,
     RequestData,
     ProceedResponse,
+    UpdatePlaylistResponse,
 ]
 
 SCHEMA_PATH = Path(__file__).resolve().parent.parent / "frontend" / "src" / "api" / "generated" / "schema.json"
