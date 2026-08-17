@@ -2284,6 +2284,18 @@
           ],
           "default": null
         },
+        "timestamp_finished": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "timestamp_initialise": {
           "anyOf": [
             {
@@ -2330,6 +2342,7 @@
         "step_status",
         "test_procedure_name",
         "timeline",
+        "timestamp_finished",
         "timestamp_initialise",
         "timestamp_start",
         "timestamp_status",
