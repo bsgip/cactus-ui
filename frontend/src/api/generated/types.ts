@@ -598,6 +598,7 @@ export interface RunnerStatus {
   } | null;
   test_procedure_name: string;
   timeline: TimelineStatus | null;
+  timestamp_finished: string | null;
   timestamp_initialise: string | null;
   timestamp_start: string | null;
   timestamp_status: string;

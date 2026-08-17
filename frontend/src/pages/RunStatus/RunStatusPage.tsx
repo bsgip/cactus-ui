@@ -22,6 +22,8 @@ import {
   derivePlaylistView,
 } from './runStatusModel';
 import { StatusBanner } from './StatusBanner';
+import { testFinished } from './statusHelpers';
+import { TestFinishedAlert } from './TestFinishedAlert';
 
 const POLL_INTERVAL_MS = 10_000;
 
@@ -107,6 +109,7 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
   const shell = shellQuery.data;
   const run = shell.run;
   const runStatus = run?.status ?? null;
+  const finished = testFinished(statusQuery.data ?? null);
   const playlistView = derivePlaylistView(shell);
   const currentActiveRun = deriveCurrentActiveRun(shell);
   const nextPlaylistRunId = deriveNextPlaylistRunId(shell);
@@ -153,6 +156,8 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
             onStart={() => startMutation.mutate()}
             onFinalise={() => finaliseMutation.mutate()}
           />
+
+          {finished && runStatus === 'started' && <TestFinishedAlert />}
 
           {statusQuery.data ? (
             <LiveStatusPanels
