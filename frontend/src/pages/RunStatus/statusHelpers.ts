@@ -38,6 +38,12 @@ export function allStepsComplete(stepStatus: Record<string, StepEventStatus> | n
   return steps.length > 0 && steps.every((info) => info.completed_at !== null);
 }
 
+// True once the runner reports a finish time. `timestamp_finished` is absent (undefined) on
+// older runner versions that predate the field, so this stays false rather than erroring.
+export function testFinished(status: RunnerStatus | null): boolean {
+  return status?.timestamp_finished != null;
+}
+
 // First active step (started, not completed) and its 1-based position, for the status banner.
 export function activeStep(
   stepStatus: Record<string, StepEventStatus> | null
