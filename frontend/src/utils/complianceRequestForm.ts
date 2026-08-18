@@ -14,7 +14,7 @@ export interface FormState {
   der_series: string;
   der_cec_listed_models: string;
   der_unlisted_models: string;
-  der_white_listed_models: string;
+  der_white_labelled_models: string;
   software_client_type: string;
   software_client_name: string;
   software_client_versions: string;
@@ -33,7 +33,7 @@ export function emptyForm(): FormState {
     der_series: '',
     der_cec_listed_models: '',
     der_unlisted_models: '',
-    der_white_listed_models: '',
+    der_white_labelled_models: '',
     software_client_type: 'direct',
     software_client_name: '',
     software_client_versions: '',
@@ -57,7 +57,7 @@ export function buildInitialForm(
     form.der_series = prefill.der_series;
     form.der_cec_listed_models = prefill.der_cec_listed_models;
     form.der_unlisted_models = prefill.der_unlisted_models;
-    form.der_white_listed_models = prefill.der_white_listed_models;
+    form.der_white_labelled_models = prefill.der_white_labelled_models;
     form.software_client_type = prefill.software_client_type || 'direct';
     form.software_client_name = prefill.software_client_name;
     form.software_client_versions = prefill.software_client_versions;

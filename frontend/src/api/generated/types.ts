@@ -100,7 +100,7 @@ export interface AdminComplianceRequestResponse {
   der_oem: string;
   der_cec_listed_models: string;
   der_unlisted_models: string;
-  der_white_listed_models: string;
+  der_white_labelled_models: string;
   der_series: string;
   onsite_hardware_details: string;
   runs: number[];
@@ -273,7 +273,7 @@ export interface ComplianceRequestResponse {
   der_oem: string;
   der_cec_listed_models: string;
   der_unlisted_models: string;
-  der_white_listed_models: string;
+  der_white_labelled_models: string;
   der_series: string;
   onsite_hardware_details: string;
   runs: number[];

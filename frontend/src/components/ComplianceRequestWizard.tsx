@@ -124,7 +124,7 @@ function ComplianceRequestWizard({ isAdminView, setActionError, formData, prefil
     der_series: form.der_series,
     der_cec_listed_models: form.der_cec_listed_models,
     der_unlisted_models: form.der_unlisted_models,
-    der_white_listed_models: form.der_white_listed_models,
+    der_white_labelled_models: form.der_white_labelled_models,
     software_client_type: form.software_client_type,
     software_client_name: form.software_client_name,
     software_client_versions: form.software_client_versions,

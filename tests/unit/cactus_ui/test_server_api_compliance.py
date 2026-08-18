@@ -112,7 +112,7 @@ def test_api_create_compliance_request_maps_payload(client, monkeypatch):
         "der_series": "S1",
         "der_cec_listed_models": "CLM1, CLM2",
         "der_unlisted_models": "ULM1",
-        "der_white_listed_models": "WLM1",
+        "der_white_labelled_models": "WLM1",
         "software_client_type": "direct",
         "software_client_name": "P",
         "software_client_versions": "1.0",

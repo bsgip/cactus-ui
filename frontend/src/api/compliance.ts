@@ -19,7 +19,7 @@ export interface ComplianceRequestPayload {
   der_series: string;
   der_cec_listed_models: string;
   der_unlisted_models: string;
-  der_white_listed_models: string;
+  der_white_labelled_models: string;
   software_client_type: string;
   software_client_name: string;
   software_client_versions: string;
