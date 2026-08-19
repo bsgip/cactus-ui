@@ -3,12 +3,12 @@ import {
   Flex,
   Link,
   Select,
-  Text,
   TextField,
 } from '@radix-ui/themes';
 import { IconAlertTriangle } from '@tabler/icons-react';
 
 import { Mode, FormState } from '../utils/complianceRequestForm';
+import FieldHeader from '../components/FieldHeader';
 
 interface StandardStepProps {
   form: FormState;
@@ -40,9 +40,9 @@ function StandardStep({
         </Callout.Root>
       )}
       <label>
-        <Text as="div" size="2" weight="bold" mb="1">
-          Compliance Standard
-        </Text>
+        <FieldHeader title="Compliance Standard">
+          A compliance request can only be made against one compliance standard at a time.
+        </FieldHeader>
         <Select.Root
           value={form.csip_aus_version}
           onValueChange={(v) => update({ csip_aus_version: v })}
@@ -57,37 +57,28 @@ function StandardStep({
             ))}
           </Select.Content>
         </Select.Root>
-        <Text as="div" size="1" color="gray" mt="1">
-          A compliance request can only be made against one compliance standard at a time.
-        </Text>
       </label>
       <label>
-        <Text as="div" size="2" weight="bold" mb="1">
-          Witness Testing Date
-        </Text>
+        <FieldHeader title="Witness Testing Date">
+          The date when in-person witness testing was performed.
+        </FieldHeader>
         <TextField.Root
           type="date"
           value={form.witnessed_at}
           onChange={(e) => update({ witnessed_at: e.target.value })}
           disabled={readOnly}
         />
-        <Text as="div" size="1" color="gray" mt="1">
-          The date when in-person witness testing was performed.
-        </Text>
       </label>
       <label>
-        <Text as="div" size="2" weight="bold" mb="1">
-          CACTUS Platform Version
-        </Text>
+        <FieldHeader title="CACTUS Platform Version">
+          The CACTUS platform version, located in the footer of this page. If in doubt, leave it at the default value.
+        </FieldHeader>
         <TextField.Root
           type="text"
           value={form.cactus_version}
           onChange={(e) => update({ cactus_version: e.target.value })}
           disabled={readOnly}
         />
-        <Text as="div" size="1" color="gray" mt="1">
-          The CACTUS platform version. If in doubt, leave this unchanged.
-        </Text>
       </label>
     </Flex>
   );

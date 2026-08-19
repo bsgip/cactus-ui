@@ -3,8 +3,6 @@ import {
   Heading,
   TextField,
   Link,
-  Box,
-  Text,
 } from '@radix-ui/themes';
 
 
@@ -39,7 +37,7 @@ function DerDetailsStep({
           disabled={readOnly}
         />
       </FieldRow>
-      <FieldRow label="Series Name" help="The series name or product line the DER belongs to.">
+      <FieldRow label="Series Name" help="The designation used in product catalogues and labelling to identify all related models in this series.">
         <TextField.Root
           value={form.der_series}
           onChange={(e) => update({ der_series: e.target.value })}
@@ -49,7 +47,7 @@ function DerDetailsStep({
       <Heading as="h4" size="3">
         Models under test
       </Heading>
-      <FieldRow label="CEC-listed Models" help={<><Text size="1" color="gray" mt="1">List of models under test with CEC-listing. Only include models here that are included on the <Link href="#">CEC Approved Inverters List</Link>.</Text></>}>
+      <FieldRow label="CEC-listed Models" help={<>List of models under test with CEC-listing. Only include models here that are included on the <Link href="#">CEC Approved Inverters List</Link>.</>}>
         <TextField.Root
           value={form.der_cec_listed_models}
           onChange={(e) => update({ der_cec_listed_models: e.target.value })}
