@@ -27,6 +27,7 @@ from cactus_ui.api_models import (
     ProceduresResponse,
     ProcedureSummariesResponse,
     ProcedureYamlResponse,
+    ReleaseNotesResponse,
     RunStatusShell,
     SessionResponse,
 )
@@ -58,6 +59,7 @@ FIXTURE_MODELS = [
     ("run_status_runner.json", RunnerStatus),
     ("run_status_runner_initialised.json", RunnerStatus),
     ("run_request_details.json", RequestData),
+    ("release_notes.json", ReleaseNotesResponse),
 ]
 
 

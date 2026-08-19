@@ -6,13 +6,16 @@ import {
   IconDownload,
   IconPlayerPlay,
   IconPlayerStop,
+  IconRotateClockwise,
   IconX,
 } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useConfirm } from '../../components/useConfirm';
 import { formatDate } from '../../utils/dates';
+import { PlaylistEditDialog } from './PlaylistEditDialog';
 import type { CurrentActiveRun, PlaylistRunRow, PlaylistView } from './runStatusModel';
+import { usePlaylistRetry } from './usePlaylistRetry';
 
 interface Props {
   playlistView: PlaylistView;
@@ -22,6 +25,7 @@ interface Props {
   isAdminView: boolean;
   isEnding: boolean;
   onEndPlaylist: () => void;
+  onPlaylistUpdated: () => void;
 }
 
 const TERMINAL_STATUSES = ['finalised', 'skipped'];
@@ -42,6 +46,7 @@ export function PlaylistBanner({
   isAdminView,
   isEnding,
   onEndPlaylist,
+  onPlaylistUpdated,
 }: Props) {
   const { confirm, confirmDialog } = useConfirm();
   const adminPrefix = isAdminView ? '/admin' : '';
@@ -50,6 +55,8 @@ export function PlaylistBanner({
     playlistView.total;
   const isFinalTest =
     playlistView.current_order != null && playlistView.current_order >= playlistView.total - 1;
+  const upcomingRuns = playlistView.runs.filter((r) => r.status === 'initialised');
+  const activeRunId = currentActiveRun?.run_id ?? null;
 
   const confirmEndPlaylist = () =>
     confirm({
@@ -59,6 +66,23 @@ export function PlaylistBanner({
       cancelLabel: 'Cancel',
       confirmColor: 'red',
       onConfirm: onEndPlaylist,
+    });
+
+  const { retry, retryNow, isRetrying, retryError } = usePlaylistRetry({
+    runId,
+    upcomingRuns,
+    activeRunId,
+    adminPrefix,
+    onPlaylistUpdated,
+  });
+
+  const confirmRetryNow = (testProcedureId: string) =>
+    confirm({
+      title: 'Finalise and retry',
+      body: `This will end the running ${testProcedureId} test now (its result is recorded as-is) and immediately start ${testProcedureId} again.`,
+      confirmLabel: 'Finalise & Retry',
+      cancelLabel: 'Cancel',
+      onConfirm: () => retryNow(testProcedureId),
     });
 
   return (
@@ -86,6 +110,15 @@ export function PlaylistBanner({
               </RouterLink>
             </Button>
           )}
+          {!isComplete && activeRunId != null && (
+            <PlaylistEditDialog
+              runId={runId}
+              upcomingRuns={upcomingRuns}
+              activeRunId={activeRunId}
+              runGroupId={playlistView.run_group_id}
+              onUpdated={onPlaylistUpdated}
+            />
+          )}
           {!isComplete && (
             <Button size="1" color="red" loading={isEnding} onClick={confirmEndPlaylist}>
               <IconPlayerStop size={14} />
@@ -110,9 +143,22 @@ export function PlaylistBanner({
             run={run}
             isCurrent={index === playlistView.current_order}
             adminPrefix={adminPrefix}
+            onRetry={activeRunId != null ? () => retry(run.test_procedure_id) : undefined}
+            onRetryNow={
+              !isAdminView && run.run_id === activeRunId
+                ? () => confirmRetryNow(run.test_procedure_id)
+                : undefined
+            }
+            isRetrying={isRetrying}
           />
         ))}
       </Flex>
+
+      {retryError && (
+        <Text as="div" size="1" color="red" mb="1">
+          {retryError}
+        </Text>
+      )}
 
       {playlistView.current_order != null && (
         <Text as="div" size="2" color="gray">
@@ -129,6 +175,18 @@ export function PlaylistBanner({
           </Text>
         </>
       )}
+
+      {!isComplete && activeRunId != null && (
+        <>
+          <Separator size="4" my="1" />
+          <Text as="div" size="1" color="gray">
+            You can still change this playlist while it runs: use the{' '}
+            <IconRotateClockwise size={11} style={{ verticalAlign: 'middle' }} aria-hidden /> button
+            to retry a failed test &mdash; or to cut short and rerun the one in progress &mdash; or
+            use Edit Playlist to add, remove or reorder the upcoming tests.
+          </Text>
+        </>
+      )}
     </Box>
   );
 }
@@ -137,10 +195,16 @@ function PlaylistRunBadge({
   run,
   isCurrent,
   adminPrefix,
+  onRetry,
+  onRetryNow,
+  isRetrying,
 }: {
   run: PlaylistRunRow;
   isCurrent: boolean;
   adminPrefix: string;
+  onRetry?: () => void;
+  onRetryNow?: () => void;
+  isRetrying: boolean;
 }) {
   const href = `${adminPrefix}/run/${run.run_id}`;
   const passed = run.all_criteria_met;
@@ -172,18 +236,48 @@ function PlaylistRunBadge({
             </IconButton>
           </Tooltip>
         )}
+        {!passed && onRetry && (
+          <Tooltip content="Run this test again - it will be queued to run next">
+            <IconButton
+              variant="outline"
+              color="red"
+              size="1"
+              aria-label="Retry"
+              loading={isRetrying}
+              onClick={onRetry}
+            >
+              <IconRotateClockwise size={12} />
+            </IconButton>
+          </Tooltip>
+        )}
       </Flex>
     );
   } else if (run.status === 'started' || run.status === 'provisioning') {
     badge = (
-      <Tooltip content="Running">
-        <Badge asChild color="blue">
-          <RouterLink to={href} style={{ cursor: 'pointer' }}>
-            <IconPlayerPlay size={12} />
-            {run.test_procedure_id}
-          </RouterLink>
-        </Badge>
-      </Tooltip>
+      <Flex gap="1" align="center">
+        <Tooltip content="Running">
+          <Badge asChild color="blue">
+            <RouterLink to={href} style={{ cursor: 'pointer' }}>
+              <IconPlayerPlay size={12} />
+              {run.test_procedure_id}
+            </RouterLink>
+          </Badge>
+        </Tooltip>
+        {onRetryNow && (
+          <Tooltip content="Going badly? Finalise this test now and run it again">
+            <IconButton
+              variant="outline"
+              color="blue"
+              size="1"
+              aria-label="Finalise and retry"
+              loading={isRetrying}
+              onClick={onRetryNow}
+            >
+              <IconRotateClockwise size={12} />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Flex>
     );
   } else if (run.status === 'skipped') {
     badge = (

@@ -9,11 +9,20 @@
     "finalised_at": "2026-06-17T04:30:00+00:00",
     "is_device_cert": false,
     "has_artifacts": true,
-    "immediate_start": false,
     "playlist_execution_id": null,
     "playlist_order": null,
     "playlist_runs": null,
-    "classes": null
+    "classes": null,
+    "immediate_start": false,
+    "run_group_id": null,
+    "warnings": [
+      {
+        "type": "der-settings.set-max-w-varied",
+        "description": "setMaxW changed during the test",
+        "message": "setMaxW was changed from 5000W to 4500W at 2026-06-17T04:15:00+00:00. A best-practice client should not vary its DER settings mid-test.",
+        "timestamp": "2026-06-17T04:15:00Z"
+      }
+    ]
   },
   "run_is_live": false,
   "playlist_name": null,

@@ -8,7 +8,9 @@ const FLASK_PATHS = ['/api', '/login', '/logout', '/callback', '/static'];
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: true,
     port: 5173,
+    strictPort: true,
     proxy: Object.fromEntries(FLASK_PATHS.map((path) => [path, 'http://localhost:5000'])),
   },
   test: {

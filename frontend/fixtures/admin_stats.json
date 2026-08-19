@@ -30,9 +30,7 @@
   "procedures": [
     {
       "test_procedure_id": "S-ALL-01",
-      "classes": [
-        "DER-A"
-      ],
+      "classes": ["DER-A"],
       "total_runs": 15,
       "passed": 10,
       "failed": 5,
@@ -41,10 +39,7 @@
     },
     {
       "test_procedure_id": "S-ALL-02",
-      "classes": [
-        "DER-A",
-        "DER-G"
-      ],
+      "classes": ["DER-A", "DER-G"],
       "total_runs": 12,
       "passed": 8,
       "failed": 4,
@@ -62,9 +57,7 @@
     },
     {
       "test_procedure_id": "C-PV-01",
-      "classes": [
-        "DER-G"
-      ],
+      "classes": ["DER-G"],
       "total_runs": 5,
       "passed": 2,
       "failed": 3,
@@ -73,9 +66,7 @@
     },
     {
       "test_procedure_id": "C-BESS-01",
-      "classes": [
-        "DER-A"
-      ],
+      "classes": ["DER-A"],
       "total_runs": 3,
       "passed": 2,
       "failed": 1,

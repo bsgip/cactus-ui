@@ -54,6 +54,13 @@ class StartResult:
     error_message: str | None
 
 
+@dataclass
+class UpdatePlaylistResult:
+    response: orchestrator.UpdatePlaylistResponse | None  # Set on success
+    conflict: bool  # True if the orchestrator returned 409 (playlist advanced since expected_active_run_id)
+    error_message: str | None
+
+
 def handle_pagination[T](paginated_json: dict, item_parser: Callable[[dict], T]) -> orchestrator.Pagination[T]:
     total_pages = paginated_json.get("pages", 1)
     current_page = paginated_json.get("page", 1)
@@ -174,6 +181,21 @@ def fetch_config(access_token: str) -> orchestrator.UserConfigurationResponse | 
     parsed_body = orchestrator.UserConfigurationResponse.from_json(response.text)
     if isinstance(parsed_body, list):
         return parsed_body[0]
+    else:
+        return parsed_body
+
+
+def fetch_deploy_releases(access_token: str) -> list[orchestrator.DeployReleaseResponse] | None:
+    """Fetch the recorded deploy history, most recent first"""
+    uri = generate_uri(orchestrator.uri.DeployReleaseList)
+
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return None
+
+    parsed_body = orchestrator.DeployReleaseResponse.from_json(response.text)
+    if not isinstance(parsed_body, list):
+        return [parsed_body]
     else:
         return parsed_body
 
@@ -361,6 +383,35 @@ def finalise_playlist(access_token: str, run_id: str) -> bytes | None:
         return None
 
     return response.content
+
+
+def update_playlist(
+    access_token: str, run_id: str, test_procedure_ids: list[str], expected_active_run_id: int
+) -> UpdatePlaylistResult:
+    """Replace the upcoming (not-yet-run) tail of an executing playlist. Active/completed runs are untouched."""
+    uri = generate_uri(orchestrator.uri.RunPlaylistUpdate.format(run_id=run_id))
+    response = safe_request(
+        "POST",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+        json={"test_procedure_ids": test_procedure_ids, "expected_active_run_id": expected_active_run_id},
+    )
+    if response is None:
+        return UpdatePlaylistResult(
+            response=None, conflict=False, error_message="Internal server error. Try again later."
+        )
+    if response.status_code == HTTPStatus.CONFLICT:
+        return UpdatePlaylistResult(
+            response=None, conflict=True, error_message="Playlist has advanced. Refresh and try again."
+        )
+    if not is_success_response(response):
+        return UpdatePlaylistResult(
+            response=None, conflict=False, error_message="Unexpected error updating the playlist."
+        )
+    return UpdatePlaylistResult(
+        response=orchestrator.UpdatePlaylistResponse.from_dict(response.json()), conflict=False, error_message=None
+    )
 
 
 def fetch_run_artifact(access_token: str, run_id: str) -> tuple[bytes | None, str]:
