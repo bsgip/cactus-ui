@@ -1,5 +1,4 @@
 import { type ComplianceFormDataResponse, type ComplianceRequestResponse } from '../api/types';
-import { useSession } from '../hooks/useSession';
 
 export type Mode = 'new' | 'edit' | 'view';
 

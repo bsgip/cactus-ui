@@ -1,9 +1,9 @@
-import Wizard from './Wizard';
-import { ClientWizardPager, AdminWizardPager } from './ComplianceRequestWizardPager';
+import { useSession } from '../hooks/useSession';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState, Dispatch, SetStateAction } from 'react';
-import { useSession } from '../hooks/useSession';
 
+import { ClientWizardPager, AdminWizardPager } from './ComplianceRequestWizardPager';
+import Wizard from './Wizard';
 import { type ComplianceRequestPayload } from '../api/compliance';
 import type { RunResponse, ComplianceFormDataResponse, ComplianceRequestResponse } from '../api/types';
 import StandardStep from '../components/StandardStep';
@@ -30,6 +30,9 @@ interface ComplianceRequestWizardProps {
 
 function ComplianceRequestWizard({ isAdminView, setActionError, formData, prefillRequest }: ComplianceRequestWizardProps) {
 
+  const { data: session } = useSession();
+  const cactus_version = session ? session.version : ""
+
   const [step, setStep] = useState(0);
   const stepTitles = ['Compliance Details', 'Run Selection', 'DER Details', 'Software Client Details'];
 
@@ -52,14 +55,13 @@ function ComplianceRequestWizard({ isAdminView, setActionError, formData, prefil
   const [form, setForm] = useState<FormState>(emptyForm);
   const initialised = useRef(false);
 
-  const { data: session } = useSession();
 
   // Initialise the form once both the supporting data and any prefill request are available.
   useEffect(() => {
     if (initialised.current || !formData) return;
     if (requestId !== null && !prefillRequest) return; // still waiting on the prefill request
     initialised.current = true;
-    setForm(buildInitialForm(formData, prefillRequest, { prefillClasses, prefillRuns }, session.version));
+    setForm(buildInitialForm(formData, prefillRequest, { prefillClasses, prefillRuns }, cactus_version));
   }, [formData, prefillRequest, requestId, prefillClasses, prefillRuns]);
 
   const runsByProcedure = useMemo(() => groupRuns(formData?.successful_runs ?? []), [formData]);
