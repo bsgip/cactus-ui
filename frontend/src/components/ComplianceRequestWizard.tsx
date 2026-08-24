@@ -1,8 +1,9 @@
-import Wizard from './Wizard';
-import { ClientWizardPager, AdminWizardPager } from './ComplianceRequestWizardPager';
+import { useSession } from '../hooks/useSession';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState, Dispatch, SetStateAction } from 'react';
 
+import { ClientWizardPager, AdminWizardPager } from './ComplianceRequestWizardPager';
+import Wizard from './Wizard';
 import { type ComplianceRequestPayload } from '../api/compliance';
 import type { RunResponse, ComplianceFormDataResponse, ComplianceRequestResponse } from '../api/types';
 import StandardStep from '../components/StandardStep';
@@ -29,6 +30,9 @@ interface ComplianceRequestWizardProps {
 
 function ComplianceRequestWizard({ isAdminView, setActionError, formData, prefillRequest }: ComplianceRequestWizardProps) {
 
+  const { data: session } = useSession();
+  const cactus_version = session ? session.version : ""
+
   const [step, setStep] = useState(0);
   const stepTitles = ['Compliance Details', 'Run Selection', 'DER Details', 'Software Client Details'];
 
@@ -51,12 +55,13 @@ function ComplianceRequestWizard({ isAdminView, setActionError, formData, prefil
   const [form, setForm] = useState<FormState>(emptyForm);
   const initialised = useRef(false);
 
+
   // Initialise the form once both the supporting data and any prefill request are available.
   useEffect(() => {
     if (initialised.current || !formData) return;
     if (requestId !== null && !prefillRequest) return; // still waiting on the prefill request
     initialised.current = true;
-    setForm(buildInitialForm(formData, prefillRequest, { prefillClasses, prefillRuns }));
+    setForm(buildInitialForm(formData, prefillRequest, { prefillClasses, prefillRuns }, cactus_version));
   }, [formData, prefillRequest, requestId, prefillClasses, prefillRuns]);
 
   const runsByProcedure = useMemo(() => groupRuns(formData?.successful_runs ?? []), [formData]);
@@ -112,15 +117,18 @@ function ComplianceRequestWizard({ isAdminView, setActionError, formData, prefil
 
   const buildPayload = (): ComplianceRequestPayload => ({
     csip_aus_version: form.csip_aus_version,
+    cactus_version: form.cactus_version,
     witnessed_at: form.witnessed_at,
     classes: activeClasses,
     runs: visibleProcedures.map((p) => form.runByProcedure[p]).filter((r): r is number => !!r),
     der_brand: form.der_brand,
     der_oem: form.der_oem,
     der_series: form.der_series,
-    der_representative_models: form.der_representative_models,
+    der_cec_listed_models: form.der_cec_listed_models,
+    der_unlisted_models: form.der_unlisted_models,
+    der_white_labelled_models: form.der_white_labelled_models,
     software_client_type: form.software_client_type,
-    software_client_providers: form.software_client_providers,
+    software_client_name: form.software_client_name,
     software_client_versions: form.software_client_versions,
     onsite_hardware_details: form.onsite_hardware_details,
   });

@@ -1,8 +1,8 @@
 import {
   Flex,
   Heading,
-  TextArea,
   TextField,
+  Link,
 } from '@radix-ui/themes';
 
 
@@ -37,21 +37,34 @@ function DerDetailsStep({
           disabled={readOnly}
         />
       </FieldRow>
-      <FieldRow label="Series" help="The series or product line the DER belongs to.">
+      <FieldRow label="Series Name" help="The designation used in product catalogues and labelling to identify all related models in this series.">
         <TextField.Root
           value={form.der_series}
           onChange={(e) => update({ der_series: e.target.value })}
           disabled={readOnly}
         />
       </FieldRow>
-      <FieldRow
-        label="Representative Models"
-        help="Models in the DER series. Models must use the same software and hardware configuration; they may differ in rated power or phases."
-      >
-        <TextArea
-          rows={3}
-          value={form.der_representative_models}
-          onChange={(e) => update({ der_representative_models: e.target.value })}
+      <Heading as="h4" size="3">
+        Models under test
+      </Heading>
+      <FieldRow label="CEC-listed Models" help={<>List of models under test with CEC-listing. Only include models here that are included on the <Link href="#">CEC Approved Inverters List</Link>.</>}>
+        <TextField.Root
+          value={form.der_cec_listed_models}
+          onChange={(e) => update({ der_cec_listed_models: e.target.value })}
+          disabled={readOnly}
+        />
+      </FieldRow>
+      <FieldRow label="Unlisted Models" help="List of models under test that are not CEC-listing.">
+        <TextField.Root
+          value={form.der_unlisted_models}
+          onChange={(e) => update({ der_unlisted_models: e.target.value })}
+          disabled={readOnly}
+        />
+      </FieldRow>
+      <FieldRow label="White-labelled Models" help="If the DER is a white-labelled product marketed under different brand names, provide relevant information and list the white-labelled products.">
+        <TextField.Root
+          value={form.der_white_labelled_models}
+          onChange={(e) => update({ der_white_labelled_models: e.target.value })}
           disabled={readOnly}
         />
       </FieldRow>

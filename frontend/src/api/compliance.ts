@@ -10,15 +10,18 @@ import type {
 // it to a UTC datetime and maps this onto the orchestrator's ComplianceRequest(Update)Request.
 export interface ComplianceRequestPayload {
   csip_aus_version: string;
+  cactus_version: string;
   witnessed_at: string;
   classes: string[];
   runs: number[];
   der_brand: string;
   der_oem: string;
   der_series: string;
-  der_representative_models: string;
+  der_cec_listed_models: string;
+  der_unlisted_models: string;
+  der_white_labelled_models: string;
   software_client_type: string;
-  software_client_providers: string;
+  software_client_name: string;
   software_client_versions: string;
   onsite_hardware_details: string;
 }

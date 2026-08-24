@@ -1,4 +1,4 @@
-import { Text } from '@radix-ui/themes';
+import FieldHeader from './FieldHeader';
 
 function FormFieldGroup({
   label,
@@ -6,20 +6,15 @@ function FormFieldGroup({
   children,
 }: {
   label: string;
-  help?: string;
+  help?: string | React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <label>
-      <Text as="div" size="2" weight="bold" mb="1">
-        {label}
-      </Text>
+      <FieldHeader title={label}>
+      {help}
+      </FieldHeader>
       {children}
-      {help && (
-        <Text as="div" size="1" color="gray" mt="1">
-          {help}
-        </Text>
-      )}
     </label>
   );
 }

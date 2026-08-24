@@ -13,7 +13,7 @@ dependencies = [
     "authlib",
     "requests",
     "pyjwt",
-    "cactus-schema==1.3.4",
+    "cactus-schema==1.3.5",
 ]
 
 

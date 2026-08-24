@@ -89,6 +89,7 @@ export type HTTPStatus =
   | 511;
 
 export interface AdminComplianceRequestResponse {
+  cactus_version: string;
   classes: string[];
   compliance_request_id: number;
   created_at: string;
@@ -96,12 +97,14 @@ export interface AdminComplianceRequestResponse {
   created_by_user: ComplianceRequestUser;
   csip_aus_version: string;
   der_brand: string;
+  der_cec_listed_models: string;
   der_oem: string;
-  der_representative_models: string;
   der_series: string;
+  der_unlisted_models: string;
+  der_white_labelled_models: string;
   onsite_hardware_details: string;
   runs: number[];
-  software_client_providers: string;
+  software_client_name: string;
   software_client_type: string;
   software_client_versions: string;
   status: number;
@@ -268,18 +271,21 @@ export interface WarningEntry {
   type: string;
 }
 export interface ComplianceRequestResponse {
+  cactus_version: string;
   classes: string[];
   compliance_request_id: number;
   created_at: string;
   created_by: number;
   csip_aus_version: string;
   der_brand: string;
+  der_cec_listed_models: string;
   der_oem: string;
-  der_representative_models: string;
   der_series: string;
+  der_unlisted_models: string;
+  der_white_labelled_models: string;
   onsite_hardware_details: string;
   runs: number[];
-  software_client_providers: string;
+  software_client_name: string;
   software_client_type: string;
   software_client_versions: string;
   status: number;
