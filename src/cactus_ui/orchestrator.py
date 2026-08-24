@@ -752,7 +752,6 @@ def create_compliance_request(
     der_cec_listed_models: str,
     der_unlisted_models: str,
     der_white_labelled_models: str,
-    der_representative_models: str,
     software_client_type: str,
     software_client_name: str,
     software_client_versions: str,
