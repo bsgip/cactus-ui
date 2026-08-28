@@ -907,8 +907,19 @@ def admin_fetch_group_procedure_run_summaries(
 
 
 def admin_fetch_run_artifact(access_token: str, run_id: str) -> tuple[bytes | None, str]:
-    """Given an already started run - finalise it and return the resulting ZIP file bytes and ZIP file name"""
+    """Given a finalised run - return the resulting ZIP file bytes and ZIP file name"""
     uri = generate_uri(orchestrator.uri.AdminRunArtifact.format(run_id=run_id))
+    response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    if response is None or not is_success_response(response):
+        return (None, "")
+
+    return (response.content, generate_run_artifact_file_name(response, run_id))
+
+
+def admin_regenerate_and_fetch_run_artifact(access_token: str, run_id: str) -> tuple[bytes | None, str]:
+    """Given a finalised run - trigger a (re)generation of the report and return the resulting ZIP file bytes and ZIP
+    file name."""
+    uri = generate_uri(orchestrator.uri.AdminRunRegenerateReport.format(run_id=run_id))
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
         return (None, "")

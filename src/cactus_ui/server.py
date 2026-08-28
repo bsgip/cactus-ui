@@ -1094,6 +1094,23 @@ def admin_run_artifact_download(access_token: str, run_id: int) -> Response:
     )
 
 
+@app.route("/admin/run/<int:run_id>/regenerate_artifact", methods=["GET"])
+@login_required
+@admin_role_required
+def admin_regenerate_run_artifact_download(access_token: str, run_id: int) -> Response:
+    """Browser-native artifact ZIP download for the admin view - forces the report to re-generate."""
+    artifact_data, download_name = orchestrator.admin_regenerate_and_fetch_run_artifact(access_token, str(run_id))
+    if artifact_data is None:
+        return Response(response="Failed to retrieve artifacts.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain")
+
+    return send_file(
+        io.BytesIO(artifact_data),
+        as_attachment=True,
+        download_name=download_name,
+        mimetype="application/zip",
+    )
+
+
 def send_zip_file(filename: str, files: dict[str, bytes | None]) -> Response:
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, mode="w") as zip_archive:

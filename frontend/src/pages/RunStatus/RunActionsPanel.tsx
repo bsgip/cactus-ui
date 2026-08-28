@@ -1,12 +1,12 @@
 import { Box, Button, Flex, Link, Text, TextField } from '@radix-ui/themes';
-import { IconArrowRight, IconDownload } from '@tabler/icons-react';
+import { IconArrowRight, IconDownload, IconRecycle } from '@tabler/icons-react';
 import { Link as RouterLink } from 'react-router-dom';
 import { SectionCard } from '../../components/SectionCard';
 import { useDisclosure } from '../../hooks/useDisclosure';
 
 interface Props {
   runId: number;
-  adminPrefix: string;
+  isAdminView: boolean;
   runHasArtifacts: boolean;
   isImmediateStart: boolean;
   supportEmail: string | undefined;
@@ -18,12 +18,13 @@ interface Props {
 // from AlertBox, which is reserved for genuine status messages (errors, skipped, not found).
 export function RunActionsPanel({
   runId,
-  adminPrefix,
+  isAdminView,
   runHasArtifacts,
   isImmediateStart,
   supportEmail,
   nextPlaylistRunId,
 }: Props) {
+  const adminPrefix = isAdminView ? '/admin' : '';
   return (
     <SectionCard title="Actions" tint="green">
       {runHasArtifacts ? (
@@ -45,6 +46,12 @@ export function RunActionsPanel({
                 Download Artifacts
               </a>
             </Button>
+            {isAdminView && <Button asChild size="3" color='red'>
+              <a href={`${adminPrefix}/run/${runId}/regenerate_artifact`}>
+                <IconRecycle size={16} />
+                Regenerate Report
+              </a>
+            </Button>}
             {!isImmediateStart && <ActivePowerChart runId={runId} adminPrefix={adminPrefix} />}
             {nextPlaylistRunId && (
               <Button asChild size="3" color="green" ml="auto">
