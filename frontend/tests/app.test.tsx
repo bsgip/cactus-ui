@@ -25,9 +25,9 @@ describe('home page (logged in)', () => {
     expect(screen.getByRole('heading', { name: 'Help & Resources' })).toBeInTheDocument();
 
     // Footer version link
-    expect(screen.getByRole('link', { name: 'v1.6.3' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'release-999' })).toHaveAttribute(
       'href',
-      'https://github.com/bsgip/cactus-deploy/releases/tag/v1.6.3'
+      '/release-notes'
     );
   });
 
@@ -58,7 +58,7 @@ describe('home page (logged in)', () => {
         HttpResponse.json({
           username: 'Test User',
           permissions: ['user:all'],
-          version: 'v1.6.3',
+          version: 'release-999',
           support_email: 'support@bsgip.com',
           banner_message: 'Scheduled maintenance tonight',
           hosted_images: [],
