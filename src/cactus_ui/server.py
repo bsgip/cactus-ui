@@ -114,10 +114,10 @@ oauth.register(
 
 # envvars
 CACTUS_ORCHESTRATOR_AUDIENCE = env["CACTUS_ORCHESTRATOR_AUDIENCE"]
-CACTUS_PLATFORM_VERSION = env["CACTUS_PLATFORM_VERSION"]
 CACTUS_PLATFORM_SUPPORT_EMAIL = env["CACTUS_PLATFORM_SUPPORT_EMAIL"]
 BANNER_MESSAGE = env.get("BANNER_MESSAGE")
 LOGIN_BANNER_MESSAGE = env.get("LOGIN_BANNER_MESSAGE")
+CACTUS_PLATFORM_VERSION: str | None = None  # This will be lazily populated via orchestrator
 
 # Built React SPA (frontend/dist). Overridable for tests/deployments where dist lives elsewhere.
 FRONTEND_DIST_DIR = Path(
@@ -181,11 +181,20 @@ def api_session() -> Response | tuple[Response, int]:
             HTTPStatus.UNAUTHORIZED,
         )
 
+    version: str | None = None
+    global CACTUS_PLATFORM_VERSION
+    if CACTUS_PLATFORM_VERSION is None:
+        releases = orchestrator.fetch_deploy_releases(access_token)
+        if releases:
+            version = releases[0].release_tag
+    else:
+        version = CACTUS_PLATFORM_VERSION
+
     return jsonify(
         SessionResponse(
             username=get_username_from_session(),
             permissions=get_permissions() or [],
-            version=CACTUS_PLATFORM_VERSION,
+            version="release-" + (version or "???"),
             support_email=CACTUS_PLATFORM_SUPPORT_EMAIL,
             banner_message=BANNER_MESSAGE,
             hosted_images=[f"/{path}" for path in get_hosted_images()],

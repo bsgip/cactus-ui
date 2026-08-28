@@ -27,7 +27,7 @@ export function Footer({ session }: { session: SessionResponse }) {
       {session.version && (
         <Text as="div" size="1" mt="1" color="gray">
           <Link
-            href={`https://github.com/bsgip/cactus-deploy/releases/tag/${session.version}`}
+            href="/release-notes"
             target="_blank"
           >
             {session.version}

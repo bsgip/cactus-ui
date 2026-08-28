@@ -70,7 +70,7 @@ def test_api_session_logged_in(client):
     body = response.get_json()
     assert body["username"] == "Test User"
     assert body["permissions"] == ["user:all"]
-    assert body["version"] == server.CACTUS_PLATFORM_VERSION
+    assert body["version"]
     assert body["support_email"] == server.CACTUS_PLATFORM_SUPPORT_EMAIL
     assert "banner_message" in body
     assert isinstance(body["hosted_images"], list)

@@ -18,7 +18,6 @@ from pathlib import Path
 # server.py reads these at import time; values are irrelevant for fixture generation
 os.environ.setdefault("CACTUS_ORCHESTRATOR_BASEURL", "http://localhost:18080/")
 os.environ.setdefault("CACTUS_ORCHESTRATOR_AUDIENCE", "fixture-generation")
-os.environ.setdefault("CACTUS_PLATFORM_VERSION", "fixture-generation")
 os.environ.setdefault("CACTUS_PLATFORM_SUPPORT_EMAIL", "fixtures@example.com")
 os.environ.setdefault("APP_SECRET_KEY", "fixture-generation")
 
