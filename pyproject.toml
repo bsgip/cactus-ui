@@ -70,7 +70,6 @@ testpaths = "tests"
 env = [
     "D:CACTUS_ORCHESTRATOR_BASEURL=http://localhost/",
     "D:CACTUS_ORCHESTRATOR_AUDIENCE=http://localhost/",
-    "D:CACTUS_PLATFORM_VERSION=v0.0.0-test",
     "D:CACTUS_PLATFORM_SUPPORT_EMAIL=support@example.com",
     "D:APP_SECRET_KEY=test-secret-key-for-flask-sessions",
 ]

@@ -10,7 +10,6 @@ auth0_algorithm="123456"
 
 # CACTUS
 CACTUS_ORCHESTRATOR_AUDIENCE="https://orchestrator-api-audience.com"
-CACTUS_PLATFORM_VERSION="1.0.0-dev"
 CACTUS_PLATFORM_SUPPORT_EMAIL="support@example.com"
 CACTUS_ORCHESTRATOR_BASEURL="http://localhost:8088"
 APP_SECRET_KEY="secret-key"
