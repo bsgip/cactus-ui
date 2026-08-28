@@ -44,7 +44,7 @@ export function FinalisedView({
   supportEmail,
   isAdminView,
 }: Props) {
-  const adminPrefix = isAdminView ? '/admin' : '';
+  
   const runStatus = run?.status ?? null;
   const runHasArtifacts = run?.has_artifacts ?? null;
   const isImmediateStart = run?.immediate_start ?? false;
@@ -81,7 +81,7 @@ export function FinalisedView({
           </Heading>
           <RunActionsPanel
             runId={runId}
-            adminPrefix={adminPrefix}
+            isAdminView={isAdminView}
             runHasArtifacts={!!runHasArtifacts}
             isImmediateStart={isImmediateStart}
             supportEmail={supportEmail}
