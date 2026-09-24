@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { fetchRunGroups } from '../../api/runs';
 import { ErrorAlert } from '../../components/ErrorAlert';
 import { PageSpinner } from '../../components/PageSpinner';
+import { getLastRunGroupId } from '../../utils/lastRunGroup';
 
-// /runs redirects to the first run group's runs page, or to the config page when the
-// user has no run groups yet.
+// /runs redirects to the run group the user last viewed (if it still exists), otherwise the
+// first run group's runs page, or to the config page when the user has no run groups yet.
 export function RunsRedirect() {
   const navigate = useNavigate();
   const { data, error } = useQuery({
@@ -18,7 +19,9 @@ export function RunsRedirect() {
     if (!data) {
       return;
     }
-    const target = data.items.length > 0 ? `/group/${data.items[0].run_group_id}/runs` : '/config';
+    const lastId = getLastRunGroupId();
+    const group = data.items.find((rg) => rg.run_group_id === lastId) ?? data.items[0];
+    const target = group ? `/group/${group.run_group_id}/runs` : '/config';
     void navigate(target, { replace: true });
   }, [data, navigate]);
 
