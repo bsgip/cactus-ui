@@ -19,6 +19,11 @@
       "success": false,
       "type": "der-settings-updated",
       "details": "Awaiting DERSettings update"
+    },
+    {
+      "success": null,
+      "type": "all-polls-correct",
+      "details": "Evaluated at test finalisation."
     }
   ],
   "precondition_checks": [

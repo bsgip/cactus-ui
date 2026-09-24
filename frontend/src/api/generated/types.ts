@@ -319,7 +319,7 @@ export interface UserConfig {
 }
 export interface CriteriaEntry {
   details: string;
-  success: boolean;
+  success: boolean | null;
   type: string;
 }
 /**
