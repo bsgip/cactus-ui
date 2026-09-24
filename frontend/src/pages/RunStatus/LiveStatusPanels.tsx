@@ -1,6 +1,12 @@
 import { Box, Button, Callout, Link, Table, Text } from '@radix-ui/themes';
 import { useMutation } from '@tanstack/react-query';
-import { IconCheck, IconMinus, IconPlayerPlay, IconX } from '@tabler/icons-react';
+import {
+  IconAlertTriangle,
+  IconCheck,
+  IconMinus,
+  IconPlayerPlay,
+  IconX,
+} from '@tabler/icons-react';
 import { useState } from 'react';
 import { SectionCard } from '../../components/SectionCard';
 import { sendProceed } from '../../api/runStatus';
@@ -11,6 +17,7 @@ import { RequestDetailsModal } from './RequestDetailsModal';
 import { RequestsCard } from './RequestsCard';
 import {
   activeStep,
+  anyCriteriaFailing,
   criteriaWithXsd,
   formatTimeLabel,
   isProceedStepActive,
@@ -32,6 +39,7 @@ interface Props {
 export function LiveStatusPanels({ status, runId, runStatus, runProcedureId, isAdminView }: Props) {
   const [selectedRequest, setSelectedRequest] = useState<number | null>(null);
   const requests = status.request_history ?? [];
+  const criteria = criteriaWithXsd(status);
 
   return (
     <>
@@ -40,7 +48,7 @@ export function LiveStatusPanels({ status, runId, runStatus, runProcedureId, isA
       {status.precondition_checks != null && !status.timestamp_start && (
         <CheckTableCard title="Precondition Checks" entries={status.precondition_checks} />
       )}
-      <CheckTableCard title="Current Criteria" entries={criteriaWithXsd(status)} />
+      <CheckTableCard title="Current Criteria" entries={criteria} highlightFailures />
       {status.warnings.length > 0 && (
         <SectionCard scroll title="Warnings">
           <WarningsList warnings={status.warnings} />
@@ -121,9 +129,24 @@ function GeneralCard({
 }
 
 // Shared layout for the Precondition Checks and Current Criteria tables (type / icon / details).
-function CheckTableCard({ title, entries }: { title: string; entries: CriteriaEntry[] }) {
+// With highlightFailures, the card is tinted red if any entry has explicitly failed.
+function CheckTableCard({
+  title,
+  entries,
+  highlightFailures,
+}: {
+  title: string;
+  entries: CriteriaEntry[];
+  highlightFailures?: boolean;
+}) {
+  const failing = highlightFailures && anyCriteriaFailing(entries);
   return (
-    <SectionCard scroll title={title}>
+    <SectionCard
+      scroll
+      title={title}
+      tint={failing ? 'red' : undefined}
+      icon={failing ? <IconAlertTriangle size={16} color="var(--red-9)" /> : undefined}
+    >
       <Table.Root>
         <Table.Body>
           {entries.map((c) => (

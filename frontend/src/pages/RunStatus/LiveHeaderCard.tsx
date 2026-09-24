@@ -1,4 +1,4 @@
-import { Badge, Box, Button, Card, Code, Flex, Heading, Text } from '@radix-ui/themes';
+import { Badge, Box, Button, Card, Code, Flex, Heading, Text, Tooltip } from '@radix-ui/themes';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import type { RunStatus } from '../../api/types';
 
@@ -11,6 +11,7 @@ interface Props {
   isStarting: boolean;
   isFinalising: boolean;
   warningCount: number;
+  criteriaFailing: boolean;
   onStart: () => void;
   onFinalise: () => void;
 }
@@ -27,6 +28,7 @@ export function LiveHeaderCard({
   isStarting,
   isFinalising,
   warningCount,
+  criteriaFailing,
   onStart,
   onFinalise,
 }: Props) {
@@ -111,15 +113,27 @@ export function LiveHeaderCard({
             When you're ready to end the test, press the Finalise button. An artefact will be
             downloaded including a PDF report, request logs, and server logs to help with debugging.
           </Text>
-          <Button
-            color="amber"
-            onClick={onFinalise}
-            loading={isFinalising}
-            disabled={isAdminView}
-            style={{ width: 'fit-content' }}
-          >
-            Finalise
-          </Button>
+          <Flex align="center" gap="2">
+            <Button
+              color="amber"
+              onClick={onFinalise}
+              loading={isFinalising}
+              disabled={isAdminView}
+              style={{ width: 'fit-content' }}
+            >
+              Finalise
+            </Button>
+            {criteriaFailing && (
+              <Tooltip content="One or more criteria are currently failing">
+                <Flex align="center" gap="1" aria-label="Criteria failing">
+                  <IconAlertTriangle size={18} color="var(--red-9)" />
+                  <Text size="2" color="red">
+                    Criteria failing
+                  </Text>
+                </Flex>
+              </Tooltip>
+            )}
+          </Flex>
         </>
       )}
     </Card>

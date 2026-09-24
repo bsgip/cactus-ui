@@ -22,7 +22,7 @@ import {
   derivePlaylistView,
 } from './runStatusModel';
 import { StatusBanner } from './StatusBanner';
-import { testFinished } from './statusHelpers';
+import { anyCriteriaFailing, criteriaWithXsd, testFinished } from './statusHelpers';
 import { TestFinishedAlert } from './TestFinishedAlert';
 
 const POLL_INTERVAL_MS = 10_000;
@@ -153,6 +153,9 @@ export function RunStatusPage({ isAdminView }: { isAdminView: boolean }) {
             isStarting={startMutation.isPending}
             isFinalising={finaliseMutation.isPending}
             warningCount={statusQuery.data?.warnings.length ?? 0}
+            criteriaFailing={
+              statusQuery.data != null && anyCriteriaFailing(criteriaWithXsd(statusQuery.data))
+            }
             onStart={() => startMutation.mutate()}
             onFinalise={() => finaliseMutation.mutate()}
           />
