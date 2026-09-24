@@ -1,6 +1,6 @@
-// Remembers the run group the user last viewed on the Runs page so /runs can return them to
-// it. Storage may be unavailable (private mode, blocked site data) - every access is
-// best-effort and callers fall back to the first run group.
+// Remembers the run group the user last viewed on the Runs or Playlists page so /runs and
+// /playlists can return them to it. Storage may be unavailable (private mode, blocked site
+// data) - every access is best-effort and callers fall back to the first run group.
 const STORAGE_KEY = 'cactus.lastRunGroupId';
 
 export function getLastRunGroupId(): number | null {
