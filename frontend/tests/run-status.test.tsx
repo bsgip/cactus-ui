@@ -395,6 +395,9 @@ describe('run status live panels', () => {
 
     expect(await screen.findByText('unknown')).toBeInTheDocument();
     expect(screen.queryByLabelText('Criteria failing')).not.toBeInTheDocument();
+    // Unevaluated (null) criteria render greyed out; evaluated ones don't.
+    expect(screen.getByText('unknown').closest('tr')).toHaveAttribute('title', 'Not yet evaluated');
+    expect(screen.getByText('passing').closest('tr')).not.toHaveAttribute('title');
   });
 
   it('shows precondition checks while the run has not yet started', async () => {

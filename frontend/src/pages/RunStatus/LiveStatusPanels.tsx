@@ -149,19 +149,29 @@ function CheckTableCard({
     >
       <Table.Root>
         <Table.Body>
-          {entries.map((c) => (
-            <Table.Row key={c.type}>
-              <Table.RowHeaderCell>{c.type}</Table.RowHeaderCell>
-              <Table.Cell>
-                {c.success ? (
-                  <IconCheck size={16} color="var(--green-9)" />
-                ) : (
-                  <IconX size={16} color="var(--red-9)" />
-                )}
-              </Table.Cell>
-              <Table.Cell>{c.details}</Table.Cell>
-            </Table.Row>
-          ))}
+          {entries.map((c) => {
+            // A null/undefined success means the criterion hasn't been evaluated yet.
+            const evaluated = c.success !== null && c.success !== undefined;
+            return (
+              <Table.Row
+                key={c.type}
+                style={evaluated ? undefined : { color: 'var(--gray-9)' }}
+                title={evaluated ? undefined : 'Not yet evaluated'}
+              >
+                <Table.RowHeaderCell>{c.type}</Table.RowHeaderCell>
+                <Table.Cell>
+                  {!evaluated ? (
+                    <IconMinus size={16} color="var(--gray-9)" />
+                  ) : c.success ? (
+                    <IconCheck size={16} color="var(--green-9)" />
+                  ) : (
+                    <IconX size={16} color="var(--red-9)" />
+                  )}
+                </Table.Cell>
+                <Table.Cell>{c.details}</Table.Cell>
+              </Table.Row>
+            );
+          })}
         </Table.Body>
       </Table.Root>
     </SectionCard>
