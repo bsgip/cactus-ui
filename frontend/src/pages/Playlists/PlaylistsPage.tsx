@@ -16,6 +16,7 @@ import { ErrorAlert } from '../../components/ErrorAlert';
 import { PageSpinner } from '../../components/PageSpinner';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useSession } from '../../hooks/useSession';
+import { setLastRunGroupId } from '../../utils/lastRunGroup';
 import { PlaylistQueue } from './PlaylistQueue';
 import { PlaylistsIntro } from './PlaylistsIntro';
 import { ActivePlaylists, PastSessions } from './PlaylistSessions';
@@ -45,6 +46,14 @@ export function PlaylistsPage() {
     queryKey: ['run_groups', 'mine'],
     queryFn: () => fetchRunGroups(false),
   });
+
+  // Shared with the Runs page so /runs and /playlists both return to this group.
+  const ownsRunGroup = groupsQuery.data?.items.some((rg) => rg.run_group_id === runGroupId);
+  useEffect(() => {
+    if (ownsRunGroup) {
+      setLastRunGroupId(runGroupId);
+    }
+  }, [ownsRunGroup, runGroupId]);
 
   const testsQuery = useQuery({
     queryKey: ['playlist_tests', runGroupId],

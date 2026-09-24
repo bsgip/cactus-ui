@@ -1,8 +1,9 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { server } from './msw-server';
+import { getLastRunGroupId } from '../src/utils/lastRunGroup';
 import { renderApp } from './test-utils';
 
 describe('playlists page', () => {
@@ -88,5 +89,15 @@ describe('playlists page', () => {
     renderApp('/group/1/playlists');
 
     expect(await screen.findByText('Unable to fetch test procedures.')).toBeInTheDocument();
+  });
+});
+
+describe('last viewed run group', () => {
+  afterEach(() => window.localStorage.clear());
+
+  it('records the run group viewed on the playlists page', async () => {
+    renderApp('/group/2/playlists');
+
+    await waitFor(() => expect(getLastRunGroupId()).toBe(2));
   });
 });

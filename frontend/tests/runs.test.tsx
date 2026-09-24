@@ -1,10 +1,11 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import activeRunsFixture from '../fixtures/active_runs.json';
 import procedureRunsFixture from '../fixtures/procedure_runs.json';
 import { server } from './msw-server';
+import { getLastRunGroupId, setLastRunGroupId } from '../src/utils/lastRunGroup';
 import { renderApp } from './test-utils';
 
 const emptyPage = {
@@ -226,5 +227,45 @@ describe('/runs redirect', () => {
     renderApp('/runs');
 
     expect(await screen.findByText('Unable to fetch run groups.')).toBeInTheDocument();
+  });
+});
+
+describe('last viewed run group', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    window.localStorage.clear();
+  });
+
+  it('records the run group the user views', async () => {
+    renderApp('/group/2/runs');
+
+    await waitFor(() => expect(getLastRunGroupId()).toBe(2));
+  });
+
+  it('does not record run groups viewed from the admin view', async () => {
+    renderApp('/admin/group/2/runs');
+
+    expect(await screen.findByRole('heading', { name: 'Active Runs' })).toBeInTheDocument();
+    expect(getLastRunGroupId()).toBeNull();
+  });
+
+  it('round-trips through storage and ignores invalid values', () => {
+    expect(getLastRunGroupId()).toBeNull();
+    setLastRunGroupId(7);
+    expect(getLastRunGroupId()).toBe(7);
+    window.localStorage.setItem('cactus.lastRunGroupId', 'junk');
+    expect(getLastRunGroupId()).toBeNull();
+  });
+
+  it('falls back quietly when storage is unavailable', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+
+    expect(() => setLastRunGroupId(7)).not.toThrow();
+    expect(getLastRunGroupId()).toBeNull();
   });
 });

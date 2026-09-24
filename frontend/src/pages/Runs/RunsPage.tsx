@@ -18,6 +18,7 @@ import { ErrorAlert } from '../../components/ErrorAlert';
 import { PageSpinner } from '../../components/PageSpinner';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useSession } from '../../hooks/useSession';
+import { setLastRunGroupId } from '../../utils/lastRunGroup';
 import { ProcedureList } from './ProcedureList';
 import { RunsTable, type PendingRunAction } from './RunsTable';
 
@@ -50,6 +51,16 @@ export function RunsPage({ isAdminView }: { isAdminView: boolean }) {
     queryKey: ['run_groups', isAdminView ? runGroupId : 'mine'],
     queryFn: () => fetchRunGroups(isAdminView, runGroupId),
   });
+
+  // Remember the user's own group so /runs returns here. Admin views of other users' groups
+  // are not recorded.
+  const ownsRunGroup =
+    !isAdminView && groupsQuery.data?.items.some((rg) => rg.run_group_id === runGroupId);
+  useEffect(() => {
+    if (ownsRunGroup) {
+      setLastRunGroupId(runGroupId);
+    }
+  }, [ownsRunGroup, runGroupId]);
 
   const summariesQuery = useQuery({
     queryKey: ['procedure_summaries', runGroupId, isAdminView],

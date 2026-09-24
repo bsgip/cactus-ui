@@ -4,9 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { fetchRunGroups } from '../../api/runs';
 import { ErrorAlert } from '../../components/ErrorAlert';
 import { PageSpinner } from '../../components/PageSpinner';
+import { getLastRunGroupId } from '../../utils/lastRunGroup';
 
-// /playlists redirects to the first run group's playlists page, or to the config page when
-// the user has no run groups yet.
+// /playlists redirects to the run group the user last viewed (if it still exists), otherwise
+// the first run group's playlists page, or to the config page when the user has no run
+// groups yet.
 export function PlaylistsRedirect() {
   const navigate = useNavigate();
   const { data, error } = useQuery({
@@ -18,8 +20,9 @@ export function PlaylistsRedirect() {
     if (!data) {
       return;
     }
-    const target =
-      data.items.length > 0 ? `/group/${data.items[0].run_group_id}/playlists` : '/config';
+    const lastId = getLastRunGroupId();
+    const group = data.items.find((rg) => rg.run_group_id === lastId) ?? data.items[0];
+    const target = group ? `/group/${group.run_group_id}/playlists` : '/config';
     void navigate(target, { replace: true });
   }, [data, navigate]);
 
