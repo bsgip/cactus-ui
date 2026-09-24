@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import shellFinalised from '../fixtures/run_status_shell_finalised.json';
 import shellLive from '../fixtures/run_status_shell.json';
 import shellPlaylist from '../fixtures/run_status_shell_playlist.json';
+import runner from '../fixtures/run_status_runner.json';
 import runnerInitialised from '../fixtures/run_status_runner_initialised.json';
 import { RunStatusPage } from '../src/pages/RunStatus/RunStatusPage';
 import { server } from './msw-server';
@@ -313,7 +314,10 @@ describe('run status playlist banner', () => {
     useShell(shellPlaylist);
     server.use(
       http.post('/api/run/:runId/playlist', () =>
-        HttpResponse.json({ error: 'Playlist has advanced. Refresh and try again.', conflict: true }, { status: 409 })
+        HttpResponse.json(
+          { error: 'Playlist has advanced. Refresh and try again.', conflict: true },
+          { status: 409 }
+        )
       )
     );
     const user = userEvent.setup();
@@ -367,6 +371,30 @@ describe('run status live panels', () => {
     expect(screen.getByText(/GET \/edev -> 200/)).toBeInTheDocument();
     // Timeline card renders (the chart canvas itself is verified in Playwright).
     expect(screen.getByText('Timeline')).toBeInTheDocument();
+  });
+
+  it('flags failing criteria next to the finalise button', async () => {
+    renderRunStatus('/run/123');
+    expect(await screen.findByLabelText('Criteria failing')).toBeInTheDocument();
+  });
+
+  it('does not flag criteria whose success is true or missing', async () => {
+    server.use(
+      http.get('/api/run/:runId/status', () =>
+        HttpResponse.json({
+          ...runner,
+          criteria: [
+            { success: true, type: 'passing', details: '' },
+            { success: null, type: 'unknown', details: '' },
+          ],
+          request_history: [],
+        })
+      )
+    );
+    renderRunStatus('/run/123');
+
+    expect(await screen.findByText('unknown')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Criteria failing')).not.toBeInTheDocument();
   });
 
   it('shows precondition checks while the run has not yet started', async () => {

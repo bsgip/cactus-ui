@@ -75,6 +75,11 @@ export function criteriaWithXsd(status: RunnerStatus): CriteriaEntry[] {
   return criteria;
 }
 
+// True if any criterion has explicitly failed. A missing/null success is not treated as failing.
+export function anyCriteriaFailing(entries: CriteriaEntry[]): boolean {
+  return entries.some((c) => c.success === false);
+}
+
 // Requests that failed XSD validation, newest first, capped at 10 (old xsdTableBody).
 export function xsdErrorRequests(requests: RequestEntry[]): RequestEntry[] {
   return requests
