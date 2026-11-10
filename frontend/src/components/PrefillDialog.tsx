@@ -54,7 +54,7 @@ function PrefillDialog({prefillId, setPrefillId, requests, target}: PrefillDialo
             </Button>
           </Dialog.Close>
           <Button asChild>
-            <RouterLink to={target}>{prefillId ? 'Pre-fill request' : 'Continue'}</RouterLink>
+            <RouterLink to={target}>{prefillId!=="none" ? 'Pre-fill request' : 'Continue'}</RouterLink>
           </Button>
         </Flex>
       </Dialog.Content>
