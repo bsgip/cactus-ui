@@ -124,6 +124,8 @@ def safe_request(
     json: Any | None = None,  # noqa: ANN401
 ) -> requests.Response | None:
     """Unified method for making requests that ensures they log / handle exceptions"""
+    if json is not None:
+        headers = {**headers, "Content-Type": "application/json"}
     try:
         response = requests.request(method=method, url=url, headers=headers, timeout=timeout, json=json)
         logger.info(f"{method} {url} {json} returned HTTP {response}")
