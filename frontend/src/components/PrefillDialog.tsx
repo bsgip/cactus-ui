@@ -31,20 +31,22 @@ function PrefillDialog({prefillId, setPrefillId, requests, target}: PrefillDialo
           To save time, a new compliance request can be pre-filled with the details (DER, software
           client) of an existing request. Classes and runs are not copied.
         </Dialog.Description>
-        <Text as="label" size="2" weight="bold">
-          Pre-fill from
-        </Text>
-        <Select.Root value={prefillId} onValueChange={setPrefillId}>
-          <Select.Trigger placeholder="No pre-fill" mt="1" />
-          <Select.Content>
-            <Select.Item value="none">No pre-fill</Select.Item>
-            {requests.map((r) => (
-              <Select.Item key={r.compliance_request_id} value={String(r.compliance_request_id)}>
-                Compliance Request #{r.compliance_request_id}
-              </Select.Item>
-            ))}
-          </Select.Content>
-        </Select.Root>
+        <Flex gap="3" mt="4" align="center">
+          <Text as="label" size="2" weight="bold">
+            Pre-fill from
+          </Text>
+          <Select.Root value={prefillId} onValueChange={setPrefillId}>
+            <Select.Trigger placeholder="No pre-fill" mt="1" />
+            <Select.Content>
+              <Select.Item value="none">No pre-fill</Select.Item>
+              {requests.map((r) => (
+                <Select.Item key={r.compliance_request_id} value={String(r.compliance_request_id)}>
+                  Compliance Request #{r.compliance_request_id}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Root>
+        </Flex>
         <Flex gap="3" mt="4" justify="end">
           <Dialog.Close>
             <Button variant="soft" color="gray">
@@ -52,7 +54,7 @@ function PrefillDialog({prefillId, setPrefillId, requests, target}: PrefillDialo
             </Button>
           </Dialog.Close>
           <Button asChild>
-            <RouterLink to={target}>{prefillId ? 'Pre-fill request' : 'Continue'}</RouterLink>
+            <RouterLink to={target}>{prefillId!=="none" ? 'Pre-fill request' : 'Continue'}</RouterLink>
           </Button>
         </Flex>
       </Dialog.Content>

@@ -8,7 +8,7 @@
   "items": [
     {
       "compliance_request_id": 1,
-      "created_at": "2026-08-03T03:43:19.812469Z",
+      "created_at": "2026-11-10T01:32:37.220242Z",
       "created_by": 1,
       "created_by_user": {
         "user_id": 1,
@@ -16,7 +16,7 @@
         "issuer_id": "issuer_id_1",
         "user_name": "user1@cactus.com"
       },
-      "updated_at": "2026-08-03T03:43:19.812485Z",
+      "updated_at": "2026-11-10T01:32:37.220249Z",
       "updated_by": 1,
       "updated_by_user": {
         "user_id": 1,
@@ -28,19 +28,22 @@
       "classes": ["A"],
       "runs": [1],
       "csip_aus_version": "1.2",
-      "witnessed_at": "2026-08-03T03:43:19.812490Z",
+      "cactus_version": "v1.0.0",
+      "witnessed_at": "2026-11-10T01:32:37.220251Z",
       "der_brand": "brand",
       "der_oem": "oem",
       "der_series": "series",
-      "der_representative_models": "rep models",
+      "der_cec_listed_models": "CLM1",
+      "der_unlisted_models": "ULM1",
+      "der_white_labelled_models": "WLM1",
       "software_client_type": "client type",
-      "software_client_providers": "client providers",
+      "software_client_name": "client providers",
       "software_client_versions": "client versions",
       "onsite_hardware_details": "hardware details"
     },
     {
       "compliance_request_id": 2,
-      "created_at": "2026-08-03T03:43:19.812508Z",
+      "created_at": "2026-11-10T01:32:37.220257Z",
       "created_by": 1,
       "created_by_user": {
         "user_id": 2,
@@ -48,7 +51,7 @@
         "issuer_id": "issuer_id_2",
         "user_name": "user2@cactus.com"
       },
-      "updated_at": "2026-08-03T03:43:19.812512Z",
+      "updated_at": "2026-11-10T01:32:37.220259Z",
       "updated_by": 1,
       "updated_by_user": {
         "user_id": 2,
@@ -60,19 +63,22 @@
       "classes": ["A"],
       "runs": [1],
       "csip_aus_version": "1.2",
-      "witnessed_at": "2026-08-03T03:43:19.812514Z",
+      "cactus_version": "v1.0.0",
+      "witnessed_at": "2026-11-10T01:32:37.220261Z",
       "der_brand": "brand",
       "der_oem": "oem",
       "der_series": "series",
-      "der_representative_models": "rep models",
+      "der_cec_listed_models": "CLM1",
+      "der_unlisted_models": "ULM1",
+      "der_white_labelled_models": "WLM1",
       "software_client_type": "client type",
-      "software_client_providers": "client providers",
+      "software_client_name": "client providers",
       "software_client_versions": "client versions",
       "onsite_hardware_details": "hardware details"
     },
     {
       "compliance_request_id": 3,
-      "created_at": "2026-08-03T03:43:19.812519Z",
+      "created_at": "2026-11-10T01:32:37.220264Z",
       "created_by": 2,
       "created_by_user": {
         "user_id": 3,
@@ -80,7 +86,7 @@
         "issuer_id": "issuer_id_3",
         "user_name": "user3@cactus.com"
       },
-      "updated_at": "2026-08-03T03:43:19.812523Z",
+      "updated_at": "2026-11-10T01:32:37.220265Z",
       "updated_by": 2,
       "updated_by_user": {
         "user_id": 3,
@@ -92,13 +98,16 @@
       "classes": ["A"],
       "runs": [1],
       "csip_aus_version": "1.2",
-      "witnessed_at": "2026-08-03T03:43:19.812527Z",
+      "cactus_version": "v1.0.0",
+      "witnessed_at": "2026-11-10T01:32:37.220266Z",
       "der_brand": "brand",
       "der_oem": "oem",
       "der_series": "series",
-      "der_representative_models": "rep models",
+      "der_cec_listed_models": "CLM1",
+      "der_unlisted_models": "ULM1",
+      "der_white_labelled_models": "WLM1",
       "software_client_type": "client type",
-      "software_client_providers": "client providers",
+      "software_client_name": "client providers",
       "software_client_versions": "client versions",
       "onsite_hardware_details": "hardware details"
     }
