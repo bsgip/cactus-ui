@@ -98,7 +98,7 @@ if ENV_FILE:
 app = Flask(__name__)
 app.secret_key = env.get("APP_SECRET_KEY")
 if not (env.get("CACTUS_UI_LOCALDEV", "false").lower() == "true"):
-    app.wsgi_app = ProxyFix(app.wsgi_app)  # type: ignore
+    app.wsgi_app = ProxyFix(app.wsgi_app)
 
 
 oauth = OAuth(app)
