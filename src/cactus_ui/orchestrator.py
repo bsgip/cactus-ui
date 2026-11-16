@@ -62,26 +62,18 @@ class UpdatePlaylistResult:
 
 
 def handle_pagination[T](paginated_json: dict, item_parser: Callable[[dict], T]) -> orchestrator.Pagination[T]:
-    total_pages = paginated_json.get("pages", 1)
-    current_page = paginated_json.get("page", 1)
-    if current_page == 1:
-        prev_page = None
-    else:
-        prev_page = current_page - 1
+    """Parses an orchestrator Pagination response, using item_parser to parse each of the items.
 
-    if current_page < total_pages:
-        next_page = current_page + 1
-    else:
-        next_page = None
-
+    Keys are accessed directly (no defaults) so that a schema mismatch fails loudly rather than silently
+    collapsing every list to a single page."""
     return orchestrator.Pagination(
-        total_pages=total_pages,
-        total_items=paginated_json.get("total", 0),
-        page_size=paginated_json.get("size", 10),
-        current_page=current_page,
-        prev_page=prev_page,
-        next_page=next_page,
-        items=[item_parser(i) for i in paginated_json.get("items", [])],
+        total_pages=paginated_json["total_pages"],
+        total_items=paginated_json["total_items"],
+        page_size=paginated_json["page_size"],
+        current_page=paginated_json["current_page"],
+        prev_page=paginated_json["prev_page"],
+        next_page=paginated_json["next_page"],
+        items=[item_parser(i) for i in paginated_json["items"]],
     )
 
 
