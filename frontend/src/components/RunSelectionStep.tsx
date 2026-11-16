@@ -19,6 +19,8 @@ import type {
   ComplianceFormDataResponse,
   RunResponse,
 } from '../api/types';
+import { formatRelativeDate } from '../utils/dates';
+
 
 function activeClassesEmpty(form: FormState, classesForVersion: string[]): boolean {
 	return !classesForVersion.some((c) => form.classes.has(c));
@@ -148,7 +150,7 @@ function RunSelectionStep({
                       <Select.Content>
                         {(runsByProcedure[p] ?? []).map((run) => (
                           <Select.Item key={run.run_id} value={String(run.run_id)}>
-                            #{run.run_id}
+                            <b>#{run.run_id}</b> ({run.finalised_at ? "Finalised "+ formatRelativeDate(new Date(run.finalised_at)) : "Unknown finalisation date"})
                           </Select.Item>
                         ))}
                       </Select.Content>

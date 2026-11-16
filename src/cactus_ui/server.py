@@ -400,12 +400,15 @@ def api_procedures(access_token: str) -> Response | tuple[Response, int]:
 # classes, runs and witnessed_at, which need their own coercion).
 _COMPLIANCE_TEXT_FIELDS = (
     "csip_aus_version",
+    "cactus_version",
     "der_brand",
     "der_oem",
     "der_series",
-    "der_representative_models",
+    "der_cec_listed_models",
+    "der_unlisted_models",
+    "der_white_labelled_models",
     "software_client_type",
-    "software_client_providers",
+    "software_client_name",
     "software_client_versions",
     "onsite_hardware_details",
 )
