@@ -26,6 +26,9 @@ interface ComplianceLibraryProps {
   columns?: '1' | '2';
   // Rendered above the filter header — used by Runs for the "Active Runs" entry.
   topContent?: ReactNode;
+  // Value shown in each category header's count badge, given the category's visible items.
+  // Defaults to the number of items; Runs overrides it to total the runs instead.
+  categoryCount?: (items: readonly LibraryItem[]) => number;
 }
 
 function filterSummaryText(enabledNames: string[], totalClasses: number): string {
@@ -53,6 +56,7 @@ export function ComplianceLibrary({
   showCheckbox = false,
   columns = '1',
   topContent,
+  categoryCount = (items) => items.length,
 }: ComplianceLibraryProps) {
   const [enabledClasses, setEnabledClasses] = useState<Set<string>>(
     () => new Set(complianceClasses.map((c) => c.name))
@@ -128,7 +132,7 @@ export function ComplianceLibrary({
                 category
               )
             }
-            count={items.length}
+            count={categoryCount(items)}
           >
             <Grid columns={columns} gap="0">
               {items.map((item) => {
