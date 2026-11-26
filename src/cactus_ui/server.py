@@ -146,6 +146,12 @@ def download_playlist_artifacts(access_token: str, run_ids: list[int], download_
 
 
 # Controllers API
+MISSING_OR_EXPIRED_CERT_MESSAGE = (
+    "This run group has no certificate or its certificate has expired. "
+    "Assign or regenerate a certificate on the Certificates page."
+)
+
+
 @app.route("/")
 def login_or_home_page() -> Response:
     return send_file(FRONTEND_DIST_DIR / "index.html")
@@ -804,7 +810,7 @@ def api_init_run(access_token: str, run_group_id: int) -> Response | tuple[Respo
         return jsonify(RunActionResponse(run_id=init_result.response.run_id).to_dict())
     elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
         return (
-            jsonify({"error": "Your certificate has expired. Please generate and download a new certificate."}),
+            jsonify({"error": MISSING_OR_EXPIRED_CERT_MESSAGE}),
             HTTPStatus.CONFLICT,
         )
     elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
@@ -890,7 +896,7 @@ def api_init_playlist(access_token: str, run_group_id: int) -> Response | tuple[
         return jsonify(RunActionResponse(run_id=init_result.response.run_id).to_dict())
     elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXPIRED_CERT:
         return (
-            jsonify({"error": "Your certificate has expired. Please generate and download a new certificate."}),
+            jsonify({"error": MISSING_OR_EXPIRED_CERT_MESSAGE}),
             HTTPStatus.CONFLICT,
         )
     elif init_result.failure_type == orchestrator.InitialiseRunFailureType.EXISTING_STATIC_INSTANCE:
@@ -1001,8 +1007,9 @@ def api_release_notes(access_token: str) -> Response:
 def api_config(access_token: str) -> Response | tuple[Response, int]:
     config = orchestrator.fetch_config(access_token)
     run_groups = orchestrator.fetch_run_groups(access_token, 1)
+    certificates = orchestrator.fetch_certificates(access_token)
     csip_aus_versions = orchestrator.fetch_csip_aus_versions(access_token, 1)
-    if config is None or run_groups is None or csip_aus_versions is None:
+    if config is None or run_groups is None or certificates is None or csip_aus_versions is None:
         return jsonify({"error": "Unable to communicate with test server."}), HTTPStatus.BAD_GATEWAY
     return jsonify(
         ConfigResponse(
@@ -1011,6 +1018,7 @@ def api_config(access_token: str) -> Response | tuple[Response, int]:
                 pen=None if config.pen == 0 else config.pen,
             ),
             run_groups=list(run_groups.items),
+            certificates=certificates,
             csip_aus_versions=list(csip_aus_versions.items),
         ).to_dict()
     )
@@ -1155,55 +1163,108 @@ def config_ca_cert(access_token: str) -> Response:
     )
 
 
-@app.route("/config/run_group/<int:run_group_id>/cert", methods=["GET"])
-@login_required
-def config_download_run_group_cert(access_token: str, run_group_id: int) -> Response:
-    download_bytes, download_file_name = orchestrator.download_client_cert(access_token, run_group_id)
-    if download_bytes is None or download_file_name is None:
+# Header listing (comma separated) the run groups that a newly created certificate could NOT be assigned to. The
+# certificate ZIP is still returned in this case - it's the only opportunity to obtain the private key.
+HEADER_UNASSIGNED_RUN_GROUPS = "X-Cactus-Unassigned-Run-Groups"
+
+
+def send_certificate_file(result: orchestrator.CertificateFileResult, mimetype: str) -> Response:
+    if result.content is None or result.file_name is None:
         return Response(
-            response="Failed to retrieve certificate.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
-        )  # noqa: E501
+            response=result.error_message or "Certificate operation failed.",
+            status=HTTPStatus.BAD_GATEWAY,
+            mimetype="text/plain",
+        )
+    return send_file(io.BytesIO(result.content), mimetype, True, download_name=result.file_name)
+
+
+@app.route("/config/certificates", methods=["POST"])
+@login_required
+def config_create_certificate(access_token: str) -> Response:
+    """Generates a new certificate (returned as a ZIP download) and optionally assigns it to run groups.
+
+    JSON body: {"name": str, "type": "device" | "aggregator", "run_group_ids": list[int] (optional)}"""
+    body = request.get_json(silent=True) or {}
+    name = str(body.get("name") or "").strip()
+    cert_type = body.get("type")
+    raw_run_group_ids = body.get("run_group_ids") or []
+    if not name:
+        return Response(
+            response="A certificate name is required.", status=HTTPStatus.BAD_REQUEST, mimetype="text/plain"
+        )
+    if cert_type not in ("device", "aggregator"):
+        return Response(
+            response="Certificate type must be 'device' or 'aggregator'.",
+            status=HTTPStatus.BAD_REQUEST,
+            mimetype="text/plain",
+        )
+    try:
+        run_group_ids = [int(rg_id) for rg_id in raw_run_group_ids]
+    except (TypeError, ValueError):
+        return Response(response="Invalid run group IDs.", status=HTTPStatus.BAD_REQUEST, mimetype="text/plain")
+
+    result = orchestrator.create_certificate(access_token, name, cert_type == "device")
+    response = send_certificate_file(result, "application/zip")
+    if result.content is None:
+        return response
+
+    unassigned_ids = [
+        rg_id
+        for rg_id in run_group_ids
+        if result.certificate_id is None
+        or orchestrator.assign_run_group_certificate(access_token, rg_id, result.certificate_id) is None
+    ]
+    if unassigned_ids:
+        response.headers[HEADER_UNASSIGNED_RUN_GROUPS] = ",".join(str(rg_id) for rg_id in unassigned_ids)
+    return response
+
+
+@app.route("/config/certificates/<int:certificate_id>", methods=["GET"])
+@login_required
+def config_download_certificate(access_token: str, certificate_id: int) -> Response:
     # Deliberately NOT application/x-x509-user-cert: Firefox routes that legacy type into its
     # certificate-install machinery instead of the download path (surfaces as NS_BINDING_ABORTED).
-    return send_file(
-        io.BytesIO(download_bytes),
-        "application/x-pem-file",
-        True,
-        download_name=download_file_name,
+    return send_certificate_file(
+        orchestrator.download_certificate(access_token, certificate_id), "application/x-pem-file"
     )
 
 
-@app.route("/config/run_group/<int:run_group_id>/cert", methods=["POST"])
+@app.route("/config/certificates/<int:certificate_id>/regenerate", methods=["POST"])
 @login_required
-def config_generate_run_group_cert(access_token: str, run_group_id: int) -> Response:
-    is_device_cert = request.form.get("type", "device") == "device"
-    download_bytes, download_file_name = orchestrator.generate_client_cert(access_token, run_group_id, is_device_cert)
-    if download_bytes is None or download_file_name is None:
-        return Response(
-            response="Failed to generate certificate.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
-        )  # noqa: E501
-    return send_file(
-        io.BytesIO(download_bytes),
-        "application/zip",
-        True,
-        download_name=download_file_name,
-    )
+def config_regenerate_certificate(access_token: str, certificate_id: int) -> Response:
+    return send_certificate_file(orchestrator.regenerate_certificate(access_token, certificate_id), "application/zip")
 
 
-@app.route("/config/shared_cert", methods=["POST"])
-@login_required
-def config_generate_shared_cert(access_token: str) -> Response:
-    download_bytes, download_file_name = orchestrator.generate_shared_client_cert(access_token)
-    if download_bytes is None or download_file_name is None:
-        return Response(
-            response="Failed to generate shared certificate.", status=HTTPStatus.BAD_GATEWAY, mimetype="text/plain"
-        )
-    return send_file(
-        io.BytesIO(download_bytes),
-        "application/zip",
-        True,
-        download_name=download_file_name,
-    )
+@app.route("/api/certificates/<int:certificate_id>", methods=["DELETE"])
+@api_login_required
+def api_delete_certificate(access_token: str, certificate_id: int) -> Response | tuple[Response, int]:
+    result = orchestrator.delete_certificate(access_token, certificate_id)
+    if not result.success:
+        return jsonify({"error": result.error_message}), HTTPStatus.BAD_GATEWAY
+    return jsonify({})
+
+
+@app.route("/api/run_groups/<int:run_group_id>/certificate", methods=["PUT"])
+@api_login_required
+def api_assign_run_group_certificate(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    body = request.get_json(silent=True) or {}
+    try:
+        certificate_id = int(body["certificate_id"])
+    except (KeyError, TypeError, ValueError):
+        return jsonify({"error": "certificate_id is required."}), HTTPStatus.BAD_REQUEST
+    result = orchestrator.assign_run_group_certificate(access_token, run_group_id, certificate_id)
+    if result is None:
+        return jsonify({"error": "Failed to assign certificate"}), HTTPStatus.BAD_GATEWAY
+    return jsonify(result.to_dict())
+
+
+@app.route("/api/run_groups/<int:run_group_id>/certificate", methods=["DELETE"])
+@api_login_required
+def api_unassign_run_group_certificate(access_token: str, run_group_id: int) -> Response | tuple[Response, int]:
+    result = orchestrator.unassign_run_group_certificate(access_token, run_group_id)
+    if result is None:
+        return jsonify({"error": "Failed to unassign certificate"}), HTTPStatus.BAD_GATEWAY
+    return jsonify(result.to_dict())
 
 
 @app.route("/playlist/artifacts", methods=["GET"])

@@ -22,7 +22,8 @@
       "classes": ["A", "G"],
       "immediate_start": false,
       "run_group_id": null,
-      "warnings": null
+      "warnings": null,
+      "certificate_id": null
     },
     {
       "run_id": 110,
@@ -40,7 +41,8 @@
       "classes": ["A", "G"],
       "immediate_start": false,
       "run_group_id": null,
-      "warnings": null
+      "warnings": null,
+      "certificate_id": null
     }
   ]
 }

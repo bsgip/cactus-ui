@@ -83,8 +83,8 @@ export function deleteComplianceRequest(id: number, isAdminView: boolean = false
 }
 
 // Finalising returns the finalised compliance report PDF as a download.
-export function finaliseComplianceRequest(id: number): Promise<void> {
-  return apiDownload(`/admin/compliance/requests/${id}/finalise`, `compliance_request_${id}.pdf`, {
+export async function finaliseComplianceRequest(id: number): Promise<void> {
+  await apiDownload(`/admin/compliance/requests/${id}/finalise`, `compliance_request_${id}.pdf`, {
     method: 'POST',
   });
 }

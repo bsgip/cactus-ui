@@ -12,8 +12,9 @@
           "created_at": "2024-01-15T10:00:00+00:00",
           "is_static_uri": false,
           "static_uri": null,
+          "assigned_certificate_id": 5,
+          "certificate_name": "Alice device",
           "is_device_cert": true,
-          "certificate_id": 5,
           "certificate_created_at": "2024-01-15T10:05:00+00:00",
           "total_runs": 12
         },
@@ -24,8 +25,9 @@
           "created_at": "2024-02-01T09:00:00+00:00",
           "is_static_uri": false,
           "static_uri": null,
-          "is_device_cert": false,
-          "certificate_id": null,
+          "assigned_certificate_id": null,
+          "certificate_name": null,
+          "is_device_cert": null,
           "certificate_created_at": null,
           "total_runs": 3
         }

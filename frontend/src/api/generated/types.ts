@@ -176,8 +176,9 @@ export interface AdminUserResponse {
   user_id: number;
 }
 export interface RunGroupResponse {
+  assigned_certificate_id: number | null;
   certificate_created_at: string | null;
-  certificate_id: number | null;
+  certificate_name: string | null;
   created_at: string;
   csip_aus_version: string;
   is_device_cert: boolean | null;
@@ -198,6 +199,16 @@ export interface AdminUsersResponse {
  */
 export interface CSIPAusVersionResponse {
   version: string;
+}
+export interface CertificateResponse {
+  certificate_id: number;
+  created_at: string;
+  expires_at: string;
+  generated_at: string;
+  generation: number;
+  is_device_cert: boolean;
+  name: string;
+  run_group_ids: number[];
 }
 export interface ClientInteraction {
   interaction_type: ClientInteractionType;
@@ -240,6 +251,7 @@ export interface ComplianceFormDataResponse {
 }
 export interface RunResponse {
   all_criteria_met: boolean | null;
+  certificate_id: number | null;
   classes: string[] | null;
   created_at: string;
   finalised_at: string | null;
@@ -306,9 +318,13 @@ export interface ComplianceResponse {
   compliance_by_class: ComplianceClassEntry[];
 }
 /**
- * GET /api/config — the user's config plus their run groups and selectable versions.
+ * GET /api/config — the user's config plus their run groups, certificates and selectable versions.
+ *
+ * Run groups reference (at most) one certificate via RunGroupResponse.assigned_certificate_id, and each certificate
+ * lists the run groups it's assigned to via CertificateResponse.run_group_ids.
  */
 export interface ConfigResponse {
+  certificates: CertificateResponse[];
   config: UserConfig;
   csip_aus_versions: CSIPAusVersionResponse[];
   run_groups: RunGroupResponse[];

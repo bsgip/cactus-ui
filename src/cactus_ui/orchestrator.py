@@ -246,51 +246,138 @@ def try_read_file_name(response: requests.Response, default_val: str) -> str:
         return default_val
 
 
-def download_client_cert(access_token: str, run_group_id: int) -> tuple[bytes | None, str | None]:
-    """Downloads the current client certificate for run_group_id - returns the raw x509 PEM bytes AND an
-    appropriate file name"""
+@dataclass
+class CertificateFileResult:
+    """The result of a certificate operation that returns a file (PEM or ZIP bundle)"""
 
-    uri = generate_uri(orchestrator.uri.CertificateRunGroup.format(run_group_id=run_group_id))
+    content: bytes | None  # Set on success
+    file_name: str | None  # Set on success
+    certificate_id: int | None  # The certificate that was acted upon (set on success)
+    error_message: str | None  # Set on failure - will contain the orchestrator error detail (if available)
+
+
+@dataclass
+class ActionResult:
+    success: bool
+    error_message: str | None  # Set on failure - will contain the orchestrator error detail (if available)
+
+
+def try_read_error_detail(response: requests.Response | None, default_val: str) -> str:
+    """Extracts the FastAPI "detail" error message from an orchestrator error response (falling back to default_val)"""
+    if response is None:
+        return default_val
+    try:
+        detail = response.json().get("detail")
+    except Exception:
+        return default_val
+    return detail if isinstance(detail, str) and detail else default_val
+
+
+def _parse_certificate_id(location: str | None) -> int | None:
+    """Parses the certificate ID from a Location header of the form /certificate/{certificate_id}"""
+    if not location:
+        return None
+    try:
+        return int(location.rstrip("/").rsplit("/", 1)[-1])
+    except ValueError:
+        return None
+
+
+def _certificate_file_result(
+    response: requests.Response | None, default_file_name: str, default_error: str, certificate_id: int | None = None
+) -> CertificateFileResult:
+    if response is None or not is_success_response(response):
+        return CertificateFileResult(None, None, None, try_read_error_detail(response, default_error))
+    if certificate_id is None:
+        certificate_id = _parse_certificate_id(response.headers.get("Location"))
+    return CertificateFileResult(
+        content=response.content,
+        file_name=try_read_file_name(response, default_file_name),
+        certificate_id=certificate_id,
+        error_message=None,
+    )
+
+
+def fetch_certificates(access_token: str) -> list[orchestrator.CertificateResponse] | None:
+    """Fetches all certificates for the current user (users are only expected to have a handful)"""
+    certificates: list[orchestrator.CertificateResponse] = []
+    page: int | None = 1
+    while page is not None:
+        uri = generate_uri(orchestrator.uri.CertificateList + f"?page={page}&size=100")
+        response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+        if response is None or not is_success_response(response):
+            return None
+        parsed = handle_pagination(response.json(), lambda c: orchestrator.CertificateResponse.from_dict(c))
+        certificates.extend(parsed.items)
+        page = parsed.next_page
+    return certificates
+
+
+def create_certificate(access_token: str, name: str, is_device_cert: bool) -> CertificateFileResult:
+    """Generates a brand new (unassigned) certificate - returns a ZIP stream with all the data (including the private
+    key, which can't be retrieved again), an appropriate file name and the new certificate's ID"""
+    uri = generate_uri(orchestrator.uri.CertificateList)
+    response = safe_request(
+        "POST",
+        uri,
+        generate_headers(access_token),
+        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
+        json=orchestrator.CertificateRequest(name=name, is_device_cert=is_device_cert).to_dict(),
+    )
+    return _certificate_file_result(response, "certificate.zip", "Failed to generate certificate.")
+
+
+def download_certificate(access_token: str, certificate_id: int) -> CertificateFileResult:
+    """Downloads the certificate (plus CA chain) as PEM bytes AND an appropriate file name"""
+    uri = generate_uri(orchestrator.uri.Certificate.format(certificate_id=certificate_id))
     response = safe_request("GET", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    return _certificate_file_result(response, "client.pem", "Failed to retrieve certificate.", certificate_id)
+
+
+def regenerate_certificate(access_token: str, certificate_id: int) -> CertificateFileResult:
+    """Regenerates an existing certificate (affecting every run group it's assigned to) - returns a ZIP stream with all
+    the data and an appropriate file name"""
+    uri = generate_uri(orchestrator.uri.Certificate.format(certificate_id=certificate_id))
+    response = safe_request("PUT", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    return _certificate_file_result(response, "certificate.zip", "Failed to regenerate certificate.", certificate_id)
+
+
+def delete_certificate(access_token: str, certificate_id: int) -> ActionResult:
+    """Deletes a certificate (unassigning it from any run groups). Will fail if it's in use by active runs."""
+    uri = generate_uri(orchestrator.uri.Certificate.format(certificate_id=certificate_id))
+    response = safe_request("DELETE", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
     if response is None or not is_success_response(response):
-        return (None, None)
+        return ActionResult(False, try_read_error_detail(response, "Failed to delete certificate."))
+    return ActionResult(True, None)
 
-    return (response.content, try_read_file_name(response, "client.pem"))
+
+def _parse_run_group_response(response: requests.Response | None) -> orchestrator.RunGroupResponse | None:
+    if response is None or not is_success_response(response):
+        return None
+    body_data = orchestrator.RunGroupResponse.from_json(response.text)
+    return body_data[0] if isinstance(body_data, list) else body_data
 
 
-def generate_client_cert(access_token: str, run_group_id: int, is_device_cert: bool) -> tuple[bytes | None, str | None]:
-    """Generates a new client certificate for run_group_id - returns a ZIP stream with all the data and an appropriate
-    file name"""
-
-    uri = generate_uri(orchestrator.uri.CertificateRunGroup.format(run_group_id=run_group_id))
+def assign_run_group_certificate(
+    access_token: str, run_group_id: int, certificate_id: int
+) -> orchestrator.RunGroupResponse | None:
+    """Assigns an existing certificate to run_group_id - returns the updated RunGroup"""
+    uri = generate_uri(orchestrator.uri.RunGroupCertificate.format(run_group_id=run_group_id))
     response = safe_request(
         "PUT",
         uri,
         generate_headers(access_token),
         CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
-        json={"is_device_cert": is_device_cert},
+        json=orchestrator.RunGroupCertificateAssignRequest(certificate_id=certificate_id).to_dict(),
     )
-    if response is None or not is_success_response(response):
-        return (None, None)
-
-    return (response.content, try_read_file_name(response, "client.pem"))
+    return _parse_run_group_response(response)
 
 
-def generate_shared_client_cert(access_token: str) -> tuple[bytes | None, str | None]:
-    """Generates a new aggregator client certificates and sets for all run groups.
-    Returns a ZIP stream with all the data and an appropriate file name"""
-
-    uri = generate_uri(orchestrator.uri.CertificateRunGroups)
-    response = safe_request(
-        "PUT",
-        uri,
-        generate_headers(access_token),
-        CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT,
-    )
-    if response is None or not is_success_response(response):
-        return (None, None)
-
-    return (response.content, try_read_file_name(response, "client.pem"))
+def unassign_run_group_certificate(access_token: str, run_group_id: int) -> orchestrator.RunGroupResponse | None:
+    """Removes any certificate assignment from run_group_id - returns the updated RunGroup"""
+    uri = generate_uri(orchestrator.uri.RunGroupCertificate.format(run_group_id=run_group_id))
+    response = safe_request("DELETE", uri, generate_headers(access_token), CACTUS_ORCHESTRATOR_REQUEST_TIMEOUT_DEFAULT)
+    return _parse_run_group_response(response)
 
 
 def init_run(access_token: str, run_group_id: int, test_procedure_id: str) -> InitRunResult:

@@ -8,6 +8,7 @@ import { GettingStartedChecklist } from './GettingStartedChecklist';
 import { OrganisationCard } from './OrganisationCard';
 import { NotificationsCard } from './NotificationsCard';
 import { RunGroupsCard } from './RunGroupsCard';
+import { CertificatesCard } from './CertificatesCard';
 import Page from '../../components/Page';
 import { ErrorAlert } from '../../components/ErrorAlert';
 import NoticeAlert from '../../components/NoticeAlert';
@@ -31,6 +32,7 @@ export function ConfigPage() {
   const configQuery = useQuery({ queryKey: ['config'], queryFn: fetchConfig });
   const config = configQuery.data;
   const runGroups = config?.run_groups ?? [];
+  const certificates = config?.certificates ?? [];
   const csipVersions = config?.csip_aus_versions ?? [];
   const hasDomain = !!config?.config.subscription_domain;
 
@@ -82,6 +84,7 @@ export function ConfigPage() {
             pen={config?.config.pen ?? null}
             domain={config?.config.subscription_domain ?? ''}
             runGroups={runGroups}
+            certificates={certificates}
           />
 
           <OrganisationCard
@@ -94,7 +97,15 @@ export function ConfigPage() {
           />
           <RunGroupsCard
             runGroups={runGroups}
+            certificates={certificates}
             csipVersions={csipVersions}
+            hasDomain={hasDomain}
+            onCertAction={handleCertAction}
+            setError={handleActionError}
+          />
+          <CertificatesCard
+            certificates={certificates}
+            runGroups={runGroups}
             hasDomain={hasDomain}
             onCertAction={handleCertAction}
             setError={handleActionError}

@@ -44,6 +44,7 @@ function makeRun(run_id: number, test_procedure_id: string): RunResponse {
     has_artifacts: true,
     immediate_start: false,
     is_device_cert: true,
+    certificate_id: null,
     playlist_execution_id: null,
     playlist_order: null,
     playlist_runs: null,
