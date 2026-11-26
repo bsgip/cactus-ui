@@ -7,21 +7,25 @@ import { IconPlus } from '@tabler/icons-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { createRunGroup } from '../../api/config';
-import type { CSIPAusVersionResponse, RunGroupResponse } from '../../api/types';
-import { SharedCertButton } from './SharedCertButton';
+import type {
+  CertificateResponse,
+  CSIPAusVersionResponse,
+  RunGroupResponse,
+} from '../../api/types';
 import { Section } from '../../components/Section';
 import RunGroupConfigTable from '../../components/RunGroupConfigTable';
-import Highlight from '../../components/Highlight';
 
 
 export function RunGroupsCard({
   runGroups,
+  certificates,
   csipVersions,
   hasDomain,
   onCertAction,
   setError,
 }: {
   runGroups: RunGroupResponse[];
+  certificates: CertificateResponse[];
   csipVersions: CSIPAusVersionResponse[];
   hasDomain: boolean;
   onCertAction: (message: string) => void;
@@ -44,26 +48,30 @@ export function RunGroupsCard({
   });
 
   return (
-    <Section title="RUN GROUPS & CERTIFICATES">
+    <Section title="RUN GROUPS">
       <Text as="p" mb="3">
         A run group represents progress towards CSIP-Aus certification for a single device / client.
       </Text>
-      <Text as="p" mb="3">
-        Each run group has a certificate used to secure communications between the client and utility server during testing.
-        These certificates are signed by the CACTUS certificate authority.
-      </Text>
       <Text as="p" mb="6">
-        A run group can be configured to use either a device or an aggregator certificate.
-        Run groups can also be configured to use a single shared aggregator certificate through the <Highlight color="var(--gray-a3)">Set SHARED Aggregator Certificate for ALL groups</Highlight> option below.
+        Each run group needs a certificate (device or aggregator) before tests can be run. Pick one of
+        your existing certificates with <strong>Change</strong>, or generate a new one with{' '}
+        <strong>New</strong>. Changing a run group&apos;s certificate only affects runs started
+        afterwards.
       </Text>
 
       {runGroups.length === 0 ? (
         <Text color="gray">No run groups yet — create your first one below to start testing.</Text>
       ) : (
-        <RunGroupConfigTable setError={setError} runGroups={runGroups} hasDomain={hasDomain} onCertAction={onCertAction} />
+        <RunGroupConfigTable
+          setError={setError}
+          runGroups={runGroups}
+          certificates={certificates}
+          hasDomain={hasDomain}
+          onCertAction={onCertAction}
+        />
       )}
 
-      <Flex justify="between" mt="4">
+      <Flex mt="4">
       <Flex gap="2" align="center">
         {csipVersions.map((v) => (
           <Button
@@ -77,13 +85,6 @@ export function RunGroupsCard({
           </Button>
         ))}
       </Flex>
-        {runGroups.length > 0 && (
-          <SharedCertButton
-            hasDomain={hasDomain}
-            onCertAction={onCertAction}
-            onCertError={setError}
-          />
-        )}
       </Flex>
     </Section>
   );

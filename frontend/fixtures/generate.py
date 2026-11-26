@@ -166,11 +166,10 @@ def run_group(
     created_at: str,
     is_static_uri: bool = False,
     static_uri: str | None = None,
-    is_device_cert: bool = True,
-    certificate_id: int | None = None,
-    certificate_created_at: str | None = None,
+    certificate: schema.CertificateResponse | None = None,
     total_runs: int = 0,
 ) -> schema.RunGroupResponse:
+    """The certificate fields are derived from certificate (the assigned certificate) so they can't disagree"""
     return schema.RunGroupResponse(
         run_group_id=run_group_id,
         name=name,
@@ -178,10 +177,33 @@ def run_group(
         created_at=created_at,
         is_static_uri=is_static_uri,
         static_uri=static_uri,
-        is_device_cert=is_device_cert,
-        certificate_id=certificate_id,
-        certificate_created_at=certificate_created_at,
+        assigned_certificate_id=certificate.certificate_id if certificate else None,
+        certificate_name=certificate.name if certificate else None,
+        is_device_cert=certificate.is_device_cert if certificate else None,
+        certificate_created_at=certificate.generated_at if certificate else None,
         total_runs=total_runs,
+    )
+
+
+def certificate(
+    certificate_id: int,
+    name: str,
+    is_device_cert: bool,
+    *,
+    generated_at: str,
+    expires_at: str,
+    generation: int = 1,
+    run_group_ids: list[int] | None = None,
+) -> schema.CertificateResponse:
+    return schema.CertificateResponse(
+        certificate_id=certificate_id,
+        name=name,
+        is_device_cert=is_device_cert,
+        created_at=generated_at,
+        generated_at=generated_at,
+        expires_at=expires_at,
+        generation=generation,
+        run_group_ids=run_group_ids or [],
     )
 
 
@@ -301,6 +323,32 @@ def main() -> None:
     ]
     write("procedure_summaries.json", server.build_procedure_summaries(summaries).to_dict())
 
+    # Certificates - one device cert (Mk1), one aggregator cert SHARED by Mk2 + Inverter X, and one unassigned spare
+    cert_mk1 = certificate(
+        11,
+        "Battery Mk1 device",
+        True,
+        generated_at="2026-05-01T00:05:00+00:00",
+        expires_at="2027-05-01T00:05:00+00:00",
+        generation=2,
+        run_group_ids=[1],
+    )
+    cert_org = certificate(
+        12,
+        "Organisation aggregator",
+        False,
+        generated_at="2026-06-01T00:05:00+00:00",
+        expires_at="2027-06-01T00:05:00+00:00",
+        run_group_ids=[2, 3],
+    )
+    cert_spare = certificate(
+        13,
+        "Spare device",
+        True,
+        generated_at="2026-06-15T00:05:00+00:00",
+        expires_at="2027-06-15T00:05:00+00:00",
+    )
+
     # run_groups.json - two groups so the group dropdown renders
     write(
         "run_groups.json",
@@ -311,9 +359,7 @@ def main() -> None:
                     "Battery Mk1",
                     "v1.2",
                     created_at="2026-05-01T00:00:00+00:00",
-                    is_device_cert=True,
-                    certificate_id=11,
-                    certificate_created_at="2026-05-01T00:05:00+00:00",
+                    certificate=cert_mk1,
                     total_runs=6,
                 ),
                 run_group(
@@ -323,9 +369,7 @@ def main() -> None:
                     created_at="2026-06-01T00:00:00+00:00",
                     is_static_uri=True,
                     static_uri="https://cactus.example/static/2/dcap",
-                    is_device_cert=False,
-                    certificate_id=12,
-                    certificate_created_at="2026-06-01T00:05:00+00:00",
+                    certificate=cert_org,
                     total_runs=0,
                 ),
             ]
@@ -459,7 +503,7 @@ def main() -> None:
     ]
     write("playlist_sessions.json", [s.to_dict() for s in sessions])
 
-    # config.json - user config + their run groups + selectable versions, as /api/config serves it
+    # config.json - user config + their run groups/certificates + selectable versions, as /api/config serves it
     write(
         "config.json",
         models.ConfigResponse(
@@ -472,9 +516,7 @@ def main() -> None:
                     created_at="2026-05-01T00:00:00+00:00",
                     is_static_uri=True,
                     static_uri="https://reallyreallyreallylongtopleveldomainhere.com/dcap/static/1",
-                    is_device_cert=True,
-                    certificate_id=11,
-                    certificate_created_at="2026-05-01T00:05:00+00:00",
+                    certificate=cert_mk1,
                     total_runs=6,
                 ),
                 run_group(
@@ -482,12 +524,19 @@ def main() -> None:
                     "Battery Mk2",
                     "v1.3-beta/storage",
                     created_at="2026-06-01T00:00:00+00:00",
-                    is_device_cert=False,
-                    certificate_id=12,
-                    certificate_created_at="2026-06-01T00:05:00+00:00",
+                    certificate=cert_org,
                     total_runs=0,
                 ),
+                run_group(
+                    3,
+                    "Inverter X",
+                    "v1.2",
+                    created_at="2026-06-10T00:00:00+00:00",
+                    certificate=cert_org,
+                    total_runs=2,
+                ),
             ],
+            certificates=[cert_mk1, cert_org, cert_spare],
             csip_aus_versions=[
                 schema.CSIPAusVersionResponse(version="v1.2"),
                 schema.CSIPAusVersionResponse(version="v1.3-beta/storage"),
@@ -510,9 +559,14 @@ def main() -> None:
                             "Battery Mk1",
                             "1.0",
                             created_at="2024-01-15T10:00:00+00:00",
-                            is_device_cert=True,
-                            certificate_id=5,
-                            certificate_created_at="2024-01-15T10:05:00+00:00",
+                            certificate=certificate(
+                                5,
+                                "Alice device",
+                                True,
+                                generated_at="2024-01-15T10:05:00+00:00",
+                                expires_at="2025-01-15T10:05:00+00:00",
+                                run_group_ids=[10],
+                            ),
                             total_runs=12,
                         ),
                         run_group(
@@ -520,7 +574,6 @@ def main() -> None:
                             "Battery Mk2",
                             "1.0",
                             created_at="2024-02-01T09:00:00+00:00",
-                            is_device_cert=False,
                             total_runs=3,
                         ),
                     ],

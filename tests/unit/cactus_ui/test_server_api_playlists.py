@@ -164,7 +164,7 @@ def test_api_init_playlist_success_sets_session(client, monkeypatch):
         (
             InitialiseRunFailureType.EXPIRED_CERT,
             HTTPStatus.CONFLICT,
-            "Your certificate has expired. Please generate and download a new certificate.",
+            server.MISSING_OR_EXPIRED_CERT_MESSAGE,
         ),
         (
             InitialiseRunFailureType.EXISTING_STATIC_INSTANCE,

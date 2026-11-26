@@ -19,6 +19,7 @@ from enum import StrEnum, auto
 from cactus_schema.orchestrator.compliance import ComplianceClass
 from cactus_schema.orchestrator.schema import (
     AdminComplianceRequestResponse,
+    CertificateResponse,
     ComplianceRequestResponse,
     CSIPAusVersionResponse,
     DeployReleaseResponse,
@@ -173,10 +174,14 @@ class UserConfig(FastAPICompatibleWizard):
 
 @dataclass
 class ConfigResponse(FastAPICompatibleWizard):
-    """GET /api/config — the user's config plus their run groups and selectable versions."""
+    """GET /api/config — the user's config plus their run groups, certificates and selectable versions.
+
+    Run groups reference (at most) one certificate via RunGroupResponse.assigned_certificate_id, and each certificate
+    lists the run groups it's assigned to via CertificateResponse.run_group_ids."""
 
     config: UserConfig
     run_groups: list[RunGroupResponse]
+    certificates: list[CertificateResponse]
     csip_aus_versions: list[CSIPAusVersionResponse]
 
 

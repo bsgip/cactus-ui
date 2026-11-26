@@ -44,13 +44,14 @@ function filenameFromContentDisposition(header: string | null): string | null {
  * Fetch a file-producing endpoint and hand the result to the browser as a download.
  * Used where the response depends on a POST (e.g. cert generation), so a plain
  * <a href> link can't carry the request. Errors surface as ApiError with the
- * endpoint's text/plain body as the message.
+ * endpoint's text/plain body as the message. Resolves with the response headers so callers can
+ * read any metadata the endpoint attaches alongside the file.
  */
 export async function apiDownload(
   path: string,
   fallbackName: string,
   options: ApiFetchOptions = {}
-): Promise<void> {
+): Promise<Headers> {
   const { on401 = 'redirect', ...init } = options;
 
   const response = await fetch(path, init);
@@ -58,7 +59,7 @@ export async function apiDownload(
   if (response.status === 401) {
     if (on401 === 'redirect') {
       window.location.assign('/login');
-      return new Promise<void>(() => {}); // never settles; the page is navigating away
+      return new Promise<Headers>(() => {}); // never settles; the page is navigating away
     }
     throw new UnauthenticatedError();
   }
@@ -79,6 +80,7 @@ export async function apiDownload(
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
+  return response.headers;
 }
 
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {

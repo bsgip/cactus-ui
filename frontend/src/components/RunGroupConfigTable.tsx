@@ -9,7 +9,7 @@ import {
   TextField,
   Tooltip,
 } from '@radix-ui/themes';
-import { IconPencil, IconX } from '@tabler/icons-react';
+import { IconPencil, IconPlus, IconX } from '@tabler/icons-react';
 import { useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
 import { Dispatch, SetStateAction, useRef, useState, RefObject } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
@@ -17,15 +17,20 @@ import { Link as RouterLink } from 'react-router-dom';
 import { deleteRunGroup, updateRunGroupName } from '../api/config';
 import { CopyButton } from './CopyButton';
 import { InfoPopover } from './InfoPopover';
-import { CertModal } from './CertModal';
+import { AssignCertificateModal } from './AssignCertificateModal';
 import { DeleteModal } from './DeleteModal';
-import { formatRelativeDate } from '../utils/dates';
-import type { RunGroupResponse } from '../api/types';
+import { NewCertificateModal } from './NewCertificateModal';
+import { certExpiryStatus, certTypeLabel, formatCertDate } from '../utils/certificates';
+import type { CertificateResponse, RunGroupResponse } from '../api/types';
 
-function CertStatusBadge({ runGroup }: { runGroup: RunGroupResponse }) {
-  const hasCert = !!(runGroup.certificate_id && runGroup.certificate_created_at);
-
-  if (!hasCert) {
+function CertStatusBadge({
+  runGroup,
+  certificate,
+}: {
+  runGroup: RunGroupResponse;
+  certificate: CertificateResponse | undefined;
+}) {
+  if (runGroup.assigned_certificate_id == null) {
     return (
       <Flex direction="column" gap="1">
         <Badge color="amber">No certificate</Badge>
@@ -36,15 +41,30 @@ function CertStatusBadge({ runGroup }: { runGroup: RunGroupResponse }) {
     );
   }
 
-  const certType = runGroup.is_device_cert ? 'Device' : 'Aggregator';
-  const issued = new Date(runGroup.certificate_created_at as string);
+  const certType = certTypeLabel(!!runGroup.is_device_cert);
+  const expiry = certificate ? certExpiryStatus(certificate.expires_at) : 'valid';
+  const sharedWith = certificate ? certificate.run_group_ids.length - 1 : 0;
 
   return (
-    <Tooltip content={formatRelativeDate(issued)}>
-      <Badge color="green">
-        {certType} cert · issued {issued.toLocaleDateString('sv')}
-      </Badge>
-    </Tooltip>
+    <Flex direction="column" gap="1">
+      <Tooltip
+        content={
+          certificate
+            ? `Issued ${formatCertDate(certificate.generated_at)}, expires ${formatCertDate(certificate.expires_at)}`
+            : runGroup.certificate_name
+        }
+      >
+        <Badge color={expiry === 'expired' ? 'red' : expiry === 'expiring' ? 'amber' : 'green'}>
+          {certType} cert · {runGroup.certificate_name}
+          {expiry === 'expired' && ' · expired'}
+        </Badge>
+      </Tooltip>
+      {sharedWith > 0 && (
+        <Text size="1" color="gray">
+          shared with {sharedWith} other {sharedWith === 1 ? 'group' : 'groups'}
+        </Text>
+      )}
+    </Flex>
   );
 }
 
@@ -74,28 +94,61 @@ function RunGroupConfigTableHeader() {
 }
 
 
-function CertificateCell({ rg, hasDomain, onCertAction, setError }:
-  {
-    rg: RunGroupResponse;
-    hasDomain: boolean;
-    onCertAction: (message: string) => void;
-    setError: (msg: string | null) => void;
-  }
-) {
+function CertificateCell({
+  rg,
+  runGroups,
+  certificates,
+  hasDomain,
+  onCertAction,
+  setError,
+}: {
+  rg: RunGroupResponse;
+  runGroups: RunGroupResponse[];
+  certificates: CertificateResponse[];
+  hasDomain: boolean;
+  onCertAction: (message: string) => void;
+  setError: (msg: string | null) => void;
+}) {
+  const certificate = certificates.find((c) => c.certificate_id === rg.assigned_certificate_id);
   return (
     <Table.Cell>
       <Flex direction="column" gap="2" align="start">
-        <CertStatusBadge runGroup={rg} />
-        <CertModal
-          runGroup={rg}
-          hasDomain={hasDomain}
-          onCertAction={onCertAction}
-          onCertError={setError}
-        />
+        <CertStatusBadge runGroup={rg} certificate={certificate} />
+        <Flex gap="2">
+          {certificates.length > 0 && (
+            <AssignCertificateModal
+              runGroup={rg}
+              runGroups={runGroups}
+              certificates={certificates}
+              onCertAction={onCertAction}
+              onCertError={setError}
+            />
+          )}
+          <NewCertificateModal
+            runGroups={runGroups}
+            hasDomain={hasDomain}
+            defaultRunGroupIds={[rg.run_group_id]}
+            onCreated={onCertAction}
+            onError={setError}
+            trigger={(open) =>
+              certificates.length === 0 ? (
+                <Button size="1" onClick={open}>
+                  <IconPlus size={14} />
+                  Generate Certificate
+                </Button>
+              ) : (
+                <Button size="1" variant="outline" onClick={open}>
+                  <IconPlus size={14} />
+                  New
+                </Button>
+              )
+            }
+          />
+        </Flex>
       </Flex>
     </Table.Cell>
   );
-};
+}
 
 function RunGroupNameCell({ rg, updateNameMutation, editing, setEditing }: { rg: RunGroupResponse, updateNameMutation: UseMutationResult<RunGroupResponse, Error, { id: number; name: string; }, unknown>, editing: { id: number; draft: string; } | null, setEditing: Dispatch<SetStateAction<{ id: number; draft: string; } | null>> }) {
   return (
@@ -228,6 +281,8 @@ function DeleteRunGroupCell({ rg, deleteMutation, pendingDeleteRef }: { rg: RunG
 
 interface RunGroupConfigTableRowProps {
   rg: RunGroupResponse;
+  runGroups: RunGroupResponse[];
+  certificates: CertificateResponse[];
   hasDomain: boolean;
   onCertAction: (message: string) => void;
   setError: (msg: string | null) => void;
@@ -238,10 +293,17 @@ interface RunGroupConfigTableRowProps {
   updateNameMutation: UseMutationResult<RunGroupResponse, Error, { id: number; name: string; }, unknown>
 };
 
-function RunGroupConfigTableRow({ rg, hasDomain, onCertAction, deleteMutation, editing, setEditing, pendingDeleteRef, updateNameMutation, setError }: RunGroupConfigTableRowProps) {
+function RunGroupConfigTableRow({ rg, runGroups, certificates, hasDomain, onCertAction, deleteMutation, editing, setEditing, pendingDeleteRef, updateNameMutation, setError }: RunGroupConfigTableRowProps) {
   return (
     <Table.Row>
-      <CertificateCell rg={rg} hasDomain={hasDomain} onCertAction={onCertAction} setError={setError} />
+      <CertificateCell
+        rg={rg}
+        runGroups={runGroups}
+        certificates={certificates}
+        hasDomain={hasDomain}
+        onCertAction={onCertAction}
+        setError={setError}
+      />
       <RunGroupNameCell rg={rg} updateNameMutation={updateNameMutation} editing={editing} setEditing={setEditing} />
       <CsipAusVersionCell rg={rg} />
       <DeviceCapabilityUriCell rg={rg} />
@@ -254,12 +316,13 @@ function RunGroupConfigTableRow({ rg, hasDomain, onCertAction, deleteMutation, e
 
 interface RunGroupConfigTableProps {
   runGroups: RunGroupResponse[];
+  certificates: CertificateResponse[];
   hasDomain: boolean;
   onCertAction: (message: string) => void;
   setError: (msg: string | null) => void;
 }
 
-function RunGroupConfigTable({ runGroups, hasDomain, onCertAction, setError }: RunGroupConfigTableProps) {
+function RunGroupConfigTable({ runGroups, certificates, hasDomain, onCertAction, setError }: RunGroupConfigTableProps) {
   const queryClient = useQueryClient();
 
   // Returning the invalidation promise keeps each mutation pending (spinners showing) until the
@@ -290,7 +353,7 @@ function RunGroupConfigTable({ runGroups, hasDomain, onCertAction, setError }: R
       <RunGroupConfigTableHeader />
       <Table.Body>
         {runGroups.map((rg) => (
-          <RunGroupConfigTableRow key={rg.run_group_id} rg={rg} hasDomain={hasDomain} onCertAction={onCertAction} deleteMutation={deleteMutation} editing={editing} setEditing={setEditing} pendingDeleteRef={pendingDeleteRef} updateNameMutation={updateNameMutation} setError={setError} />
+          <RunGroupConfigTableRow key={rg.run_group_id} rg={rg} runGroups={runGroups} certificates={certificates} hasDomain={hasDomain} onCertAction={onCertAction} deleteMutation={deleteMutation} editing={editing} setEditing={setEditing} pendingDeleteRef={pendingDeleteRef} updateNameMutation={updateNameMutation} setError={setError} />
         ))}
       </Table.Body>
     </Table.Root>

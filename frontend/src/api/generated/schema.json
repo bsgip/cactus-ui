@@ -254,6 +254,51 @@
       ],
       "type": "object"
     },
+    "CertificateResponse": {
+      "properties": {
+        "certificate_id": {
+          "type": "integer"
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "generation": {
+          "type": "integer"
+        },
+        "is_device_cert": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "run_group_ids": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "certificate_id",
+        "created_at",
+        "expires_at",
+        "generated_at",
+        "generation",
+        "is_device_cert",
+        "name",
+        "run_group_ids"
+      ],
+      "type": "object"
+    },
     "ClientInteraction": {
       "properties": {
         "interaction_type": {
@@ -544,8 +589,14 @@
       "type": "string"
     },
     "ConfigResponse": {
-      "description": "GET /api/config \u2014 the user's config plus their run groups and selectable versions.",
+      "description": "GET /api/config \u2014 the user's config plus their run groups, certificates and selectable versions.\n\nRun groups reference (at most) one certificate via RunGroupResponse.assigned_certificate_id, and each certificate\nlists the run groups it's assigned to via CertificateResponse.run_group_ids.",
       "properties": {
+        "certificates": {
+          "items": {
+            "$ref": "#/$defs/CertificateResponse"
+          },
+          "type": "array"
+        },
         "config": {
           "$ref": "#/$defs/UserConfig"
         },
@@ -563,6 +614,7 @@
         }
       },
       "required": [
+        "certificates",
         "config",
         "csip_aus_versions",
         "run_groups"
@@ -1951,6 +2003,16 @@
     },
     "RunGroupResponse": {
       "properties": {
+        "assigned_certificate_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "certificate_created_at": {
           "anyOf": [
             {
@@ -1962,10 +2024,10 @@
             }
           ]
         },
-        "certificate_id": {
+        "certificate_name": {
           "anyOf": [
             {
-              "type": "integer"
+              "type": "string"
             },
             {
               "type": "null"
@@ -2013,8 +2075,9 @@
         }
       },
       "required": [
+        "assigned_certificate_id",
         "certificate_created_at",
-        "certificate_id",
+        "certificate_name",
         "created_at",
         "csip_aus_version",
         "is_device_cert",
@@ -2037,6 +2100,17 @@
               "type": "null"
             }
           ]
+        },
+        "certificate_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "classes": {
           "anyOf": [
@@ -2153,6 +2227,7 @@
       },
       "required": [
         "all_criteria_met",
+        "certificate_id",
         "classes",
         "created_at",
         "finalised_at",

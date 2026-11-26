@@ -55,11 +55,44 @@ export const handlers = [
   http.get('/api/config', () => HttpResponse.json(configFixture)),
   http.post('/api/config/pen', () => HttpResponse.json({})),
   http.post('/api/config/domain', () => HttpResponse.json({})),
+
+  // ---- Certificates ----
+  http.post('/config/certificates', attachmentResponse('certificate.zip', 'application/zip')),
   http.post(
-    '/config/run_group/:runGroupId/cert',
+    '/config/certificates/:certificateId/regenerate',
     attachmentResponse('certificate.zip', 'application/zip')
   ),
-  http.post('/config/shared_cert', attachmentResponse('certificate.zip', 'application/zip')),
+  http.get(
+    '/config/certificates/:certificateId',
+    attachmentResponse('certificate.pem', 'application/x-pem-file')
+  ),
+  http.delete('/api/certificates/:certificateId', () => HttpResponse.json({})),
+  http.put('/api/run_groups/:runGroupId/certificate', async ({ params, request }) => {
+    const { certificate_id } = (await request.json()) as { certificate_id: number };
+    const cert = configFixture.certificates.find((c) => c.certificate_id === certificate_id);
+    const runGroup = configFixture.run_groups.find(
+      (rg) => rg.run_group_id === Number(params.runGroupId)
+    );
+    return HttpResponse.json({
+      ...(runGroup ?? configFixture.run_groups[0]),
+      assigned_certificate_id: certificate_id,
+      certificate_name: cert?.name ?? null,
+      is_device_cert: cert?.is_device_cert ?? null,
+      certificate_created_at: cert?.generated_at ?? null,
+    });
+  }),
+  http.delete('/api/run_groups/:runGroupId/certificate', ({ params }) => {
+    const runGroup = configFixture.run_groups.find(
+      (rg) => rg.run_group_id === Number(params.runGroupId)
+    );
+    return HttpResponse.json({
+      ...(runGroup ?? configFixture.run_groups[0]),
+      assigned_certificate_id: null,
+      certificate_name: null,
+      is_device_cert: null,
+      certificate_created_at: null,
+    });
+  }),
 
   // ---- Run Groups ----
   http.post('/api/run_groups', () =>

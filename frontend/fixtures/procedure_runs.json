@@ -29,7 +29,8 @@
           "message": "setMaxW was changed from 5000W to 4500W mid-test.",
           "timestamp": "2026-06-10T03:45:00Z"
         }
-      ]
+      ],
+      "certificate_id": null
     },
     {
       "run_id": 117,
@@ -47,7 +48,8 @@
       "classes": ["A", "G"],
       "immediate_start": false,
       "run_group_id": null,
-      "warnings": null
+      "warnings": null,
+      "certificate_id": null
     },
     {
       "run_id": 110,
@@ -65,7 +67,8 @@
       "classes": ["A", "G"],
       "immediate_start": false,
       "run_group_id": null,
-      "warnings": null
+      "warnings": null,
+      "certificate_id": null
     },
     {
       "run_id": 104,
@@ -83,7 +86,8 @@
       "classes": ["A", "G"],
       "immediate_start": false,
       "run_group_id": null,
-      "warnings": null
+      "warnings": null,
+      "certificate_id": null
     }
   ]
 }

@@ -1,6 +1,6 @@
 import { Box, Flex, Text } from '@radix-ui/themes';
 import { IconInfoCircle, IconCircle, IconCircleCheck } from '@tabler/icons-react';
-import type { RunGroupResponse } from '../../api/types';
+import type { CertificateResponse, RunGroupResponse } from '../../api/types';
 
 // Tinted alert box (Callout.Text renders as <p>, which can't hold the block-level rows below).
 function AlertBox({ children }: { children: React.ReactNode }) {
@@ -46,23 +46,26 @@ function ChecklistRow({ done, children }: { done: boolean; children: React.React
   );
 }
 
-// Data-driven getting-started checklist: identity -> run group -> certificate. Hidden once
-// both a run group and a certificate exist, since the page is self-explanatory from there.
+// Data-driven getting-started checklist: identity -> run group -> certificate -> assignment.
+// Hidden once a run group has a certificate assigned, since the page is self-explanatory from there.
 export function GettingStartedChecklist({
   pen,
   domain,
   runGroups,
+  certificates,
 }: {
   pen: number | null;
   domain: string;
   runGroups: RunGroupResponse[];
+  certificates: CertificateResponse[];
 }) {
   const hasIdentity = pen != null;
   const hasDomain = domain !== '';
   const hasRunGroup = runGroups.length > 0;
-  const hasCertificate = runGroups.some((rg) => rg.certificate_id != null);
+  const hasCertificate = certificates.length > 0;
+  const hasAssignment = runGroups.some((rg) => rg.assigned_certificate_id != null);
 
-  if (hasRunGroup && hasCertificate) return null;
+  if (hasRunGroup && hasAssignment) return null;
 
   return (
     <AlertBox>
@@ -78,7 +81,10 @@ export function GettingStartedChecklist({
           Create a run group for the device or client you&apos;re certifying
         </ChecklistRow>
         <ChecklistRow done={hasCertificate}>
-          Generate a device or aggregator certificate for it
+          Generate a device or aggregator certificate
+        </ChecklistRow>
+        <ChecklistRow done={hasAssignment}>
+          Assign a certificate to your run group
         </ChecklistRow>
         <Text size="1" color="gray">
           Use the <IconInfoCircle size={16} style={{display: "inline", position: "relative", top: "4px"}}/> icons for more detail on each step.
