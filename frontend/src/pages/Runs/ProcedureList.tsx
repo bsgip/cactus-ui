@@ -23,9 +23,11 @@ function badgeColor(summary: TestProcedureRunSummary): 'green' | 'red' | 'gray' 
 export function ProcedureList({ summaries, selection, onSelect }: ProcedureListProps) {
   const itemsByCategory: Record<string, LibraryItem[]> = {};
   const descriptions = new Map<string, string>();
+  const runCounts = new Map<string, number>();
   for (const gp of summaries.grouped_procedures) {
     itemsByCategory[gp.category] = gp.summaries.map((p) => {
       descriptions.set(p.test_procedure_id, p.description);
+      runCounts.set(p.test_procedure_id, p.run_count);
       return {
         id: p.test_procedure_id,
         description: p.description,
@@ -42,6 +44,9 @@ export function ProcedureList({ summaries, selection, onSelect }: ProcedureListP
       title="Procedures"
       itemsByCategory={itemsByCategory}
       complianceClasses={summaries.classes}
+      categoryCount={(items) =>
+        items.reduce((total, item) => total + (runCounts.get(item.id) ?? 0), 0)
+      }
       selectedIds={selection.kind === 'procedure' ? new Set([selection.id]) : new Set()}
       onSelect={(id) =>
         onSelect({ kind: 'procedure', id, description: descriptions.get(id) ?? '' })

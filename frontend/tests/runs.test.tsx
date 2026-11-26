@@ -56,7 +56,13 @@ describe('runs page', () => {
     renderApp('/group/1/runs');
 
     // Category headers from the fixture (native <details>/<summary> accordion)
-    expect(await screen.findByText('Registration')).toBeInTheDocument();
+    const registration = await screen.findByText('Registration');
+    expect(registration).toBeInTheDocument();
+
+    // Category badge totals the runs beneath it (3 + 1 + 2), not the 7 procedures
+    const registrationHeader = registration.closest('summary') as HTMLElement;
+    expect(within(registrationHeader).getByText('6')).toBeInTheDocument();
+    expect(within(registrationHeader).queryByText('7')).not.toBeInTheDocument();
 
     // ALL-01 has 3 runs, latest passing -> badge shows the count
     const all01 = await screen.findByRole('button', { name: /ALL-01/ });
